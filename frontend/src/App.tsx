@@ -8,6 +8,9 @@ import ShortcutsModal from './components/ShortcutsModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import RecentFiles from './components/RecentFiles';
 import PageThumbnails from './components/PageThumbnails';
+import HistoryPanel from './components/HistoryPanel';
+import FullscreenButton from './components/FullscreenButton';
+import CollaborativeAnnotations from './components/CollaborativeAnnotations';
 import { FileText, Scissors, RefreshCw, Shield, Zap } from 'lucide-react';
 import Header from './components/Header';
 import PageNavigation from './components/PageNavigation';
@@ -142,7 +145,7 @@ function AppContent() {
           </div>
 
           {activeView === 'editor' && (
-            <div className="space-y-6 animate-fade-in border-t border-[var(--border-color)] pt-4">
+            <div className="space-y-4 animate-fade-in border-t border-[var(--border-color)] pt-4">
               <div className="space-y-3">
                 <h2 className="text-xs font-semibold text-[var(--color-primary-600)] uppercase tracking-wider px-1">Tools</h2>
                 <Toolbar />
@@ -151,6 +154,19 @@ function AppContent() {
               <div className="space-y-3">
                 <h2 className="text-xs font-semibold text-[var(--color-primary-600)] uppercase tracking-wider px-1">Assets</h2>
                 <ImageUpload />
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between px-1">
+                  <h2 className="text-xs font-semibold text-[var(--color-primary-600)] uppercase tracking-wider">History</h2>
+                  <FullscreenButton />
+                </div>
+                <HistoryPanel />
+              </div>
+
+              <div className="space-y-3">
+                <h2 className="text-xs font-semibold text-[var(--color-primary-600)] uppercase tracking-wider px-1">Comments</h2>
+                <CollaborativeAnnotations />
               </div>
             </div>
           )}

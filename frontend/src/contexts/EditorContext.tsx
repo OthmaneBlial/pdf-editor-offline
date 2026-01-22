@@ -40,6 +40,12 @@ interface EditorContextType extends EditorState {
   saveChanges: (force?: boolean) => Promise<void>;
   exportPDF: () => Promise<void>;
   reorderPages: (fromIndex: number, toIndex: number) => void;
+  // History state for UI
+  history: string[];
+  historyStep: number;
+  canUndo: boolean;
+  canRedo: boolean;
+  clearHistory: () => void;
 }
 
 const EditorContext = createContext<EditorContextType | undefined>(undefined);
@@ -256,6 +262,18 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     saveChanges,
     exportPDF,
     reorderPages,
+    // History state
+    history,
+    historyStep,
+    canUndo: historyStep > 0,
+    canRedo: historyStep < history.length - 1,
+    clearHistory: () => {
+      if (canvas) {
+        const json = JSON.stringify(canvas.toJSON());
+        setHistory([json]);
+        setHistoryStep(0);
+      }
+    },
   };
 
   return (
