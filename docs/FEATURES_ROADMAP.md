@@ -26,10 +26,10 @@
 
 ### Interface & Navigation
 - [X] **Dark Mode** - Dark theme to reduce eye strain
-- [ ] **Keyboard Shortcuts** - Ctrl+S save, Ctrl+Z undo, etc.
-- [ ] **Recent Files History** - List of recently opened PDFs
-- [ ] **Thumbnail Preview** - Grid view of all pages
-- [ ] **Drag & Drop Reorder** - Drag & drop pages in the interface
+- [X] **Keyboard Shortcuts** - Ctrl+S save, Ctrl+Z undo, etc.
+- [X] **Recent Files History** - List of recently opened PDFs
+- [X] **Thumbnail Preview** - Grid view of all pages
+- [X] **Drag & Drop Reorder** - Drag & drop pages in the interface
 
 ### Editor Enhancements
 - [ ] **Multi-level Undo/Redo** - Full modification history
@@ -198,7 +198,7 @@
 
 | Phase | Features | Completed | Progress |
 |-------|----------|-----------|----------|
-| Phase 1 | 9 | 0 | 0% |
+| Phase 1 | 9 | 5 | 56% |
 | Phase 2 | 9 | 0 | 0% |
 | Phase 3 | 11 | 0 | 0% |
 | Phase 4 | 12 | 0 | 0% |
@@ -208,8 +208,9 @@
 | Phase 8 | 8 | 0 | 0% |
 | Phase 9 | 3 | 0 | 0% |
 | Phase 10 | 7 | 0 | 0% |
-| **TOTAL** | **81** | **0** | **0%** |
+| **TOTAL** | **81** | **5** | **6%** |
 
 ---
 
-*Last updated: 2025-12-21*
+*Last updated: 2026-01-22*
+

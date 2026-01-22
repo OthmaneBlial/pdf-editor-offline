@@ -4,7 +4,7 @@
 
 /* Animated Background Pattern */
 .app-background {
-  background: linear-gradient(to bottom, #f9fafb, #f3f4f6);
+  background: var(--bg-primary);
   position: relative;
 }
 
@@ -19,7 +19,7 @@
 
 /* Sidebar Gradient Accent */
 .sidebar-gradient {
-  background: linear-gradient(to bottom, #ffffff, #ecfeff);
+  background: var(--sidebar-bg);
   position: relative;
 }
 

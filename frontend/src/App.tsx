@@ -6,6 +6,8 @@ import Toolbar from './components/Toolbar';
 import ImageUpload from './components/ImageUpload';
 import ShortcutsModal from './components/ShortcutsModal';
 import ErrorBoundary from './components/ErrorBoundary';
+import RecentFiles from './components/RecentFiles';
+import PageThumbnails from './components/PageThumbnails';
 import { FileText, Scissors, RefreshCw, Shield, Zap } from 'lucide-react';
 import Header from './components/Header';
 import PageNavigation from './components/PageNavigation';
@@ -37,6 +39,7 @@ function AppContent() {
       case 'editor':
         return (
           <div className="flex-1 relative overflow-auto p-8 animate-fade-in text-[var(--text-primary)]">
+            <PageThumbnails />
             <div className="min-h-full bg-[var(--card-bg)] rounded-2xl shadow-2xl shadow-cyan-200/10 border border-[var(--border-color)] relative overflow-hidden transition-colors duration-300">
               {/* Decorative gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-blue-500/5 pointer-events-none" />
@@ -167,8 +170,9 @@ function AppContent() {
 
         <div className="p-4 border-t border-[var(--border-color)] bg-[var(--sidebar-bg)] backdrop-blur-xl">
           <FileUpload />
+          <RecentFiles />
           <div className="mt-4 flex items-center justify-between text-xs text-[var(--text-secondary)]">
-            <span>© 2024 PDF Editor</span>
+            <span>© 2025 PDF Editor</span>
             <span className="hover:text-[var(--color-primary-600)] cursor-pointer transition-colors">v1.0.0</span>
           </div>
           <p className="text-xs text-center text-[var(--color-primary-600)] font-medium mt-2">

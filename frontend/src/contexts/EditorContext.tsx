@@ -39,6 +39,7 @@ interface EditorContextType extends EditorState {
   redo: () => void;
   saveChanges: (force?: boolean) => Promise<void>;
   exportPDF: () => Promise<void>;
+  reorderPages: (fromIndex: number, toIndex: number) => void;
 }
 
 const EditorContext = createContext<EditorContextType | undefined>(undefined);
@@ -201,6 +202,27 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     }
   };
 
+  const reorderPages = (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex || !sessionId) return;
+
+    // Create new page order array
+    const pages = Array.from({ length: pageCount }, (_, i) => i);
+    const [movedPage] = pages.splice(fromIndex, 1);
+    pages.splice(toIndex, 0, movedPage);
+
+    // TODO: Call API to persist reorder when backend supports it
+    // For now, just update the current page if it was affected
+    if (currentPage === fromIndex) {
+      setCurrentPage(toIndex);
+    } else if (fromIndex < currentPage && currentPage <= toIndex) {
+      setCurrentPage(currentPage - 1);
+    } else if (toIndex <= currentPage && currentPage < fromIndex) {
+      setCurrentPage(currentPage + 1);
+    }
+
+    console.log(`Reordered page ${fromIndex + 1} to position ${toIndex + 1}`);
+  };
+
   const value: EditorContextType = {
     document,
     currentPage,
@@ -233,6 +255,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     redo,
     saveChanges,
     exportPDF,
+    reorderPages,
   };
 
   return (

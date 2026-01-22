@@ -95,20 +95,26 @@ async def upload_document(file: UploadFile = File(...)):
         )
     except PDFLoadError as e:
         logger.warning(f"Failed to load PDF: {e}")
+        # Clean up temp file on error
+        if os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except OSError:
+                pass
         raise HTTPException(
             status_code=400,
             detail="Invalid or corrupted PDF file. Please check the file and try again."
         )
     except ValueError as e:
         logger.error(f"Validation error during upload: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
-    finally:
-        # Clean up temp file if it still exists
+        # Clean up temp file on error
         if os.path.exists(temp_path):
             try:
                 os.remove(temp_path)
             except OSError:
-                pass  # Best effort cleanup
+                pass
+        raise HTTPException(status_code=400, detail=str(e))
+
 
 
 @router.get("/{doc_id}", response_model=APIResponse)
