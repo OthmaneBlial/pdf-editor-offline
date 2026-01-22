@@ -1,7 +1,6 @@
-import React, { useRef } from 'react';
+import { useRef } from 'react';
 import { useEditor } from '../contexts/EditorContext';
-import { Upload } from 'lucide-react';
-import RecentFiles from './RecentFiles';
+import { Upload, FileUp } from 'lucide-react';
 import { addRecentFile } from '../services/recentFiles';
 
 const FileUpload: React.FC = () => {
@@ -25,28 +24,31 @@ const FileUpload: React.FC = () => {
       <div
         onClick={triggerFileInput}
         id="file-upload"
-        className="upload-zone group relative w-full h-36 rounded-2xl border-2 border-dashed border-[var(--color-primary-300)] hover:border-[var(--color-primary-500)] bg-[var(--bg-secondary)] hover:bg-[var(--hover-bg)] transition-all duration-300 cursor-pointer flex flex-col items-center justify-center gap-3 overflow-hidden"
+        className="group relative w-full py-8 rounded-xl border-2 border-dashed border-[var(--sidebar-border)] hover:border-[var(--accent-primary)] bg-white/5 hover:bg-white/10 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center gap-3 overflow-hidden"
       >
-        {/* Animated gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-primary-500)]/0 via-[var(--color-primary-500)]/5 to-[var(--color-primary-500)]/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        {/* Glow effect on hover */}
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-[var(--accent-primary)]/5 via-transparent to-[var(--accent-tertiary)]/5" />
 
-        <div className="p-4 bg-[var(--card-bg)] rounded-2xl shadow-lg shadow-[var(--color-primary-200)]/50 group-hover:scale-110 group-hover:shadow-xl group-hover:shadow-[var(--color-primary-300)]/50 transition-all duration-300 relative z-10">
-          <Upload className="w-6 h-6 text-[var(--color-primary-600)] group-hover:text-[var(--color-primary-700)] transition-colors" />
+        {/* Icon */}
+        <div className="p-3 bg-[var(--accent-primary)]/10 rounded-xl group-hover:bg-[var(--accent-primary)]/20 group-hover:scale-110 transition-all duration-300 relative z-10">
+          <FileUp className="w-6 h-6 text-[var(--accent-primary)]" />
         </div>
+
+        {/* Text */}
         <div className="text-center relative z-10">
-          <p className="text-sm font-semibold text-[var(--color-primary-700)] group-hover:text-[var(--color-primary-800)] transition-colors">
-            Click to upload PDF
+          <p className="text-sm font-display font-semibold text-[var(--sidebar-text)] group-hover:text-[var(--accent-primary)] transition-colors">
+            Upload PDF
           </p>
-          <p className="text-xs text-[var(--color-primary-500)] mt-1">
-            or drag and drop
+          <p className="text-xs text-[var(--sidebar-text-muted)] mt-1 font-body">
+            Click or drag file here
           </p>
         </div>
 
-        {/* Decorative corner accents */}
-        <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-[var(--color-primary-400)]/50 rounded-tl-lg opacity-0 group-hover:opacity-100 transition-opacity" />
-        <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-[var(--color-primary-400)]/50 rounded-tr-lg opacity-0 group-hover:opacity-100 transition-opacity" />
-        <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-[var(--color-primary-400)]/50 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity" />
-        <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-[var(--color-primary-400)]/50 rounded-br-lg opacity-0 group-hover:opacity-100 transition-opacity" />
+        {/* Corner accents */}
+        <div className="absolute top-3 left-3 w-3 h-3 border-t-2 border-l-2 border-[var(--accent-primary)] rounded-tl opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="absolute top-3 right-3 w-3 h-3 border-t-2 border-r-2 border-[var(--accent-primary)] rounded-tr opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="absolute bottom-3 left-3 w-3 h-3 border-b-2 border-l-2 border-[var(--accent-primary)] rounded-bl opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="absolute bottom-3 right-3 w-3 h-3 border-b-2 border-r-2 border-[var(--accent-primary)] rounded-br opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
 
       <input
@@ -56,12 +58,6 @@ const FileUpload: React.FC = () => {
         onChange={handleFileUpload}
         className="hidden"
       />
-
-      <RecentFiles onFileSelect={(fileName) => {
-        // In a real implementation, we'd need a way to load the file from storage or API
-        // For now, we'll just log or alert, as we can't re-upload from name alone without FS access API or Blob URL storage
-        alert(`Re-opening ${fileName} is not fully implemented in this demo without backend storage.`);
-      }} />
     </div>
   );
 };

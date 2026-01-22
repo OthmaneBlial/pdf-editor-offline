@@ -232,13 +232,27 @@ const ManipulationTools: React.FC = () => {
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <h2 className="text-2xl font-bold mb-2 text-[var(--text-primary)]">Manipulation Tools</h2>
-      <p className="text-sm text-[var(--text-secondary)] mb-6">Merge, split, organize, and manipulate PDF pages</p>
+    <div className="p-8 max-w-7xl mx-auto animate-fade-in">
+      {/* Page Header */}
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <h2 className="font-display text-3xl font-bold text-[var(--text-primary)]">
+            Manipulation Tools
+          </h2>
+          <span className="tag">14 Tools</span>
+        </div>
+        <p className="text-sm text-[var(--text-secondary)] font-body">
+          Merge, split, organize, and manipulate PDF pages with precision
+        </p>
+      </div>
 
+      {/* Status Message */}
       {message && (
-        <div className={`p-4 mb-6 rounded-lg ${message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-          {message.text}
+        <div className={`p-4 mb-8 rounded-xl font-body text-sm flex items-center gap-3 animate-slide-up ${message.type === 'success'
+            ? 'bg-[var(--status-success)]/10 text-[var(--status-success)] border border-[var(--status-success)]/20'
+            : 'bg-[var(--status-error)]/10 text-[var(--status-error)] border border-[var(--status-error)]/20'
+          }`}>
+          <span className="font-medium">{message.text}</span>
         </div>
       )}
 

@@ -11,7 +11,7 @@ import PageThumbnails from './components/PageThumbnails';
 import HistoryPanel from './components/HistoryPanel';
 import FullscreenButton from './components/FullscreenButton';
 import CollaborativeAnnotations from './components/CollaborativeAnnotations';
-import { FileText, Scissors, RefreshCw, Shield, Zap } from 'lucide-react';
+import { FileText, Scissors, RefreshCw, Shield, Zap, Sparkles, ChevronRight, Keyboard } from 'lucide-react';
 import Header from './components/Header';
 import PageNavigation from './components/PageNavigation';
 import ZoomControls from './components/ZoomControls';
@@ -32,6 +32,40 @@ function KeyboardShortcutsHandler({ onShowHelp }: { onShowHelp: () => void }) {
   return null;
 }
 
+// Navigation item component for cleaner code
+function NavItem({
+  active,
+  onClick,
+  icon: Icon,
+  label,
+  delay = 0
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  delay?: number;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{ animationDelay: `${delay}ms` }}
+      className={`
+        group w-full flex items-center gap-3 px-4 py-3 rounded-lg font-display text-sm font-medium
+        transition-all duration-200 animate-slide-in-left
+        ${active
+          ? 'bg-[var(--accent-primary)] text-[var(--neutral-950)] shadow-lg'
+          : 'text-[var(--sidebar-text-muted)] hover:text-[var(--sidebar-text)] hover:bg-white/5'
+        }
+      `}
+    >
+      <Icon className={`w-4 h-4 transition-transform duration-200 ${active ? '' : 'group-hover:scale-110'}`} />
+      <span className="flex-1 text-left">{label}</span>
+      <ChevronRight className={`w-3 h-3 transition-all duration-200 ${active ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`} />
+    </button>
+  );
+}
+
 // Inner component with access to EditorContext
 function AppContent() {
   const [activeView, setActiveView] = useState<ViewMode>('editor');
@@ -41,11 +75,12 @@ function AppContent() {
     switch (activeView) {
       case 'editor':
         return (
-          <div className="flex-1 relative overflow-auto p-8 animate-fade-in text-[var(--text-primary)]">
+          <div className="flex-1 relative overflow-auto p-6 animate-fade-in">
             <PageThumbnails />
-            <div className="min-h-full bg-[var(--card-bg)] rounded-2xl shadow-2xl shadow-cyan-200/10 border border-[var(--border-color)] relative overflow-hidden transition-colors duration-300">
-              {/* Decorative gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-blue-500/5 pointer-events-none" />
+            <div className="min-h-full bg-[var(--bg-canvas)] rounded-2xl shadow-xl border border-[var(--border-subtle)] relative overflow-hidden">
+              {/* Decorative corner accent */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[var(--accent-primary)]/10 to-transparent pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-[var(--accent-tertiary)]/10 to-transparent pointer-events-none" />
               <PDFViewer />
               <PageNavigation />
               <ZoomControls />
@@ -66,141 +101,171 @@ function AppContent() {
   };
 
   return (
-    <div className="flex h-screen w-full bg-[var(--bg-primary)] overflow-hidden font-sans text-text relative transition-colors duration-300">
+    <div className="flex h-screen w-full bg-[var(--bg-app)] overflow-hidden relative">
       <KeyboardShortcutsHandler onShowHelp={() => setShowShortcuts(true)} />
       <ShortcutsModal isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
 
-      {/* Animated background mesh */}
-      <div className="absolute inset-0 opacity-30 pointer-events-none" style={{
-        backgroundImage: `var(--gradient-mesh)`
-      }} />
+      {/* Gradient mesh background */}
+      <div
+        className="fixed inset-0 pointer-events-none opacity-60"
+        style={{ backgroundImage: 'var(--gradient-mesh)' }}
+      />
 
-      {/* Sidebar */}
-      <aside className="w-80 bg-[var(--sidebar-bg)] backdrop-blur-xl border-r border-[var(--border-color)] flex flex-col shadow-xl z-10 relative transition-colors duration-300">
+      {/* Dark Sidebar - Neo-Brutalist */}
+      <aside className="w-72 bg-[var(--sidebar-bg)] flex flex-col relative z-10 border-r border-[var(--sidebar-border)]">
         {/* Logo Section */}
-        <div className="p-6 border-b border-[var(--border-color)] flex items-center gap-3 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/5 to-blue-500/5" />
-          <div className="flex items-center justify-center relative">
-            <img src="/logo.png" alt="Logo" className="w-10 h-10 object-contain drop-shadow-md transform hover:rotate-6 transition-transform" />
+        <div className="p-6 border-b border-[var(--sidebar-border)]">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <img
+                src="/logo.png"
+                alt="Logo"
+                className="w-10 h-10 object-contain drop-shadow-lg animate-float"
+              />
+              <div className="absolute -inset-1 bg-[var(--accent-primary)]/20 rounded-full blur-md -z-10" />
+            </div>
+            <div>
+              <h1 className="font-display text-lg font-bold text-[var(--sidebar-text)] tracking-tight">
+                PDF Smart Editor
+              </h1>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="tag tag-new">PRO</span>
+                <span className="text-[10px] text-[var(--sidebar-text-muted)] font-mono">v1.0.0</span>
+              </div>
+            </div>
           </div>
-          <h1 className="text-xl font-bold bg-gradient-to-r from-cyan-600 via-sky-600 to-blue-700 bg-clip-text text-transparent animate-slide-in-right">
-            PDF Smart Editor
-          </h1>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-6">
-          {/* Navigation Menu */}
-          <div className="space-y-2 animate-slide-in-left">
-            <h2 className="text-xs font-semibold text-[var(--color-primary-600)] uppercase tracking-wider px-1">Navigation</h2>
-            <button
+        {/* Navigation */}
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="space-y-1">
+            <p className="px-4 py-2 text-[10px] font-display font-bold uppercase tracking-widest text-[var(--sidebar-text-muted)]">
+              Navigation
+            </p>
+            <NavItem
+              active={activeView === 'editor'}
               onClick={() => setActiveView('editor')}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-300 ${activeView === 'editor'
-                ? 'bg-gradient-to-r from-[var(--color-primary-600)] to-[var(--color-primary-700)] text-white shadow-lg shadow-cyan-500/30 scale-105'
-                : 'text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] hover:text-[var(--color-primary-700)]'
-                }`}
-            >
-              <FileText className="w-4 h-4" />
-              <span className="text-sm font-medium">Editor</span>
-            </button>
-            <button
+              icon={FileText}
+              label="Editor"
+              delay={50}
+            />
+            <NavItem
+              active={activeView === 'manipulation'}
               onClick={() => setActiveView('manipulation')}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-300 ${activeView === 'manipulation'
-                ? 'bg-gradient-to-r from-[var(--color-primary-600)] to-[var(--color-primary-700)] text-white shadow-lg shadow-cyan-500/30 scale-105'
-                : 'text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] hover:text-[var(--color-primary-700)]'
-                }`}
-            >
-              <Scissors className="w-4 h-4" />
-              <span className="text-sm font-medium">Manipulation</span>
-            </button>
-            <button
+              icon={Scissors}
+              label="Manipulation"
+              delay={100}
+            />
+            <NavItem
+              active={activeView === 'conversion'}
               onClick={() => setActiveView('conversion')}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-300 ${activeView === 'conversion'
-                ? 'bg-gradient-to-r from-[var(--color-primary-600)] to-[var(--color-primary-700)] text-white shadow-lg shadow-cyan-500/30 scale-105'
-                : 'text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] hover:text-[var(--color-primary-700)]'
-                }`}
-            >
-              <RefreshCw className="w-4 h-4" />
-              <span className="text-sm font-medium">Conversion</span>
-            </button>
-            <button
+              icon={RefreshCw}
+              label="Conversion"
+              delay={150}
+            />
+            <NavItem
+              active={activeView === 'security'}
               onClick={() => setActiveView('security')}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-300 ${activeView === 'security'
-                ? 'bg-gradient-to-r from-[var(--color-primary-600)] to-[var(--color-primary-700)] text-white shadow-lg shadow-cyan-500/30 scale-105'
-                : 'text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] hover:text-[var(--color-primary-700)]'
-                }`}
-            >
-              <Shield className="w-4 h-4" />
-              <span className="text-sm font-medium">Security</span>
-            </button>
-            <button
+              icon={Shield}
+              label="Security"
+              delay={200}
+            />
+            <NavItem
+              active={activeView === 'advanced'}
               onClick={() => setActiveView('advanced')}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-300 ${activeView === 'advanced'
-                ? 'bg-gradient-to-r from-[var(--color-primary-600)] to-[var(--color-primary-700)] text-white shadow-lg shadow-cyan-500/30 scale-105'
-                : 'text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] hover:text-[var(--color-primary-700)]'
-                }`}
-            >
-              <Zap className="w-4 h-4" />
-              <span className="text-sm font-medium">Advanced</span>
-            </button>
+              icon={Zap}
+              label="Advanced"
+              delay={250}
+            />
           </div>
 
+          {/* Editor Tools Section */}
           {activeView === 'editor' && (
-            <div className="space-y-4 animate-fade-in border-t border-[var(--border-color)] pt-4">
-              <div className="space-y-3">
-                <h2 className="text-xs font-semibold text-[var(--color-primary-600)] uppercase tracking-wider px-1">Tools</h2>
-                <Toolbar />
+            <div className="mt-6 space-y-4 animate-fade-in">
+              <div className="h-px bg-gradient-to-r from-transparent via-[var(--sidebar-border)] to-transparent" />
+
+              <div>
+                <p className="px-4 py-2 text-[10px] font-display font-bold uppercase tracking-widest text-[var(--sidebar-text-muted)]">
+                  Quick Tools
+                </p>
+                <div className="px-2">
+                  <Toolbar />
+                </div>
               </div>
 
-              <div className="space-y-3">
-                <h2 className="text-xs font-semibold text-[var(--color-primary-600)] uppercase tracking-wider px-1">Assets</h2>
-                <ImageUpload />
+              <div>
+                <p className="px-4 py-2 text-[10px] font-display font-bold uppercase tracking-widest text-[var(--sidebar-text-muted)]">
+                  Add Assets
+                </p>
+                <div className="px-2">
+                  <ImageUpload />
+                </div>
               </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center justify-between px-1">
-                  <h2 className="text-xs font-semibold text-[var(--color-primary-600)] uppercase tracking-wider">History</h2>
+              <div>
+                <div className="flex items-center justify-between px-4 py-2">
+                  <p className="text-[10px] font-display font-bold uppercase tracking-widest text-[var(--sidebar-text-muted)]">
+                    History
+                  </p>
                   <FullscreenButton />
                 </div>
-                <HistoryPanel />
+                <div className="px-2">
+                  <HistoryPanel />
+                </div>
               </div>
 
-              <div className="space-y-3">
-                <h2 className="text-xs font-semibold text-[var(--color-primary-600)] uppercase tracking-wider px-1">Comments</h2>
-                <CollaborativeAnnotations />
+              <div>
+                <p className="px-4 py-2 text-[10px] font-display font-bold uppercase tracking-widest text-[var(--sidebar-text-muted)]">
+                  Comments
+                </p>
+                <div className="px-2">
+                  <CollaborativeAnnotations />
+                </div>
               </div>
             </div>
           )}
-
-          <div className="px-4 py-4 rounded-xl bg-gradient-to-br from-[var(--color-primary-50)] to-blue-50/50 border border-[var(--border-color)]">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-xs font-semibold text-[var(--color-primary-700)]">System Status</span>
-            </div>
-            <p className="text-xs text-[var(--text-secondary)]">
-              All systems operational.
-              <br />
-              Local processing active.
-            </p>
-          </div>
         </div>
 
-        <div className="p-4 border-t border-[var(--border-color)] bg-[var(--sidebar-bg)] backdrop-blur-xl">
+        {/* Bottom Section */}
+        <div className="p-4 border-t border-[var(--sidebar-border)] space-y-3">
+          {/* File Upload */}
           <FileUpload />
           <RecentFiles />
-          <div className="mt-4 flex items-center justify-between text-xs text-[var(--text-secondary)]">
-            <span>© 2025 PDF Editor</span>
-            <span className="hover:text-[var(--color-primary-600)] cursor-pointer transition-colors">v1.0.0</span>
+
+          {/* Status Bar */}
+          <div className="flex items-center justify-between px-2 py-2 rounded-lg bg-white/5">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-[var(--status-success)] animate-pulse" />
+              <span className="text-[10px] font-mono text-[var(--sidebar-text-muted)]">
+                All systems operational
+              </span>
+            </div>
+            <button
+              onClick={() => setShowShortcuts(true)}
+              className="p-1.5 rounded hover:bg-white/10 transition-colors group"
+              title="Keyboard shortcuts"
+            >
+              <Keyboard className="w-3.5 h-3.5 text-[var(--sidebar-text-muted)] group-hover:text-[var(--accent-primary)]" />
+            </button>
           </div>
-          <p className="text-xs text-center text-[var(--color-primary-600)] font-medium mt-2">
-            Premium Edition ✨
-          </p>
+
+          {/* Footer */}
+          <div className="flex items-center justify-between text-[10px] text-[var(--sidebar-text-muted)]">
+            <span className="font-mono">© 2025</span>
+            <div className="flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-[var(--accent-primary)]" />
+              <span className="font-display font-semibold text-[var(--accent-primary)]">Premium</span>
+            </div>
+          </div>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 relative flex flex-col">
+      <main className="flex-1 relative flex flex-col overflow-hidden">
         <Header />
-        {renderContent()}
+        <div className="flex-1 overflow-auto">
+          {renderContent()}
+        </div>
       </main>
     </div>
   );
@@ -216,6 +281,5 @@ function App() {
     </ErrorBoundary>
   );
 }
-
 
 export default App;
