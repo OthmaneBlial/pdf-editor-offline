@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pdfsmarteditor"
-version = "0.1.0"
+version = "2.0.0"
 description = "A smart PDF editor with CLI and API capabilities"
 readme = "README.md"
 license = "MIT"

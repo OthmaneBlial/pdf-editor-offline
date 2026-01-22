@@ -130,7 +130,7 @@ function AppContent() {
               </h1>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <span className="tag tag-new">PRO</span>
-                <span className="text-[10px] text-[var(--sidebar-text-muted)] font-mono">v1.0.0</span>
+                <span className="text-[10px] text-[var(--sidebar-text-muted)] font-mono">v2.0.0</span>
               </div>
             </div>
           </div>
