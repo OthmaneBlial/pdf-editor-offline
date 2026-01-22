@@ -48,3 +48,29 @@ class MetadataUpdate(BaseModel):
     author: Optional[str] = None
     subject: Optional[str] = None
     keywords: Optional[str] = None
+
+
+# Page Manipulation Models
+class ExtractPagesRequest(BaseModel):
+    pages: List[int]  # 0-indexed page numbers
+
+
+class DuplicatePageRequest(BaseModel):
+    page_num: int  # 0-indexed page to duplicate
+    insert_at: Optional[int] = None  # Position to insert (default: after original)
+
+
+class ResizePageRequest(BaseModel):
+    page_num: int  # 0-indexed page number
+    format: str  # 'A4', 'Letter', 'Legal', 'A3', 'A5', 'Custom'
+    width: Optional[float] = None  # For custom size (in points)
+    height: Optional[float] = None  # For custom size (in points)
+
+
+class CropPageRequest(BaseModel):
+    page_num: int  # 0-indexed page number
+    left: float  # Margins to crop in points (72 points = 1 inch)
+    top: float
+    right: float
+    bottom: float
+
