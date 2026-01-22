@@ -32,7 +32,7 @@ pdfsmarteditor/utils/config.py
 pdfsmarteditor/utils/image_utils.py
 pdfsmarteditor/utils/logging.py
 pdfsmarteditor/utils/pdf_helpers.py
-pdfsmarteditor/utils/types.py
+pdfsmarteditor/utils/pdf_types.py
 pdfsmarteditor/utils/validators.py
 tests/test_api_smoke.py
 tests/test_api_tools.py

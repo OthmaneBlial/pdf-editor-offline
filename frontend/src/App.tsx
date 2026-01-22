@@ -5,6 +5,7 @@ import PDFViewer from './components/PDFViewer';
 import Toolbar from './components/Toolbar';
 import ImageUpload from './components/ImageUpload';
 import ShortcutsModal from './components/ShortcutsModal';
+import ErrorBoundary from './components/ErrorBoundary';
 import { FileText, Scissors, RefreshCw, Shield, Zap } from 'lucide-react';
 import Header from './components/Header';
 import PageNavigation from './components/PageNavigation';
@@ -185,12 +186,14 @@ function AppContent() {
   );
 }
 
-// Wrapper to provide Editor context
+// Wrapper to provide Editor context and Error Boundary
 function App() {
   return (
-    <EditorProvider>
-      <AppContent />
-    </EditorProvider>
+    <ErrorBoundary>
+      <EditorProvider>
+        <AppContent />
+      </EditorProvider>
+    </ErrorBoundary>
   );
 }
 

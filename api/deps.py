@@ -141,6 +141,21 @@ def cleanup_stale_sessions():
         )
 
 
+def cleanup_all_sessions():
+    """Clean up all sessions on server shutdown."""
+    removed = 0
+    for session_id in list(sessions.keys()):
+        try:
+            delete_session(session_id)
+            removed += 1
+        except Exception as exc:
+            logger.warning(
+                "Failed to cleanup session %s during shutdown: %s", session_id, exc
+            )
+    if removed:
+        logger.info("Cleaned up %s active session(s) on shutdown", removed)
+
+
 def persist_session_document(session_id: str) -> Dict[str, Any]:
     session = get_session(session_id)
     storage_path = session["storage_path"]

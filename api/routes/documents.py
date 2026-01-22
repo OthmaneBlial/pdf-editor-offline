@@ -1,9 +1,14 @@
+import logging
 import os
 from typing import List, Optional
 
 import fitz
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
+
+from pdfsmarteditor.core.exceptions import PDFLoadError
+
+logger = logging.getLogger(__name__)
 
 from api.deps import (
     MAX_UPLOAD_MB,
@@ -36,19 +41,41 @@ router = APIRouter(prefix="/api/documents", tags=["documents"])
 
 @router.post("/upload", response_model=APIResponse)
 async def upload_document(file: UploadFile = File(...)):
-    try:
-        # Simple size check
-        file.file.seek(0, os.SEEK_END)
-        size = file.file.tell()
-        file.file.seek(0)
-        if size > MAX_UPLOAD_MB * 1024 * 1024:
-            raise HTTPException(status_code=413, detail="File too large")
+    """Upload a PDF document and create an editing session."""
+    # Validate file type
+    if not file.filename or not file.filename.lower().endswith('.pdf'):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid file type. Only PDF files are accepted."
+        )
 
-        # Save temporarily
-        temp_path = os.path.join(TEMP_DIR, f"upload_{file.filename}")
+    # Check file size
+    file.file.seek(0, os.SEEK_END)
+    size = file.file.tell()
+    file.file.seek(0)
+    
+    if size == 0:
+        raise HTTPException(status_code=400, detail="Empty file uploaded")
+    
+    if size > MAX_UPLOAD_MB * 1024 * 1024:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large. Maximum size is {MAX_UPLOAD_MB}MB."
+        )
+
+    # Save temporarily
+    temp_path = os.path.join(TEMP_DIR, f"upload_{file.filename}")
+    try:
         with open(temp_path, "wb") as f:
             f.write(await file.read())
+    except IOError as e:
+        logger.error(f"Failed to write uploaded file: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to save uploaded file. Please try again."
+        )
 
+    try:
         session_id = create_session(temp_path, file.filename)
         session = sessions[session_id]
 
@@ -60,13 +87,28 @@ async def upload_document(file: UploadFile = File(...)):
             last_modified=session["last_modified"],
         )
 
+        logger.info(f"Document uploaded successfully: {file.filename} (session: {session_id})")
         return APIResponse(
             success=True,
             data=doc_session.dict(),
             message="Document uploaded successfully",
         )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except PDFLoadError as e:
+        logger.warning(f"Failed to load PDF: {e}")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid or corrupted PDF file. Please check the file and try again."
+        )
+    except ValueError as e:
+        logger.error(f"Validation error during upload: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        # Clean up temp file if it still exists
+        if os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except OSError:
+                pass  # Best effort cleanup
 
 
 @router.get("/{doc_id}", response_model=APIResponse)
