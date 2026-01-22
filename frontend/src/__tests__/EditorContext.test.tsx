@@ -9,9 +9,9 @@ function TestConsumer() {
         setZoom,
         currentPage,
         setCurrentPage,
-        totalPages,
-        selectedTool,
-        setSelectedTool,
+        pageCount,
+        drawingMode,
+        setDrawingMode,
         hasUnsavedChanges,
         canUndo,
         canRedo,
@@ -24,8 +24,8 @@ function TestConsumer() {
         <div>
             <span data-testid="zoom">{zoom}</span>
             <span data-testid="current-page">{currentPage}</span>
-            <span data-testid="total-pages">{totalPages}</span>
-            <span data-testid="selected-tool">{selectedTool}</span>
+            <span data-testid="page-count">{pageCount}</span>
+            <span data-testid="drawing-mode">{drawingMode}</span>
             <span data-testid="has-unsaved">{hasUnsavedChanges.toString()}</span>
             <span data-testid="can-undo">{canUndo.toString()}</span>
             <span data-testid="can-redo">{canRedo.toString()}</span>
@@ -34,7 +34,7 @@ function TestConsumer() {
             <button data-testid="zoom-out" onClick={() => setZoom(zoom - 0.1)}>Zoom Out</button>
             <button data-testid="next-page" onClick={() => setCurrentPage(currentPage + 1)}>Next</button>
             <button data-testid="prev-page" onClick={() => setCurrentPage(currentPage - 1)}>Prev</button>
-            <button data-testid="set-tool" onClick={() => setSelectedTool('text')}>Set Text Tool</button>
+            <button data-testid="set-mode" onClick={() => setDrawingMode('text')}>Set Text Mode</button>
             <button data-testid="undo-btn" onClick={undo}>Undo</button>
             <button data-testid="redo-btn" onClick={redo}>Redo</button>
             <button data-testid="clear-history" onClick={clearHistory}>Clear</button>
@@ -57,19 +57,19 @@ describe('EditorContext', () => {
             expect(screen.getByTestId('zoom').textContent).toBe('1');
         });
 
-        it('provides default current page of 1', () => {
+        it('provides default current page of 0 (0-indexed)', () => {
             renderWithProvider();
-            expect(screen.getByTestId('current-page').textContent).toBe('1');
+            expect(screen.getByTestId('current-page').textContent).toBe('0');
         });
 
-        it('provides default total pages of 0', () => {
+        it('provides default page count of 1', () => {
             renderWithProvider();
-            expect(screen.getByTestId('total-pages').textContent).toBe('0');
+            expect(screen.getByTestId('page-count').textContent).toBe('1');
         });
 
-        it('provides default selected tool as select', () => {
+        it('provides default drawing mode as select', () => {
             renderWithProvider();
-            expect(screen.getByTestId('selected-tool').textContent).toBe('select');
+            expect(screen.getByTestId('drawing-mode').textContent).toBe('select');
         });
 
         it('shows no unsaved changes initially', () => {
@@ -108,13 +108,35 @@ describe('EditorContext', () => {
         });
     });
 
-    describe('Tool Selection', () => {
-        it('changes selected tool', () => {
+    describe('Drawing Mode', () => {
+        it('changes drawing mode', () => {
             renderWithProvider();
 
-            fireEvent.click(screen.getByTestId('set-tool'));
+            fireEvent.click(screen.getByTestId('set-mode'));
 
-            expect(screen.getByTestId('selected-tool').textContent).toBe('text');
+            expect(screen.getByTestId('drawing-mode').textContent).toBe('text');
+        });
+    });
+
+    describe('Page Navigation', () => {
+        it('increments current page', () => {
+            renderWithProvider();
+
+            fireEvent.click(screen.getByTestId('next-page'));
+
+            expect(screen.getByTestId('current-page').textContent).toBe('1');
+        });
+
+        it('decrements current page', () => {
+            renderWithProvider();
+
+            // First go to page 1
+            fireEvent.click(screen.getByTestId('next-page'));
+            expect(screen.getByTestId('current-page').textContent).toBe('1');
+
+            // Then go back to page 0
+            fireEvent.click(screen.getByTestId('prev-page'));
+            expect(screen.getByTestId('current-page').textContent).toBe('0');
         });
     });
 });
@@ -141,7 +163,7 @@ describe('EditorProvider Error Handling', () => {
 
         expect(() => {
             render(<TestConsumer />);
-        }).toThrow();
+        }).toThrow('useEditor must be used within an EditorProvider');
 
         consoleSpy.mockRestore();
     });
