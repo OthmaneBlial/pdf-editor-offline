@@ -85,26 +85,40 @@
 
 ---
 
-## 📝 Phase 4: Advanced Editing
-*Priority: Medium | Complexity: High*
+## 📝 Phase 4: Advanced Editing (PyMuPDF Maximized)
+*Priority: Medium | Complexity: Medium-High*
+*Realistic advanced features using 100% free, open-source PyMuPDF*
 
-### Text Tools
-- [ ] **In-line Text Editing** - Modify existing text directly
-- [ ] **Find & Replace** - Search and replace text in PDF
-- [ ] **Selective Text Extraction** - Copy text with formatting
-- [ ] **Hyperlink Insertion** - Add clickable links
+### Smart Text Replacement
+- [ ] **Font-Aware Replace** - Replace text preserving original font properties (size, color, family)
+- [ ] **Quad-Based Search** - Precise 4-corner text detection for rotated/skewed content
+- [ ] **Font Extraction Utility** - Extract all fonts used in document with properties
+- [ ] **Best-Fit Font Matching** - Map document fonts to available PyMuPDF fonts
 
-### Form Tools
-- [ ] **Form Creator** - Design form fields
-- [ ] **Form Filling** - Fill existing forms
-- [ ] **Form Data Export** - Extract data to JSON/CSV
-- [ ] **Calculated Fields** - Fields with formulas
+### Rich Text Insertion ⭐ GAME CHANGER
+- [ ] **HTML/CSS Text Box** - Insert styled text using `insert_htmlbox()` (bold, italic, colors, paragraphs)
+- [ ] **Multi-Font Composition** - Use `TextWriter` for mixed fonts/styles in single insertion
+- [ ] **Text Reflow with Story** - Automatic text wrapping for complex layouts
+- [ ] **Rich Text Templates** - Pre-defined HTML snippets for common insertions
 
-### Advanced Drawing Tools
-- [ ] **Geometric Shapes** - Circles, rectangles, custom arrows
-- [ ] **Custom Stamps** - Create and reuse stamps
-- [ ] **Secure Redaction** - Irreversible content censoring
-- [ ] **Annotation Layers** - Manage annotations by layers
+### Navigation & Structure
+- [ ] **Table of Contents Viewer** - Extract and display PDF bookmarks/TOC with hierarchy
+- [ ] **Bookmark Management** - Add, edit, delete bookmarks with `get_toc()`/`set_toc()`
+- [ ] **Navigate to Bookmark** - Jump to specific pages from TOC
+- [ ] **Hyperlink Manager** - Add, edit, remove clickable links
+
+### Advanced Annotations
+- [ ] **File Attachments** - Embed files as PDF annotations
+- [ ] **Polygon/Polyline Shapes** - Free-form geometric annotations
+- [ ] **Audio Annotations** - Add sound annotations to PDFs
+- [ ] **Popup Notes** - Attach popup notes to existing annotations
+- [ ] **Annotation Appearance** - Full control over colors, borders, styles
+
+### Image & Content Tools
+- [ ] **Image Extraction** - Extract images with full metadata (DPI, colorspace, size)
+- [ ] **Smart Image Replacement** - Replace images with auto-compression
+- [ ] **Content Optimization** - Use `clean_contents()` to remove invisible/redundant data
+- [ ] **Document Optimization** - Garbage collection, stream compression, unused object removal
 
 ---
 
@@ -174,12 +188,12 @@
 | Phase 1 | 9 | 9 | 100% ✅ |
 | Phase 2 | 9 | 9 | 100% ✅ |
 | Phase 3 | 11 | 11 | 100% ✅ |
-| Phase 4 | 12 | 0 | 0% |
+| Phase 4 | 21 | 0 | 0% |
 | Phase 5 | 7 | 0 | 0% |
 | Phase 6 | 8 | 0 | 0% |
 | Phase 7 | 8 | 0 | 0% |
 | Phase 8 | 3 | 0 | 0% |
-| **TOTAL** | **67** | **29** | **43%** |
+| **TOTAL** | **76** | **29** | **38%** |
 
 ---
 
