@@ -248,7 +248,7 @@ If you find **PDF Smart Editor** useful, please consider giving us a star! It he
 
 ## 📄 License
 
-Copyright © 2024-2025 Othmane BLIAL
+Copyright © 2026 Othmane BLIAL
 
 Licensed under the [MIT License](LICENSE).
 
