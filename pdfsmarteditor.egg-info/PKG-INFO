@@ -33,88 +33,281 @@ Requires-Dist: openpyxl
 Requires-Dist: pytesseract
 Requires-Dist: python-dotenv
 Requires-Dist: typing_extensions
+Requires-Dist: markdown
+Requires-Dist: reportlab
+Requires-Dist: ebooklib
 Provides-Extra: dev
 Requires-Dist: pytest; extra == "dev"
 Requires-Dist: pytest-cov; extra == "dev"
 Requires-Dist: httpx; extra == "dev"
 Dynamic: license-file
 
-# <p align="center"><img src="./logo-pdf-editor.png" alt="PDF Smart Editor Logo" width="200"></p>
+# <p align="center"><img src="./logo-pdf-editor.png" alt="PDF Editor Logo" width="200"></p>
 
-<h1 align="center">PDF Smart Editor</h1>
+<h1 align="center">📄 PDF Smart Editor</h1>
 
 <p align="center">
-  <strong>100% Free. 100% Local. 100% Private.</strong><br>
-  The powerful, professional-grade PDF editor that lives on your machine, not the cloud.
+  <strong>The Free Offline PDF Editor That Protects Your Privacy</strong><br>
+  100% Local • 100% Private • 100% Free Forever
+</p>
+
+<p align="center">
+  <a href="#-features">Features</a> •
+  <a href="#-installation">Installation</a> •
+  <a href="#-quick-start">Quick Start</a> •
+  <a href="#-why-choose">Why Choose Us</a>
 </p>
 
 ---
 
-Stop paying for basic PDF tools. **PDF Smart Editor** is a feature-rich, open-source alternative to expensive, paywalled PDF platforms. Unlike online editors, your files never leave your computer, ensuring total privacy and security for your sensitive documents.
+<div align="center">
 
-## Why PDF Smart Editor?
+**PDF Editor • Free PDF Editor • Offline PDF Editor**
 
-*   **🚫 No Paywalls**: Access every tool for free. Forever.
-*   **🔒 100% Privacy**: All processing happens locally. No cloud uploads.
-*   **⚡ High Performance**: Powered by PyMuPDF for lightning-fast edits.
-*   **🎨 Pro UI**: A modern, sleek React interface that makes editing easy.
+![GitHub stars](https://img.shields.io/github/stars/OthmaneBlial/pdfsmarteditor?style=social)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-## Core Features
+</div>
 
-### 🛠️ Professional Toolbar
-*   **Annotate & Edit**: Add text, images, and drawings with a high-performance canvas (Fabric.js).
-*   **Metadata Mastery**: View and edit title, author, and keywords effortlessly.
-*   **Page Control**: Rotate, delete, and reorder pages with a visual grid.
+---
 
-### 🔄 Advanced Conversion
-*   **Export To**: Word (`.docx`), PowerPoint (`.pptx`), Excel (`.xlsx`), and High-Res Images.
-*   **Import From**: Office documents, HTML, and Scans directly to PDF.
+## ⭐ Why PDF Smart Editor?
 
-### 🧠 Smart Tools
-*   **OCR Integration**: Extract text from scanned documents locally.
-*   **Security**: Password protect or unlock PDFs with ease.
-*   **Manipulation**: Merge, split, compress, and watermark in seconds.
+Looking for a **free PDF editor** that actually works without forcing you to upload your documents to the cloud? **PDF Smart Editor** is a professional-grade, offline PDF editor that puts you in control.
 
-## Quick Start
+### 🔒 Your Files Stay on Your Machine
+Unlike online PDF editors, **PDF Smart Editor** processes everything locally. Your sensitive documents, contracts, and personal information **never leave your computer**.
 
-### Installation
+### 💰 Completely Free — No Hidden Costs
+- ✅ No subscription fees
+- ✅ No premium tiers
+- ✅ No feature paywalls
+- ✅ No account required
+- ✅ Open source forever
 
-Install PDF Smart Editor using pip:
+---
+
+## 🚀 Core Features
+
+### 📝 PDF Editing Tools
+- **Annotations** — Add text, highlights, shapes, and drawings
+- **Canvas Editor** — High-performance editing with Fabric.js
+- **Image Insertion** — Add, resize, and position images
+- **Page Manipulation** — Rotate, delete, reorder, extract, duplicate pages
+- **Crop & Resize** — Adjust page dimensions and margins
+- **Undo/Redo** — Full history tracking with keyboard shortcuts
+
+### 🔄 Format Conversion (Bidirectional)
+
+**Export PDF to:**
+- Word (`.docx`), PowerPoint (`.pptx`), Excel (`.xlsx`)
+- Images (`.jpg`, `.png`), SVG (vector)
+- Markdown, Plain Text, EPUB (e-readers)
+
+**Import to PDF from:**
+- Word, PowerPoint, Excel
+- Markdown, TXT, CSV, JSON
+- HTML, Images
+- Scanned documents (OCR)
+
+### ⚡ Batch Processing
+- **Batch Convert** — Convert multiple files at once
+- **Auto-Merge** — Combine entire folders of PDFs
+- **Template Processing** — Apply watermarks, rotation, compression to multiple files
+
+### 🛡️ Security & Protection
+- **Password Protection** — Encrypt PDFs with owner/user passwords
+- **Unlock PDFs** — Remove password protection (if you know the password)
+- **Watermark** — Add text watermarks with custom opacity and rotation
+- **Digital Sign** — Insert signature images
+- **Metadata Editor** — Modify title, author, keywords
+
+### 🧠 Advanced Tools
+- **OCR** — Extract text from scanned documents
+- **Compare PDFs** — Visual diff between two documents
+- **Compress** — Reduce file size while maintaining quality
+- **Split** — Extract pages into separate PDFs
+- **Merge** — Combine multiple PDFs into one
+- **Rotate** — Rotate pages 90°, 180°, 270°
+- **Organize** — Reorder pages by custom sequence
+- **Repair** — Fix corrupted PDFs
+- **PDF/A** — Convert to archival PDF/A format
+- **Page Numbers** — Add numbered pages
+- **Headers & Footers** — Add custom headers/footers
+- **Remove Blanks** — Auto-detect and delete empty pages
+- **Flatten** — Merge annotations into page content
+
+---
+
+## 📦 Installation
+
+### Via pip (Recommended)
 
 ```bash
 pip install pdfsmarteditor
 ```
 
-### Run the App
+### Via Docker
 
-Launch the full-featured web editor:
+```bash
+docker pull othmaneblial/pdfsmarteditor
+docker run -p 8000:8000 othmaneblial/pdfsmarteditor
+```
+
+### From Source
+
+```bash
+git clone https://github.com/OthmaneBlial/pdfsmarteditor.git
+cd pdfsmarteditor
+pip install -e ".[dev]"
+```
+
+---
+
+## 🎯 Quick Start
+
+### Web Interface
+
+Launch the full-featured **PDF editor** web interface:
 
 ```bash
 pdfsmarteditor serve
 ```
-Then visit `http://localhost:8000` to start editing.
 
-### CLI Power
+Then visit `http://localhost:8000` to start editing PDFs in your browser.
+
+### Command Line Interface
 
 ```bash
-# Merge documents
+# Merge PDFs
 pdfsmarteditor tools merge doc1.pdf doc2.pdf -o combined.pdf
 
+# Split PDF
+pdfsmarteditor tools split input.pdf --ranges "1-3,5-7"
+
 # Convert to Word
-pdfsmarteditor tools convert input.pdf -f docx
+pdfsmarteditor tools convert input.pdf --format docx
+
+# Compress PDF
+pdfsmarteditor tools compress input.pdf --level 4
+
+# Add watermark
+pdfsmarteditor tools watermark input.pdf --text "CONFIDENTIAL" --opacity 0.3
+
+# Protect with password
+pdfsmarteditor tools protect input.pdf --password secret123
+
+# Rotate pages
+pdfsmarteditor tools rotate input.pdf --degrees 90
 ```
 
-## Developers & Contributions
+### Python API
 
-PDF Smart Editor is built with **FastAPI** and **React 18**. We welcome contributors!
+```python
+from pdfsmarteditor import PDFConverter, PDFManipulator
 
-1.  **Clone**: `git clone https://github.com/OthmaneBlial/pdfsmarteditor.git`
-2.  **Install**: `pip install -e ".[dev]"`
-3.  **Test**: `pytest`
+# Convert PDF to Word
+converter = PDFConverter()
+converter.pdf_to_word("input.pdf", "output.docx")
 
-Refer to [CONTRIBUTING.md](CONTRIBUTING.md) for more details.
+# Merge PDFs
+manipulator = PDFManipulator()
+manipulator.merge_pdfs(["file1.pdf", "file2.pdf"], "merged.pdf")
+
+# Compress PDF
+manipulator.compress_pdf("input.pdf", "compressed.pdf", level=4)
+```
 
 ---
 
-**Copyright (c) 2024-2025 Othmane BLIAL**  
-Licensed under the MIT License.
+## 🌟 Why Choose PDF Smart Editor?
+
+| Feature | PDF Smart Editor | Adobe Acrobat | Online Editors |
+|---------|------------------|---------------|----------------|
+| **Price** | ✅ Free Forever | 💰 $20+/month | 🔒 Limited Free |
+| **Privacy** | ✅ 100% Offline | ⚠️ Telemetry | ❌ Cloud Upload |
+| **No Account** | ✅ True | ❌ Required | ❌ Required |
+| **Open Source** | ✅ Yes | ❌ No | ❌ No |
+| **Batch Processing** | ✅ Yes | 💰 Premium | ❌ No |
+| **All Features** | ✅ Included | 💰 Split Tiers | ❌ Limited |
+
+---
+
+## 🏗️ Architecture
+
+**Built for Performance and Privacy:**
+
+- **Backend:** FastAPI + PyMuPDF (fitz) for lightning-fast PDF processing
+- **Frontend:** React 18 + TypeScript + Tailwind CSS
+- **Canvas:** Fabric.js for smooth annotations and drawings
+- **OCR:** Tesseract for text extraction from scans
+- **No Cloud:** All processing happens on your machine
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! **PDF Smart Editor** is community-driven.
+
+```bash
+# Fork and clone
+git clone https://github.com/YOUR-USERNAME/pdfsmarteditor.git
+
+# Install dev dependencies
+pip install -e ".[dev]"
+
+# Run tests
+pytest
+
+# Run linting
+black . && isort .
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+---
+
+## 📊 Roadmap
+
+- [x] Phase 1: User Experience Improvements ✅
+- [x] Phase 2: Advanced Page Manipulation ✅
+- [x] Phase 3: Extended Conversion & Batch Processing ✅
+- [ ] Phase 4: Advanced Editing (in-line text, forms)
+- [ ] Phase 5: Enhanced Security & Privacy
+- [ ] Phase 6: Intelligence & Automation
+
+See [FEATURES_ROADMAP.md](docs/FEATURES_ROADMAP.md) for details.
+
+---
+
+## ⭐ Star Us on GitHub!
+
+If you find **PDF Smart Editor** useful, please consider giving us a star! It helps others discover this free PDF editor.
+
+<a href="https://github.com/OthmaneBlial/pdfsmarteditor">
+  <img src="https://img.shields.io/github/stars/OthmaneBlial/pdfsmarteditor?style=social" alt="GitHub Stars">
+</a>
+
+---
+
+## 📄 License
+
+Copyright © 2026 Othmane BLIAL
+
+Licensed under the [MIT License](LICENSE).
+
+---
+
+## 🔗 Keywords
+
+**PDF Editor**, **Free PDF Editor**, **Offline PDF Editor**, **PDF Annotation Tool**, **PDF Merger**, **PDF Splitter**, **PDF to Word Converter**, **PDF Compressor**, **Open Source PDF Editor**
+
+---
+
+<div align="center">
+
+**Made with ❤️ for everyone who deserves a free PDF editor**
+
+**[⬆ Back to Top](#-pdf-smart-editor)**
+
+</div>

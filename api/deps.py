@@ -13,6 +13,12 @@ from pdfsmarteditor.core.document_manager import DocumentManager
 from pdfsmarteditor.core.editor import Editor
 from pdfsmarteditor.core.metadata_editor import MetadataEditor
 from pdfsmarteditor.core.page_manipulator import PageManipulator
+from pdfsmarteditor.core.object_inspector import ObjectInspector
+from pdfsmarteditor.core.text_processor import TextProcessor
+from pdfsmarteditor.core.rich_text_editor import RichTextEditor
+from pdfsmarteditor.core.navigation_manager import NavigationManager
+from pdfsmarteditor.core.annotation_enhancer import AnnotationEnhancer
+from pdfsmarteditor.core.image_processor import ImageProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +58,12 @@ def build_session_data(
         "editor": Editor(doc) if page_count > 0 else None,
         "page_manipulator": PageManipulator(doc) if page_count > 0 else None,
         "metadata_editor": MetadataEditor(doc) if page_count > 0 else None,
+        "object_inspector": ObjectInspector(doc) if page_count > 0 else None,
+        "text_processor": TextProcessor(doc) if page_count > 0 else None,
+        "rich_text_editor": RichTextEditor(doc) if page_count > 0 else None,
+        "navigation_manager": NavigationManager(doc) if page_count > 0 else None,
+        "annotation_enhancer": AnnotationEnhancer(doc) if page_count > 0 else None,
+        "image_processor": ImageProcessor(doc) if page_count > 0 else None,
     }
 
     return session_data

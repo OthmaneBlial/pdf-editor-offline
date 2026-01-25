@@ -21,12 +21,34 @@ from api.deps import (
 )
 from api.models import (
     APIResponse,
+    AnnotationAppearanceRequest,
     CanvasData,
     DocumentSession,
     ExtractPagesRequest,
+    FileAttachmentRequest,
+    FontUsageResponse,
+    FreehandHighlightRequest,
     ImageAnnotation,
+    ImageExtractRequest,
+    ImageInsertRequest,
+    ImageMetadata,
+    ImageReplaceRequest,
+    LinkRequest,
     MetadataUpdate,
+    MultiFontTextRequest,
+    PopupNoteRequest,
+    PolygonAnnotationRequest,
+    PolylineAnnotationRequest,
+    ReflowTextRequest,
+    RichTextInsertRequest,
+    SetTOCRequest,
+    SoundAnnotationRequest,
+    StampAnnotationRequest,
     TextAnnotation,
+    TextReplaceRequest,
+    TextboxWithBorderRequest,
+    TOCItem,
+    UpdateBookmarkRequest,
 )
 from pdfsmarteditor.utils.canvas_helpers import (
     convert_to_pymupdf_annotation,
@@ -685,4 +707,648 @@ async def add_header_footer(
         success=True,
         message=f"Added header/footer to {len(doc)} pages",
         data={"pages_updated": len(doc)},
+    )
+
+
+# ============================================
+# PHASE 4: ADVANCED EDITING ENDPOINTS
+# ============================================
+
+# --- Text Processing Endpoints ---
+
+
+@router.post("/{doc_id}/pages/{page_num}/text/replace", response_model=APIResponse)
+async def replace_text(doc_id: str, page_num: int, request: TextReplaceRequest):
+    """Smart text replacement with font preservation."""
+    session = get_session(doc_id)
+    text_processor = session.get("text_processor")
+    if not text_processor:
+        raise HTTPException(status_code=500, detail="Text processor not available")
+
+    result = text_processor.replace_text_preserve_font(
+        page_num, request.search_text, request.new_text
+    )
+    persist_session_document(doc_id)
+
+    return APIResponse(success=True, data=result)
+
+
+@router.post("/{doc_id}/pages/{page_num}/text/rich", response_model=APIResponse)
+async def insert_rich_text(doc_id: str, page_num: int, request: RichTextInsertRequest):
+    """Insert HTML/CSS formatted text."""
+    session = get_session(doc_id)
+    rich_text_editor = session.get("rich_text_editor")
+    if not rich_text_editor:
+        raise HTTPException(status_code=500, detail="Rich text editor not available")
+
+    result = rich_text_editor.insert_html_text(
+        page_num,
+        request.x,
+        request.y,
+        request.width,
+        request.height,
+        request.html_content,
+        request.css,
+    )
+    persist_session_document(doc_id)
+
+    return APIResponse(success=True, data=result)
+
+
+@router.post("/{doc_id}/pages/{page_num}/text/multifont", response_model=APIResponse)
+async def insert_multifont_text(doc_id: str, request: MultiFontTextRequest):
+    """Insert text with multiple fonts/styles."""
+    session = get_session(doc_id)
+    rich_text_editor = session.get("rich_text_editor")
+    if not rich_text_editor:
+        raise HTTPException(status_code=500, detail="Rich text editor not available")
+
+    fragments = [f.model_dump() for f in request.fragments]
+    result = rich_text_editor.insert_multifont_text(
+        request.page_num, request.x, request.y, fragments
+    )
+    persist_session_document(doc_id)
+
+    return APIResponse(success=True, data=result)
+
+
+@router.post("/{doc_id}/pages/{page_num}/text/reflow", response_model=APIResponse)
+async def insert_reflow_text(doc_id: str, request: ReflowTextRequest):
+    """Insert HTML text with automatic reflow."""
+    session = get_session(doc_id)
+    rich_text_editor = session.get("rich_text_editor")
+    if not rich_text_editor:
+        raise HTTPException(status_code=500, detail="Rich text editor not available")
+
+    result = rich_text_editor.insert_reflow_text(
+        request.page_num,
+        request.x,
+        request.y,
+        request.width,
+        request.height,
+        request.html_content,
+    )
+    persist_session_document(doc_id)
+
+    return APIResponse(success=True, data=result)
+
+
+@router.post("/{doc_id}/pages/{page_num}/text/textbox", response_model=APIResponse)
+async def insert_textbox_with_border(
+    doc_id: str, page_num: int, request: TextboxWithBorderRequest
+):
+    """Insert text in a bordered box."""
+    session = get_session(doc_id)
+    rich_text_editor = session.get("rich_text_editor")
+    if not rich_text_editor:
+        raise HTTPException(status_code=500, detail="Rich text editor not available")
+
+    result = rich_text_editor.insert_textbox_with_border(
+        page_num,
+        request.x,
+        request.y,
+        request.width,
+        request.height,
+        request.text,
+        request.border_color,
+        request.background_color,
+        request.font_size,
+        request.padding,
+    )
+    persist_session_document(doc_id)
+
+    return APIResponse(success=True, data=result)
+
+
+@router.get("/{doc_id}/fonts", response_model=APIResponse)
+async def get_document_fonts(doc_id: str):
+    """Get all fonts used in the document."""
+    session = get_session(doc_id)
+    text_processor = session.get("text_processor")
+    if not text_processor:
+        raise HTTPException(status_code=500, detail="Text processor not available")
+
+    fonts = text_processor.get_document_fonts()
+    return APIResponse(success=True, data={"fonts": fonts})
+
+
+@router.get("/{doc_id}/fonts/{page_num}", response_model=APIResponse)
+async def get_page_fonts(doc_id: str, page_num: int):
+    """Get font usage statistics for a specific page."""
+    session = get_session(doc_id)
+    text_processor = session.get("text_processor")
+    if not text_processor:
+        raise HTTPException(status_code=500, detail="Text processor not available")
+
+    font_usage = text_processor.get_font_usage(page_num)
+    return APIResponse(success=True, data=font_usage)
+
+
+@router.get("/{doc_id}/pages/{page_num}/text/properties", response_model=APIResponse)
+async def get_text_properties(doc_id: str, page_num: int):
+    """Get all text with full formatting properties."""
+    session = get_session(doc_id)
+    text_processor = session.get("text_processor")
+    if not text_processor:
+        raise HTTPException(status_code=500, detail="Text processor not available")
+
+    text_props = text_processor.extract_all_text_properties(page_num)
+    return APIResponse(success=True, data={"blocks": text_props})
+
+
+# --- Navigation / TOC Endpoints ---
+
+
+@router.get("/{doc_id}/toc", response_model=APIResponse)
+async def get_toc(doc_id: str):
+    """Get the document table of contents."""
+    session = get_session(doc_id)
+    navigation_manager = session.get("navigation_manager")
+    if not navigation_manager:
+        raise HTTPException(status_code=500, detail="Navigation manager not available")
+
+    toc = navigation_manager.get_toc_structure()
+    return APIResponse(success=True, data={"toc": toc})
+
+
+@router.post("/{doc_id}/toc", response_model=APIResponse)
+async def set_toc(doc_id: str, request: SetTOCRequest):
+    """Set the document table of contents."""
+    session = get_session(doc_id)
+    navigation_manager = session.get("navigation_manager")
+    if not navigation_manager:
+        raise HTTPException(status_code=500, detail="Navigation manager not available")
+
+    toc_data = [item.model_dump() for item in request.toc]
+    result = navigation_manager.set_toc(toc_data)
+    persist_session_document(doc_id)
+
+    return APIResponse(success=True, data=result)
+
+
+@router.post("/{doc_id}/bookmarks", response_model=APIResponse)
+async def add_bookmark(doc_id: str, level: int, title: str, page_num: int):
+    """Add a bookmark to the document."""
+    session = get_session(doc_id)
+    navigation_manager = session.get("navigation_manager")
+    if not navigation_manager:
+        raise HTTPException(status_code=500, detail="Navigation manager not available")
+
+    result = navigation_manager.add_bookmark(level, title, page_num)
+    persist_session_document(doc_id)
+
+    return APIResponse(success=True, data=result)
+
+
+@router.put("/{doc_id}/bookmarks", response_model=APIResponse)
+async def update_bookmark(doc_id: str, request: UpdateBookmarkRequest):
+    """Update an existing bookmark."""
+    session = get_session(doc_id)
+    navigation_manager = session.get("navigation_manager")
+    if not navigation_manager:
+        raise HTTPException(status_code=500, detail="Navigation manager not available")
+
+    result = navigation_manager.update_bookmark(
+        request.index, request.title, request.page
+    )
+    persist_session_document(doc_id)
+
+    return APIResponse(success=True, data=result)
+
+
+@router.delete("/{doc_id}/bookmarks/{index}", response_model=APIResponse)
+async def delete_bookmark(doc_id: str, index: int):
+    """Delete a bookmark by index."""
+    session = get_session(doc_id)
+    navigation_manager = session.get("navigation_manager")
+    if not navigation_manager:
+        raise HTTPException(status_code=500, detail="Navigation manager not available")
+
+    result = navigation_manager.delete_bookmark(index)
+    persist_session_document(doc_id)
+
+    return APIResponse(success=True, data=result)
+
+
+@router.get("/{doc_id}/bookmarks/page/{page_num}", response_model=APIResponse)
+async def get_bookmarks_by_page(doc_id: str, page_num: int):
+    """Get all bookmarks that link to a specific page."""
+    session = get_session(doc_id)
+    navigation_manager = session.get("navigation_manager")
+    if not navigation_manager:
+        raise HTTPException(status_code=500, detail="Navigation manager not available")
+
+    bookmarks = navigation_manager.get_bookmarks_by_page(page_num)
+    return APIResponse(success=True, data={"bookmarks": bookmarks})
+
+
+@router.post("/{doc_id}/toc/auto", response_model=APIResponse)
+async def create_toc_from_headers(
+    doc_id: str,
+    font_size_thresholds: str = "18,14,12",
+):
+    """Automatically create TOC from headers based on font size."""
+    session = get_session(doc_id)
+    navigation_manager = session.get("navigation_manager")
+    if not navigation_manager:
+        raise HTTPException(status_code=500, detail="Navigation manager not available")
+
+    thresholds = tuple(int(x.strip()) for x in font_size_thresholds.split(","))
+    if len(thresholds) != 3:
+        raise HTTPException(
+            status_code=400, detail="font_size_thresholds must be 3 comma-separated values"
+        )
+
+    result = navigation_manager.create_toc_from_headers(thresholds)
+    persist_session_document(doc_id)
+
+    return APIResponse(success=True, data=result)
+
+
+# --- Link Endpoints ---
+
+
+@router.get("/{doc_id}/links/{page_num}", response_model=APIResponse)
+async def get_page_links(doc_id: str, page_num: int):
+    """Get all links on a page."""
+    session = get_session(doc_id)
+    navigation_manager = session.get("navigation_manager")
+    if not navigation_manager:
+        raise HTTPException(status_code=500, detail="Navigation manager not available")
+
+    links = navigation_manager.get_links(page_num)
+    return APIResponse(success=True, data={"links": links})
+
+
+@router.post("/{doc_id}/links", response_model=APIResponse)
+async def add_link(doc_id: str, request: LinkRequest):
+    """Add a clickable link to a page."""
+    session = get_session(doc_id)
+    navigation_manager = session.get("navigation_manager")
+    if not navigation_manager:
+        raise HTTPException(status_code=500, detail="Navigation manager not available")
+
+    result = navigation_manager.add_link(
+        request.page_num,
+        request.x,
+        request.y,
+        request.width,
+        request.height,
+        request.url,
+        request.dest_page,
+    )
+    persist_session_document(doc_id)
+
+    return APIResponse(success=True, data=result)
+
+
+@router.delete("/{doc_id}/links/{page_num}/{link_index}", response_model=APIResponse)
+async def delete_link(doc_id: str, page_num: int, link_index: int):
+    """Remove a link from a page."""
+    session = get_session(doc_id)
+    navigation_manager = session.get("navigation_manager")
+    if not navigation_manager:
+        raise HTTPException(status_code=500, detail="Navigation manager not available")
+
+    result = navigation_manager.remove_link(page_num, link_index)
+    persist_session_document(doc_id)
+
+    return APIResponse(success=True, data=result)
+
+
+# --- Advanced Annotation Endpoints ---
+
+
+@router.post("/{doc_id}/annotations/file", response_model=APIResponse)
+async def add_file_attachment(doc_id: str, request: FileAttachmentRequest):
+    """Add a file attachment annotation."""
+    session = get_session(doc_id)
+    annotation_enhancer = session.get("annotation_enhancer")
+    if not annotation_enhancer:
+        raise HTTPException(status_code=500, detail="Annotation enhancer not available")
+
+    result = annotation_enhancer.add_file_attachment(
+        request.page_num,
+        request.x,
+        request.y,
+        request.width,
+        request.height,
+        request.file_path,
+        request.filename,
+        request.color,
+    )
+    persist_session_document(doc_id)
+
+    return APIResponse(success=True, data=result)
+
+
+@router.post("/{doc_id}/annotations/sound", response_model=APIResponse)
+async def add_sound_annotation(doc_id: str, request: SoundAnnotationRequest):
+    """Add a sound/audio annotation."""
+    session = get_session(doc_id)
+    annotation_enhancer = session.get("annotation_enhancer")
+    if not annotation_enhancer:
+        raise HTTPException(status_code=500, detail="Annotation enhancer not available")
+
+    result = annotation_enhancer.add_sound_annotation(
+        request.page_num,
+        request.x,
+        request.y,
+        request.width,
+        request.height,
+        request.audio_path,
+        request.mime_type,
+        request.color,
+    )
+    persist_session_document(doc_id)
+
+    return APIResponse(success=True, data=result)
+
+
+@router.post("/{doc_id}/annotations/polygon", response_model=APIResponse)
+async def add_polygon_annotation(doc_id: str, request: PolygonAnnotationRequest):
+    """Add a closed polygon annotation."""
+    session = get_session(doc_id)
+    annotation_enhancer = session.get("annotation_enhancer")
+    if not annotation_enhancer:
+        raise HTTPException(status_code=500, detail="Annotation enhancer not available")
+
+    result = annotation_enhancer.add_polygon_annotation(
+        request.page_num,
+        request.points,
+        request.color,
+        request.fill_color,
+        request.width,
+        request.opacity,
+    )
+    persist_session_document(doc_id)
+
+    return APIResponse(success=True, data=result)
+
+
+@router.post("/{doc_id}/annotations/polyline", response_model=APIResponse)
+async def add_polyline_annotation(doc_id: str, request: PolylineAnnotationRequest):
+    """Add an open polyline annotation."""
+    session = get_session(doc_id)
+    annotation_enhancer = session.get("annotation_enhancer")
+    if not annotation_enhancer:
+        raise HTTPException(status_code=500, detail="Annotation enhancer not available")
+
+    result = annotation_enhancer.add_polyline_annotation(
+        request.page_num,
+        request.points,
+        request.color,
+        request.width,
+        request.opacity,
+    )
+    persist_session_document(doc_id)
+
+    return APIResponse(success=True, data=result)
+
+
+@router.post("/{doc_id}/annotations/popup", response_model=APIResponse)
+async def add_popup_note(doc_id: str, request: PopupNoteRequest):
+    """Add a popup note annotation."""
+    session = get_session(doc_id)
+    annotation_enhancer = session.get("annotation_enhancer")
+    if not annotation_enhancer:
+        raise HTTPException(status_code=500, detail="Annotation enhancer not available")
+
+    result = annotation_enhancer.add_popup_note(
+        request.page_num,
+        request.parent_x,
+        request.parent_y,
+        request.popup_x,
+        request.popup_y,
+        request.popup_width,
+        request.popup_height,
+        request.title,
+        request.contents,
+    )
+    persist_session_document(doc_id)
+
+    return APIResponse(success=True, data=result)
+
+
+@router.put("/{doc_id}/annotations/{page_num}/appearance", response_model=APIResponse)
+async def set_annotation_appearance(
+    doc_id: str, page_num: int, request: AnnotationAppearanceRequest
+):
+    """Set the appearance of an existing annotation."""
+    session = get_session(doc_id)
+    annotation_enhancer = session.get("annotation_enhancer")
+    if not annotation_enhancer:
+        raise HTTPException(status_code=500, detail="Annotation enhancer not available")
+
+    colors = {}
+    if request.stroke_color:
+        colors["stroke"] = request.stroke_color
+    if request.fill_color:
+        colors["fill"] = request.fill_color
+
+    border = None
+    if request.border_width is not None:
+        border = {"width": request.border_width, "style": request.border_style or 0}
+
+    result = annotation_enhancer.set_annot_appearance(
+        page_num,
+        request.annot_index,
+        colors if colors else None,
+        border,
+        request.opacity,
+    )
+    persist_session_document(doc_id)
+
+    return APIResponse(success=True, data=result)
+
+
+@router.post("/{doc_id}/annotations/stamp", response_model=APIResponse)
+async def add_stamp_annotation(doc_id: str, request: StampAnnotationRequest):
+    """Add a stamp annotation with custom text."""
+    session = get_session(doc_id)
+    annotation_enhancer = session.get("annotation_enhancer")
+    if not annotation_enhancer:
+        raise HTTPException(status_code=500, detail="Annotation enhancer not available")
+
+    result = annotation_enhancer.add_stamp_annotation(
+        request.page_num,
+        request.x,
+        request.y,
+        request.width,
+        request.height,
+        request.text,
+        request.color,
+    )
+    persist_session_document(doc_id)
+
+    return APIResponse(success=True, data=result)
+
+
+@router.post("/{doc_id}/annotations/freehand-highlight", response_model=APIResponse)
+async def add_freehand_highlight(doc_id: str, request: FreehandHighlightRequest):
+    """Add a freehand highlight annotation."""
+    session = get_session(doc_id)
+    annotation_enhancer = session.get("annotation_enhancer")
+    if not annotation_enhancer:
+        raise HTTPException(status_code=500, detail="Annotation enhancer not available")
+
+    result = annotation_enhancer.add_freehand_highlight(
+        request.page_num,
+        request.points,
+        request.color,
+        request.opacity,
+        request.width,
+    )
+    persist_session_document(doc_id)
+
+    return APIResponse(success=True, data=result)
+
+
+@router.get("/{doc_id}/annotations/{page_num}/{annot_index}", response_model=APIResponse)
+async def get_annotation_info(doc_id: str, page_num: int, annot_index: int):
+    """Get detailed information about a specific annotation."""
+    session = get_session(doc_id)
+    annotation_enhancer = session.get("annotation_enhancer")
+    if not annotation_enhancer:
+        raise HTTPException(status_code=500, detail="Annotation enhancer not available")
+
+    info = annotation_enhancer.get_annotation_info(page_num, annot_index)
+    return APIResponse(success=True, data=info)
+
+
+# --- Image Processing Endpoints ---
+
+
+@router.get("/{doc_id}/images/{page_num}", response_model=APIResponse)
+async def get_page_images(doc_id: str, page_num: int):
+    """Get all images with metadata on a page."""
+    session = get_session(doc_id)
+    image_processor = session.get("image_processor")
+    if not image_processor:
+        raise HTTPException(status_code=500, detail="Image processor not available")
+
+    images = image_processor.extract_images_metadata(page_num)
+    return APIResponse(success=True, data={"images": images})
+
+
+@router.get("/{doc_id}/images", response_model=APIResponse)
+async def get_all_document_images(doc_id: str):
+    """Get all images across all pages."""
+    session = get_session(doc_id)
+    image_processor = session.get("image_processor")
+    if not image_processor:
+        raise HTTPException(status_code=500, detail="Image processor not available")
+
+    all_images = image_processor.get_all_images_in_document()
+    return APIResponse(success=True, data={"images": all_images})
+
+
+@router.post("/{doc_id}/images/replace", response_model=APIResponse)
+async def replace_image(doc_id: str, request: ImageReplaceRequest):
+    """Replace an image in a rectangle with a new image."""
+    session = get_session(doc_id)
+    image_processor = session.get("image_processor")
+    if not image_processor:
+        raise HTTPException(status_code=500, detail="Image processor not available")
+
+    result = image_processor.replace_image(
+        request.page_num,
+        request.old_rect,
+        request.new_image_path,
+        request.maintain_aspect,
+    )
+    persist_session_document(doc_id)
+
+    return APIResponse(success=True, data=result)
+
+
+@router.post("/{doc_id}/images/insert", response_model=APIResponse)
+async def insert_image(doc_id: str, request: ImageInsertRequest):
+    """Insert an image at a specific location on a page."""
+    session = get_session(doc_id)
+    image_processor = session.get("image_processor")
+    if not image_processor:
+        raise HTTPException(status_code=500, detail="Image processor not available")
+
+    result = image_processor.insert_image(
+        request.page_num,
+        request.x,
+        request.y,
+        request.width,
+        request.height,
+        request.image_path,
+        request.maintain_aspect,
+    )
+    persist_session_document(doc_id)
+
+    return APIResponse(success=True, data=result)
+
+
+@router.post("/{doc_id}/images/extract", response_model=APIResponse)
+async def extract_image(doc_id: str, request: ImageExtractRequest):
+    """Extract a specific image to a file."""
+    session = get_session(doc_id)
+    image_processor = session.get("image_processor")
+    if not image_processor:
+        raise HTTPException(status_code=500, detail="Image processor not available")
+
+    result = image_processor.extract_image_to_file(
+        request.page_num,
+        request.image_index,
+        request.output_path,
+    )
+
+    return APIResponse(success=True, data=result)
+
+
+@router.post("/{doc_id}/pages/{page_num}/optimize", response_model=APIResponse)
+async def optimize_page(doc_id: str, page_num: int):
+    """Optimize a single page by removing redundant content."""
+    session = get_session(doc_id)
+    image_processor = session.get("image_processor")
+    if not image_processor:
+        raise HTTPException(status_code=500, detail="Image processor not available")
+
+    stats = image_processor.optimize_page(page_num)
+    persist_session_document(doc_id)
+
+    return APIResponse(success=True, data=stats)
+
+
+@router.post("/{doc_id}/optimize", response_model=APIResponse)
+async def optimize_document(
+    doc_id: str,
+    garbage: int = 4,
+    deflate: bool = True,
+    clean: bool = True,
+    output_filename: Optional[str] = None,
+):
+    """Optimize the entire document and return it."""
+    session = get_session(doc_id)
+    doc_manager = session["document_manager"]
+    doc = doc_manager.get_document()
+
+    if output_filename:
+        safe_filename = output_filename
+    else:
+        safe_filename = f"optimized_{session['filename']}"
+
+    output_path = os.path.join(TEMP_DIR, f"optimized_{doc_id}_{safe_filename}")
+
+    image_processor = session.get("image_processor")
+    if not image_processor:
+        # Create temporary image processor for this operation
+        from pdfsmarteditor.core.image_processor import ImageProcessor
+
+        image_processor = ImageProcessor(doc)
+
+    result = image_processor.optimize_document(
+        output_path, garbage=garbage, deflate=deflate, clean=clean
+    )
+
+    # Return the optimized file
+    return FileResponse(
+        path=output_path,
+        filename=safe_filename,
+        media_type="application/pdf",
     )

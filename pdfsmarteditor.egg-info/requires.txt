@@ -12,6 +12,9 @@ openpyxl
 pytesseract
 python-dotenv
 typing_extensions
+markdown
+reportlab
+ebooklib
 
 [dev]
 pytest

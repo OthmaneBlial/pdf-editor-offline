@@ -44,6 +44,54 @@ export interface HistoryState {
   canRedo: boolean;
 }
 
+// ============================================
+// PHASE 4: Advanced Editing Types
+// ============================================
+
+// TOC / Bookmark types
+export interface TOCItem {
+  level: number;
+  title: string;
+  page: number;
+  has_link?: boolean;
+  link_type?: string;
+}
+
+// Font info types
+export interface FontInfo {
+  name: string;
+  size: number;
+  char_count: number;
+  percentage: number;
+  color?: number[];
+}
+
+// Link types
+export interface LinkItem {
+  index: number;
+  type: string;
+  uri?: string;
+  dest_page?: number;
+  rect: number[];
+}
+
+// Image metadata types
+export interface ImageMetadata {
+  index: number;
+  xref: number;
+  width: number;
+  height: number;
+  bits_per_component: number;
+  color_space: string;
+  compression: string;
+  format?: string;
+  size_bytes?: number;
+  aspect_ratio?: number;
+  bbox?: number[];
+  has_mask?: boolean;
+  name?: string;
+}
+
 // Combined context type (for backwards compatibility)
 export interface EditorContextType extends EditorState, CanvasState, HistoryState {
   setDocument: (doc: File | null) => void;
@@ -65,6 +113,19 @@ export interface EditorContextType extends EditorState, CanvasState, HistoryStat
   exportPDF: () => Promise<void>;
   reorderPages: (fromIndex: number, toIndex: number) => void;
   clearHistory: () => void;
+  // Phase 4 additions
+  toc: TOCItem[];
+  setToc: (toc: TOCItem[]) => void;
+  fonts: FontInfo[];
+  setFonts: (fonts: FontInfo[]) => void;
+  bookmarks: TOCItem[];
+  setBookmarks: (bookmarks: TOCItem[]) => void;
+  showTOC: boolean;
+  setShowTOC: (show: boolean) => void;
+  loadTOC: () => Promise<void>;
+  addBookmark: (item: Omit<TOCItem, 'page'>) => Promise<void>;
+  deleteBookmark: (index: number) => Promise<void>;
+  loadFonts: () => Promise<void>;
 }
 
 // Constants

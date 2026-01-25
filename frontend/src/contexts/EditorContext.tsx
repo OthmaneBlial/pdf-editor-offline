@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useRef, useCallback, useMemo, type ReactNode, useEffect } from 'react';
 import * as fabric from 'fabric';
 import axios from 'axios';
-import type { EditorContextType, EditorState, CanvasState, HistoryState } from './types';
+import type { EditorContextType, EditorState, CanvasState, HistoryState, TOCItem, FontInfo } from './types';
 import { MAX_HISTORY_SIZE } from './types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
@@ -47,6 +47,12 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const [historyStep, setHistoryStep] = useState<number>(-1);
   const isUndoing = useRef(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
+
+  // Phase 4: Advanced Editing state
+  const [toc, setToc] = useState<TOCItem[]>([]);
+  const [fonts, setFonts] = useState<FontInfo[]>([]);
+  const [bookmarks, setBookmarks] = useState<TOCItem[]>([]);
+  const [showTOC, setShowTOC] = useState<boolean>(false);
 
   // Limit history size to prevent memory issues
   useEffect(() => {
@@ -216,6 +222,68 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     }
   }, [canvas]);
 
+  // Phase 4: Advanced Editing actions
+  const loadTOC = useCallback(async () => {
+    if (!sessionId) return;
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/documents/${sessionId}/toc`);
+      if (response.data.success) {
+        setToc(response.data.data.toc || []);
+      }
+    } catch (error) {
+      console.error('Failed to load TOC:', error);
+    }
+  }, [sessionId]);
+
+  const addBookmark = useCallback(async (item: Omit<TOCItem, 'page'>) => {
+    if (!sessionId) return;
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/api/documents/${sessionId}/bookmarks`,
+        null,
+        { params: { level: item.level, title: item.title, page_num: currentPage + 1 } }
+      );
+      if (response.data.success) {
+        loadTOC();
+      }
+    } catch (error) {
+      console.error('Failed to add bookmark:', error);
+      throw error;
+    }
+  }, [sessionId, currentPage, loadTOC]);
+
+  const deleteBookmark = useCallback(async (index: number) => {
+    if (!sessionId) return;
+    try {
+      const response = await axios.delete(`${API_BASE_URL}/api/documents/${sessionId}/bookmarks/${index}`);
+      if (response.data.success) {
+        loadTOC();
+      }
+    } catch (error) {
+      console.error('Failed to delete bookmark:', error);
+      throw error;
+    }
+  }, [sessionId, loadTOC]);
+
+  const loadFonts = useCallback(async () => {
+    if (!sessionId) return;
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/documents/${sessionId}/fonts/${currentPage}`);
+      if (response.data.success) {
+        setFonts(response.data.data.fonts || []);
+      }
+    } catch (error) {
+      console.error('Failed to load fonts:', error);
+    }
+  }, [sessionId, currentPage]);
+
+  // Load TOC when sessionId changes
+  useEffect(() => {
+    if (sessionId) {
+      loadTOC();
+    }
+  }, [sessionId, loadTOC]);
+
   // Memoized context value to prevent unnecessary re-renders
   const value = useMemo<EditorContextType>(() => ({
     // State
@@ -254,6 +322,19 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     exportPDF,
     reorderPages,
     clearHistory,
+    // Phase 4
+    toc,
+    setToc,
+    fonts,
+    setFonts,
+    bookmarks,
+    setBookmarks,
+    showTOC,
+    setShowTOC,
+    loadTOC,
+    addBookmark,
+    deleteBookmark,
+    loadFonts,
     // History state
     history,
     historyStep,
@@ -282,6 +363,14 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     exportPDF,
     reorderPages,
     clearHistory,
+    toc,
+    fonts,
+    bookmarks,
+    showTOC,
+    loadTOC,
+    addBookmark,
+    deleteBookmark,
+    loadFonts,
   ]);
 
   return (

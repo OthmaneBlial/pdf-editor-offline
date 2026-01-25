@@ -60,15 +60,21 @@ else
   log_status "Frontend dependencies already installed"
 fi
 
-log_stage "Ensuring no stray backend process..."
+log_stage "Ensuring no stray processes..."
 pkill -f uvicorn 2>/dev/null || true
-log_status "Existing uvicorn processes stopped"
+pkill -f "vite.*--port" 2>/dev/null || true
+pkill -f "npm run dev" 2>/dev/null || true
+# Kill anything on ports 3000-3010
+for PORT in 3000 3001 3002 3003 3004 3005; do
+  lsof -ti TCP:$PORT 2>/dev/null | xargs kill -9 2>/dev/null || true
+done
+sleep 1
+log_status "Existing processes stopped"
 
 API_PORT=8000
-while lsof -i TCP:$API_PORT >/dev/null 2>&1; do
-  log_stage "Port $API_PORT busy, trying $((API_PORT + 1))..."
-  API_PORT=$((API_PORT + 1))
-done
+# Kill anything on API port too
+lsof -ti TCP:$API_PORT 2>/dev/null | xargs kill -9 2>/dev/null || true
+sleep 1
 log_status "Backend will bind to port $API_PORT"
 
 log_stage "Starting backend..."
@@ -84,15 +90,15 @@ if ! lsof -i TCP:$API_PORT >/dev/null 2>&1; then
 fi
 log_status "Backend listening on port $API_PORT"
 
-PORT=3000
-while lsof -i TCP:$PORT >/dev/null 2>&1; do
-  PORT=$((PORT + 1))
-done
-log_status "Frontend will use port $PORT"
+# Force port 3000 - kill anything using it
+FRONTEND_PORT=3000
+lsof -ti TCP:$FRONTEND_PORT 2>/dev/null | xargs kill -9 2>/dev/null || true
+sleep 1
+log_status "Frontend will use port $FRONTEND_PORT"
 
 log_stage "Launching React dev server..."
 cd "$SCRIPT_DIR/frontend"
-VITE_API_BASE_URL="http://localhost:$API_PORT" npm run dev -- --port "$PORT" > "$SCRIPT_DIR/frontend/react.log" 2>&1 &
+VITE_API_BASE_URL="http://localhost:$API_PORT" npm run dev -- --port "$FRONTEND_PORT" > "$SCRIPT_DIR/frontend/react.log" 2>&1 &
 REACT_PID=$!
 cd "$SCRIPT_DIR" || exit 1
 sleep 3
@@ -101,7 +107,7 @@ if ! kill -0 "$REACT_PID" 2>/dev/null; then
   kill "$API_PID" 2>/dev/null
   exit 1
 fi
-log_status "Frontend dev server running on port $PORT"
+log_status "Frontend dev server running on port $FRONTEND_PORT"
 
 cleanup() {
   log_stage "Stopping processes..."

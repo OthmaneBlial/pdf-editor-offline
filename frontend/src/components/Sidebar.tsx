@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import {
   FileText, Scissors, RefreshCw, Shield, Zap, Wrench, History,
-  MessageSquare, Keyboard, ChevronRight, Layers
+  MessageSquare, Keyboard, ChevronRight, Layers,
+  Type, Bookmark, PenTool, ImageIcon
 } from 'lucide-react';
 import FileUpload from './FileUpload';
 import RecentFiles from './RecentFiles';
@@ -26,6 +27,11 @@ const navItems: NavItem[] = [
   { id: 'security', label: 'Security', icon: Shield },
   { id: 'advanced', label: 'Advanced', icon: Zap },
   { id: 'batch', label: 'Batch Process', icon: Layers },
+  // Phase 4: Advanced Editing
+  { id: 'text', label: 'Text Tools', icon: Type },
+  { id: 'navigation', label: 'Navigation', icon: Bookmark },
+  { id: 'annotations', label: 'Annotations', icon: PenTool },
+  { id: 'images', label: 'Images', icon: ImageIcon },
 ];
 
 interface SidebarProps {
@@ -36,7 +42,8 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange, onShowShortcuts }) => {
   // Track which section is expanded (only one at a time)
-  const [expandedSection, setExpandedSection] = useState<'navigation' | 'tools' | 'history' | 'comments' | null>(null);
+  // Navigation is expanded by default so users can see all tools
+  const [expandedSection, setExpandedSection] = useState<'navigation' | 'tools' | 'history' | 'comments' | null>('navigation');
 
   const toggleSection = (section: typeof expandedSection) => {
     setExpandedSection(expandedSection === section ? null : section);
