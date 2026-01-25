@@ -216,8 +216,10 @@ const PDFViewer: React.FC = () => {
       fabricCanvas.off();
       // Dispose canvas
       fabricCanvas.dispose();
+      // Clear the canvas reference from context
+      setCanvas(null);
     };
-  }, [pageImage]); // eslint-disable-line react-hooks/exhaustive-deps -- Only recreate canvas when page image changes
+  }, [pageImage, setCanvas]); // eslint-disable-line react-hooks/exhaustive-deps -- Only recreate canvas when page image changes
 
   // Handle drawing mode and properties changes
   useEffect(() => {
