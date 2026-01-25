@@ -27,6 +27,7 @@ ALLOWED_FILENAME_PATTERN = re.compile(r'^[\w\s\-_.()]+\.pdf$', re.IGNORECASE)
 PATH_TRAVERSAL_PATTERNS = [
     '..',
     '~',
+    './',
     '//',
     '\\',
     '\x00',  # Null byte
@@ -64,7 +65,7 @@ def sanitize_filename(filename: str) -> str:
     if not filename:
         raise HTTPException(status_code=400, detail="Filename cannot be empty")
 
-    # Check for path traversal patterns
+    # Check for path traversal patterns BEFORE extracting basename
     for pattern in PATH_TRAVERSAL_PATTERNS:
         if pattern in filename:
             logger.warning(f"Potential path traversal attempt in filename: {filename}")
@@ -73,7 +74,7 @@ def sanitize_filename(filename: str) -> str:
                 detail="Invalid filename. Path traversal not allowed."
             )
 
-    # Use pathlib for safe basename extraction
+    # Use pathlib for safe basename extraction (after path traversal check)
     safe_name = Path(filename).name
 
     # Check filename length
@@ -83,9 +84,10 @@ def sanitize_filename(filename: str) -> str:
             detail=f"Filename too long (max {MAX_FILENAME_LENGTH} characters)."
         )
 
-    # Ensure .pdf extension
-    if not safe_name.lower().endswith('.pdf'):
-        safe_name += '.pdf'
+    # Ensure .pdf extension (normalize to lowercase)
+    # Remove any existing extension and add .pdf
+    safe_name_without_ext = safe_name.rsplit('.', 1)[0] if '.' in safe_name else safe_name
+    safe_name = safe_name_without_ext + '.pdf'
 
     return safe_name
 

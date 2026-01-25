@@ -91,7 +91,7 @@ async def upload_document(file: UploadFile = File(...)):
         logger.info(f"Document uploaded successfully: {file.filename} (session: {session_id})")
         return APIResponse(
             success=True,
-            data=doc_session.dict(),
+            data=doc_session.model_dump(),
             message="Document uploaded successfully",
         )
     except PDFLoadError as e:
@@ -128,7 +128,7 @@ async def get_document_info(doc_id: str):
         created_at=session["created_at"],
         last_modified=session["last_modified"],
     )
-    return APIResponse(success=True, data=doc_session.dict())
+    return APIResponse(success=True, data=doc_session.model_dump())
 
 
 @router.delete("/{doc_id}", response_model=APIResponse)
@@ -220,7 +220,7 @@ async def get_metadata(doc_id: str):
 @router.put("/{doc_id}/metadata", response_model=APIResponse)
 async def update_metadata(doc_id: str, metadata: MetadataUpdate):
     session = get_session(doc_id)
-    update_dict = {k: v for k, v in metadata.dict().items() if v is not None}
+    update_dict = {k: v for k, v in metadata.model_dump().items() if v is not None}
     session["metadata_editor"].write_metadata(update_dict)
     persist_session_document(doc_id)
     return APIResponse(success=True, message="Metadata updated successfully")
@@ -277,25 +277,37 @@ async def duplicate_page(doc_id: str, page_num: int, insert_at: Optional[int] = 
     """Duplicate a page within the document."""
     session = get_session(doc_id)
     doc = session["document_manager"].get_document()
-    
+
     if page_num < 0 or page_num >= len(doc):
         raise HTTPException(
             status_code=400,
             detail=f"Invalid page number: {page_num}. Document has {len(doc)} pages."
         )
-    
+
     # Default: insert after the original page
     target_position = insert_at if insert_at is not None else page_num + 1
     if target_position < 0 or target_position > len(doc):
         target_position = len(doc)  # Append to end if invalid
-    
-    # Copy the page
-    doc.insert_pdf(doc, from_page=page_num, to_page=page_num, start_at=target_position)
-    
+
+    # Copy the page using PyMuPDF's correct method for same-document duplication
+    # We need to create a new document with the page, then insert it
+    import io
+    import fitz
+
+    source_page = doc[page_num]
+
+    # Create a temporary PDF with just the page to duplicate
+    temp_doc = fitz.open()
+    temp_doc.insert_pdf(doc, from_page=page_num, to_page=page_num)
+
+    # Insert the temporary doc's page into the main document
+    doc.insert_pdf(temp_doc, start_at=target_position)
+    temp_doc.close()
+
     # Update session page count
     session["page_count"] = len(doc)
     persist_session_document(doc_id)
-    
+
     logger.info(f"Duplicated page {page_num} to position {target_position} in session {doc_id}")
     return APIResponse(
         success=True,
