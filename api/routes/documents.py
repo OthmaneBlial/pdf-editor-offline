@@ -156,8 +156,11 @@ async def get_page_count(doc_id: str):
 async def get_page_image(doc_id: str, page_num: int, zoom: float = 2.0):
     session = get_session(doc_id)
     doc = session["document_manager"].get_document()
-    image_data = render_page_image(doc, page_num, zoom)
-    return APIResponse(success=True, data={"image": image_data})
+    try:
+        image_data = render_page_image(doc, page_num, zoom)
+        return APIResponse(success=True, data={"image": image_data})
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.delete("/{doc_id}/pages/{page_num}", response_model=APIResponse)

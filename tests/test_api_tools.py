@@ -8,6 +8,22 @@ import pytest
 
 from api.deps import TEMP_DIR
 
+# Check for optional dependencies
+try:
+    import pdfplumber
+    has_pdfplumber = True
+except ImportError:
+    has_pdfplumber = False
+
+try:
+    import pytesseract
+    has_pytesseract = True
+except ImportError:
+    has_pytesseract = False
+
+skip_if_no_pdfplumber = pytest.mark.skipif(not has_pdfplumber, reason="pdfplumber not installed")
+skip_if_no_pytesseract = pytest.mark.skipif(not has_pytesseract, reason="pytesseract not installed")
+
 
 def _prepare_files(file_tuples: Iterable[Tuple[str, str, str]]):
     handles = []
@@ -193,6 +209,7 @@ def test_add_page_numbers(api_client, multi_page_pdf):
         _close_handles(handles)
 
 
+@skip_if_no_pdfplumber
 def test_pdf_to_excel(api_client, sample_pdf):
     files, handles = _prepare_files([("file", sample_pdf, "application/pdf")])
     try:
@@ -284,6 +301,7 @@ def test_repair_pdf(api_client, sample_pdf):
         _close_handles(handles)
 
 
+@skip_if_no_pytesseract
 def test_ocr_pdf(api_client, sample_pdf):
     files, handles = _prepare_files([("file", sample_pdf, "application/pdf")])
     try:

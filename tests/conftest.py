@@ -104,3 +104,71 @@ def sample_html(tmp_path) -> Iterator[str]:
     with open(file_path, "w") as fh:
         fh.write("<html><body><p>HTML to PDF</p></body></html>")
     yield str(file_path)
+
+
+# =============================================================================
+# Phase 1-3 Additional Fixtures
+# =============================================================================
+
+@pytest.fixture
+def blank_pdf(tmp_path) -> Iterator[str]:
+    """Create a blank PDF for testing blank page removal."""
+    file_path = tmp_path / f"blank_{uuid.uuid4().hex}.pdf"
+    doc = fitz.open()
+    doc.save(str(file_path))
+    doc.close()
+    yield str(file_path)
+
+
+@pytest.fixture
+def pdf_with_annotations(tmp_path) -> Iterator[str]:
+    """Create a PDF with annotations for testing."""
+    file_path = tmp_path / f"annotated_{uuid.uuid4().hex}.pdf"
+    doc = fitz.open()
+    page = doc.new_page()
+    page.insert_text((72, 72), "Test Content")
+    # Add a highlight annotation
+    annot = page.add_rect_annot(
+        fitz.Rect(100, 100, 200, 150),
+        "Highlight",
+        author="Test User",
+    )
+    doc.save(str(file_path))
+    doc.close()
+    yield str(file_path)
+
+
+@pytest.fixture
+def sample_markdown(tmp_path) -> Iterator[str]:
+    """Create a Markdown file for testing."""
+    file_path = tmp_path / f"doc_{uuid.uuid4().hex}.md"
+    with open(file_path, "w") as fh:
+        fh.write("# Heading\n\nThis is a **test** Markdown file.\n\n- Item 1\n- Item 2\n")
+    yield str(file_path)
+
+
+@pytest.fixture
+def sample_txt(tmp_path) -> Iterator[str]:
+    """Create a plain text file for testing."""
+    file_path = tmp_path / f"doc_{uuid.uuid4().hex}.txt"
+    with open(file_path, "w") as fh:
+        fh.write("This is a plain text file for testing TXT to PDF conversion.")
+    yield str(file_path)
+
+
+@pytest.fixture
+def sample_csv(tmp_path) -> Iterator[str]:
+    """Create a CSV file for testing."""
+    file_path = tmp_path / f"data_{uuid.uuid4().hex}.csv"
+    with open(file_path, "w") as fh:
+        fh.write("Name,Age,Country\nAlice,30,USA\nBob,25,UK\nCharlie,35,Canada\n")
+    yield str(file_path)
+
+
+@pytest.fixture
+def sample_json(tmp_path) -> Iterator[str]:
+    """Create a JSON file for testing."""
+    file_path = tmp_path / f"data_{uuid.uuid4().hex}.json"
+    with open(file_path, "w") as fh:
+        fh.write('[{"name": "Alice", "age": 30, "city": "NYC"}, {"name": "Bob", "age": 25, "city": "LA"}]')
+    yield str(file_path)

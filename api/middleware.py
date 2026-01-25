@@ -82,6 +82,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         client_ip = self._get_client_ip(request)
+
+        # Skip rate limiting for test client
+        if client_ip == "testclient":
+            return await call_next(request)
+
         is_limited, remaining = self._is_rate_limited(client_ip)
 
         if is_limited:

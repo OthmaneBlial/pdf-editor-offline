@@ -123,28 +123,59 @@ class PDFManipulator:
     ):
         """
         Add text watermark to all pages of a PDF.
+        Note: For watermarks, rotation must be a multiple of 90 for PyMuPDF.
         """
+        import math
+
         doc = fitz.open(file_path)
 
         for page in doc:
             # Calculate center
             rect = page.rect
-            center = fitz.Point(rect.width / 2, rect.height / 2)
+            center_x = rect.width / 2
+            center_y = rect.height / 2
 
-            # Add watermark
-            page.insert_text(
-                center,
-                text,
-                fontsize=font_size,
-                fontname="helv",
-                color=color,
-                fill_opacity=opacity,
-                rotate=rotation,
-            )
-            # Better approach for centered rotated text:
-            # Use insert_textbox or shape
-            # But insert_text with rotate works relative to insertion point.
-            # Let's stick to simple insert_text for now, maybe adjust position if needed.
+            # Normalize rotation to 0-360 range and round to nearest multiple of 90
+            # PyMuPDF only supports rotation values that are multiples of 90
+            rotation = rotation % 360
+            rotation = round(rotation / 90) * 90 % 360
+
+            # For rotated text, we need to adjust the position
+            # since insert_text rotates around the insertion point
+            if rotation == 0:
+                # No rotation - use center directly
+                point = fitz.Point(center_x, center_y)
+                page.insert_text(
+                    point,
+                    text,
+                    fontsize=font_size,
+                    fontname="helv",
+                    color=color,
+                    fill_opacity=opacity,
+                )
+            else:
+                # For rotation, use a textbox with proper alignment
+                # Create a centered textbox
+                box_width = rect.width * 0.8
+                box_height = rect.height * 0.2
+                textbox_rect = fitz.Rect(
+                    center_x - box_width / 2,
+                    center_y - box_height / 2,
+                    center_x + box_width / 2,
+                    center_y + box_height / 2,
+                )
+
+                # Use 0 (center) for align
+                page.insert_textbox(
+                    textbox_rect,
+                    text,
+                    fontsize=font_size,
+                    fontname="helv",
+                    color=color,
+                    fill_opacity=opacity,
+                    align=0,  # Center align
+                    rotate=rotation,
+                )
 
         doc.save(output_path)
         doc.close()
@@ -171,7 +202,9 @@ class PDFManipulator:
         for page_num in pages_to_rotate:
             if 0 <= page_num < len(doc):
                 page = doc[page_num]
-                page.set_rotation(page.rotation + rotation)
+                # Normalize rotation to 0-360 range
+                new_rotation = (page.rotation + rotation) % 360
+                page.set_rotation(new_rotation)
 
         doc.save(output_path)
         doc.close()

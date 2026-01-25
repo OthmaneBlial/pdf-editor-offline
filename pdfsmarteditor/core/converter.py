@@ -629,15 +629,22 @@ class PDFConverter:
         doc = fitz.open(pdf_path)
         output_files = []
 
+        # Ensure output directory exists
+        os.makedirs(output_dir, exist_ok=True)
+
         for page_num, page in enumerate(doc, start=1):
-            # Get SVG content
-            svg = page.get_svg()
+            # Get SVG content using get_svg_image
+            svg = page.get_svg_image()
+            svg_data = svg.tobytes("utf-8") if isinstance(svg, bytes) else svg
             output_filename = f"page_{page_num}_{os.path.basename(pdf_path)}.svg"
             output_path = os.path.join(output_dir, output_filename)
 
             # Write SVG
             with open(output_path, "w", encoding="utf-8") as f:
-                f.write(svg)
+                if isinstance(svg_data, bytes):
+                    f.write(svg_data.decode("utf-8"))
+                else:
+                    f.write(svg_data)
 
             output_files.append(output_path)
 
