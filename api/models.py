@@ -73,4 +73,3 @@ class CropPageRequest(BaseModel):
     top: float
     right: float
     bottom: float
-

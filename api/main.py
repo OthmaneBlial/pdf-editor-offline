@@ -6,12 +6,11 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.deps import cleanup_stale_sessions, cleanup_all_sessions
+from api.deps import cleanup_all_sessions, cleanup_stale_sessions
 
 # Setup logging
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -38,7 +37,7 @@ app = FastAPI(
 # In production, replace with your actual frontend origin
 ALLOWED_ORIGINS = os.getenv(
     "CORS_ORIGINS",
-    "http://localhost:5173,http://localhost:3000,http://localhost:8000,http://127.0.0.1:5173"
+    "http://localhost:5173,http://localhost:3000,http://localhost:8000,http://127.0.0.1:5173",
 ).split(",")
 
 app.add_middleware(
@@ -51,7 +50,11 @@ app.add_middleware(
 )
 
 # Add security and logging middleware
-from api.middleware import RateLimitMiddleware, RequestLoggingMiddleware, SecurityHeadersMiddleware
+from api.middleware import (
+    RateLimitMiddleware,
+    RequestLoggingMiddleware,
+    SecurityHeadersMiddleware,
+)
 
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RequestLoggingMiddleware)

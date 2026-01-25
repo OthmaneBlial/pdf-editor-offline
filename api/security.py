@@ -15,22 +15,22 @@ from fastapi import HTTPException
 logger = logging.getLogger(__name__)
 
 # PDF file signature (magic bytes)
-PDF_SIGNATURE = b'%PDF-'
+PDF_SIGNATURE = b"%PDF-"
 
 # Maximum filename length
 MAX_FILENAME_LENGTH = 255
 
 # Allowed characters for filenames (sanitized)
-ALLOWED_FILENAME_PATTERN = re.compile(r'^[\w\s\-_.()]+\.pdf$', re.IGNORECASE)
+ALLOWED_FILENAME_PATTERN = re.compile(r"^[\w\s\-_.()]+\.pdf$", re.IGNORECASE)
 
 # Common dangerous path traversal patterns
 PATH_TRAVERSAL_PATTERNS = [
-    '..',
-    '~',
-    './',
-    '//',
-    '\\',
-    '\x00',  # Null byte
+    "..",
+    "~",
+    "./",
+    "//",
+    "\\",
+    "\x00",  # Null byte
 ]
 
 
@@ -70,8 +70,7 @@ def sanitize_filename(filename: str) -> str:
         if pattern in filename:
             logger.warning(f"Potential path traversal attempt in filename: {filename}")
             raise HTTPException(
-                status_code=400,
-                detail="Invalid filename. Path traversal not allowed."
+                status_code=400, detail="Invalid filename. Path traversal not allowed."
             )
 
     # Use pathlib for safe basename extraction (after path traversal check)
@@ -81,21 +80,20 @@ def sanitize_filename(filename: str) -> str:
     if len(safe_name) > MAX_FILENAME_LENGTH:
         raise HTTPException(
             status_code=400,
-            detail=f"Filename too long (max {MAX_FILENAME_LENGTH} characters)."
+            detail=f"Filename too long (max {MAX_FILENAME_LENGTH} characters).",
         )
 
     # Ensure .pdf extension (normalize to lowercase)
     # Remove any existing extension and add .pdf
-    safe_name_without_ext = safe_name.rsplit('.', 1)[0] if '.' in safe_name else safe_name
-    safe_name = safe_name_without_ext + '.pdf'
+    safe_name_without_ext = (
+        safe_name.rsplit(".", 1)[0] if "." in safe_name else safe_name
+    )
+    safe_name = safe_name_without_ext + ".pdf"
 
     return safe_name
 
 
-def validate_content_type(
-    content_type: Optional[str],
-    allowed_types: Set[str]
-) -> bool:
+def validate_content_type(content_type: Optional[str], allowed_types: Set[str]) -> bool:
     """
     Validate content type against allowed types.
 
@@ -118,9 +116,9 @@ def validate_content_type(
         if content_type == allowed_lower:
             return True
         # Handle wildcards like 'application/*'
-        if allowed_lower.endswith('/*'):
-            category = allowed_lower.split('/')[0]
-            if content_type.startswith(category + '/'):
+        if allowed_lower.endswith("/*"):
+            category = allowed_lower.split("/")[0]
+            if content_type.startswith(category + "/"):
                 return True
 
     return False
@@ -141,11 +139,7 @@ def get_safe_filename(original_filename: str, session_id: str) -> str:
     return f"{session_id}_{safe_name}"
 
 
-def validate_pdf_file(
-    file_content: bytes,
-    filename: str,
-    max_size_bytes: int
-) -> None:
+def validate_pdf_file(file_content: bytes, filename: str, max_size_bytes: int) -> None:
     """
     Comprehensive PDF file validation.
 
@@ -164,8 +158,7 @@ def validate_pdf_file(
     if len(file_content) > max_size_bytes:
         max_mb = max_size_bytes / (1024 * 1024)
         raise HTTPException(
-            status_code=413,
-            detail=f"File too large (max {max_mb:.0f} MB)."
+            status_code=413, detail=f"File too large (max {max_mb:.0f} MB)."
         )
 
     # Validate PDF signature
@@ -173,7 +166,7 @@ def validate_pdf_file(
         logger.warning(f"Invalid PDF signature for file: {filename}")
         raise HTTPException(
             status_code=400,
-            detail="Invalid PDF file. File does not have a valid PDF signature."
+            detail="Invalid PDF file. File does not have a valid PDF signature.",
         )
 
 
@@ -192,9 +185,8 @@ def sanitize_user_input(text: str, max_length: int = 1000) -> str:
         return ""
 
     # Remove null bytes and control characters (except newlines and tabs)
-    cleaned = ''.join(
-        c for c in text
-        if c == '\n' or c == '\t' or c == '\r' or ord(c) >= 32
+    cleaned = "".join(
+        c for c in text if c == "\n" or c == "\t" or c == "\r" or ord(c) >= 32
     )
 
     # Truncate to max length

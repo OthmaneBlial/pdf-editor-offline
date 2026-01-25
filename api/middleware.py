@@ -18,7 +18,9 @@ from api.security import get_security_headers
 logger = logging.getLogger(__name__)
 
 # Rate limiting configuration
-RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "100"))  # requests per window
+RATE_LIMIT_REQUESTS = int(
+    os.getenv("RATE_LIMIT_REQUESTS", "100")
+)  # requests per window
 RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", "60"))  # window in seconds
 
 
@@ -30,7 +32,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     For production, consider using Redis-based rate limiting.
     """
 
-    def __init__(self, app, requests_limit: int = RATE_LIMIT_REQUESTS, window_seconds: int = RATE_LIMIT_WINDOW):
+    def __init__(
+        self,
+        app,
+        requests_limit: int = RATE_LIMIT_REQUESTS,
+        window_seconds: int = RATE_LIMIT_WINDOW,
+    ):
         super().__init__(app)
         self.requests_limit = requests_limit
         self.window_seconds = window_seconds
@@ -53,9 +60,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     def _cleanup_old_requests(self, ip: str, current_time: float) -> None:
         """Remove requests outside the current window."""
         cutoff = current_time - self.window_seconds
-        self._requests[ip] = [
-            ts for ts in self._requests[ip] if ts > cutoff
-        ]
+        self._requests[ip] = [ts for ts in self._requests[ip] if ts > cutoff]
 
     def _is_rate_limited(self, ip: str) -> Tuple[bool, int]:
         """
@@ -98,7 +103,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         # Add rate limit headers to all responses
         response.headers["X-RateLimit-Limit"] = str(self.requests_limit)
         response.headers["X-RateLimit-Remaining"] = str(remaining)
-        response.headers["X-RateLimit-Reset"] = str(int(time.time()) + self.window_seconds)
+        response.headers["X-RateLimit-Reset"] = str(
+            int(time.time()) + self.window_seconds
+        )
 
         return response
 
