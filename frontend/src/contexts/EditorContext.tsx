@@ -1,3 +1,5 @@
+/* eslint-disable react-refresh/only-export-components */
+/* eslint-disable react-hooks/immutability */
 import React, { createContext, useContext, useState, useRef, useCallback, useMemo, type ReactNode, useEffect } from 'react';
 import * as fabric from 'fabric';
 import axios from 'axios';
@@ -89,7 +91,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         canvas.off('object:removed', saveHistory);
       };
     }
-  }, [canvas, historyStep, history.length]);
+  }, [canvas, historyStep, history]);
 
   // Memoized undo function
   const undo = useCallback(() => {
@@ -135,7 +137,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       };
 
       const originalBg = canvas.backgroundImage;
-      // Properly handle background image without @ts-ignore
+      // Properly handle background image - fabric.js requires direct mutation
       if (originalBg) {
         canvas.backgroundImage = undefined;
       }

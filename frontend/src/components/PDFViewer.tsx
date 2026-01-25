@@ -5,10 +5,12 @@ import { useEditor } from '../contexts/EditorContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
 
-// Constants
+// Constants - Fabric.js types are complex, using any for fabric-specific objects
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const FABRIC_IMAGE_CLASS = (fabric as any).FabricImage || (fabric as any).Image;
 
 // Helper to update canvas size
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const updateCanvasSize = (currentCanvas: fabric.Canvas, img: any, container: HTMLElement, currentZoom: number) => {
   const imgWidth = img.width || 0;
   const imgHeight = img.height || 0;
@@ -121,7 +123,7 @@ const PDFViewer: React.FC = () => {
       }
     };
     loadPageImage();
-  }, [sessionId, currentPage]); // Only depend on sessionId and currentPage - NOT canvas or setCanvas
+  }, [sessionId, currentPage]); // eslint-disable-line react-hooks/exhaustive-deps -- Only depend on sessionId and currentPage to prevent infinite loops
 
   // Keep track of latest zoom for ResizeObserver
   const zoomRef = useRef(zoom);
@@ -162,6 +164,7 @@ const PDFViewer: React.FC = () => {
     }
 
     // Add background image and size canvas to the page
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     FABRIC_IMAGE_CLASS.fromURL(pageImage).then((img: any) => {
       img.set({
         selectable: false,
@@ -214,7 +217,7 @@ const PDFViewer: React.FC = () => {
       // Dispose canvas
       fabricCanvas.dispose();
     };
-  }, [pageImage]); // Only recreate canvas when page image changes
+  }, [pageImage]); // eslint-disable-line react-hooks/exhaustive-deps -- Only recreate canvas when page image changes
 
   // Handle drawing mode and properties changes
   useEffect(() => {
@@ -248,6 +251,7 @@ const PDFViewer: React.FC = () => {
   // Handle canvas interactions (Tools)
   useEffect(() => {
     if (canvas) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const handleMouseDown = (opt: any) => {
         const evt = opt.e;
         if (opt.target) {
@@ -314,6 +318,7 @@ const PDFViewer: React.FC = () => {
   // Handle canvas object creation (general)
   useEffect(() => {
     if (canvas) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const handleObjectAdded = (e: any) => {
         const obj = e.target;
         if (obj) {

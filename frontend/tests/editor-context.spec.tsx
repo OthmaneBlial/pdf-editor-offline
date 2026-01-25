@@ -63,6 +63,7 @@ describe('EditorContext', () => {
       const ctx = ensureContext();
       ctx.setSessionId('session-1');
       ctx.setCurrentPage(0);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ctx.setCanvas(canvasStub as any);
     });
 
@@ -102,6 +103,7 @@ describe('EditorContext', () => {
     act(() => {
       const ctx = ensureContext();
       ctx.setSessionId('session-export');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ctx.setCanvas(canvasStub as any);
     });
 
@@ -113,7 +115,6 @@ describe('EditorContext', () => {
     window.URL.revokeObjectURL = revokeObjectURL;
 
     const clickFn = vi.fn();
-    const appendChild = vi.fn();
     const createElementSpy = vi.spyOn(document, 'createElement').mockImplementation(() => ({
       tagName: 'A',
       href: '',

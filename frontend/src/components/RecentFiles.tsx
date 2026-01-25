@@ -14,17 +14,12 @@ interface RecentFilesProps {
 }
 
 const RecentFiles: React.FC<RecentFilesProps> = ({ onFileSelect }) => {
-  const [files, setFiles] = useState<RecentFile[]>([]);
+  const [files, setFiles] = useState<RecentFile[]>(getRecentFiles);
   const [isOpen, setIsOpen] = useState(false);
 
   const loadFiles = () => {
     setFiles(getRecentFiles());
   };
-
-  // Load on mount
-  useEffect(() => {
-    loadFiles();
-  }, []);
 
   const handleRemove = (e: React.MouseEvent, fileName: string) => {
     e.stopPropagation();

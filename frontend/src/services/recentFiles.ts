@@ -14,7 +14,7 @@ export const getRecentFiles = (): RecentFile[] => {
         const parsed = JSON.parse(stored);
         // Ensure we always return an array
         return Array.isArray(parsed) ? parsed : [];
-    } catch (e) {
+    } catch {
         return [];
     }
 };

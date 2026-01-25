@@ -36,3 +36,5 @@ pdfsmarteditor/utils/pdf_types.py
 pdfsmarteditor/utils/validators.py
 tests/test_api_smoke.py
 tests/test_api_tools.py
+tests/test_page_manipulation.py
+tests/test_security.py

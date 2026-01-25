@@ -15,8 +15,10 @@ const ImageUpload: React.FC = () => {
         const imgSrc = e.target?.result as string;
 
         // Fabric.js v6 uses FabricImage instead of Image
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const ImageClass = (fabric as any).FabricImage || (fabric as any).Image;
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ImageClass.fromURL(imgSrc).then((img: any) => {
           img.set({
             left: 100,
