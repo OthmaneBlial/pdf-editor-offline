@@ -29,8 +29,7 @@ class SessionStore:
 
     def _ensure_db(self):
         with self._connect() as conn:
-            conn.execute(
-                """
+            conn.execute("""
                 CREATE TABLE IF NOT EXISTS sessions (
                     session_id TEXT PRIMARY KEY,
                     filename TEXT NOT NULL,
@@ -38,8 +37,7 @@ class SessionStore:
                     created_at TEXT NOT NULL,
                     last_modified TEXT NOT NULL
                 )
-                """
-            )
+                """)
             conn.commit()
 
     def save(self, record: SessionRecord):
