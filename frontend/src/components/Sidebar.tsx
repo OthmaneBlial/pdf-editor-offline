@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   FileText, Scissors, RefreshCw, Shield, Zap, Wrench, History,
-  MessageSquare, Keyboard, ChevronRight
+  MessageSquare, Keyboard, ChevronRight, Layers
 } from 'lucide-react';
 import FileUpload from './FileUpload';
 import RecentFiles from './RecentFiles';
@@ -25,6 +25,7 @@ const navItems: NavItem[] = [
   { id: 'conversion', label: 'Conversion', icon: RefreshCw },
   { id: 'security', label: 'Security', icon: Shield },
   { id: 'advanced', label: 'Advanced', icon: Zap },
+  { id: 'batch', label: 'Batch Process', icon: Layers },
 ];
 
 interface SidebarProps {

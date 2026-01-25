@@ -18,6 +18,10 @@ router = APIRouter(prefix="/api/tools", tags=["tools"])
 PDF_MIME = {"application/pdf"}
 IMG_MIME = {"image/png", "image/jpeg", "image/jpg"}
 HTML_MIME = {"text/html", "application/xhtml+xml"}
+MARKDOWN_MIME = {"text/markdown", "text/x-markdown"}
+TXT_MIME = {"text/plain"}
+CSV_MIME = {"text/csv", "application/vnd.ms-excel"}
+JSON_MIME = {"application/json"}
 DOC_MIME = {
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "application/msword",
@@ -307,4 +311,252 @@ async def compare_pdfs(file1: UploadFile = File(...), file2: UploadFile = File(.
     PDFManipulator().compare_pdfs(p1, p2, out_path)
     return FileResponse(
         out_path, filename="comparison_diff.pdf", media_type="application/pdf"
+    )
+
+
+# =============================================================================
+# Phase 3: Extended Conversion - New Export Formats
+# =============================================================================
+
+
+@router.post("/pdf-to-markdown")
+async def pdf_to_markdown(file: UploadFile = File(...)):
+    path = await persist_upload_file(file, PDF_MIME, "p2md_")
+    out_path = os.path.join(TEMP_DIR, f"conv_{uuid.uuid4()}.md")
+    PDFConverter().pdf_to_markdown(path, out_path)
+    return FileResponse(
+        out_path,
+        filename="converted.md",
+        media_type="text/markdown",
+    )
+
+
+@router.post("/pdf-to-txt")
+async def pdf_to_txt(file: UploadFile = File(...)):
+    path = await persist_upload_file(file, PDF_MIME, "p2t_")
+    out_path = os.path.join(TEMP_DIR, f"conv_{uuid.uuid4()}.txt")
+    PDFConverter().pdf_to_txt(path, out_path)
+    return FileResponse(
+        out_path,
+        filename="converted.txt",
+        media_type="text/plain",
+    )
+
+
+@router.post("/pdf-to-epub")
+async def pdf_to_epub(file: UploadFile = File(...)):
+    path = await persist_upload_file(file, PDF_MIME, "p2e_")
+    out_path = os.path.join(TEMP_DIR, f"conv_{uuid.uuid4()}.epub")
+    PDFConverter().pdf_to_epub(path, out_path)
+    return FileResponse(
+        out_path,
+        filename="converted.epub",
+        media_type="application/epub+zip",
+    )
+
+
+@router.post("/pdf-to-svg")
+async def pdf_to_svg(file: UploadFile = File(...)):
+    path = await persist_upload_file(file, PDF_MIME, "p2s_")
+    out_files = PDFConverter().pdf_to_svg(path, TEMP_DIR)
+    zip_path = os.path.join(TEMP_DIR, f"svgs_{uuid.uuid4()}.zip")
+    with zipfile.ZipFile(zip_path, "w") as zipf:
+        for f in out_files:
+            zipf.write(f, os.path.basename(f))
+    return FileResponse(zip_path, filename="svg_pages.zip", media_type="application/zip")
+
+
+# =============================================================================
+# Phase 3: Extended Conversion - New Import Formats
+# =============================================================================
+
+
+@router.post("/markdown-to-pdf")
+async def markdown_to_pdf(file: UploadFile = File(...)):
+    path = await persist_upload_file(file, MARKDOWN_MIME, "md2p_")
+    out_path = os.path.join(TEMP_DIR, f"conv_{uuid.uuid4()}.pdf")
+    PDFConverter().markdown_to_pdf(path, out_path)
+    return FileResponse(
+        out_path, filename="converted.pdf", media_type="application/pdf"
+    )
+
+
+@router.post("/txt-to-pdf")
+async def txt_to_pdf(file: UploadFile = File(...)):
+    path = await persist_upload_file(file, TXT_MIME, "t2p_")
+    out_path = os.path.join(TEMP_DIR, f"conv_{uuid.uuid4()}.pdf")
+    PDFConverter().txt_to_pdf(path, out_path)
+    return FileResponse(
+        out_path, filename="converted.pdf", media_type="application/pdf"
+    )
+
+
+@router.post("/csv-to-pdf")
+async def csv_to_pdf(file: UploadFile = File(...)):
+    path = await persist_upload_file(file, CSV_MIME, "c2p_")
+    out_path = os.path.join(TEMP_DIR, f"conv_{uuid.uuid4()}.pdf")
+    PDFConverter().csv_to_pdf(path, out_path)
+    return FileResponse(
+        out_path, filename="converted.pdf", media_type="application/pdf"
+    )
+
+
+@router.post("/json-to-pdf")
+async def json_to_pdf(file: UploadFile = File(...)):
+    path = await persist_upload_file(file, JSON_MIME, "j2p_")
+    out_path = os.path.join(TEMP_DIR, f"conv_{uuid.uuid4()}.pdf")
+    PDFConverter().json_to_pdf(path, out_path)
+    return FileResponse(
+        out_path, filename="converted.pdf", media_type="application/pdf"
+    )
+
+
+# =============================================================================
+# Phase 3: Batch Processing
+# =============================================================================
+
+
+@router.post("/batch-convert")
+async def batch_convert(
+    files: List[UploadFile] = File(...),
+    conversion_type: str = Form(...),
+):
+    """
+    Batch convert multiple files using the same conversion type.
+    Returns a ZIP file with all converted files.
+    """
+    # Determine allowed MIME types based on conversion type
+    if "to-pdf" in conversion_type:
+        # Converting to PDF - allow various input types
+        if "markdown" in conversion_type:
+            allowed = MARKDOWN_MIME
+        elif "csv" in conversion_type:
+            allowed = CSV_MIME
+        elif "json" in conversion_type:
+            allowed = JSON_MIME
+        elif "txt" in conversion_type:
+            allowed = TXT_MIME
+        elif "word" in conversion_type:
+            allowed = DOC_MIME
+        elif "ppt" in conversion_type or "presentation" in conversion_type:
+            allowed = PPT_MIME
+        elif "excel" in conversion_type:
+            allowed = EXCEL_MIME
+        elif "html" in conversion_type:
+            allowed = HTML_MIME
+        elif "img" in conversion_type:
+            allowed = IMG_MIME
+        else:
+            allowed = PDF_MIME  # Default to PDF
+    else:
+        # Converting from PDF
+        allowed = PDF_MIME
+
+    # Persist all uploaded files
+    file_paths = []
+    for f in files:
+        path = await persist_upload_file(f, allowed, f"batch_{conversion_type}_")
+        file_paths.append(path)
+
+    # Perform batch conversion
+    output_files = PDFConverter().batch_convert(file_paths, TEMP_DIR, conversion_type)
+
+    # Create ZIP with results
+    zip_path = os.path.join(TEMP_DIR, f"batch_{uuid.uuid4()}.zip")
+    with zipfile.ZipFile(zip_path, "w") as zipf:
+        for f in output_files:
+            zipf.write(f, os.path.basename(f))
+
+    return FileResponse(
+        zip_path,
+        filename=f"batch_converted_{conversion_type}.zip",
+        media_type="application/zip",
+    )
+
+
+@router.post("/auto-merge-folder")
+async def auto_merge_folder(
+    files: List[UploadFile] = File(...),
+):
+    """
+    Merge all uploaded PDFs into a single PDF.
+    This is a server-side version of folder merge since we can't access client folders.
+    """
+    if len(files) < 2:
+        raise HTTPException(status_code=400, detail="At least 2 PDF files required")
+
+    # Persist all uploaded files
+    paths = [await persist_upload_file(f, PDF_MIME, "merge_") for f in files]
+    out_path = os.path.join(TEMP_DIR, f"auto_merge_{uuid.uuid4()}.pdf")
+
+    # Use PDFManipulator to merge the files directly
+    PDFManipulator().merge_pdfs(paths, out_path)
+
+    return FileResponse(
+        out_path,
+        filename=f"merged_{len(paths)}_pdfs.pdf",
+        media_type="application/pdf",
+    )
+
+
+@router.post("/template-process")
+async def template_process(
+    files: List[UploadFile] = File(...),
+    watermark_text: str = Form(None),
+    watermark_opacity: float = Form(0.3),
+    watermark_rotation: int = Form(45),
+    watermark_font_size: int = Form(50),
+    watermark_color: str = Form("#000000"),
+    rotate: int = Form(None),
+    compress: int = Form(None),
+    protect_password: str = Form(None),
+):
+    """
+    Apply template settings (watermark, rotate, compress, protect) to multiple PDFs.
+    Returns a ZIP file with all processed files.
+    """
+    if len(files) < 1:
+        raise HTTPException(status_code=400, detail="At least 1 PDF file required")
+
+    # Persist all uploaded files
+    paths = [await persist_upload_file(f, PDF_MIME, "template_") for f in files]
+
+    # Build template dictionary
+    template = {}
+    if watermark_text:
+        color = tuple(int(watermark_color.lstrip("#")[i : i + 2], 16) / 255 for i in (0, 2, 4))
+        template["watermark"] = {
+            "text": watermark_text,
+            "opacity": watermark_opacity,
+            "rotation": watermark_rotation,
+            "font_size": watermark_font_size,
+            "color": color,
+        }
+    if rotate is not None:
+        template["rotate"] = rotate
+    if compress is not None:
+        template["compress"] = compress
+    if protect_password:
+        template["protect"] = protect_password
+
+    # If no template options, just return error
+    if not template:
+        raise HTTPException(
+            status_code=400,
+            detail="At least one template option (watermark, rotate, compress, protect) must be specified",
+        )
+
+    # Apply template to all files
+    output_files = PDFConverter().apply_template(template, paths, TEMP_DIR)
+
+    # Create ZIP with results
+    zip_path = os.path.join(TEMP_DIR, f"template_{uuid.uuid4()}.zip")
+    with zipfile.ZipFile(zip_path, "w") as zipf:
+        for f in output_files:
+            zipf.write(f, os.path.basename(f))
+
+    return FileResponse(
+        zip_path,
+        filename="template_processed.zip",
+        media_type="application/zip",
     )

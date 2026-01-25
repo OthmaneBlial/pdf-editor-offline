@@ -12,10 +12,11 @@ import ManipulationTools from './components/tools/ManipulationTools';
 import ConversionTools from './components/tools/ConversionTools';
 import SecurityTools from './components/tools/SecurityTools';
 import AdvancedTools from './components/tools/AdvancedTools';
+import BatchProcessingTools from './components/tools/BatchProcessingTools';
 import './App.css';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
-export type ViewMode = 'editor' | 'manipulation' | 'conversion' | 'security' | 'advanced';
+export type ViewMode = 'editor' | 'manipulation' | 'conversion' | 'security' | 'advanced' | 'batch';
 
 // Component to handle keyboard shortcuts - must be inside EditorProvider
 function KeyboardShortcutsHandler({ onShowHelp }: { onShowHelp: () => void }) {
@@ -54,6 +55,8 @@ function AppContent() {
         return <SecurityTools />;
       case 'advanced':
         return <AdvancedTools />;
+      case 'batch':
+        return <BatchProcessingTools />;
       default:
         return null;
     }

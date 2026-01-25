@@ -467,3 +467,748 @@ class PDFConverter:
         out_doc.save(output_path)
         out_doc.close()
         doc.close()
+
+    def pdf_to_markdown(self, pdf_path: str, output_path: str):
+        """
+        Convert PDF to Markdown format.
+        Extracts text with formatting, headings, lists, and tables.
+        """
+        import fitz
+
+        doc = fitz.open(pdf_path)
+        markdown_lines = []
+
+        for page_num, page in enumerate(doc, start=1):
+            # Get text as blocks for structure detection
+            blocks = page.get_text("dict")["blocks"]
+
+            for block in blocks:
+                if block["type"] == 0:  # Text block
+                    # Process each line and its spans
+                    if "lines" in block:
+                        for line in block["lines"]:
+                            if "spans" in line and line["spans"]:
+                                max_font = max(span.get("size", 12) for span in line["spans"])
+                                line_text = "".join(span["text"] for span in line["spans"])
+
+                                if not line_text.strip():
+                                    continue
+
+                                # Detect headings based on font size
+                                if max_font > 18:
+                                    markdown_lines.append(f"# {line_text}\n")
+                                elif max_font > 16:
+                                    markdown_lines.append(f"## {line_text}\n")
+                                elif max_font > 14:
+                                    markdown_lines.append(f"### {line_text}\n")
+                                else:
+                                    # Check for list items
+                                    if line_text.strip().startswith(("-", "•", "*")):
+                                        markdown_lines.append(f"{line_text}\n")
+                                    else:
+                                        markdown_lines.append(f"{line_text}\n")
+
+            # Page separator
+            markdown_lines.append("\n---\n\n")
+
+        doc.close()
+
+        # Write to file
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write("".join(markdown_lines))
+
+    def pdf_to_txt(self, pdf_path: str, output_path: str):
+        """
+        Convert PDF to plain text format.
+        Simple text extraction without formatting.
+        """
+        import fitz
+
+        doc = fitz.open(pdf_path)
+        full_text = []
+
+        for page in doc:
+            text = page.get_text("text")
+            full_text.append(text)
+
+        doc.close()
+
+        # Write to file
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write("\n\n".join(full_text))
+
+    def pdf_to_epub(self, pdf_path: str, output_path: str):
+        """
+        Convert PDF to EPUB format.
+        Creates chapters from PDF pages.
+        """
+        import fitz
+        from ebooklib import epub
+
+        doc = fitz.open(pdf_path)
+        book = epub.EpubBook()
+
+        # Set metadata
+        book.set_identifier("pdfsmarteditor-" + str(hash(pdf_path)))
+        book.set_title(os.path.splitext(os.path.basename(pdf_path))[0])
+        book.set_language("en")
+
+        # Create chapters from pages
+        chapters = []
+        toc = []
+
+        for page_num, page in enumerate(doc, start=1):
+            # Extract text and images from page
+            text = page.get_text("text")
+            html_content = f"<h1>Page {page_num}</h1>\n"
+
+            # Add text as paragraphs
+            for para in text.split("\n\n"):
+                if para.strip():
+                    html_content += f"<p>{para}</p>\n"
+
+            # Extract images
+            image_list = page.get_images(full=True)
+            for img_index, img in enumerate(image_list):
+                xref = img[0]
+                base_image = doc.extract_image(xref)
+                if base_image:
+                    image_bytes = base_image["image"]
+                    image_ext = base_image["ext"]
+                    img_filename = f"page{page_num}_img{img_index}.{image_ext}"
+
+                    # Add image to EPUB
+                    img_item = epub.EpubItem(
+                        uid=f"img_{page_num}_{img_index}",
+                        file_name=f"images/{img_filename}",
+                        media_type=f"image/{image_ext}",
+                        content=image_bytes,
+                    )
+                    book.add_item(img_item)
+                    html_content += f'<img src="images/{img_filename}"/>\n'
+
+            # Create chapter
+            chapter = epub.EpubHtml(
+                title=f"Page {page_num}",
+                file_name=f"chap_{page_num}.xhtml",
+                content=html_content,
+            )
+            book.add_item(chapter)
+            chapters.append(chapter)
+            toc.append(chapter)
+
+        # Add navigation
+        book.toc = tuple(toc)
+        book.add_item(epub.EpubNcx())
+        book.add_item(epub.EpubNav())
+
+        # Add CSS
+        style = "body { font-family: Times, serif; }"
+        nav_css = epub.EpubItem(
+            uid="style_nav",
+            file_name="style/nav.css",
+            media_type="text/css",
+            content=style,
+        )
+        book.add_item(nav_css)
+
+        # Create spine
+        book.spine = ["nav"] + chapters
+
+        # Write EPUB
+        epub.write_epub(output_path, book, {})
+        doc.close()
+
+    def pdf_to_svg(self, pdf_path: str, output_dir: str) -> List[str]:
+        """
+        Convert PDF pages to SVG format.
+        Returns list of paths to created SVG files.
+        """
+        import fitz
+
+        doc = fitz.open(pdf_path)
+        output_files = []
+
+        for page_num, page in enumerate(doc, start=1):
+            # Get SVG content
+            svg = page.get_svg()
+            output_filename = f"page_{page_num}_{os.path.basename(pdf_path)}.svg"
+            output_path = os.path.join(output_dir, output_filename)
+
+            # Write SVG
+            with open(output_path, "w", encoding="utf-8") as f:
+                f.write(svg)
+
+            output_files.append(output_path)
+
+        doc.close()
+        return output_files
+
+    def markdown_to_pdf(self, md_path: str, output_path: str):
+        """
+        Convert Markdown to PDF.
+        Uses reportlab for PDF generation.
+        """
+        import markdown
+        from reportlab.lib.pagesizes import letter
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import inch
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+
+        # Read markdown file
+        with open(md_path, "r", encoding="utf-8") as f:
+            md_content = f.read()
+
+        # Convert markdown to HTML
+        html = markdown.markdown(
+            md_content, extensions=["tables", "fenced_code", "codehilite"]
+        )
+
+        # Parse HTML and create PDF
+        doc = SimpleDocTemplate(output_path, pagesize=letter)
+        styles = getSampleStyleSheet()
+        story = []
+
+        # Create custom styles (unique names to avoid conflicts)
+        h1_style = ParagraphStyle(
+            name="CustomH1",
+            parent=styles["Heading1"],
+            fontSize=18,
+            textColor="#000000",
+        )
+        h2_style = ParagraphStyle(
+            name="CustomH2",
+            parent=styles["Heading2"],
+            fontSize=14,
+            textColor="#000000",
+        )
+        h3_style = ParagraphStyle(
+            name="CustomH3",
+            parent=styles["Heading3"],
+            fontSize=12,
+            textColor="#000000",
+        )
+        code_style = ParagraphStyle(
+            name="CustomCode",
+            parent=styles["Code"],
+            fontName="Courier",
+            fontSize=9,
+            leftIndent=20,
+            backColor="#f5f5f5",
+        )
+
+        # Simple HTML to PDF conversion
+        import re
+
+        # Split by HTML tags for basic parsing
+        parts = re.split(r"<(h[1-6]|p|pre|code|li|ul|ol|/[^>]+)>", html)
+
+        current_tag = "p"
+        for part in parts:
+            part = part.strip()
+            if not part:
+                continue
+
+            if part in ("h1", "h2", "h3", "h4", "h5", "h6", "p", "pre", "code", "li"):
+                current_tag = part
+            elif part.startswith("/"):
+                current_tag = "p"
+            else:
+                # Decode HTML entities
+                text = part.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
+
+                if current_tag == "h1":
+                    story.append(Paragraph(text, h1_style))
+                    story.append(Spacer(1, 0.2 * inch))
+                elif current_tag == "h2":
+                    story.append(Paragraph(text, h2_style))
+                    story.append(Spacer(1, 0.15 * inch))
+                elif current_tag == "h3":
+                    story.append(Paragraph(text, h3_style))
+                    story.append(Spacer(1, 0.1 * inch))
+                elif current_tag in ("pre", "code"):
+                    story.append(Paragraph(text, code_style))
+                    story.append(Spacer(1, 0.1 * inch))
+                else:
+                    story.append(Paragraph(text, styles["BodyText"]))
+                    story.append(Spacer(1, 0.1 * inch))
+
+        doc.build(story)
+
+    def txt_to_pdf(self, txt_path: str, output_path: str):
+        """
+        Convert plain text to PDF.
+        Creates a simple PDF with the text content.
+        """
+        import fitz
+
+        # Read text file
+        with open(txt_path, "r", encoding="utf-8") as f:
+            text_content = f.read()
+
+        # Create PDF
+        doc = fitz.open()
+        page = doc.new_page(width=595, height=842)  # A4 size
+
+        # Insert text
+        # Fit text to page with margins
+        margin = 50
+        rect = fitz.Rect(margin, margin, 595 - margin, 842 - margin)
+
+        # Split text into lines that fit the page width
+        import textwrap
+
+        lines = text_content.split("\n")
+        wrapped_lines = []
+        for line in lines:
+            wrapped_lines.extend(textwrap.wrap(line, width=80))
+
+        # Create text pages
+        y_position = margin
+        line_height = 14
+
+        for line in wrapped_lines:
+            if y_position > 842 - margin:
+                # New page
+                page = doc.new_page(width=595, height=842)
+                y_position = margin
+
+            page.insert_text(
+                fitz.Point(margin, y_position), line, fontsize=11, fontname="helvetica"
+            )
+            y_position += line_height
+
+        doc.save(output_path)
+        doc.close()
+
+    def csv_to_pdf(self, csv_path: str, output_path: str):
+        """
+        Convert CSV to PDF with formatted table.
+        """
+        import fitz
+        import pandas as pd
+
+        # Read CSV
+        df = pd.read_csv(csv_path)
+
+        # Create PDF
+        doc = fitz.open()
+        page = doc.new_page(width=595, height=842)  # A4
+
+        # Table settings
+        margin = 50
+        col_width = 100
+        row_height = 25
+        y_position = margin
+
+        # Draw headers
+        for col_idx, col_name in enumerate(df.columns):
+            x_position = margin + col_idx * col_width
+
+            # Draw header background
+            rect = fitz.Rect(x_position, y_position, x_position + col_width, y_position + row_height)
+            page.draw_rect(rect, color=(0.7, 0.7, 0.7), fill=(0.7, 0.7, 0.7))
+
+            # Draw header text
+            page.insert_text(
+                fitz.Point(x_position + 5, y_position + 17),
+                str(col_name),
+                fontsize=10,
+                fontname="helvetica-bold",
+            )
+
+        y_position += row_height
+
+        # Draw data rows
+        for _, row in df.iterrows():
+            if y_position > 842 - margin - row_height:
+                # New page
+                page = doc.new_page(width=595, height=842)
+                y_position = margin
+
+            # Redraw headers on new page
+            for col_idx, col_name in enumerate(df.columns):
+                x_position = margin + col_idx * col_width
+                rect = fitz.Rect(x_position, y_position, x_position + col_width, y_position + row_height)
+                page.draw_rect(rect, color=(0.7, 0.7, 0.7), fill=(0.7, 0.7, 0.7))
+                page.insert_text(
+                    fitz.Point(x_position + 5, y_position + 17),
+                    str(col_name),
+                    fontsize=10,
+                    fontname="helvetica-bold",
+                )
+            y_position += row_height
+
+            # Draw row data
+            for col_idx, value in enumerate(row):
+                x_position = margin + col_idx * col_width
+
+                # Draw cell border
+                rect = fitz.Rect(x_position, y_position, x_position + col_width, y_position + row_height)
+                page.draw_rect(rect, color=(0.5, 0.5, 0.5))
+
+                # Draw cell text (truncate if too long)
+                text = str(value)[:20] + "..." if len(str(value)) > 20 else str(value)
+                page.insert_text(
+                    fitz.Point(x_position + 5, y_position + 17),
+                    text,
+                    fontsize=9,
+                    fontname="helvetica",
+                )
+
+            y_position += row_height
+
+        doc.save(output_path)
+        doc.close()
+
+    def json_to_pdf(self, json_path: str, output_path: str):
+        """
+        Convert JSON to PDF.
+        Handles arrays of objects as formatted tables.
+        """
+        import fitz
+        import json
+
+        # Read JSON
+        with open(json_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        # Create PDF
+        doc = fitz.open()
+        page = doc.new_page(width=595, height=842)  # A4
+
+        # Table settings
+        margin = 50
+        col_width = 100
+        row_height = 25
+        y_position = margin
+
+        # Handle array of objects
+        if isinstance(data, list):
+            if not data:
+                # Empty array
+                page.insert_text(
+                    fitz.Point(margin, y_position),
+                    "Empty JSON array",
+                    fontsize=12,
+                    fontname="helvetica",
+                )
+            else:
+                # Get all unique keys from all objects
+                all_keys = set()
+                for item in data:
+                    if isinstance(item, dict):
+                        all_keys.update(item.keys())
+                columns = list(all_keys)
+
+                # Draw headers
+                for col_idx, col_name in enumerate(columns):
+                    x_position = margin + col_idx * col_width
+
+                    # Draw header background
+                    rect = fitz.Rect(x_position, y_position, x_position + col_width, y_position + row_height)
+                    page.draw_rect(rect, color=(0.7, 0.7, 0.7), fill=(0.7, 0.7, 0.7))
+
+                    # Draw header text
+                    page.insert_text(
+                        fitz.Point(x_position + 5, y_position + 17),
+                        str(col_name),
+                        fontsize=10,
+                        fontname="helvetica-bold",
+                    )
+
+                y_position += row_height
+
+                # Draw data rows
+                for row_data in data:
+                    if y_position > 842 - margin - row_height:
+                        # New page
+                        page = doc.new_page(width=595, height=842)
+                        y_position = margin
+
+                        # Redraw headers
+                        for col_idx, col_name in enumerate(columns):
+                            x_position = margin + col_idx * col_width
+                            rect = fitz.Rect(x_position, y_position, x_position + col_width, y_position + row_height)
+                            page.draw_rect(rect, color=(0.7, 0.7, 0.7), fill=(0.7, 0.7, 0.7))
+                            page.insert_text(
+                                fitz.Point(x_position + 5, y_position + 17),
+                                str(col_name),
+                                fontsize=10,
+                                fontname="helvetica-bold",
+                            )
+                        y_position += row_height
+
+                    # Draw row data
+                    for col_idx, key in enumerate(columns):
+                        x_position = margin + col_idx * col_width
+
+                        # Draw cell border
+                        rect = fitz.Rect(x_position, y_position, x_position + col_width, y_position + row_height)
+                        page.draw_rect(rect, color=(0.5, 0.5, 0.5))
+
+                        # Get value
+                        value = row_data.get(key, "") if isinstance(row_data, dict) else ""
+                        text = str(value)[:20] + "..." if len(str(value)) > 20 else str(value)
+
+                        # Draw cell text
+                        page.insert_text(
+                            fitz.Point(x_position + 5, y_position + 17),
+                            text,
+                            fontsize=9,
+                            fontname="helvetica",
+                        )
+
+                    y_position += row_height
+
+        elif isinstance(data, dict):
+            # Handle single object - pretty print
+            import textwrap
+
+            for key, value in data.items():
+                if y_position > 842 - margin - row_height:
+                    page = doc.new_page(width=595, height=842)
+                    y_position = margin
+
+                # Draw key-value pair
+                text = f"{key}: {value}"
+                wrapped_lines = textwrap.wrap(text, width=70)
+
+                for line in wrapped_lines:
+                    page.insert_text(
+                        fitz.Point(margin, y_position),
+                        line,
+                        fontsize=11,
+                        fontname="helvetica",
+                    )
+                    y_position += row_height
+
+                y_position += 5
+        else:
+            # Handle primitive value
+            page.insert_text(
+                fitz.Point(margin, y_position),
+                str(data),
+                fontsize=12,
+                fontname="helvetica",
+            )
+
+        doc.save(output_path)
+        doc.close()
+
+    def batch_convert(
+        self, files: List[str], output_dir: str, conversion_type: str
+    ) -> List[str]:
+        """
+        Batch convert multiple files using the same conversion type.
+
+        Args:
+            files: List of input file paths
+            output_dir: Directory for output files
+            conversion_type: Type of conversion (e.g., 'pdf-to-word', 'word-to-pdf')
+
+        Returns:
+            List of output file paths
+        """
+        import uuid
+
+        output_files = []
+
+        # Map conversion types to methods
+        conversion_map = {
+            "pdf-to-word": self.pdf_to_word,
+            "pdf-to-ppt": self.pdf_to_ppt,
+            "pdf-to-excel": self.pdf_to_excel,
+            "pdf-to-jpg": self.pdf_to_jpg,
+            "pdf-to-markdown": self.pdf_to_markdown,
+            "pdf-to-txt": self.pdf_to_txt,
+            "pdf-to-epub": self.pdf_to_epub,
+            "pdf-to-svg": self.pdf_to_svg,
+            "word-to-pdf": self.word_to_pdf,
+            "ppt-to-pdf": self.ppt_to_pdf,
+            "excel-to-pdf": self.excel_to_pdf,
+            "html-to-pdf": self.html_to_pdf,
+            "markdown-to-pdf": self.markdown_to_pdf,
+            "txt-to-pdf": self.txt_to_pdf,
+            "csv-to-pdf": self.csv_to_pdf,
+            "json-to-pdf": self.json_to_pdf,
+        }
+
+        converter_func = conversion_map.get(conversion_type)
+
+        if not converter_func:
+            raise ValueError(f"Unsupported conversion type: {conversion_type}")
+
+        for file_path in files:
+            try:
+                # Determine output extension
+                ext_map = {
+                    "pdf-to-word": ".docx",
+                    "pdf-to-ppt": ".pptx",
+                    "pdf-to-excel": ".xlsx",
+                    "pdf-to-markdown": ".md",
+                    "pdf-to-txt": ".txt",
+                    "pdf-to-epub": ".epub",
+                    "word-to-pdf": ".pdf",
+                    "ppt-to-pdf": ".pdf",
+                    "excel-to-pdf": ".pdf",
+                    "html-to-pdf": ".pdf",
+                    "markdown-to-pdf": ".pdf",
+                    "txt-to-pdf": ".pdf",
+                    "csv-to-pdf": ".pdf",
+                    "json-to-pdf": ".pdf",
+                }
+
+                ext = ext_map.get(conversion_type, ".pdf")
+                base_name = os.path.splitext(os.path.basename(file_path))[0]
+                output_path = os.path.join(output_dir, f"{base_name}_converted{ext}")
+
+                # Call the conversion function
+                if conversion_type == "pdf-to-jpg":
+                    # Returns list of files
+                    result = converter_func(file_path, output_dir)
+                    output_files.extend(result)
+                elif conversion_type == "pdf-to-svg":
+                    # Returns list of files
+                    result = converter_func(file_path, output_dir)
+                    output_files.extend(result)
+                elif conversion_type in ["word-to-pdf", "ppt-to-pdf", "excel-to-pdf"]:
+                    # Returns output path
+                    result = converter_func(file_path, output_dir)
+                    output_files.append(result)
+                else:
+                    # Standard conversion (input_path, output_path)
+                    converter_func(file_path, output_path)
+                    output_files.append(output_path)
+
+            except Exception as e:
+                print(f"Failed to convert {file_path}: {e}")
+                # Continue with other files
+                continue
+
+        return output_files
+
+    def merge_folder(self, folder_path: str, output_path: str) -> int:
+        """
+        Merge all PDFs from a folder into a single PDF.
+
+        Args:
+            folder_path: Path to folder containing PDFs
+            output_path: Path for merged output PDF
+
+        Returns:
+            Number of PDFs merged
+        """
+        import glob
+
+        # Find all PDFs in folder
+        pdf_pattern = os.path.join(folder_path, "*.pdf")
+        pdf_files = sorted(glob.glob(pdf_pattern))
+
+        if not pdf_files:
+            raise ValueError(f"No PDF files found in {folder_path}")
+
+        if len(pdf_files) < 2:
+            raise ValueError("At least 2 PDF files are required for merging")
+
+        # Merge PDFs using existing merge functionality
+        from pdfsmarteditor.core.manipulator import PDFManipulator
+
+        manipulator = PDFManipulator()
+        manipulator.merge_pdfs(pdf_files, output_path)
+
+        return len(pdf_files)
+
+    def apply_template(
+        self, template: dict, files: List[str], output_dir: str
+    ) -> List[str]:
+        """
+        Apply template settings to multiple files.
+
+        Template options:
+        - watermark: Add watermark text
+        - rotate: Rotate pages by degrees
+        - compress: Compression level (0-9)
+        - protect: Add password protection
+
+        Args:
+            template: Dictionary with template settings
+            files: List of input PDF file paths
+            output_dir: Directory for output files
+
+        Returns:
+            List of output file paths
+        """
+        import uuid
+
+        output_files = []
+        from pdfsmarteditor.core.manipulator import PDFManipulator
+
+        manipulator = PDFManipulator()
+
+        for file_path in files:
+            try:
+                base_name = os.path.splitext(os.path.basename(file_path))[0]
+                output_path = os.path.join(output_dir, f"{base_name}_processed.pdf")
+
+                # Apply transformations in order
+                current_path = file_path
+
+                # Watermark
+                if "watermark" in template:
+                    temp_path = os.path.join(output_dir, f"temp_{uuid.uuid4()}.pdf")
+                    wm = template["watermark"]
+                    manipulator.add_watermark(
+                        current_path,
+                        wm.get("text", ""),
+                        temp_path,
+                        wm.get("opacity", 0.3),
+                        wm.get("rotation", 45),
+                        wm.get("font_size", 50),
+                        wm.get("color", (0, 0, 0)),
+                    )
+                    if current_path != file_path:
+                        os.remove(current_path)
+                    current_path = temp_path
+
+                # Rotate
+                if "rotate" in template:
+                    temp_path = os.path.join(output_dir, f"temp_{uuid.uuid4()}.pdf")
+                    manipulator.rotate_pdf(
+                        current_path, temp_path, template["rotate"], None
+                    )
+                    if current_path != file_path:
+                        os.remove(current_path)
+                    current_path = temp_path
+
+                # Compress
+                if "compress" in template:
+                    temp_path = os.path.join(output_dir, f"temp_{uuid.uuid4()}.pdf")
+                    manipulator.compress_pdf(
+                        current_path, temp_path, template["compress"]
+                    )
+                    if current_path != file_path:
+                        os.remove(current_path)
+                    current_path = temp_path
+
+                # Protect
+                if "protect" in template:
+                    temp_path = os.path.join(output_dir, f"temp_{uuid.uuid4()}.pdf")
+                    manipulator.protect_pdf(current_path, template["protect"], temp_path)
+                    if current_path != file_path:
+                        os.remove(current_path)
+                    current_path = temp_path
+
+                # Move to final output
+                if current_path != output_path:
+                    import shutil
+
+                    shutil.move(current_path, output_path)
+
+                output_files.append(output_path)
+
+            except Exception as e:
+                print(f"Failed to apply template to {file_path}: {e}")
+                continue
+
+        return output_files

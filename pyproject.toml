@@ -37,7 +37,10 @@ dependencies = [
     "openpyxl",
     "pytesseract",
     "python-dotenv",
-    "typing_extensions"
+    "typing_extensions",
+    "markdown",
+    "reportlab",
+    "ebooklib"
 ]
 
 [project.optional-dependencies]
