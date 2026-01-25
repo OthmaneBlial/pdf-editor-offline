@@ -10,14 +10,17 @@ const MAX_FILES = 10;
 export const getRecentFiles = (): RecentFile[] => {
     try {
         const stored = localStorage.getItem(STORAGE_KEY);
-        return stored ? JSON.parse(stored) : [];
+        if (!stored) return [];
+        const parsed = JSON.parse(stored);
+        // Ensure we always return an array
+        return Array.isArray(parsed) ? parsed : [];
     } catch (e) {
         return [];
     }
 };
 
 export const addRecentFile = (file: File) => {
-    const current = getRecentFiles();
+    const current = getRecentFiles() ?? [];
     const newFile: RecentFile = {
         name: file.name,
         size: file.size,
@@ -26,15 +29,20 @@ export const addRecentFile = (file: File) => {
 
     const updated = [
         newFile,
-        ...current.filter(f => f.name !== file.name)
+        ...current.filter(f => f && f.name !== file.name)
     ].slice(0, MAX_FILES);
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+
+    // Dispatch event for RecentFiles component to listen to
+    window.dispatchEvent(new CustomEvent('pdf-opened', {
+        detail: { fileName: file.name, fileSize: file.size }
+    }));
 };
 
 export const removeRecentFile = (fileName: string) => {
-    const current = getRecentFiles();
-    const updated = current.filter(f => f.name !== fileName);
+    const current = getRecentFiles() ?? [];
+    const updated = current.filter(f => f && f.name !== fileName);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
 };
 

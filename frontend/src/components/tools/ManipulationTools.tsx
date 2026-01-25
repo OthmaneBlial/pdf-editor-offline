@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { FilePlus, Scissors, Layers, RotateCw, Hash, Download, Copy, Maximize2, Crop, FileInput, RefreshCw, Trash2, FileType, AlignCenter } from 'lucide-react';
+import { API_DEFAULTS, FILENAMES } from '../../constants';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
+const API_BASE_URL = API_DEFAULTS.BASE_URL;
 
 const PAGE_FORMATS = [
   { value: 'A4', label: 'A4 (595×842)' },
@@ -148,7 +149,7 @@ const ManipulationTools: React.FC = () => {
       const response = await axios.post(`${API_BASE_URL}/api/tools/split`, formData, {
         responseType: 'blob'
       });
-      const filename = 'extracted_pages.pdf';
+      const filename = FILENAMES.EXTRACTED_PAGES;
       downloadFile(response.data, filename);
       setMessage({ type: 'success', text: `Extracted ${pages.length} page(s) successfully!` });
     } catch (error) {
@@ -175,7 +176,7 @@ const ManipulationTools: React.FC = () => {
       const response = await axios.post(`${API_BASE_URL}/api/tools/merge`, formData, {
         responseType: 'blob'
       });
-      const filename = 'merged_with_insert.pdf';
+      const filename = FILENAMES.MERGED_WITH_INSERT;
       downloadFile(response.data, filename);
       setMessage({ type: 'success', text: 'Pages inserted successfully!' });
     } catch (error) {
@@ -210,7 +211,7 @@ const ManipulationTools: React.FC = () => {
       const response = await axios.post(`${API_BASE_URL}/api/tools/organize`, formData, {
         responseType: 'blob'
       });
-      const filename = 'duplicated.pdf';
+      const filename = FILENAMES.DUPLICATED;
       downloadFile(response.data, filename);
       setMessage({ type: 'success', text: `Page ${pageNum} duplicated ${count} time(s)!` });
     } catch (error) {

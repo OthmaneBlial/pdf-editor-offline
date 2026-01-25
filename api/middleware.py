@@ -13,6 +13,8 @@ from typing import Callable, Dict, Tuple
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from api.security import get_security_headers
+
 logger = logging.getLogger(__name__)
 
 # Rate limiting configuration
@@ -23,7 +25,7 @@ RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", "60"))  # window in secon
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """
     Simple in-memory rate limiting middleware.
-    
+
     Limits requests per IP address within a sliding window.
     For production, consider using Redis-based rate limiting.
     """
@@ -58,25 +60,25 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     def _is_rate_limited(self, ip: str) -> Tuple[bool, int]:
         """
         Check if an IP is rate limited.
-        
+
         Returns: (is_limited, requests_remaining)
         """
         current_time = time.time()
         self._cleanup_old_requests(ip, current_time)
-        
+
         request_count = len(self._requests[ip])
         remaining = max(0, self.requests_limit - request_count)
-        
+
         if request_count >= self.requests_limit:
             return True, remaining
-        
+
         self._requests[ip].append(current_time)
         return False, remaining - 1
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         client_ip = self._get_client_ip(request)
         is_limited, remaining = self._is_rate_limited(client_ip)
-        
+
         if is_limited:
             logger.warning(f"Rate limit exceeded for IP: {client_ip}")
             return Response(
@@ -92,41 +94,56 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             )
 
         response = await call_next(request)
-        
+
         # Add rate limit headers to all responses
         response.headers["X-RateLimit-Limit"] = str(self.requests_limit)
         response.headers["X-RateLimit-Remaining"] = str(remaining)
         response.headers["X-RateLimit-Reset"] = str(int(time.time()) + self.window_seconds)
-        
+
         return response
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     """
     Middleware for logging HTTP requests and responses.
-    
+
     Logs request method, path, status code, and duration.
     """
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         start_time = time.time()
-        
+
         # Log request
         logger.info(f"Request: {request.method} {request.url.path}")
-        
+
         try:
             response = await call_next(request)
         except Exception as exc:
             logger.error(f"Request failed: {request.method} {request.url.path} - {exc}")
             raise
-        
+
         # Calculate duration
         duration_ms = (time.time() - start_time) * 1000
-        
+
         # Log response
         logger.info(
             f"Response: {request.method} {request.url.path} "
             f"- Status: {response.status_code} - Duration: {duration_ms:.2f}ms"
         )
-        
+
+        return response
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """
+    Middleware to add security headers to all responses.
+    """
+
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        response = await call_next(request)
+
+        # Add security headers
+        for header, value in get_security_headers().items():
+            response.headers[header] = value
+
         return response

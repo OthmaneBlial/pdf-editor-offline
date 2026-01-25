@@ -51,8 +51,9 @@ app.add_middleware(
 )
 
 # Add security and logging middleware
-from api.middleware import RateLimitMiddleware, RequestLoggingMiddleware
+from api.middleware import RateLimitMiddleware, RequestLoggingMiddleware, SecurityHeadersMiddleware
 
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(RateLimitMiddleware)
 

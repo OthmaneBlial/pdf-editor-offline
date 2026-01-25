@@ -5,6 +5,9 @@ import { useEditor } from '../contexts/EditorContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
 
+// Constants
+const FABRIC_IMAGE_CLASS = (fabric as any).FabricImage || (fabric as any).Image;
+
 // Helper to update canvas size
 const updateCanvasSize = (currentCanvas: fabric.Canvas, img: any, container: HTMLElement, currentZoom: number) => {
   const imgWidth = img.width || 0;
@@ -42,9 +45,12 @@ const PDFViewer: React.FC = () => {
   } = useEditor();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const [pageImage, setPageImage] = useState<string>('');
   const [pageLoading, setPageLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const currentSessionRef = useRef<string>('');
+  const currentPageRef = useRef<number>(0);
 
   // Upload document when file is selected
   useEffect(() => {
@@ -62,8 +68,11 @@ const PDFViewer: React.FC = () => {
           setSessionId(response.data.data.id);
           setPageCount(response.data.data.page_count);
         } catch (error) {
-          console.error('Error uploading document:', error);
-          setErrorMessage('Upload failed. Please check the file and try again.');
+          if (axios.isAxiosError(error)) {
+            setErrorMessage(`Upload failed: ${error.response?.data?.detail || error.message}`);
+          } else {
+            setErrorMessage('Upload failed. Please check the file and try again.');
+          }
           setSessionId('');
           setPageImage('');
         } finally {
@@ -72,33 +81,47 @@ const PDFViewer: React.FC = () => {
       };
       uploadDocument();
     }
-  }, [document, setSessionId, setPageCount]);
+  }, [document, setSessionId, setPageCount, setIsUploading]);
 
-  // Load page image when session or page changes
+  // Load page image when session or page changes - FIXED DEPENDENCIES
   useEffect(() => {
-    if (sessionId && currentPage >= 0) {
-      const loadPageImage = async () => {
-        setPageLoading(true);
-        setErrorMessage('');
-        // Clear previous canvas/image so navigation doesn't overlay stale state
-        if (canvas) {
-          canvas.dispose();
-          setCanvas(null);
-        }
-        setPageImage('');
-        try {
-          const response = await axios.get(`${API_BASE_URL}/api/documents/${sessionId}/pages/${currentPage}`);
-          setPageImage(response.data.data.image);
-        } catch (error) {
-          console.error('Error loading page image:', error);
-          setErrorMessage('Unable to load page preview. Try again.');
-        } finally {
-          setPageLoading(false);
-        }
-      };
-      loadPageImage();
+    const currentSession = sessionId;
+    const currentPg = currentPage;
+
+    // Skip if session hasn't changed and page hasn't changed
+    if (currentSession === currentSessionRef.current && currentPg === currentPageRef.current) {
+      return;
     }
-  }, [sessionId, currentPage]);
+
+    const loadPageImage = async () => {
+      setPageLoading(true);
+      setErrorMessage('');
+      // Clear previous canvas/image so navigation doesn't overlay stale state
+      if (canvas) {
+        canvas.dispose();
+        setCanvas(null);
+      }
+      setPageImage('');
+
+      try {
+        if (!currentSession) return;
+
+        const response = await axios.get(`${API_BASE_URL}/api/documents/${currentSession}/pages/${currentPg}`);
+        setPageImage(response.data.data.image);
+        currentSessionRef.current = currentSession;
+        currentPageRef.current = currentPg;
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
+          setErrorMessage(`Unable to load page: ${error.response?.data?.detail || error.message}`);
+        } else {
+          setErrorMessage('Unable to load page preview. Try again.');
+        }
+      } finally {
+        setPageLoading(false);
+      }
+    };
+    loadPageImage();
+  }, [sessionId, currentPage]); // Only depend on sessionId and currentPage - NOT canvas or setCanvas
 
   // Keep track of latest zoom for ResizeObserver
   const zoomRef = useRef(zoom);
@@ -113,85 +136,91 @@ const PDFViewer: React.FC = () => {
     }
   }, [zoom, canvas]);
 
-  // Initialize Fabric.js canvas
+  // Initialize Fabric.js canvas - FIXED DEPENDENCIES
   useEffect(() => {
-    if (canvasRef.current && pageImage && containerRef.current) {
-      const fabricCanvas = new fabric.Canvas(canvasRef.current, {
-        isDrawingMode: drawingMode === 'pen',
-        selection: true,
+    if (!canvasRef.current || !pageImage || !containerRef.current) {
+      return;
+    }
+
+    // Clean up any existing canvas before creating a new one
+    if (canvas) {
+      canvas.dispose();
+      setCanvas(null);
+    }
+
+    const fabricCanvas = new fabric.Canvas(canvasRef.current, {
+      isDrawingMode: drawingMode === 'pen',
+      selection: true,
+    });
+
+    // Set drawing brush properties
+    if (drawingMode === 'pen') {
+      const brush = new fabric.PencilBrush(fabricCanvas);
+      brush.color = color;
+      brush.width = strokeWidth;
+      fabricCanvas.freeDrawingBrush = brush;
+    }
+
+    // Add background image and size canvas to the page
+    FABRIC_IMAGE_CLASS.fromURL(pageImage).then((img: any) => {
+      img.set({
+        selectable: false,
+        evented: false,
+        originX: 'left',
+        originY: 'top',
       });
 
-      // Set drawing brush properties
-      if (drawingMode === 'pen') {
-        const brush = new fabric.PencilBrush(fabricCanvas);
-        brush.color = color;
-        brush.width = strokeWidth;
-        fabricCanvas.freeDrawingBrush = brush;
+      // Initial sizing
+      const container = containerRef.current;
+      if (container) {
+        updateCanvasSize(fabricCanvas, img, container, zoomRef.current);
       }
 
-      // Add background image and size canvas to the page
-      console.log('Loading page image:', pageImage.substring(0, 50) + '...');
+      fabricCanvas.backgroundImage = img;
+      fabricCanvas.requestRenderAll();
 
-      // Fabric.js v6 uses FabricImage instead of Image
-      const ImageClass = (fabric as any).FabricImage || (fabric as any).Image;
-
-      ImageClass.fromURL(pageImage).then((img: any) => {
-        console.log('Image loaded successfully');
-        img.set({
-          selectable: false,
-          evented: false,
-          originX: 'left',
-          originY: 'top',
-        });
-
-        // Initial sizing
-        const container = containerRef.current;
-        if (container) {
-          updateCanvasSize(fabricCanvas, img, container, zoomRef.current);
+      // Create and store ResizeObserver for proper cleanup
+      const resizeObserver = new ResizeObserver(() => {
+        const currentContainer = containerRef.current;
+        if (currentContainer) {
+          requestAnimationFrame(() => {
+            updateCanvasSize(fabricCanvas, img, currentContainer, zoomRef.current);
+          });
         }
-
-        fabricCanvas.backgroundImage = img;
-        fabricCanvas.requestRenderAll();
-
-        const resizeObserver = new ResizeObserver(() => {
-          const currentContainer = containerRef.current;
-          if (currentContainer) {
-            requestAnimationFrame(() => {
-              updateCanvasSize(fabricCanvas, img, currentContainer, zoomRef.current);
-            });
-          }
-        });
-
-        if (container) {
-          resizeObserver.observe(container);
-        }
-
-        // Cleanup observer on canvas dispose? 
-        // We can attach it to the canvas object to clean it up later if needed, 
-        // or just rely on the effect cleanup.
-        (fabricCanvas as any).resizeObserver = resizeObserver;
-
-      }).catch((err: any) => {
-        console.error('Error loading page image:', err);
       });
 
-      setCanvas(fabricCanvas);
+      if (container) {
+        resizeObserver.observe(container);
+      }
 
-      return () => {
-        if ((fabricCanvas as any).resizeObserver) {
-          (fabricCanvas as any).resizeObserver.disconnect();
-        }
-        fabricCanvas.dispose();
-      };
-    }
-  }, [pageImage, setCanvas, containerRef]); // Removed zoom dependency
+      // Store observer ref for cleanup
+      resizeObserverRef.current = resizeObserver;
+
+    }).catch(() => {
+      setErrorMessage('Failed to load page image. Please try again.');
+    });
+
+    setCanvas(fabricCanvas);
+
+    // Proper cleanup function
+    return () => {
+      // Disconnect ResizeObserver first
+      if (resizeObserverRef.current) {
+        resizeObserverRef.current.disconnect();
+        resizeObserverRef.current = null;
+      }
+      // Remove all event listeners
+      fabricCanvas.off();
+      // Dispose canvas
+      fabricCanvas.dispose();
+    };
+  }, [pageImage]); // Only recreate canvas when page image changes
 
   // Handle drawing mode and properties changes
   useEffect(() => {
     if (canvas) {
       canvas.isDrawingMode = drawingMode === 'pen';
       if (drawingMode === 'pen') {
-        // Ensure brush exists
         if (!canvas.freeDrawingBrush) {
           canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
         }
@@ -222,11 +251,9 @@ const PDFViewer: React.FC = () => {
       const handleMouseDown = (opt: any) => {
         const evt = opt.e;
         if (opt.target) {
-          // Clicked on an existing object, don't add new one
           return;
         }
 
-        // Get pointer in canvas coordinates (taking zoom into account)
         const pointer = canvas.getPointer(evt);
 
         if (drawingMode === 'text') {
@@ -243,7 +270,7 @@ const PDFViewer: React.FC = () => {
           canvas.setActiveObject(text);
           text.enterEditing();
           text.selectAll();
-          setDrawingMode('select'); // Switch back to select mode to allow dragging
+          setDrawingMode('select');
         } else if (drawingMode === 'rectangle') {
           const rect = new fabric.Rect({
             left: pointer.x,
@@ -282,7 +309,7 @@ const PDFViewer: React.FC = () => {
         canvas.off('mouse:down', handleMouseDown);
       };
     }
-  }, [canvas, drawingMode, color, strokeWidth, setDrawingMode]);
+  }, [canvas, drawingMode, color, strokeWidth, fontSize, fontFamily, setDrawingMode]);
 
   // Handle canvas object creation (general)
   useEffect(() => {
@@ -310,14 +337,14 @@ const PDFViewer: React.FC = () => {
   return (
     <div ref={containerRef} className="pdf-viewer relative w-full h-full overflow-hidden">
       {pageLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-20">
+        <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-20" role="status" aria-live="polite">
           <div className="px-4 py-2 rounded-lg bg-white shadow border border-sky-100 text-sky-700 text-sm font-medium">
             Loading page…
           </div>
         </div>
       )}
       {errorMessage && (
-        <div className="absolute top-4 right-4 z-30 px-4 py-3 bg-rose-50 text-rose-700 border border-rose-200 rounded-xl shadow">
+        <div className="absolute top-4 right-4 z-30 px-4 py-3 bg-rose-50 text-rose-700 border border-rose-200 rounded-xl shadow" role="alert">
           {errorMessage}
         </div>
       )}
@@ -331,7 +358,7 @@ const PDFViewer: React.FC = () => {
         />
       )}
       {!pageImage && !pageLoading && !errorMessage && (
-        <div className="absolute inset-0 flex items-center justify-center text-sky-500 text-sm">
+        <div className="absolute inset-0 flex items-center justify-center text-slate-400 text-sm">
           Upload a PDF to get started.
         </div>
       )}

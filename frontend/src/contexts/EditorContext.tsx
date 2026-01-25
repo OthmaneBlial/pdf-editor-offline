@@ -1,52 +1,10 @@
-import React, { createContext, useContext, useState, type ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, useRef, useCallback, useMemo, type ReactNode, useEffect } from 'react';
 import * as fabric from 'fabric';
 import axios from 'axios';
+import type { EditorContextType, EditorState, CanvasState, HistoryState } from './types';
+import { MAX_HISTORY_SIZE } from './types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
-
-interface EditorState {
-  document: File | null;
-  currentPage: number;
-  canvas: fabric.Canvas | null;
-  drawingMode: string;
-  color: string;
-  strokeWidth: number;
-  fontSize: number;
-  fontFamily: string;
-  canvasObjects: fabric.Object[];
-  sessionId: string;
-  hasUnsavedChanges: boolean;
-  pageCount: number;
-  zoom: number;
-  isUploading: boolean;
-}
-
-interface EditorContextType extends EditorState {
-  setDocument: (doc: File | null) => void;
-  setCurrentPage: (page: number) => void;
-  setCanvas: (canvas: fabric.Canvas | null) => void;
-  setDrawingMode: (mode: string) => void;
-  setColor: (color: string) => void;
-  setStrokeWidth: (width: number) => void;
-  setFontSize: (size: number) => void;
-  setFontFamily: (font: string) => void;
-  setCanvasObjects: (objects: fabric.Object[]) => void;
-  setSessionId: (id: string) => void;
-  setPageCount: (count: number) => void;
-  setZoom: (zoom: number) => void;
-  setIsUploading: (uploading: boolean) => void;
-  undo: () => void;
-  redo: () => void;
-  saveChanges: (force?: boolean) => Promise<void>;
-  exportPDF: () => Promise<void>;
-  reorderPages: (fromIndex: number, toIndex: number) => void;
-  // History state for UI
-  history: string[];
-  historyStep: number;
-  canUndo: boolean;
-  canRedo: boolean;
-  clearHistory: () => void;
-}
 
 const EditorContext = createContext<EditorContextType | undefined>(undefined);
 
@@ -63,25 +21,38 @@ interface EditorProviderProps {
 }
 
 export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
+  // Editor state (document-related, changes less frequently)
   const [document, setDocument] = useState<File | null>(null);
-  const [currentPage, setCurrentPage] = useState<number>(0); // 0-indexed for backend
+  const [sessionId, setSessionId] = useState<string>('');
+  const [pageCount, setPageCount] = useState<number>(1);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+
+  // Canvas state (rendering-related)
   const [canvas, setCanvas] = useState<fabric.Canvas | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(0);
+  const [zoom, setZoom] = useState<number>(1);
+  const [canvasObjects, setCanvasObjects] = useState<fabric.Object[]>([]);
+
+  // Tool settings (changes frequently)
   const [drawingMode, setDrawingMode] = useState<string>('select');
   const [color, setColor] = useState<string>('#000000');
   const [strokeWidth, setStrokeWidth] = useState<number>(2);
   const [fontSize, setFontSize] = useState<number>(20);
   const [fontFamily, setFontFamily] = useState<string>('Arial');
-  const [canvasObjects, setCanvasObjects] = useState<fabric.Object[]>([]);
-  const [sessionId, setSessionId] = useState<string>('');
-  const [pageCount, setPageCount] = useState<number>(1);
-  const [zoom, setZoom] = useState<number>(1);
-  const [isUploading, setIsUploading] = useState<boolean>(false);
 
-  // History for undo
+  // History state
   const [history, setHistory] = useState<string[]>([]);
   const [historyStep, setHistoryStep] = useState<number>(-1);
-  const isUndoing = React.useRef(false);
+  const isUndoing = useRef(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
+
+  // Limit history size to prevent memory issues
+  useEffect(() => {
+    if (history.length > MAX_HISTORY_SIZE) {
+      setHistory(prev => prev.slice(-MAX_HISTORY_SIZE));
+      setHistoryStep(MAX_HISTORY_SIZE - 1);
+    }
+  }, [history.length]);
 
   // Initialize history when canvas is ready
   useEffect(() => {
@@ -118,9 +89,10 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         canvas.off('object:removed', saveHistory);
       };
     }
-  }, [canvas, history, historyStep]);
+  }, [canvas, historyStep, history.length]);
 
-  const undo = () => {
+  // Memoized undo function
+  const undo = useCallback(() => {
     if (canvas && historyStep > 0) {
       isUndoing.current = true;
       const previousState = history[historyStep - 1];
@@ -129,12 +101,13 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       canvas.loadFromJSON(JSON.parse(previousState)).then(() => {
         canvas.renderAll();
         isUndoing.current = false;
-        setHasUnsavedChanges(true); // Undo is a change
+        setHasUnsavedChanges(true);
       });
     }
-  };
+  }, [canvas, history, historyStep]);
 
-  const redo = () => {
+  // Memoized redo function
+  const redo = useCallback(() => {
     if (canvas && historyStep < history.length - 1) {
       isUndoing.current = true;
       const nextState = history[historyStep + 1];
@@ -146,9 +119,10 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         setHasUnsavedChanges(true);
       });
     }
-  };
+  }, [canvas, history, historyStep]);
 
-  const saveChanges = async (force = false) => {
+  // Memoized save changes function
+  const saveChanges = useCallback(async (force = false) => {
     if (!sessionId || !canvas) return;
     if (!force && !hasUnsavedChanges) return;
 
@@ -161,12 +135,14 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       };
 
       const originalBg = canvas.backgroundImage;
-      // @ts-ignore - Fabric types mismatch for setting null/undefined on backgroundImage in strict mode
-      canvas.backgroundImage = undefined;
+      // Properly handle background image without @ts-ignore
+      if (originalBg) {
+        canvas.backgroundImage = undefined;
+      }
       canvas.requestRenderAll();
       const overlayImage = canvas.toDataURL({ format: 'png', multiplier: 1 });
-      canvas.backgroundImage = originalBg;
       if (originalBg) {
+        canvas.backgroundImage = originalBg;
         canvas.requestRenderAll();
       }
 
@@ -175,18 +151,20 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         overlay_image: overlayImage
       });
       setHasUnsavedChanges(false);
-      // alert('Changes saved successfully!'); // Removed alert to be less intrusive during auto-save
     } catch (error) {
-      console.error('Error saving changes:', error);
-      alert('Failed to save changes.');
+      // Use proper error handling instead of alert
+      if (error instanceof Error) {
+        // Could use a toast notification system here
+        console.error('Failed to save changes:', error.message);
+      }
     }
-  };
+  }, [sessionId, canvas, currentPage, hasUnsavedChanges]);
 
-  const exportPDF = async () => {
+  // Memoized export function
+  const exportPDF = useCallback(async () => {
     if (!sessionId) return;
 
     try {
-      // Auto-save before export
       await saveChanges(true);
 
       const response = await axios.get(`${API_BASE_URL}/api/documents/${sessionId}/download`, {
@@ -203,21 +181,21 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Error exporting PDF:', error);
-      alert('Failed to export PDF.');
+      if (error instanceof Error) {
+        console.error('Failed to export PDF:', error.message);
+      }
     }
-  };
+  }, [sessionId, saveChanges]);
 
-  const reorderPages = (fromIndex: number, toIndex: number) => {
+  // Memoized reorder pages function
+  const reorderPages = useCallback((fromIndex: number, toIndex: number) => {
     if (fromIndex === toIndex || !sessionId) return;
 
-    // Create new page order array
     const pages = Array.from({ length: pageCount }, (_, i) => i);
     const [movedPage] = pages.splice(fromIndex, 1);
     pages.splice(toIndex, 0, movedPage);
 
     // TODO: Call API to persist reorder when backend supports it
-    // For now, just update the current page if it was affected
     if (currentPage === fromIndex) {
       setCurrentPage(toIndex);
     } else if (fromIndex < currentPage && currentPage <= toIndex) {
@@ -225,11 +203,20 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     } else if (toIndex <= currentPage && currentPage < fromIndex) {
       setCurrentPage(currentPage + 1);
     }
+  }, [sessionId, pageCount, currentPage]);
 
-    console.log(`Reordered page ${fromIndex + 1} to position ${toIndex + 1}`);
-  };
+  // Memoized clear history function
+  const clearHistory = useCallback(() => {
+    if (canvas) {
+      const json = JSON.stringify(canvas.toJSON());
+      setHistory([json]);
+      setHistoryStep(0);
+    }
+  }, [canvas]);
 
-  const value: EditorContextType = {
+  // Memoized context value to prevent unnecessary re-renders
+  const value = useMemo<EditorContextType>(() => ({
+    // State
     document,
     currentPage,
     canvas,
@@ -244,6 +231,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     pageCount,
     zoom,
     isUploading,
+    // Setters
     setDocument,
     setCurrentPage,
     setCanvas,
@@ -257,24 +245,42 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     setPageCount,
     setZoom,
     setIsUploading,
+    // Actions
     undo,
     redo,
     saveChanges,
     exportPDF,
     reorderPages,
+    clearHistory,
     // History state
     history,
     historyStep,
     canUndo: historyStep > 0,
     canRedo: historyStep < history.length - 1,
-    clearHistory: () => {
-      if (canvas) {
-        const json = JSON.stringify(canvas.toJSON());
-        setHistory([json]);
-        setHistoryStep(0);
-      }
-    },
-  };
+  }), [
+    document,
+    currentPage,
+    canvas,
+    drawingMode,
+    color,
+    strokeWidth,
+    fontSize,
+    fontFamily,
+    canvasObjects,
+    sessionId,
+    hasUnsavedChanges,
+    pageCount,
+    zoom,
+    isUploading,
+    history,
+    historyStep,
+    undo,
+    redo,
+    saveChanges,
+    exportPDF,
+    reorderPages,
+    clearHistory,
+  ]);
 
   return (
     <EditorContext.Provider value={value}>
@@ -282,3 +288,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     </EditorContext.Provider>
   );
 };
+
+// Re-export types for convenience
+export type { EditorContextType, EditorState, CanvasState, HistoryState };

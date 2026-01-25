@@ -94,7 +94,10 @@ describe('EditorContext', () => {
       off: vi.fn(),
     };
 
-    mockedAxios.get.mockResolvedValue({ data: new Blob(['x']) });
+    mockedAxios.get.mockResolvedValue({
+      data: new Blob(['x']),
+      headers: { 'content-disposition': 'filename=test.pdf' }
+    });
 
     act(() => {
       const ctx = ensureContext();
@@ -103,18 +106,23 @@ describe('EditorContext', () => {
     });
 
     const createObjectURL = vi.fn().mockReturnValue('blob:url');
-    vi.stubGlobal('URL', { createObjectURL } as any);
+    const originalURL = window.URL.createObjectURL;
+    window.URL.createObjectURL = createObjectURL;
 
-    const originalCreateElement = document.createElement.bind(document);
-    const createAnchor = vi
-      .spyOn(document, 'createElement')
-      .mockImplementation((tagName: string, options?: ElementCreationOptions) => {
-        const element = originalCreateElement(tagName, options);
-        if (tagName === 'a') {
-          element.click = vi.fn();
-        }
-        return element;
-      });
+    const revokeObjectURL = vi.fn();
+    window.URL.revokeObjectURL = revokeObjectURL;
+
+    const clickFn = vi.fn();
+    const appendChild = vi.fn();
+    const createElementSpy = vi.spyOn(document, 'createElement').mockImplementation(() => ({
+      tagName: 'A',
+      href: '',
+      setAttribute: vi.fn(),
+      click: clickFn,
+      remove: vi.fn(),
+    }));
+    vi.spyOn(document.body, 'appendChild').mockImplementation(() => ({}));
+
     vi.stubGlobal('alert', vi.fn());
 
     await act(async () => {
@@ -128,6 +136,10 @@ describe('EditorContext', () => {
       expect.objectContaining({ responseType: 'blob' })
     );
     expect(createObjectURL).toHaveBeenCalled();
-    createAnchor.mockRestore();
+
+    // Cleanup
+    window.URL.createObjectURL = originalURL;
+    window.URL.revokeObjectURL = revokeObjectURL;
+    createElementSpy.mockRestore();
   });
 });
