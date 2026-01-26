@@ -96,13 +96,13 @@ function AppContent() {
     return (
       <div className="flex flex-col h-full animate-fade-in">
         {/* Tabs Header */}
-        <div className="flex items-center gap-1 px-4 py-2 bg-slate-800/50 border-b border-slate-700/50">
+        <div className="flex items-center gap-2 px-4 py-2 bg-slate-900 border-b border-slate-700">
           <button
             onClick={() => setActiveTab('editor')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               activeTab === 'editor'
                 ? 'bg-gradient-to-r from-sky-500 to-cyan-500 text-white shadow-lg'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800'
             }`}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -114,8 +114,8 @@ function AppContent() {
             onClick={() => setActiveTab('tool')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               activeTab === 'tool'
-                ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700'
+                ? 'bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow-lg'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800'
             }`}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
