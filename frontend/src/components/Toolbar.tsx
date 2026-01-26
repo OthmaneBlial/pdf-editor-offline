@@ -1,6 +1,6 @@
 import React from 'react';
 import { useEditor } from '../contexts/EditorContext';
-import { MousePointer2, Pen, Square, Circle, Type, Palette, Move, Undo } from 'lucide-react';
+import { MousePointer2, Pen, Square, Circle, Type, Palette, Move, Undo, Wand2 } from 'lucide-react';
 
 const Toolbar: React.FC = () => {
   const {
@@ -34,28 +34,30 @@ const Toolbar: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-6" role="group" aria-label="Drawing tools">
-      {/* Actions */}
-      <div className="space-y-3">
-        <label className="text-xs font-semibold text-sky-600 uppercase tracking-wider" id="actions-label">
+    <div className="flex flex-col gap-4" role="group" aria-label="Drawing tools">
+      {/* Actions section */}
+      <div className="space-y-2">
+        <label className="text-xs font-bold text-sky-600 uppercase tracking-wider flex items-center gap-1.5" id="actions-label">
+          <Wand2 className="w-3.5 h-3.5" />
           Actions
         </label>
         <div className="flex gap-2" role="group" aria-labelledby="actions-label">
           <button
             onClick={undo}
-            className="w-full p-2.5 bg-gradient-to-r from-sky-50 to-cyan-50 border border-sky-200 rounded-xl text-sky-700 hover:from-sky-100 hover:to-cyan-100 hover:text-sky-800 hover:shadow-lg hover:shadow-sky-200/50 hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center gap-2 group focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2"
+            className="w-full p-3 bg-gradient-to-br from-sky-500 to-blue-600 border border-sky-400/50 rounded-xl text-white hover:from-sky-600 hover:to-blue-700 hover:shadow-lg hover:shadow-sky-500/40 hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center gap-2 group focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2"
             title="Undo last action (Ctrl+Z)"
             aria-label="Undo last action"
           >
-            <Undo className="w-4 h-4 group-hover:rotate-12 transition-transform" aria-hidden="true" />
-            <span className="text-sm font-medium">Undo</span>
+            <Undo className="w-4 h-4 group-hover:-rotate-12 transition-transform" aria-hidden="true" />
+            <span className="text-sm font-bold">Undo</span>
           </button>
         </div>
       </div>
 
-      {/* Drawing Modes */}
-      <div className="space-y-3">
-        <label className="text-xs font-semibold text-sky-600 uppercase tracking-wider" id="modes-label">
+      {/* Drawing Modes section */}
+      <div className="space-y-2">
+        <label className="text-xs font-bold text-sky-600 uppercase tracking-wider flex items-center gap-1.5" id="modes-label">
+          <Pen className="w-3.5 h-3.5" />
           Mode
         </label>
         <div
@@ -72,10 +74,11 @@ const Toolbar: React.FC = () => {
                 key={mode.id}
                 onClick={() => setDrawingMode(mode.id)}
                 onKeyDown={(e) => handleKeyDown(mode.id, e)}
-                className={`p-2.5 rounded-xl transition-all duration-300 flex items-center justify-center group relative tool-mode-btn focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 ${isActive
-                  ? 'bg-gradient-to-br from-sky-600 to-cyan-600 text-white shadow-lg shadow-sky-500/40 scale-105 active'
-                  : 'bg-gradient-to-br from-sky-50 to-cyan-50 text-sky-600 hover:from-sky-100 hover:to-cyan-100 hover:text-sky-700 hover:scale-110'
-                  }`}
+                className={`p-3 rounded-xl transition-all duration-300 flex items-center justify-center group relative tool-mode-btn focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 ${
+                  isActive
+                    ? 'bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow-lg shadow-sky-500/40 scale-105'
+                    : 'bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 text-slate-600 dark:text-slate-300 hover:from-sky-100 hover:to-blue-100 dark:hover:from-sky-900/30 dark:hover:to-blue-900/30 hover:text-sky-600 dark:hover:text-sky-300 hover:scale-110 hover:shadow-md'
+                }`}
                 title={mode.label}
                 aria-label={mode.description}
                 aria-pressed={isActive}
@@ -84,7 +87,7 @@ const Toolbar: React.FC = () => {
               >
                 <Icon className="w-5 h-5" aria-hidden="true" />
                 {/* Tooltip */}
-                <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl" role="tooltip">
+                <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-slate-900 text-white text-xs rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl" role="tooltip">
                   {mode.label}
                 </span>
               </button>
@@ -93,14 +96,18 @@ const Toolbar: React.FC = () => {
         </div>
       </div>
 
-      {/* Styling Options */}
-      <div className="space-y-4 p-5 bg-gradient-to-br from-sky-50/50 to-cyan-50/50 rounded-2xl border border-sky-100/50 shadow-lg shadow-sky-100/30" role="group" aria-label="Styling options">
+      {/* Styling Options - Beautiful gradient card */}
+      <div className="p-4 bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-50 dark:from-slate-900/50 dark:to-slate-800/50 rounded-2xl border border-sky-200/50 dark:border-slate-700 shadow-xl shadow-sky-200/50 dark:shadow-none" role="group" aria-label="Styling options">
+        {/* Color picker */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label htmlFor="color-picker" className="text-xs font-semibold text-sky-700 uppercase tracking-wider flex items-center gap-2">
-              <Palette className="w-3.5 h-3.5" aria-hidden="true" /> Color
+            <label htmlFor="color-picker" className="text-xs font-bold text-sky-700 dark:text-sky-300 uppercase tracking-wider flex items-center gap-2">
+              <Palette className="w-4 h-4" />
+              Color
             </label>
-            <span className="text-xs font-mono text-sky-600 uppercase font-semibold" aria-live="polite">{color}</span>
+            <span className="text-xs font-mono font-bold text-sky-600 dark:text-sky-400 bg-sky-100 dark:bg-sky-900/50 px-2 py-1 rounded-lg" aria-live="polite">
+              {color}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <input
@@ -108,18 +115,20 @@ const Toolbar: React.FC = () => {
               type="color"
               value={color}
               onChange={(e) => setColor(e.target.value)}
-              className="w-full h-12 rounded-xl cursor-pointer border-2 border-sky-200 hover:border-sky-400 transition-all focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2"
+              className="w-full h-12 rounded-xl cursor-pointer border-2 border-sky-300 dark:border-slate-600 hover:border-sky-500 transition-all focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 shadow-md"
               aria-label="Select annotation color"
             />
           </div>
         </div>
 
-        <div className="space-y-3">
+        {/* Stroke width */}
+        <div className="space-y-3 mt-4">
           <div className="flex items-center justify-between">
-            <label htmlFor="stroke-width" className="text-xs font-semibold text-sky-700 uppercase tracking-wider flex items-center gap-2">
-              <Move className="w-3.5 h-3.5" aria-hidden="true" /> Stroke
+            <label htmlFor="stroke-width" className="text-xs font-bold text-sky-700 dark:text-sky-300 uppercase tracking-wider flex items-center gap-2">
+              <Move className="w-4 h-4" />
+              Stroke
             </label>
-            <span className="text-xs font-semibold text-sky-700 bg-sky-100 px-2 py-1 rounded-lg" aria-live="polite">
+            <span className="text-xs font-bold text-sky-600 dark:text-sky-400 bg-sky-100 dark:bg-sky-900/50 px-2 py-1 rounded-lg" aria-live="polite">
               {strokeWidth}px
             </span>
           </div>
@@ -130,15 +139,16 @@ const Toolbar: React.FC = () => {
             max="20"
             value={strokeWidth}
             onChange={(e) => setStrokeWidth(parseInt(e.target.value))}
-            className="w-full h-2 bg-gradient-to-r from-sky-200 to-cyan-200 rounded-full appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2"
+            className="w-full h-2 bg-gradient-to-r from-sky-200 to-blue-200 dark:from-slate-700 dark:to-slate-600 rounded-full appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-br [&::-webkit-slider-thumb]:from-sky-500 [&::-webkit-slider-thumb]:to-blue-600 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:transition-transform"
             aria-label="Stroke width"
           />
         </div>
 
-        {/* Text Options */}
-        <div className="space-y-3 pt-3 border-t border-sky-200/50">
-          <label className="text-xs font-semibold text-sky-700 uppercase tracking-wider flex items-center gap-2">
-            <Type className="w-3.5 h-3.5" aria-hidden="true" /> Typography
+        {/* Typography section */}
+        <div className="space-y-3 pt-4 mt-4 border-t border-sky-200/50 dark:border-slate-700">
+          <label className="text-xs font-bold text-sky-700 dark:text-sky-300 uppercase tracking-wider flex items-center gap-2">
+            <Type className="w-4 h-4" />
+            Typography
           </label>
           <div className="grid grid-cols-2 gap-2">
             <div className="relative">
@@ -146,7 +156,7 @@ const Toolbar: React.FC = () => {
                 id="font-family"
                 value={fontFamily}
                 onChange={(e) => setFontFamily(e.target.value)}
-                className="w-full p-2.5 text-xs font-medium bg-white border border-sky-200 rounded-xl focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all appearance-none"
+                className="w-full p-2.5 text-xs font-semibold bg-white dark:bg-slate-800 border border-sky-300 dark:border-slate-600 rounded-xl focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 dark:focus:ring-sky-900 transition-all appearance-none cursor-pointer text-slate-700 dark:text-slate-200 shadow-sm"
                 aria-label="Font family"
               >
                 <option value="Arial">Arial</option>
@@ -163,7 +173,7 @@ const Toolbar: React.FC = () => {
               max="72"
               value={fontSize}
               onChange={(e) => setFontSize(parseInt(e.target.value))}
-              className="w-full p-2.5 text-xs font-medium bg-white border border-sky-200 rounded-xl focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all"
+              className="w-full p-2.5 text-xs font-semibold bg-white dark:bg-slate-800 border border-sky-300 dark:border-slate-600 rounded-xl focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 dark:focus:ring-sky-900 transition-all text-slate-700 dark:text-slate-200 shadow-sm"
               aria-label="Font size"
             />
           </div>
