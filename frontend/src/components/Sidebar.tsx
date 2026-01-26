@@ -30,8 +30,8 @@ const basicNavItems: NavItem[] = [
   { id: 'batch', label: 'Batch Process', icon: Layers },
 ];
 
-// Phase 4: Advanced Editing tools
-const phase4NavItems: NavItem[] = [
+// Advanced Editing tools
+const advancedEditingNavItems: NavItem[] = [
   { id: 'text', label: 'Text Tools', icon: Type },
   { id: 'navigation', label: 'Navigation', icon: Bookmark },
   { id: 'annotations', label: 'Annotations', icon: PenTool },
@@ -46,7 +46,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange, onShowShortcuts }) => {
   // Track which section is expanded (only one at a time)
-  const [expandedSection, setExpandedSection] = useState<'basic' | 'phase4' | 'tools' | 'history' | 'comments' | null>('basic');
+  const [expandedSection, setExpandedSection] = useState<'basic' | 'advanced' | 'tools' | 'history' | 'comments' | null>('basic');
 
   const toggleSection = (section: typeof expandedSection) => {
     setExpandedSection(expandedSection === section ? null : section);
@@ -114,12 +114,12 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange, onShowShort
         )}
       </div>
 
-      {/* Phase 4: Advanced Editing Section */}
+      {/* Advanced Editing Section */}
       <div className="border-b border-slate-700/50">
         <button
-          onClick={() => toggleSection('phase4')}
+          onClick={() => toggleSection('advanced')}
           className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium transition-colors ${
-            expandedSection === 'phase4'
+            expandedSection === 'advanced'
               ? 'text-white bg-slate-800'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
           }`}
@@ -128,12 +128,12 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange, onShowShort
             <Sparkles className="w-4 h-4 text-purple-400" />
             <span>Advanced Editing</span>
           </div>
-          <ChevronRight className={`w-4 h-4 transition-transform ${expandedSection === 'phase4' ? 'rotate-90' : ''}`} />
+          <ChevronRight className={`w-4 h-4 transition-transform ${expandedSection === 'advanced' ? 'rotate-90' : ''}`} />
         </button>
 
-        {expandedSection === 'phase4' && (
+        {expandedSection === 'advanced' && (
           <div className="px-2 pb-3 space-y-1 animate-fade-in">
-            {renderNavItems(phase4NavItems)}
+            {renderNavItems(advancedEditingNavItems)}
           </div>
         )}
       </div>

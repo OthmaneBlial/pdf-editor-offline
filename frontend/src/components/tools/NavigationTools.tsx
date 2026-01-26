@@ -5,7 +5,6 @@ import {
   Bookmark,
   Plus,
   Trash2,
-  Edit,
   Link as LinkIcon,
   ChevronDown,
   ChevronRight,

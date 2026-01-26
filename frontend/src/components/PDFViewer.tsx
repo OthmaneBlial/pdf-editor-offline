@@ -55,9 +55,23 @@ const PDFViewer: React.FC<{ forceRefresh?: number }> = ({ forceRefresh }) => {
   const currentPageRef = useRef<number>(0);
   const lastForceRefreshRef = useRef<number>(0);
 
+  // Track last uploaded file to prevent re-upload on remount
+  const lastUploadedFileRef = useRef<File | null>(null);
+
   // Upload document when file is selected
+  // IMPORTANT: Only upload if we don't already have a session for this document
   useEffect(() => {
+    // Skip if we already have an active session (document already uploaded)
+    if (sessionId) {
+      return;
+    }
+
     if (document) {
+      // Skip if this is the same file we just uploaded (prevents re-upload on remount)
+      if (lastUploadedFileRef.current === document) {
+        return;
+      }
+
       const uploadDocument = async () => {
         setIsUploading(true);
         setErrorMessage('');
@@ -70,6 +84,8 @@ const PDFViewer: React.FC<{ forceRefresh?: number }> = ({ forceRefresh }) => {
           });
           setSessionId(response.data.data.id);
           setPageCount(response.data.data.page_count);
+          // Mark this file as uploaded
+          lastUploadedFileRef.current = document;
         } catch (error) {
           if (axios.isAxiosError(error)) {
             setErrorMessage(`Upload failed: ${error.response?.data?.detail || error.message}`);
@@ -84,7 +100,7 @@ const PDFViewer: React.FC<{ forceRefresh?: number }> = ({ forceRefresh }) => {
       };
       uploadDocument();
     }
-  }, [document, setSessionId, setPageCount, setIsUploading]);
+  }, [document, sessionId, setSessionId, setPageCount, setIsUploading]);
 
   // Load page image when session or page changes - FIXED DEPENDENCIES
   useEffect(() => {

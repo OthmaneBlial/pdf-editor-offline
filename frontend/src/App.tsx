@@ -13,7 +13,7 @@ import ConversionTools from './components/tools/ConversionTools';
 import SecurityTools from './components/tools/SecurityTools';
 import AdvancedTools from './components/tools/AdvancedTools';
 import BatchProcessingTools from './components/tools/BatchProcessingTools';
-// Phase 4: Advanced Editing tools
+// Advanced Editing tools
 import AdvancedTextTools from './components/tools/AdvancedTextTools';
 import NavigationTools from './components/tools/NavigationTools';
 import AnnotationTools from './components/tools/AnnotationTools';
@@ -23,8 +23,8 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
 export type ViewMode = 'editor' | 'manipulation' | 'conversion' | 'security' | 'advanced' | 'batch' | 'text' | 'navigation' | 'annotations' | 'images';
 
-// Phase 4 tools that need tabbed interface
-const PHASE_4_TOOLS: ViewMode[] = ['text', 'navigation', 'annotations', 'images'];
+// Advanced Editing tools that need tabbed interface
+const ADVANCED_EDITING_TOOLS: ViewMode[] = ['text', 'navigation', 'annotations', 'images'];
 
 // Component to handle keyboard shortcuts - must be inside EditorProvider
 function KeyboardShortcutsHandler({ onShowHelp }: { onShowHelp: () => void }) {
@@ -38,18 +38,18 @@ function KeyboardShortcutsHandler({ onShowHelp }: { onShowHelp: () => void }) {
 function AppContent() {
   const [activeView, setActiveView] = useState<ViewMode>('editor');
   const [showShortcuts, setShowShortcuts] = useState(false);
-  // For Phase 4 tools, track which tab is active: 'editor' or 'tool'
+  // For Advanced Editing tools, track which tab is active: 'editor' or 'tool'
   const [activeTab, setActiveTab] = useState<'editor' | 'tool'>('editor');
   // Force refresh PDF viewer when switching from tool tab to editor tab
   const [refreshKey, setRefreshKey] = useState<number>(0);
-  const isPhase4Tool = PHASE_4_TOOLS.includes(activeView);
+  const isAdvancedEditingTool = ADVANCED_EDITING_TOOLS.includes(activeView);
 
-  // Reset to tool tab when switching to a Phase 4 tool
+  // Reset to tool tab when switching to an Advanced Editing tool
   useEffect(() => {
-    if (isPhase4Tool) {
+    if (isAdvancedEditingTool) {
       setActiveTab('tool');
     }
-  }, [activeView, isPhase4Tool]);
+  }, [activeView, isAdvancedEditingTool]);
 
   // When switching to editor tab from tool tab, refresh the PDF
   const handleTabSwitch = (tab: 'editor' | 'tool') => {
@@ -62,7 +62,7 @@ function AppContent() {
 
   const renderContent = () => {
     // For basic tools, replace the entire content
-    if (!isPhase4Tool) {
+    if (!isAdvancedEditingTool) {
       switch (activeView) {
         case 'editor':
           return (
@@ -93,7 +93,7 @@ function AppContent() {
       }
     }
 
-    // For Phase 4 tools, render tabs with Editor and Tool views
+    // For Advanced Editing tools, render tabs with Editor and Tool views
     const toolComponent = (() => {
       switch (activeView) {
         case 'text': return <AdvancedTextTools />;

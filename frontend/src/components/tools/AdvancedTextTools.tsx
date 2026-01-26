@@ -5,7 +5,6 @@ import {
   Replace,
   Palette,
   Search,
-  Heading1,
   Code,
   CheckCircle,
   AlertCircle,
@@ -23,12 +22,6 @@ interface FontInfo {
   char_count: number;
   percentage: number;
   color?: number[];
-}
-
-interface TextMatch {
-  index: number;
-  rect: number[];
-  quad_points?: number[][];
 }
 
 interface Message {
@@ -55,9 +48,6 @@ const AdvancedTextTools: React.FC = () => {
 
   // Font info state
   const [fonts, setFonts] = useState<FontInfo[]>([]);
-
-  // Text search state
-  const [textMatches, setTextMatches] = useState<TextMatch[]>([]);
 
   const showMessage = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text });

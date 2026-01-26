@@ -45,7 +45,7 @@ export interface HistoryState {
 }
 
 // ============================================
-// PHASE 4: Advanced Editing Types
+// Advanced Editing Types
 // ============================================
 
 // TOC / Bookmark types
@@ -113,7 +113,7 @@ export interface EditorContextType extends EditorState, CanvasState, HistoryStat
   exportPDF: () => Promise<void>;
   reorderPages: (fromIndex: number, toIndex: number) => void;
   clearHistory: () => void;
-  // Phase 4 additions
+  // Advanced Editing additions
   toc: TOCItem[];
   setToc: (toc: TOCItem[]) => void;
   fonts: FontInfo[];

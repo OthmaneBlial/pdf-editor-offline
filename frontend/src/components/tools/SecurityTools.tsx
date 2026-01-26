@@ -84,7 +84,7 @@ const SecurityTools: React.FC = () => {
             setMessage({ type: 'error', text: 'Failed to add watermark.' });
             console.error(error);
         } finally {
-            setLoading(false);
+            setLoading(null);
         }
     };
 

@@ -4,7 +4,6 @@ import {
   FileText,
   Music,
   PenTool,
-  MessageSquare,
   Loader2,
   CheckCircle,
   AlertCircle,
@@ -27,7 +26,7 @@ interface PolygonPoint {
 }
 
 const AnnotationTools: React.FC = () => {
-  const { sessionId, currentPage, color, setColor, saveChanges, exportPDF, hasUnsavedChanges, pageCount } = useEditor();
+  const { sessionId, currentPage, saveChanges, exportPDF, hasUnsavedChanges, pageCount } = useEditor();
   const [loading, setLoading] = useState<string | null>(null);
   const [message, setMessage] = useState<Message | null>(null);
   const [activeTab, setActiveTab] = useState<'file' | 'sound' | 'polygon' | 'style'>('file');
@@ -49,30 +48,19 @@ const AnnotationTools: React.FC = () => {
   // Polygon state
   const [polygonPoints, setPolygonPoints] = useState<PolygonPoint[]>([]);
   const [tempPoint, setTempPoint] = useState({ x: 0, y: 0 });
-  const [polygonColor, setPolygonColor] = useState([1, 0, 0]);
+  const [polygonColor, setPolygonColor] = useState<[number, number, number]>([1, 0, 0]);
   const [polygonFill, setPolygonFill] = useState<[number, number, number] | null>(null);
   const [polygonWidth, setPolygonWidth] = useState(1);
 
   // Style settings
-  const [strokeColor, setStrokeColor] = useState([0, 0, 1]);
-  const [fillColor, setFillColor] = useState<[number, number, number] | null>(null);
+  const [strokeColor, setStrokeColor] = useState<[number, number, number]>([0, 0, 1]);
+  const [fillColor] = useState<[number, number, number] | null>(null);
   const [borderWidth, setBorderWidth] = useState(1);
   const [opacity, setOpacity] = useState(1);
 
   const showMessage = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text });
     setTimeout(() => setMessage(null), 5000);
-  };
-
-  const hexToRgb = (hex: string): [number, number, number] => {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result
-      ? [
-          parseInt(result[1], 16) / 255,
-          parseInt(result[2], 16) / 255,
-          parseInt(result[3], 16) / 255,
-        ]
-      : [0, 0, 0];
   };
 
   const handleAddFileAttachment = async (e: React.FormEvent) => {

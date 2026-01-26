@@ -48,7 +48,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const isUndoing = useRef(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
 
-  // Phase 4: Advanced Editing state
+  // Advanced Editing state
   const [toc, setToc] = useState<TOCItem[]>([]);
   const [fonts, setFonts] = useState<FontInfo[]>([]);
   const [bookmarks, setBookmarks] = useState<TOCItem[]>([]);
@@ -222,7 +222,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     }
   }, [canvas]);
 
-  // Phase 4: Advanced Editing actions
+  // Advanced Editing actions
   const loadTOC = useCallback(async () => {
     if (!sessionId) return;
     try {
@@ -322,7 +322,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     exportPDF,
     reorderPages,
     clearHistory,
-    // Phase 4
+    // Advanced Editing
     toc,
     setToc,
     fonts,

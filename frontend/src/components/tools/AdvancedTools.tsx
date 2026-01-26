@@ -109,7 +109,7 @@ const AdvancedTools: React.FC = () => {
             setMessage({ type: 'error', text: 'Failed to compare PDFs.' });
             console.error(error);
         } finally {
-            setLoading(false);
+            setLoading(null);
         }
     };
 

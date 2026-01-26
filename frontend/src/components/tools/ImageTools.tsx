@@ -9,7 +9,6 @@ import {
   Loader2,
   CheckCircle,
   AlertCircle,
-  ExternalLink,
   Save,
 } from 'lucide-react';
 import { useEditor } from '../../contexts/EditorContext';
@@ -44,7 +43,6 @@ const ImageTools: React.FC = () => {
 
   // Image list state
   const [images, setImages] = useState<ImageMetadata[]>([]);
-  const [allImages, setAllImages] = useState<Record<number, ImageMetadata[]>>({});
 
   // Image replace state
   const [replaceImagePath, setReplaceImagePath] = useState('');
@@ -80,23 +78,6 @@ const ImageTools: React.FC = () => {
       }
     } catch (error) {
       showMessage('error', 'Failed to load images');
-      console.error(error);
-    } finally {
-      setLoading(null);
-    }
-  };
-
-  const loadAllImages = async () => {
-    if (!sessionId) return;
-
-    setLoading('all-images');
-    try {
-      const response = await axios.get(`${API_BASE_URL}/api/documents/${sessionId}/images`);
-      if (response.data.success) {
-        setAllImages(response.data.data.images || {});
-      }
-    } catch (error) {
-      showMessage('error', 'Failed to load all images');
       console.error(error);
     } finally {
       setLoading(null);
