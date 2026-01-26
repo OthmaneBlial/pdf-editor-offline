@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   FileText, Scissors, RefreshCw, Shield, Zap, Wrench, History,
-  MessageSquare, Keyboard, ChevronRight, Layers,
+  MessageSquare, Keyboard, ChevronRight, Layers, Sparkles,
   Type, Bookmark, PenTool, ImageIcon
 } from 'lucide-react';
 import FileUpload from './FileUpload';
@@ -20,14 +20,18 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
 }
 
-const navItems: NavItem[] = [
+// Basic tools
+const basicNavItems: NavItem[] = [
   { id: 'editor', label: 'Editor', icon: FileText },
   { id: 'manipulation', label: 'Manipulation', icon: Scissors },
   { id: 'conversion', label: 'Conversion', icon: RefreshCw },
   { id: 'security', label: 'Security', icon: Shield },
   { id: 'advanced', label: 'Advanced', icon: Zap },
   { id: 'batch', label: 'Batch Process', icon: Layers },
-  // Phase 4: Advanced Editing
+];
+
+// Phase 4: Advanced Editing tools
+const phase4NavItems: NavItem[] = [
   { id: 'text', label: 'Text Tools', icon: Type },
   { id: 'navigation', label: 'Navigation', icon: Bookmark },
   { id: 'annotations', label: 'Annotations', icon: PenTool },
@@ -42,11 +46,33 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange, onShowShortcuts }) => {
   // Track which section is expanded (only one at a time)
-  // Navigation is expanded by default so users can see all tools
-  const [expandedSection, setExpandedSection] = useState<'navigation' | 'tools' | 'history' | 'comments' | null>('navigation');
+  const [expandedSection, setExpandedSection] = useState<'basic' | 'phase4' | 'tools' | 'history' | 'comments' | null>('basic');
 
   const toggleSection = (section: typeof expandedSection) => {
     setExpandedSection(expandedSection === section ? null : section);
+  };
+
+  // Helper to render navigation items
+  const renderNavItems = (items: NavItem[]) => {
+    return items.map((item) => {
+      const Icon = item.icon;
+      const isActive = activeView === item.id;
+      return (
+        <button
+          key={item.id}
+          onClick={() => onViewChange(item.id)}
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+            isActive
+              ? 'bg-gradient-to-r from-sky-500 to-cyan-500 text-white shadow-lg'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+          }`}
+        >
+          <Icon className="w-4 h-4" />
+          <span>{item.label}</span>
+          {isActive && <ChevronRight className="w-3 h-3 ml-auto" />}
+        </button>
+      );
+    });
   };
 
   return (
@@ -64,44 +90,50 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange, onShowShort
         </div>
       </div>
 
-      {/* Navigation Section - Always Visible */}
+      {/* Basic Tools Section */}
       <div className="border-b border-slate-700/50">
         <button
-          onClick={() => toggleSection('navigation')}
+          onClick={() => toggleSection('basic')}
           className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium transition-colors ${
-            expandedSection === 'navigation'
+            expandedSection === 'basic'
               ? 'text-white bg-slate-800'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
           }`}
         >
           <div className="flex items-center gap-2">
             <FileText className="w-4 h-4" />
-            <span>Navigation</span>
+            <span>Basic Tools</span>
           </div>
-          <ChevronRight className={`w-4 h-4 transition-transform ${expandedSection === 'navigation' ? 'rotate-90' : ''}`} />
+          <ChevronRight className={`w-4 h-4 transition-transform ${expandedSection === 'basic' ? 'rotate-90' : ''}`} />
         </button>
 
-        {expandedSection === 'navigation' && (
+        {expandedSection === 'basic' && (
           <div className="px-2 pb-3 space-y-1 animate-fade-in">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeView === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => onViewChange(item.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                    isActive
-                      ? 'bg-gradient-to-r from-sky-500 to-cyan-500 text-white shadow-lg'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{item.label}</span>
-                  {isActive && <ChevronRight className="w-3 h-3 ml-auto" />}
-                </button>
-              );
-            })}
+            {renderNavItems(basicNavItems)}
+          </div>
+        )}
+      </div>
+
+      {/* Phase 4: Advanced Editing Section */}
+      <div className="border-b border-slate-700/50">
+        <button
+          onClick={() => toggleSection('phase4')}
+          className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium transition-colors ${
+            expandedSection === 'phase4'
+              ? 'text-white bg-slate-800'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-purple-400" />
+            <span>Advanced Editing</span>
+          </div>
+          <ChevronRight className={`w-4 h-4 transition-transform ${expandedSection === 'phase4' ? 'rotate-90' : ''}`} />
+        </button>
+
+        {expandedSection === 'phase4' && (
+          <div className="px-2 pb-3 space-y-1 animate-fade-in">
+            {renderNavItems(phase4NavItems)}
           </div>
         )}
       </div>

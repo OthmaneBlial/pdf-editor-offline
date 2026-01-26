@@ -13,6 +13,8 @@ import {
   CheckCircle,
   AlertCircle,
   Loader2,
+  Save,
+  Download,
 } from 'lucide-react';
 import { useEditor } from '../../contexts/EditorContext';
 
@@ -40,7 +42,7 @@ interface Message {
 }
 
 const NavigationTools: React.FC = () => {
-  const { sessionId, currentPage, setCurrentPage } = useEditor();
+  const { sessionId, currentPage, setCurrentPage, saveChanges, exportPDF, hasUnsavedChanges, pageCount } = useEditor();
   const [loading, setLoading] = useState<string | null>(null);
   const [message, setMessage] = useState<Message | null>(null);
 
@@ -273,11 +275,34 @@ const NavigationTools: React.FC = () => {
     <div className="p-8 max-w-7xl mx-auto animate-fade-in">
       {/* Page Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <h2 className="font-display text-3xl font-bold text-[var(--text-primary)]">
-            Navigation Tools
-          </h2>
-          <span className="tag">Page {currentPage + 1}</span>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3">
+            <h2 className="font-display text-3xl font-bold text-[var(--text-primary)]">
+              Navigation Tools
+            </h2>
+            <span className="tag">Page {currentPage + 1} / {pageCount}</span>
+            {hasUnsavedChanges && (
+              <span className="px-2 py-1 text-xs font-medium bg-amber-100 text-amber-700 rounded-full">
+                Unsaved changes
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => saveChanges()}
+              className="flex items-center gap-2 px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-lg font-medium text-sm transition-colors"
+            >
+              <Save className="w-4 h-4" />
+              Save
+            </button>
+            <button
+              onClick={() => exportPDF()}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium text-sm transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              Export PDF
+            </button>
+          </div>
         </div>
         <p className="text-sm text-[var(--text-secondary)] font-body">
           Manage table of contents, bookmarks, and hyperlinks
