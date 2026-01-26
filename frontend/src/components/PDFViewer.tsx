@@ -27,7 +27,7 @@ const updateCanvasSize = (currentCanvas: fabric.Canvas, img: any, container: HTM
   }
 };
 
-const PDFViewer: React.FC = () => {
+const PDFViewer: React.FC<{ forceRefresh?: number }> = ({ forceRefresh }) => {
   const {
     document,
     currentPage,
@@ -53,6 +53,7 @@ const PDFViewer: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string>('');
   const currentSessionRef = useRef<string>('');
   const currentPageRef = useRef<number>(0);
+  const lastForceRefreshRef = useRef<number>(0);
 
   // Upload document when file is selected
   useEffect(() => {
@@ -90,8 +91,12 @@ const PDFViewer: React.FC = () => {
     const currentSession = sessionId;
     const currentPg = currentPage;
 
-    // Skip if session hasn't changed and page hasn't changed
-    if (currentSession === currentSessionRef.current && currentPg === currentPageRef.current) {
+    // Skip if session hasn't changed and page hasn't changed and no force refresh
+    if (
+      currentSession === currentSessionRef.current &&
+      currentPg === currentPageRef.current &&
+      forceRefresh === lastForceRefreshRef.current
+    ) {
       return;
     }
 
@@ -108,10 +113,15 @@ const PDFViewer: React.FC = () => {
       try {
         if (!currentSession) return;
 
-        const response = await axios.get(`${API_BASE_URL}/api/documents/${currentSession}/pages/${currentPg}`);
+        // Add cache busting parameter to prevent stale images
+        const cacheBuster = forceRefresh || Date.now();
+        const response = await axios.get(
+          `${API_BASE_URL}/api/documents/${currentSession}/pages/${currentPg}?t=${cacheBuster}`
+        );
         setPageImage(response.data.data.image);
         currentSessionRef.current = currentSession;
         currentPageRef.current = currentPg;
+        lastForceRefreshRef.current = forceRefresh || 0;
       } catch (error) {
         if (axios.isAxiosError(error)) {
           setErrorMessage(`Unable to load page: ${error.response?.data?.detail || error.message}`);
@@ -123,7 +133,7 @@ const PDFViewer: React.FC = () => {
       }
     };
     loadPageImage();
-  }, [sessionId, currentPage]); // eslint-disable-line react-hooks/exhaustive-deps -- Only depend on sessionId and currentPage to prevent infinite loops
+  }, [sessionId, currentPage, forceRefresh, canvas, setCanvas]); // eslint-disable-line react-hooks/exhaustive-deps -- Only depend on sessionId, currentPage, forceRefresh
 
   // Keep track of latest zoom for ResizeObserver
   const zoomRef = useRef(zoom);

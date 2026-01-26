@@ -40,6 +40,8 @@ function AppContent() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   // For Phase 4 tools, track which tab is active: 'editor' or 'tool'
   const [activeTab, setActiveTab] = useState<'editor' | 'tool'>('editor');
+  // Force refresh PDF viewer when switching from tool tab to editor tab
+  const [refreshKey, setRefreshKey] = useState<number>(0);
   const isPhase4Tool = PHASE_4_TOOLS.includes(activeView);
 
   // Reset to tool tab when switching to a Phase 4 tool
@@ -48,6 +50,15 @@ function AppContent() {
       setActiveTab('tool');
     }
   }, [activeView, isPhase4Tool]);
+
+  // When switching to editor tab from tool tab, refresh the PDF
+  const handleTabSwitch = (tab: 'editor' | 'tool') => {
+    if (tab === 'editor' && activeTab === 'tool') {
+      // Coming from tool tab to editor tab - force refresh
+      setRefreshKey(prev => prev + 1);
+    }
+    setActiveTab(tab);
+  };
 
   const renderContent = () => {
     // For basic tools, replace the entire content
@@ -61,7 +72,7 @@ function AppContent() {
                 {/* Decorative corner accent */}
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[var(--accent-primary)]/10 to-transparent pointer-events-none" />
                 <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-[var(--accent-tertiary)]/10 to-transparent pointer-events-none" />
-                <PDFViewer />
+                <PDFViewer forceRefresh={refreshKey} />
                 <PageNavigation />
                 <ZoomControls />
               </div>
@@ -98,7 +109,7 @@ function AppContent() {
         {/* Tabs Header */}
         <div className="flex items-center gap-2 px-4 py-2 bg-slate-900 border-b border-slate-700">
           <button
-            onClick={() => setActiveTab('editor')}
+            onClick={() => handleTabSwitch('editor')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               activeTab === 'editor'
                 ? 'bg-gradient-to-r from-sky-500 to-cyan-500 text-white shadow-lg'
@@ -111,7 +122,7 @@ function AppContent() {
             Editor View
           </button>
           <button
-            onClick={() => setActiveTab('tool')}
+            onClick={() => handleTabSwitch('tool')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               activeTab === 'tool'
                 ? 'bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow-lg'
@@ -137,7 +148,7 @@ function AppContent() {
                 {/* Decorative corner accent */}
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[var(--accent-primary)]/10 to-transparent pointer-events-none" />
                 <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-[var(--accent-tertiary)]/10 to-transparent pointer-events-none" />
-                <PDFViewer />
+                <PDFViewer forceRefresh={refreshKey} />
                 <PageNavigation />
                 <ZoomControls />
               </div>
