@@ -57,13 +57,6 @@ function AppContent() {
   const [refreshKey, setRefreshKey] = useState<number>(0);
   const isAdvancedEditingTool = ADVANCED_EDITING_TOOLS.includes(activeView);
 
-  // Reset to tool tab when switching to an Advanced Editing tool
-  useEffect(() => {
-    if (isAdvancedEditingTool) {
-      setActiveTab('tool');
-    }
-  }, [activeView, isAdvancedEditingTool]);
-
   // Lock body scroll while mobile drawer is open.
   useEffect(() => {
     if (isMobileSidebarOpen) {
@@ -98,6 +91,9 @@ function AppContent() {
 
   const handleViewChange = (view: ViewMode) => {
     setActiveView(view);
+    if (ADVANCED_EDITING_TOOLS.includes(view)) {
+      setActiveTab('tool');
+    }
     setIsMobileSidebarOpen(false);
   };
 

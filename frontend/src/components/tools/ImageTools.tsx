@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import {
   Image as ImageIcon,
@@ -60,12 +60,12 @@ const ImageTools: React.FC = () => {
   const [deflate, setDeflate] = useState(true);
   const [clean, setClean] = useState(true);
 
-  const showMessage = (type: 'success' | 'error', text: string) => {
+  const showMessage = useCallback((type: 'success' | 'error', text: string) => {
     setMessage({ type, text });
     setTimeout(() => setMessage(null), 5000);
-  };
+  }, []);
 
-  const loadPageImages = async () => {
+  const loadPageImages = useCallback(async () => {
     if (!sessionId) return;
 
     setLoading('images');
@@ -82,7 +82,7 @@ const ImageTools: React.FC = () => {
     } finally {
       setLoading(null);
     }
-  };
+  }, [currentPage, sessionId, showMessage]);
 
   const handleReplaceImage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -218,7 +218,7 @@ const ImageTools: React.FC = () => {
     if (sessionId) {
       loadPageImages();
     }
-  }, [sessionId, currentPage]);
+  }, [sessionId, currentPage, loadPageImages]);
 
   if (!sessionId) {
     return (

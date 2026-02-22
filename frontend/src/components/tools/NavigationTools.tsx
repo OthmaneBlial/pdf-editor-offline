@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import {
   List,
@@ -57,12 +57,12 @@ const NavigationTools: React.FC = () => {
   // Link state
   const [links, setLinks] = useState<LinkItem[]>([]);
 
-  const showMessage = (type: 'success' | 'error', text: string) => {
+  const showMessage = useCallback((type: 'success' | 'error', text: string) => {
     setMessage({ type, text });
     setTimeout(() => setMessage(null), 5000);
-  };
+  }, []);
 
-  const loadTOC = async () => {
+  const loadTOC = useCallback(async () => {
     if (!sessionId) return;
 
     setLoading('toc');
@@ -77,9 +77,9 @@ const NavigationTools: React.FC = () => {
     } finally {
       setLoading(null);
     }
-  };
+  }, [sessionId, showMessage]);
 
-  const loadBookmarks = async () => {
+  const loadBookmarks = useCallback(async () => {
     if (!sessionId) return;
 
     setLoading('bookmarks');
@@ -94,9 +94,9 @@ const NavigationTools: React.FC = () => {
     } finally {
       setLoading(null);
     }
-  };
+  }, [sessionId, showMessage]);
 
-  const loadLinks = async () => {
+  const loadLinks = useCallback(async () => {
     if (!sessionId) return;
 
     setLoading('links');
@@ -113,7 +113,7 @@ const NavigationTools: React.FC = () => {
     } finally {
       setLoading(null);
     }
-  };
+  }, [currentPage, sessionId, showMessage]);
 
   const handleAddBookmark = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -257,7 +257,7 @@ const NavigationTools: React.FC = () => {
       loadTOC();
       loadLinks();
     }
-  }, [sessionId, currentPage]);
+  }, [currentPage, loadLinks, loadTOC, sessionId]);
 
   if (!sessionId) {
     return (

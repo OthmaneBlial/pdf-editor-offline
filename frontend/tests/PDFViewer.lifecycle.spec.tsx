@@ -59,12 +59,12 @@ vi.mock('fabric', () => {
   class PencilBrush {
     color = '';
     width = 1;
-    constructor(_canvas: unknown) {}
+    constructor() {}
   }
 
   class IText {
     type = 'i-text';
-    constructor(_text: string, _options: unknown) {}
+    constructor() {}
     set = vi.fn();
     enterEditing = vi.fn();
     selectAll = vi.fn();
@@ -72,13 +72,13 @@ vi.mock('fabric', () => {
 
   class Rect {
     type = 'rect';
-    constructor(_options: unknown) {}
+    constructor() {}
     set = vi.fn();
   }
 
   class Circle {
     type = 'circle';
-    constructor(_options: unknown) {}
+    constructor() {}
     set = vi.fn();
   }
 
