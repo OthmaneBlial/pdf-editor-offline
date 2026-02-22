@@ -1,5 +1,5 @@
 """
-Security-focused tests for PDF Smart Editor API.
+Security-focused tests for PDF Editor Offline API.
 
 Tests file validation, path traversal prevention, and input sanitization.
 """

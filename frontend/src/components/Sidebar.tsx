@@ -84,7 +84,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange, onShowShort
             <FileText className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-white tracking-tight">PDF Editor</h1>
+            <h1 className="text-lg font-bold text-white tracking-tight">PDF Editor Offline</h1>
             <p className="text-[10px] text-slate-400 font-medium">v2.0.0</p>
           </div>
         </div>

@@ -1,6 +1,6 @@
-# PDF Smart Editor Architecture
+# PDF Editor Offline Architecture
 
-PDF Smart Editor is a professional PDF editing platform with a React frontend and a FastAPI backend. It leverages PyMuPDF for core operations and includes advanced tools for conversion, manipulation, and OCR.
+PDF Editor Offline is a professional PDF editing platform with a React frontend and a FastAPI backend. It leverages PyMuPDF for core operations and includes advanced tools for conversion, manipulation, and OCR.
 
 ## Architecture
 

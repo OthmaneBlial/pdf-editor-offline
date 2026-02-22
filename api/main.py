@@ -19,35 +19,33 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown events."""
     # Startup
-    logger.info("Starting up PDF Smart Editor API...")
+    logger.info("Starting up PDF Editor Offline API...")
     cleanup_stale_sessions()
     yield
     # Shutdown
-    logger.info("Shutting down PDF Smart Editor API...")
+    logger.info("Shutting down PDF Editor Offline API...")
     cleanup_all_sessions()
 
 
 app = FastAPI(
-    title="PDF Smart Editor API",
+    title="PDF Editor Offline API",
     version="1.0.0",
     lifespan=lifespan,
 )
 
-# CORS configuration - tightened for security
-# In production, replace with your actual frontend origin
-ALLOWED_ORIGINS = os.getenv(
-    "CORS_ORIGINS",
-    "http://localhost:5173,http://localhost:3000,http://localhost:8000,http://127.0.0.1:5173",
-).split(",")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
-    expose_headers=["Content-Disposition"],
-)
+# CORS configuration:
+# - If CORS_ORIGINS is set, only those origins are allowed.
+# - Otherwise, allow localhost/127.0.0.1 on any port for local dev.
+cors_origins_env = os.getenv("CORS_ORIGINS", "").strip()
+if cors_origins_env:
+    ALLOWED_ORIGINS = [o.strip() for o in cors_origins_env.split(",") if o.strip()]
+    ALLOW_ORIGIN_REGEX = None
+else:
+    ALLOWED_ORIGINS = [
+        "http://localhost",
+        "http://127.0.0.1",
+    ]
+    ALLOW_ORIGIN_REGEX = r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"
 
 # Add security and logging middleware
 from api.middleware import (
@@ -59,6 +57,16 @@ from api.middleware import (
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(RateLimitMiddleware)
+# Keep CORS as the outermost middleware so headers are present on all responses.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=ALLOW_ORIGIN_REGEX,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+    expose_headers=["Content-Disposition"],
+)
 
 # Import routes after app is created to avoid circular imports
 from api.routes import documents, tools

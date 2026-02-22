@@ -1,4 +1,4 @@
-# 🚀 PDF Smart Editor - Features Roadmap
+# 🚀 PDF Editor Offline - Features Roadmap
 
 > Feature tracking document for future development.
 > Mark `[ ]` → `[X]` when a feature is completed.

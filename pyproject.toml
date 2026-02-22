@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pdfsmarteditor"
+name = "pdf-editor-offline"
 version = "2.0.0"
-description = "A smart PDF editor with CLI and API capabilities"
+description = "A free PDF editor offline with CLI and API capabilities"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
@@ -22,7 +22,16 @@ classifiers = [
     "Topic :: Multimedia :: Graphics :: Editors",
     "Topic :: Utilities"
 ]
-keywords = ["pdf", "editor", "pymupdf", "cli", "pdf-manipulation", "api"]
+keywords = [
+    "pdf editor",
+    "free pdf editor",
+    "pdf editor offline",
+    "offline pdf editor",
+    "pymupdf",
+    "cli",
+    "pdf manipulation",
+    "api",
+]
 dependencies = [
     "PyMuPDF",
     "Pillow",
@@ -51,15 +60,16 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/OthmaneBlial/pdfsmarteditor"
-Repository = "https://github.com/OthmaneBlial/pdfsmarteditor"
-Issues = "https://github.com/OthmaneBlial/pdfsmarteditor/issues"
+Homepage = "https://github.com/OthmaneBlial/pdf-editor-offline"
+Repository = "https://github.com/OthmaneBlial/pdf-editor-offline"
+Issues = "https://github.com/OthmaneBlial/pdf-editor-offline/issues"
 
 [project.scripts]
+pdf-editor-offline = "pdfsmarteditor.cli.main:app"
 pdfsmarteditor = "pdfsmarteditor.cli.main:app"
 
 [tool.setuptools.packages.find]
-include = ["pdfsmarteditor*"]
+include = ["pdfsmarteditor*", "pdf_editor_offline*"]
 
 [tool.isort]
 profile = "black"
@@ -69,4 +79,3 @@ ignore_missing_imports = true
 check_untyped_defs = true
 namespace_packages = true
 explicit_package_bases = true
-

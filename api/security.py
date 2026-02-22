@@ -1,5 +1,5 @@
 """
-Security utilities for PDF Smart Editor API.
+Security utilities for PDF Editor Offline API.
 
 Provides file validation, sanitization, and security headers.
 """

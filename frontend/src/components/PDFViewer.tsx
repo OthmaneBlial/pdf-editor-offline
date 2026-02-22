@@ -43,6 +43,7 @@ const PDFViewer: React.FC<{ forceRefresh?: number }> = ({ forceRefresh }) => {
     setSessionId,
     setPageCount,
     zoom,
+    setCurrentPage,
     setIsUploading,
   } = useEditor();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -58,60 +59,60 @@ const PDFViewer: React.FC<{ forceRefresh?: number }> = ({ forceRefresh }) => {
   // Track last uploaded file to prevent re-upload on remount
   const lastUploadedFileRef = useRef<File | null>(null);
 
-  // Upload document when file is selected
-  // IMPORTANT: Only upload if we don't already have a session for this document
+  // Upload document when file is selected.
+  // If a different file is selected, always upload it even if a session exists.
   useEffect(() => {
-    // Skip if we already have an active session (document already uploaded)
-    if (sessionId) {
+    if (!document) {
       return;
     }
 
-    if (document) {
-      // Skip if this is the same file we just uploaded (prevents re-upload on remount)
-      if (lastUploadedFileRef.current === document) {
-        return;
-      }
-
-      const uploadDocument = async () => {
-        setIsUploading(true);
-        setErrorMessage('');
-        const formData = new FormData();
-        formData.append('file', document);
-
-        try {
-          const response = await axios.post(`${API_BASE_URL}/api/documents/upload`, formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-          });
-          setSessionId(response.data.data.id);
-          setPageCount(response.data.data.page_count);
-          // Mark this file as uploaded
-          lastUploadedFileRef.current = document;
-        } catch (error) {
-          if (axios.isAxiosError(error)) {
-            setErrorMessage(`Upload failed: ${error.response?.data?.detail || error.message}`);
-          } else {
-            setErrorMessage('Upload failed. Please check the file and try again.');
-          }
-          setSessionId('');
-          setPageImage('');
-        } finally {
-          setIsUploading(false);
-        }
-      };
-      uploadDocument();
+    // Skip re-upload when the same file/session are already active (e.g. remounts)
+    if (lastUploadedFileRef.current === document && sessionId) {
+      return;
     }
-  }, [document, sessionId, setSessionId, setPageCount, setIsUploading]);
+
+    const uploadDocument = async () => {
+      setIsUploading(true);
+      setErrorMessage('');
+      // Reset to page 0 for any new upload attempt
+      setCurrentPage(0);
+      const formData = new FormData();
+      formData.append('file', document);
+
+      try {
+        const response = await axios.post(`${API_BASE_URL}/api/documents/upload`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        setSessionId(response.data.data.id);
+        setPageCount(response.data.data.page_count);
+        // Mark this file as uploaded
+        lastUploadedFileRef.current = document;
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
+          setErrorMessage(`Upload failed: ${error.response?.data?.detail || error.message}`);
+        } else {
+          setErrorMessage('Upload failed. Please check the file and try again.');
+        }
+        setSessionId('');
+        setPageImage('');
+      } finally {
+        setIsUploading(false);
+      }
+    };
+    uploadDocument();
+  }, [document, sessionId, setSessionId, setPageCount, setCurrentPage, setIsUploading]);
 
   // Load page image when session or page changes - FIXED DEPENDENCIES
   useEffect(() => {
     const currentSession = sessionId;
     const currentPg = currentPage;
+    const normalizedForceRefresh = forceRefresh ?? 0;
 
     // Skip if session hasn't changed and page hasn't changed and no force refresh
     if (
       currentSession === currentSessionRef.current &&
       currentPg === currentPageRef.current &&
-      forceRefresh === lastForceRefreshRef.current
+      normalizedForceRefresh === lastForceRefreshRef.current
     ) {
       return;
     }
@@ -130,14 +131,14 @@ const PDFViewer: React.FC<{ forceRefresh?: number }> = ({ forceRefresh }) => {
         if (!currentSession) return;
 
         // Add cache busting parameter to prevent stale images
-        const cacheBuster = forceRefresh || Date.now();
+        const cacheBuster = normalizedForceRefresh || Date.now();
         const response = await axios.get(
           `${API_BASE_URL}/api/documents/${currentSession}/pages/${currentPg}?t=${cacheBuster}`
         );
         setPageImage(response.data.data.image);
         currentSessionRef.current = currentSession;
         currentPageRef.current = currentPg;
-        lastForceRefreshRef.current = forceRefresh || 0;
+        lastForceRefreshRef.current = normalizedForceRefresh;
       } catch (error) {
         if (axios.isAxiosError(error)) {
           setErrorMessage(`Unable to load page: ${error.response?.data?.detail || error.message}`);

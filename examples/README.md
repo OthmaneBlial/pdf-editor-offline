@@ -1,6 +1,6 @@
-# PDF Smart Editor Examples
+# PDF Editor Offline Examples
 
-This directory contains example scripts demonstrating various usage patterns for PDF Smart Editor.
+This directory contains example scripts demonstrating various usage patterns for PDF Editor Offline.
 
 ## Scripts
 
@@ -30,10 +30,10 @@ This will:
 
 ## Requirements
 
-All examples require PDF Smart Editor to be installed:
+All examples require PDF Editor Offline to be installed:
 
 ```bash
-pip install pdfsmarteditor
+pip install pdf-editor-offline
 ```
 
 Or install from source:

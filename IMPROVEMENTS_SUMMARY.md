@@ -1,4 +1,4 @@
-# PDF Smart Editor - Improvements Summary
+# PDF Editor Offline - Improvements Summary
 
 > Date: 2025-01-25
 > Status: **ALL TASKS COMPLETED**
@@ -7,7 +7,7 @@
 
 ## Overview
 
-This document summarizes all improvements made to the PDF Smart Editor project across multiple areas: UI/UX, Performance, Accessibility, Code Quality, Build Optimization, Error Handling, Testing, and Security.
+This document summarizes all improvements made to the PDF Editor Offline project across multiple areas: UI/UX, Performance, Accessibility, Code Quality, Build Optimization, Error Handling, Testing, and Security.
 
 ---
 

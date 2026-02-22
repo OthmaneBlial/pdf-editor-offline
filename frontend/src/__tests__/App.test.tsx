@@ -65,7 +65,7 @@ describe('App Component', () => {
     it('renders the logo section', () => {
         renderWithProviders(<App />);
 
-        expect(screen.getByText('PDF Smart Editor')).toBeInTheDocument();
+        expect(screen.getByText('PDF Editor Offline')).toBeInTheDocument();
     });
 
     it('renders the PRO badge', () => {
@@ -161,7 +161,7 @@ describe('App Accessibility', () => {
     it('has proper heading structure', () => {
         renderWithProviders(<App />);
 
-        const heading = screen.getByText('PDF Smart Editor');
+        const heading = screen.getByText('PDF Editor Offline');
         expect(heading.tagName).toBe('H1');
     });
 });

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Example script demonstrating batch processing of PDF files using PDF Smart Editor.
+Example script demonstrating batch processing of PDF files using PDF Editor Offline.
 
 This script shows how to:
 - Process multiple PDF files in a directory
@@ -42,7 +42,7 @@ def batch_extract_text(input_dir, output_dir):
         print(f"Extracting text from {pdf_file.name}...")
 
         output_file = output_path / f"{pdf_file.stem}_text.txt"
-        cmd = f"pdfsmarteditor extract text '{pdf_file}' > '{output_file}'"
+        cmd = f"pdf-editor-offline extract text '{pdf_file}' > '{output_file}'"
 
         success, stdout, stderr = run_command(cmd)
         if success:
@@ -73,7 +73,7 @@ def batch_extract_images(input_dir, output_dir):
         print(f"Extracting images from {pdf_file.name}...")
 
         image_dir = output_path / pdf_file.stem
-        cmd = f"pdfsmarteditor extract images '{pdf_file}' --output-dir '{image_dir}'"
+        cmd = f"pdf-editor-offline extract images '{pdf_file}' --output-dir '{image_dir}'"
 
         success, stdout, stderr = run_command(cmd)
         if success:

@@ -1,252 +1,229 @@
-# <p align="center"><img src="./logo-pdf-editor.png" alt="PDF Editor Logo" width="200"></p>
+# <p align="center"><img src="./logo-pdf-editor.png" alt="PDF Editor Offline logo" width="200"></p>
 
-<h1 align="center">📄 PDF Smart Editor</h1>
+<h1 align="center">PDF Editor Offline</h1>
 
 <p align="center">
-  <strong>The Free Offline PDF Editor That Protects Your Privacy</strong><br>
-  100% Local • 100% Private • 100% Free Forever
+  <strong>A free PDF editor that runs 100% locally on your machine.</strong><br>
+  Edit, convert, merge, split, protect, and optimize PDFs without uploading files to the cloud.
 </p>
 
 <p align="center">
-  <a href="#-features">Features</a> •
-  <a href="#-installation">Installation</a> •
-  <a href="#-quick-start">Quick Start</a> •
-  <a href="#-why-choose">Why Choose Us</a>
+  <a href="#features">Features</a> •
+  <a href="#installation">Installation</a> •
+  <a href="#quick-start">Quick Start</a> •
+  <a href="#faq">FAQ</a>
 </p>
 
 ---
 
 <div align="center">
 
-**PDF Editor • Free PDF Editor • Offline PDF Editor**
+**pdf editor • free pdf editor • pdf editor offline**
 
-![GitHub stars](https://img.shields.io/github/stars/OthmaneBlial/pdfsmarteditor?style=social)
+![GitHub stars](https://img.shields.io/github/stars/OthmaneBlial/pdf-editor-offline?style=social)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 </div>
 
 ---
 
-## ⭐ Why PDF Smart Editor?
+## Why PDF Editor Offline?
 
-Looking for a **free PDF editor** that actually works without forcing you to upload your documents to the cloud? **PDF Smart Editor** is a professional-grade, offline PDF editor that puts you in control.
+If you are looking for a **pdf editor** that is private, fast, and practical, this project is built for you.
 
-### 🔒 Your Files Stay on Your Machine
-Unlike online PDF editors, **PDF Smart Editor** processes everything locally. Your sensitive documents, contracts, and personal information **never leave your computer**.
+**PDF Editor Offline** is a **free pdf editor** focused on local-first processing:
+- Your documents stay on your device.
+- No account required.
+- No feature paywalls.
+- No forced cloud upload.
 
-### 💰 Completely Free — No Hidden Costs
-- ✅ No subscription fees
-- ✅ No premium tiers
-- ✅ No feature paywalls
-- ✅ No account required
-- ✅ Open source forever
+This makes it ideal if you need a **pdf editor offline** for contracts, financial files, legal docs, HR forms, and any sensitive PDF workflow.
 
 ---
 
-## 🚀 Core Features
+## Features
 
-### 📝 PDF Editing Tools
-- **Annotations** — Add text, highlights, shapes, and drawings
-- **Canvas Editor** — High-performance editing with Fabric.js
-- **Image Insertion** — Add, resize, and position images
-- **Page Manipulation** — Rotate, delete, reorder, extract, duplicate pages
-- **Crop & Resize** — Adjust page dimensions and margins
-- **Undo/Redo** — Full history tracking with keyboard shortcuts
+### PDF editing
+- Add annotations, highlights, and drawings
+- Insert and position images
+- Reorder, rotate, extract, duplicate, and delete pages
+- Crop and resize pages
+- Undo/redo editing history
 
-### 🔄 Format Conversion (Bidirectional)
+### PDF conversion
+- Export PDF to Word, PowerPoint, Excel, images, Markdown, TXT, EPUB, SVG
+- Import Word, PowerPoint, Excel, Markdown, TXT, CSV, JSON, HTML, and images to PDF
+- OCR for scanned documents
 
-**Export PDF to:**
-- Word (`.docx`), PowerPoint (`.pptx`), Excel (`.xlsx`)
-- Images (`.jpg`, `.png`), SVG (vector)
-- Markdown, Plain Text, EPUB (e-readers)
+### PDF tools
+- Merge and split PDFs
+- Compress PDFs
+- Add watermarks
+- Password-protect and unlock PDFs
+- Add headers, footers, and page numbers
+- Remove blank pages
+- Flatten annotations
+- Repair and optimize PDFs
 
-**Import to PDF from:**
-- Word, PowerPoint, Excel
-- Markdown, TXT, CSV, JSON
-- HTML, Images
-- Scanned documents (OCR)
-
-### ⚡ Batch Processing
-- **Batch Convert** — Convert multiple files at once
-- **Auto-Merge** — Combine entire folders of PDFs
-- **Template Processing** — Apply watermarks, rotation, compression to multiple files
-
-### 🛡️ Security & Protection
-- **Password Protection** — Encrypt PDFs with owner/user passwords
-- **Unlock PDFs** — Remove password protection (if you know the password)
-- **Watermark** — Add text watermarks with custom opacity and rotation
-- **Digital Sign** — Insert signature images
-- **Metadata Editor** — Modify title, author, keywords
-
-### 🧠 Advanced Tools
-- **OCR** — Extract text from scanned documents
-- **Compare PDFs** — Visual diff between two documents
-- **Compress** — Reduce file size while maintaining quality
-- **Split** — Extract pages into separate PDFs
-- **Merge** — Combine multiple PDFs into one
-- **Rotate** — Rotate pages 90°, 180°, 270°
-- **Organize** — Reorder pages by custom sequence
-- **Repair** — Fix corrupted PDFs
-- **PDF/A** — Convert to archival PDF/A format
-- **Page Numbers** — Add numbered pages
-- **Headers & Footers** — Add custom headers/footers
-- **Remove Blanks** — Auto-detect and delete empty pages
-- **Flatten** — Merge annotations into page content
+### Batch workflows
+- Batch conversion for folders
+- Auto-merge multiple PDFs
+- Reusable processing templates
 
 ---
 
-## 📦 Installation
+## Installation
 
-### Via pip (Recommended)
+### pip
 
 ```bash
-pip install pdfsmarteditor
+pip install pdf-editor-offline
 ```
 
-### Via Docker
+### Docker
 
 ```bash
-docker pull othmaneblial/pdfsmarteditor
-docker run -p 8000:8000 othmaneblial/pdfsmarteditor
+docker pull othmaneblial/pdf-editor-offline
+docker run -p 8000:8000 othmaneblial/pdf-editor-offline
 ```
 
-### From Source
+### From source
 
 ```bash
-git clone https://github.com/OthmaneBlial/pdfsmarteditor.git
-cd pdfsmarteditor
+git clone https://github.com/OthmaneBlial/pdf-editor-offline.git
+cd pdf-editor-offline
 pip install -e ".[dev]"
 ```
 
 ---
 
-## 🎯 Quick Start
+## Quick Start
 
-### Web Interface
-
-Launch the full-featured **PDF editor** web interface:
+### Web app
 
 ```bash
-pdfsmarteditor serve
+pdf-editor-offline serve
 ```
 
-Then visit `http://localhost:8000` to start editing PDFs in your browser.
+Open `http://localhost:8000` and start editing.
 
-### Command Line Interface
+### CLI examples
 
 ```bash
 # Merge PDFs
-pdfsmarteditor tools merge doc1.pdf doc2.pdf -o combined.pdf
+pdf-editor-offline tools merge doc1.pdf doc2.pdf -o combined.pdf
 
-# Split PDF
-pdfsmarteditor tools split input.pdf --ranges "1-3,5-7"
+# Split PDF pages
+pdf-editor-offline tools split input.pdf --ranges "1-3,5-7"
 
 # Convert to Word
-pdfsmarteditor tools convert input.pdf --format docx
+pdf-editor-offline tools convert input.pdf --format docx
 
 # Compress PDF
-pdfsmarteditor tools compress input.pdf --level 4
+pdf-editor-offline tools compress input.pdf --level 4
 
 # Add watermark
-pdfsmarteditor tools watermark input.pdf --text "CONFIDENTIAL" --opacity 0.3
+pdf-editor-offline tools watermark input.pdf --text "CONFIDENTIAL" --opacity 0.3
 
-# Protect with password
-pdfsmarteditor tools protect input.pdf --password secret123
-
-# Rotate pages
-pdfsmarteditor tools rotate input.pdf --degrees 90
+# Protect PDF
+pdf-editor-offline tools protect input.pdf --password secret123
 ```
 
 ### Python API
 
 ```python
-from pdfsmarteditor import PDFConverter, PDFManipulator
+from pdf_editor_offline import PDFConverter, PDFManipulator
 
-# Convert PDF to Word
 converter = PDFConverter()
 converter.pdf_to_word("input.pdf", "output.docx")
 
-# Merge PDFs
 manipulator = PDFManipulator()
 manipulator.merge_pdfs(["file1.pdf", "file2.pdf"], "merged.pdf")
-
-# Compress PDF
-manipulator.compress_pdf("input.pdf", "compressed.pdf", level=4)
 ```
 
 ---
 
-## 🌟 Why Choose PDF Smart Editor?
+## Comparison
 
-| Feature | PDF Smart Editor | Adobe Acrobat | Online Editors |
-|---------|------------------|---------------|----------------|
-| **Price** | ✅ Free Forever | 💰 $20+/month | 🔒 Limited Free |
-| **Privacy** | ✅ 100% Offline | ⚠️ Telemetry | ❌ Cloud Upload |
-| **No Account** | ✅ True | ❌ Required | ❌ Required |
-| **Open Source** | ✅ Yes | ❌ No | ❌ No |
-| **Batch Processing** | ✅ Yes | 💰 Premium | ❌ No |
-| **All Features** | ✅ Included | 💰 Split Tiers | ❌ Limited |
-
----
-
-## 🏗️ Architecture
-
-**Built for Performance and Privacy:**
-
-- **Backend:** FastAPI + PyMuPDF (fitz) for lightning-fast PDF processing
-- **Frontend:** React 18 + TypeScript + Tailwind CSS
-- **Canvas:** Fabric.js for smooth annotations and drawings
-- **OCR:** Tesseract for text extraction from scans
-- **No Cloud:** All processing happens on your machine
+| Feature | PDF Editor Offline | Adobe Acrobat | Online PDF editors |
+|---|---|---|---|
+| Price | Free | Paid subscription | Limited free tiers |
+| Privacy | 100% local processing | Partial cloud integrations | Cloud upload required |
+| Account required | No | Usually yes | Usually yes |
+| Open source | Yes | No | Rarely |
+| Batch processing | Yes | Premium tiers | Limited |
 
 ---
 
-## 🤝 Contributing
+## Privacy-first by design
 
-We welcome contributions! **PDF Smart Editor** is community-driven.
+Many users search for a **free pdf editor** but do not want cloud upload risk.
+
+**PDF Editor Offline** solves that with local-first architecture:
+- FastAPI + PyMuPDF backend
+- React + TypeScript frontend
+- Local session processing
+- No external storage dependency
+
+If you need a dependable **pdf editor offline**, this repo is optimized for that use case.
+
+---
+
+## FAQ
+
+### Is this a free PDF editor?
+Yes. It is a **free pdf editor** under the MIT license.
+
+### Does this PDF editor work offline?
+Yes. This is a true **pdf editor offline**: processing happens on your machine.
+
+### Is this an online PDF editor?
+No. It is not an online SaaS editor. It is a local, self-hosted **pdf editor**.
+
+### Can I use it from CLI and API?
+Yes. You can use web UI, CLI commands, or Python API in automation pipelines.
+
+---
+
+## Contributing
+
+Contributions are welcome.
 
 ```bash
-# Fork and clone
-git clone https://github.com/YOUR-USERNAME/pdfsmarteditor.git
-
-# Install dev dependencies
+git clone https://github.com/YOUR-USERNAME/pdf-editor-offline.git
+cd pdf-editor-offline
 pip install -e ".[dev]"
-
-# Run tests
 pytest
-
-# Run linting
-black . && isort .
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
-## 📊 Roadmap
+## Roadmap
 
-- [x] Phase 1: User Experience Improvements ✅
-- [x] Phase 2: Advanced Page Manipulation ✅
-- [x] Phase 3: Extended Conversion & Batch Processing ✅
-- [ ] Phase 4: Advanced Editing (in-line text, forms)
-- [ ] Phase 5: Enhanced Security & Privacy
-- [ ] Phase 6: Intelligence & Automation
+- [x] UX improvements
+- [x] Advanced page manipulation
+- [x] Extended conversion + batch processing
+- [ ] In-line text editing and forms
+- [ ] Advanced privacy/security workflows
+- [ ] Intelligent automation features
 
-See [FEATURES_ROADMAP.md](docs/FEATURES_ROADMAP.md) for details.
+See [docs/FEATURES_ROADMAP.md](docs/FEATURES_ROADMAP.md).
 
 ---
 
-## ⭐ Star Us on GitHub!
+## Support the project
 
-If you find **PDF Smart Editor** useful, please consider giving us a star! It helps others discover this free PDF editor.
+If this **pdf editor** helps you, star the repository:
 
-<a href="https://github.com/OthmaneBlial/pdfsmarteditor">
-  <img src="https://img.shields.io/github/stars/OthmaneBlial/pdfsmarteditor?style=social" alt="GitHub Stars">
+<a href="https://github.com/OthmaneBlial/pdf-editor-offline">
+  <img src="https://img.shields.io/github/stars/OthmaneBlial/pdf-editor-offline?style=social" alt="GitHub Stars for PDF Editor Offline">
 </a>
 
 ---
 
-## 📄 License
+## License
 
 Copyright © 2026 Othmane BLIAL
 
@@ -254,16 +231,16 @@ Licensed under the [MIT License](LICENSE).
 
 ---
 
-## 🔗 Keywords
+## SEO Keywords
 
-**PDF Editor**, **Free PDF Editor**, **Offline PDF Editor**, **PDF Annotation Tool**, **PDF Merger**, **PDF Splitter**, **PDF to Word Converter**, **PDF Compressor**, **Open Source PDF Editor**
+**pdf editor**, **free pdf editor**, **pdf editor offline**, **offline pdf editor**, **open source pdf editor**, **local pdf editor**, **private pdf editor**, **pdf merge split convert**
 
 ---
 
 <div align="center">
 
-**Made with ❤️ for everyone who deserves a free PDF editor**
+**Built for anyone who needs a free pdf editor with real offline privacy.**
 
-**[⬆ Back to Top](#-pdf-smart-editor)**
+**[Back to top](#pdf-editor-offline)**
 
 </div>

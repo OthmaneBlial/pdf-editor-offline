@@ -1,5 +1,5 @@
 """
-Middleware components for PDF Smart Editor API.
+Middleware components for PDF Editor Offline API.
 
 Provides rate limiting, request logging, and security middleware.
 """

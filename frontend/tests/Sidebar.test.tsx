@@ -75,7 +75,7 @@ describe('Sidebar Component', () => {
   it('renders correctly with default state', () => {
     render(<Sidebar {...mockProps} />);
 
-    expect(screen.getByText('PDF Smart Editor')).toBeInTheDocument();
+    expect(screen.getByText('PDF Editor Offline')).toBeInTheDocument();
     expect(screen.getByText('PRO')).toBeInTheDocument();
   });
 
