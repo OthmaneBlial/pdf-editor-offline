@@ -124,7 +124,7 @@ const AdvancedTools: React.FC = () => {
     };
 
     return (
-        <div className="p-6 max-w-6xl mx-auto">
+        <div className="p-3 sm:p-6 max-w-6xl mx-auto">
             <h2 className="text-2xl font-bold mb-6 text-gray-800">Advanced Tools</h2>
 
             {message && (

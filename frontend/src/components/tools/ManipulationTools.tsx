@@ -233,7 +233,7 @@ const ManipulationTools: React.FC = () => {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto animate-fade-in">
+    <div className="p-3 sm:p-6 lg:p-8 max-w-7xl mx-auto animate-fade-in">
       {/* Page Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
@@ -365,7 +365,7 @@ const ManipulationTools: React.FC = () => {
               <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Upload PDF</label>
               <input type="file" name="file" accept=".pdf" required className="w-full text-sm text-[var(--text-secondary)] file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-pink-50 file:text-pink-700 hover:file:bg-pink-100" />
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
                 <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Page #</label>
                 <input type="number" name="page_num" min="1" placeholder="1" required className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)]" />
@@ -422,7 +422,7 @@ const ManipulationTools: React.FC = () => {
             </div>
           </div>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
                 <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Left (pt)</label>
                 <input type="number" placeholder="0" className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)] text-sm" />
@@ -593,7 +593,7 @@ const ManipulationTools: React.FC = () => {
                 ))}
               </select>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
                 <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Prefix</label>
                 <input type="text" placeholder="Page " className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)] text-sm" />

@@ -29,7 +29,7 @@ const PageNavigation: React.FC = () => {
 
   return (
     <nav
-      className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white rounded-full shadow-lg border border-gray-200 px-4 py-2 flex items-center gap-4 z-50"
+      className="absolute bottom-16 sm:bottom-6 left-1/2 -translate-x-1/2 bg-white rounded-full shadow-lg border border-gray-200 px-2 sm:px-4 py-2 flex items-center gap-2 sm:gap-4 z-50 max-w-[calc(100%-1rem)]"
       aria-label="Page navigation"
     >
       <button
@@ -46,7 +46,7 @@ const PageNavigation: React.FC = () => {
         <ChevronLeft className="w-5 h-5" />
       </button>
 
-      <span className="text-sm font-medium text-gray-600 font-mono" aria-live="polite">
+      <span className="text-xs sm:text-sm font-medium text-gray-600 font-mono whitespace-nowrap" aria-live="polite">
         Page {currentPage + 1} of {pageCount}
       </span>
 

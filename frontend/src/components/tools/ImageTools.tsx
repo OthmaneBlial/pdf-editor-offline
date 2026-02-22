@@ -222,7 +222,7 @@ const ImageTools: React.FC = () => {
 
   if (!sessionId) {
     return (
-      <div className="p-8 max-w-7xl mx-auto animate-fade-in">
+      <div className="p-3 sm:p-6 lg:p-8 max-w-7xl mx-auto animate-fade-in">
         <div className="text-center py-12 bg-[var(--card-bg)] rounded-xl border border-[var(--border-color)]">
           <ImageIcon className="w-12 h-12 mx-auto mb-4 text-[var(--text-secondary)]" />
           <p className="text-[var(--text-secondary)]">Upload a PDF to use image tools</p>
@@ -232,7 +232,7 @@ const ImageTools: React.FC = () => {
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto animate-fade-in">
+    <div className="p-3 sm:p-6 lg:p-8 max-w-7xl mx-auto animate-fade-in">
       {/* Page Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-2">
@@ -334,7 +334,7 @@ const ImageTools: React.FC = () => {
                       </span>
                     )}
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                     <div>
                       <span className="text-[var(--text-secondary)]">Size:</span>{' '}
                       <span className="text-[var(--text-primary)]">{img.width}×{img.height}</span>
@@ -462,7 +462,7 @@ const ImageTools: React.FC = () => {
                 required
               />
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
                 <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">X</label>
                 <input

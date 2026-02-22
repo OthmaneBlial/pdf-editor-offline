@@ -152,7 +152,7 @@ const BatchProcessingTools: React.FC = () => {
     };
 
     return (
-        <div className="p-8 max-w-7xl mx-auto animate-fade-in">
+        <div className="p-3 sm:p-6 lg:p-8 max-w-7xl mx-auto animate-fade-in">
             <div className="mb-8">
                 <h2 className="text-3xl font-bold bg-gradient-to-r from-sky-700 to-cyan-700 bg-clip-text text-transparent mb-2">Batch Processing</h2>
                 <p className="text-gray-500">Process multiple files at once</p>
@@ -165,10 +165,10 @@ const BatchProcessingTools: React.FC = () => {
             )}
 
             {/* Tabs */}
-            <div className="flex gap-6 mb-8 border-b border-sky-100">
+            <div className="flex gap-3 sm:gap-6 mb-6 sm:mb-8 border-b border-sky-100 overflow-x-auto whitespace-nowrap pb-1">
                 <button
                     onClick={() => setActiveTab('batch')}
-                    className={`pb-4 px-6 font-semibold transition-all duration-300 relative ${activeTab === 'batch' ? 'text-sky-700' : 'text-gray-500 hover:text-gray-700'}`}
+                    className={`pb-3 sm:pb-4 px-3 sm:px-6 text-sm sm:text-base font-semibold transition-all duration-300 relative ${activeTab === 'batch' ? 'text-sky-700' : 'text-gray-500 hover:text-gray-700'}`}
                 >
                     <div className="flex items-center gap-2">
                         <Layers className="w-4 h-4" />
@@ -178,7 +178,7 @@ const BatchProcessingTools: React.FC = () => {
                 </button>
                 <button
                     onClick={() => setActiveTab('merge')}
-                    className={`pb-4 px-6 font-semibold transition-all duration-300 relative ${activeTab === 'merge' ? 'text-sky-700' : 'text-gray-500 hover:text-gray-700'}`}
+                    className={`pb-3 sm:pb-4 px-3 sm:px-6 text-sm sm:text-base font-semibold transition-all duration-300 relative ${activeTab === 'merge' ? 'text-sky-700' : 'text-gray-500 hover:text-gray-700'}`}
                 >
                     <div className="flex items-center gap-2">
                         <FileText className="w-4 h-4" />
@@ -188,7 +188,7 @@ const BatchProcessingTools: React.FC = () => {
                 </button>
                 <button
                     onClick={() => setActiveTab('template')}
-                    className={`pb-4 px-6 font-semibold transition-all duration-300 relative ${activeTab === 'template' ? 'text-sky-700' : 'text-gray-500 hover:text-gray-700'}`}
+                    className={`pb-3 sm:pb-4 px-3 sm:px-6 text-sm sm:text-base font-semibold transition-all duration-300 relative ${activeTab === 'template' ? 'text-sky-700' : 'text-gray-500 hover:text-gray-700'}`}
                 >
                     <div className="flex items-center gap-2">
                         <Settings className="w-4 h-4" />
@@ -313,7 +313,7 @@ const BatchProcessingTools: React.FC = () => {
                                 {/* Watermark Options */}
                                 <div className="p-4 bg-gray-50 rounded-xl">
                                     <h4 className="font-semibold text-gray-700 mb-3">Watermark</h4>
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div className="col-span-2">
                                             <input
                                                 type="text"
@@ -366,7 +366,7 @@ const BatchProcessingTools: React.FC = () => {
                                 </div>
 
                                 {/* Other Options */}
-                                <div className="grid grid-cols-3 gap-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                     <div>
                                         <label className="block text-xs text-gray-600 mb-1">Rotate (°)</label>
                                         <input

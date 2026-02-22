@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   FileText, Scissors, RefreshCw, Shield, Zap, Wrench, History,
   MessageSquare, Keyboard, ChevronRight, Layers, Sparkles,
-  Type, Bookmark, PenTool, ImageIcon
+  Type, Bookmark, PenTool, ImageIcon, X
 } from 'lucide-react';
 import FileUpload from './FileUpload';
 import RecentFiles from './RecentFiles';
@@ -42,14 +42,29 @@ interface SidebarProps {
   activeView: ViewMode;
   onViewChange: (view: ViewMode) => void;
   onShowShortcuts: () => void;
+  isMobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange, onShowShortcuts }) => {
+const Sidebar: React.FC<SidebarProps> = ({
+  activeView,
+  onViewChange,
+  onShowShortcuts,
+  isMobileOpen = false,
+  onMobileClose,
+}) => {
   // Track which section is expanded (only one at a time)
   const [expandedSection, setExpandedSection] = useState<'basic' | 'advanced' | 'tools' | 'history' | 'comments' | null>('basic');
 
   const toggleSection = (section: typeof expandedSection) => {
     setExpandedSection(expandedSection === section ? null : section);
+  };
+
+  const handleViewSelection = (view: ViewMode) => {
+    onViewChange(view);
+    if (onMobileClose) {
+      onMobileClose();
+    }
   };
 
   // Helper to render navigation items
@@ -60,7 +75,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange, onShowShort
       return (
         <button
           key={item.id}
-          onClick={() => onViewChange(item.id)}
+          onClick={() => handleViewSelection(item.id)}
           className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
             isActive
               ? 'bg-gradient-to-r from-sky-500 to-cyan-500 text-white shadow-lg'
@@ -76,7 +91,20 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange, onShowShort
   };
 
   return (
-    <aside className="w-72 bg-slate-900 flex flex-col relative z-10">
+    <>
+      <div
+        className={`fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-30 lg:hidden transition-opacity duration-300 ${
+          isMobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={onMobileClose}
+        aria-hidden="true"
+      />
+      <aside
+        className={`fixed inset-y-0 left-0 w-[85vw] max-w-[320px] lg:w-72 bg-slate-900 flex flex-col z-40 lg:relative lg:z-10 transform transition-transform duration-300 ${
+          isMobileOpen ? 'translate-x-0' : '-translate-x-full'
+        } lg:translate-x-0 overflow-y-auto`}
+        aria-label="Main sidebar"
+      >
       {/* Logo Section */}
       <div className="p-5 border-b border-slate-700/50">
         <div className="flex items-center gap-3">
@@ -87,6 +115,13 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange, onShowShort
             <h1 className="text-lg font-bold text-white tracking-tight">PDF Editor Offline</h1>
             <p className="text-[10px] text-slate-400 font-medium">v2.0.0</p>
           </div>
+          <button
+            onClick={onMobileClose}
+            className="lg:hidden ml-auto p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+            aria-label="Close sidebar menu"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
@@ -232,13 +267,15 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange, onShowShort
               onClick={onShowShortcuts}
               className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-all"
               title="Keyboard shortcuts"
+              aria-label="Show keyboard shortcuts"
             >
               <Keyboard className="w-4 h-4" />
             </button>
           </div>
         </div>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 };
 

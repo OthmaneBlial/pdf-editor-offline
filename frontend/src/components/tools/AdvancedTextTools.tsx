@@ -197,7 +197,7 @@ const AdvancedTextTools: React.FC = () => {
 
   if (!sessionId) {
     return (
-      <div className="p-8 max-w-7xl mx-auto animate-fade-in">
+      <div className="p-3 sm:p-6 lg:p-8 max-w-7xl mx-auto animate-fade-in">
         <div className="text-center py-12 bg-[var(--card-bg)] rounded-xl border border-[var(--border-color)]">
           <Type className="w-12 h-12 mx-auto mb-4 text-[var(--text-secondary)]" />
           <p className="text-[var(--text-secondary)]">Upload a PDF to use advanced text tools</p>
@@ -207,7 +207,7 @@ const AdvancedTextTools: React.FC = () => {
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto animate-fade-in">
+    <div className="p-3 sm:p-6 lg:p-8 max-w-7xl mx-auto animate-fade-in">
       {/* Page Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-2">
@@ -386,7 +386,7 @@ const AdvancedTextTools: React.FC = () => {
                 className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)] font-mono text-sm"
               />
             </div>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <div>
                 <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">X</label>
                 <input

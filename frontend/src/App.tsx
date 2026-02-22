@@ -25,6 +25,18 @@ export type ViewMode = 'editor' | 'manipulation' | 'conversion' | 'security' | '
 
 // Advanced Editing tools that need tabbed interface
 const ADVANCED_EDITING_TOOLS: ViewMode[] = ['text', 'navigation', 'annotations', 'images'];
+const VIEW_LABELS: Record<ViewMode, string> = {
+  editor: 'Editor',
+  manipulation: 'Manipulation',
+  conversion: 'Conversion',
+  security: 'Security',
+  advanced: 'Advanced',
+  batch: 'Batch Process',
+  text: 'Text Tools',
+  navigation: 'Navigation',
+  annotations: 'Annotations',
+  images: 'Images',
+};
 
 // Component to handle keyboard shortcuts - must be inside EditorProvider
 function KeyboardShortcutsHandler({ onShowHelp }: { onShowHelp: () => void }) {
@@ -38,6 +50,7 @@ function KeyboardShortcutsHandler({ onShowHelp }: { onShowHelp: () => void }) {
 function AppContent() {
   const [activeView, setActiveView] = useState<ViewMode>('editor');
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   // For Advanced Editing tools, track which tab is active: 'editor' or 'tool'
   const [activeTab, setActiveTab] = useState<'editor' | 'tool'>('editor');
   // Force refresh PDF viewer when switching from tool tab to editor tab
@@ -51,6 +64,29 @@ function AppContent() {
     }
   }, [activeView, isAdvancedEditingTool]);
 
+  // Lock body scroll while mobile drawer is open.
+  useEffect(() => {
+    if (isMobileSidebarOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileSidebarOpen]);
+
+  // Support keyboard close on mobile drawer.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsMobileSidebarOpen(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
   // When switching to editor tab from tool tab, refresh the PDF
   const handleTabSwitch = (tab: 'editor' | 'tool') => {
     if (tab === 'editor' && activeTab === 'tool') {
@@ -60,21 +96,28 @@ function AppContent() {
     setActiveTab(tab);
   };
 
+  const handleViewChange = (view: ViewMode) => {
+    setActiveView(view);
+    setIsMobileSidebarOpen(false);
+  };
+
   const renderContent = () => {
     // For basic tools, replace the entire content
     if (!isAdvancedEditingTool) {
       switch (activeView) {
         case 'editor':
           return (
-            <div className="flex-1 relative overflow-auto p-6 animate-fade-in">
-              <PageThumbnails />
-              <div className="min-h-full bg-[var(--bg-canvas)] rounded-2xl shadow-xl border border-[var(--border-subtle)] relative overflow-hidden">
+            <div className="flex-1 relative overflow-auto p-2 sm:p-4 lg:p-6 pb-24 sm:pb-20 animate-fade-in">
+              <div className="hidden lg:block">
+                <PageThumbnails />
+              </div>
+              <div className="min-h-full bg-[var(--bg-canvas)] rounded-xl sm:rounded-2xl shadow-xl border border-[var(--border-subtle)] relative overflow-hidden">
                 {/* Decorative corner accent */}
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[var(--accent-primary)]/10 to-transparent pointer-events-none" />
                 <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-[var(--accent-tertiary)]/10 to-transparent pointer-events-none" />
                 <PDFViewer forceRefresh={refreshKey} />
-                <PageNavigation />
-                <ZoomControls />
+                {!isMobileSidebarOpen && <PageNavigation />}
+                {!isMobileSidebarOpen && <ZoomControls />}
               </div>
             </div>
           );
@@ -107,10 +150,10 @@ function AppContent() {
     return (
       <div className="flex flex-col h-full animate-fade-in">
         {/* Tabs Header */}
-        <div className="flex items-center gap-2 px-4 py-2 bg-slate-900 border-b border-slate-700">
+        <div className="flex items-center gap-2 px-2 sm:px-4 py-2 bg-slate-900 border-b border-slate-700 overflow-x-auto">
           <button
             onClick={() => handleTabSwitch('editor')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
               activeTab === 'editor'
                 ? 'bg-gradient-to-r from-sky-500 to-cyan-500 text-white shadow-lg'
                 : 'text-slate-300 hover:text-white hover:bg-slate-800'
@@ -123,7 +166,7 @@ function AppContent() {
           </button>
           <button
             onClick={() => handleTabSwitch('tool')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
               activeTab === 'tool'
                 ? 'bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow-lg'
                 : 'text-slate-300 hover:text-white hover:bg-slate-800'
@@ -142,15 +185,17 @@ function AppContent() {
         {/* Tab Content */}
         <div className="flex-1 overflow-auto">
           {activeTab === 'editor' ? (
-            <div className="p-6">
-              <PageThumbnails />
-              <div className="min-h-full bg-[var(--bg-canvas)] rounded-2xl shadow-xl border border-[var(--border-subtle)] relative overflow-hidden">
+            <div className="p-2 sm:p-4 lg:p-6 pb-24 sm:pb-20">
+              <div className="hidden lg:block">
+                <PageThumbnails />
+              </div>
+              <div className="min-h-full bg-[var(--bg-canvas)] rounded-xl sm:rounded-2xl shadow-xl border border-[var(--border-subtle)] relative overflow-hidden">
                 {/* Decorative corner accent */}
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[var(--accent-primary)]/10 to-transparent pointer-events-none" />
                 <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-[var(--accent-tertiary)]/10 to-transparent pointer-events-none" />
                 <PDFViewer forceRefresh={refreshKey} />
-                <PageNavigation />
-                <ZoomControls />
+                {!isMobileSidebarOpen && <PageNavigation />}
+                {!isMobileSidebarOpen && <ZoomControls />}
               </div>
             </div>
           ) : (
@@ -162,7 +207,7 @@ function AppContent() {
   };
 
   return (
-    <div className="flex h-screen w-full bg-[var(--bg-app)] overflow-hidden relative">
+    <div className="flex h-[100dvh] w-full bg-[var(--bg-app)] overflow-hidden relative">
       <KeyboardShortcutsHandler onShowHelp={() => setShowShortcuts(true)} />
       <ShortcutsModal isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
 
@@ -175,13 +220,19 @@ function AppContent() {
       {/* Tab-based Sidebar */}
       <Sidebar
         activeView={activeView}
-        onViewChange={setActiveView}
+        onViewChange={handleViewChange}
         onShowShortcuts={() => setShowShortcuts(true)}
+        isMobileOpen={isMobileSidebarOpen}
+        onMobileClose={() => setIsMobileSidebarOpen(false)}
       />
 
       {/* Main Content */}
-      <main className="flex-1 relative flex flex-col overflow-hidden">
-        <Header />
+      <main className="flex-1 min-w-0 relative flex flex-col overflow-hidden">
+        <Header
+          onToggleSidebar={() => setIsMobileSidebarOpen(prev => !prev)}
+          isSidebarOpen={isMobileSidebarOpen}
+          activeViewLabel={VIEW_LABELS[activeView]}
+        />
         <div className="flex-1 overflow-auto">
           {renderContent()}
         </div>

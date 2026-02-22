@@ -99,7 +99,7 @@ const SecurityTools: React.FC = () => {
     };
 
     return (
-        <div className="p-6 max-w-6xl mx-auto">
+        <div className="p-3 sm:p-6 max-w-6xl mx-auto">
             <h2 className="text-2xl font-bold mb-6 text-gray-800">Security Tools</h2>
 
             {message && (
@@ -172,7 +172,7 @@ const SecurityTools: React.FC = () => {
                             <label className="block text-sm font-medium text-gray-700 mb-1">Signature Image</label>
                             <input type="file" name="signature_file" accept="image/*" required className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-xs font-medium text-gray-700 mb-1">Page</label>
                                 <input type="number" name="page_num" defaultValue="1" min="1" className="w-full p-2 border border-gray-300 rounded-lg" />
@@ -213,7 +213,7 @@ const SecurityTools: React.FC = () => {
                             <label className="block text-sm font-medium text-gray-700 mb-1">Watermark Text</label>
                             <input type="text" name="text" required className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500" />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-xs font-medium text-gray-700 mb-1">Opacity (0-1)</label>
                                 <input type="number" name="opacity" defaultValue="0.3" step="0.1" min="0" max="1" className="w-full p-2 border border-gray-300 rounded-lg" />

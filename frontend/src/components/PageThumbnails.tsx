@@ -52,10 +52,10 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isOpen = false }) => {
     if (pageCount === 0) return null;
 
     return (
-        <div className={`fixed left-0 top-1/2 -translate-y-1/2 z-20 transition-all duration-300 transform ${isExpanded ? 'translate-x-0' : '-translate-x-full pl-2'}`}>
+        <div className={`hidden lg:block fixed left-0 top-1/2 -translate-y-1/2 z-20 transition-all duration-300 transform ${isExpanded ? 'translate-x-0' : '-translate-x-full pl-2'}`}>
             <div className="bg-[var(--sidebar-bg)] backdrop-blur-xl border border-[var(--border-color)] shadow-xl rounded-r-2xl overflow-hidden flex">
                 {/* Content */}
-                <div className={`w-64 h-[calc(100vh-12rem)] flex flex-col transition-all duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0 w-0'}`}>
+                <div className={`w-64 h-[calc(100dvh-12rem)] flex flex-col transition-all duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0 w-0'}`}>
                     <div className="p-4 border-b border-[var(--border-color)] bg-[var(--bg-secondary)]/50 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <LayoutGrid className="w-4 h-4 text-[var(--color-primary-600)]" />
@@ -128,4 +128,3 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isOpen = false }) => {
 };
 
 export default PageThumbnails;
-

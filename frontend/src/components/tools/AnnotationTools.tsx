@@ -189,7 +189,7 @@ const AnnotationTools: React.FC = () => {
 
   if (!sessionId) {
     return (
-      <div className="p-8 max-w-7xl mx-auto animate-fade-in">
+      <div className="p-3 sm:p-6 lg:p-8 max-w-7xl mx-auto animate-fade-in">
         <div className="text-center py-12 bg-[var(--card-bg)] rounded-xl border border-[var(--border-color)]">
           <FileText className="w-12 h-12 mx-auto mb-4 text-[var(--text-secondary)]" />
           <p className="text-[var(--text-secondary)]">Upload a PDF to use annotation tools</p>
@@ -199,7 +199,7 @@ const AnnotationTools: React.FC = () => {
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto animate-fade-in">
+    <div className="p-3 sm:p-6 lg:p-8 max-w-7xl mx-auto animate-fade-in">
       {/* Page Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-2">
@@ -335,7 +335,7 @@ const AnnotationTools: React.FC = () => {
                   className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)]"
                 />
               </div>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <div>
                   <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">X</label>
                   <input
@@ -430,7 +430,7 @@ const AnnotationTools: React.FC = () => {
                   <option value="audio/mp4">MP4 (audio/mp4)</option>
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
                   <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">X Position</label>
                   <input
@@ -498,7 +498,7 @@ const AnnotationTools: React.FC = () => {
                 ))}
               </div>
 
-              <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Line Width</label>
                   <input
@@ -525,7 +525,7 @@ const AnnotationTools: React.FC = () => {
 
               <div className="border border-[var(--border-color)] rounded-lg p-4 bg-[var(--input-bg)]">
                 <h4 className="text-sm font-medium text-[var(--text-secondary)] mb-2">Polygon Points</h4>
-                <div className="grid grid-cols-2 gap-2 mb-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
                   <div>
                     <label className="block text-xs text-[var(--text-secondary)] mb-1">X</label>
                     <input

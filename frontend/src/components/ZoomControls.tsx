@@ -17,15 +17,18 @@ const ZoomControls: React.FC = () => {
   };
 
   const fitToWidth = () => {
-    const viewportWidth = window.innerWidth - 400;
+    const desktopSidebarOffset = window.innerWidth >= 1024 ? 400 : 48;
+    const viewportWidth = Math.max(280, window.innerWidth - desktopSidebarOffset);
     const pdfWidth = 612;
     const newZoom = Math.min((viewportWidth / pdfWidth) * 0.9, 3);
     setZoom(Math.max(0.5, newZoom));
   };
 
   const fitToPage = () => {
-    const viewportHeight = window.innerHeight - 200;
-    const viewportWidth = window.innerWidth - 400;
+    const desktopSidebarOffset = window.innerWidth >= 1024 ? 400 : 48;
+    const viewportHeightOffset = window.innerWidth >= 640 ? 200 : 160;
+    const viewportHeight = Math.max(240, window.innerHeight - viewportHeightOffset);
+    const viewportWidth = Math.max(280, window.innerWidth - desktopSidebarOffset);
     const pdfHeight = 792;
     const pdfWidth = 612;
     const newZoom = Math.min(viewportHeight / pdfHeight, viewportWidth / pdfWidth) * 0.9;
@@ -39,11 +42,15 @@ const ZoomControls: React.FC = () => {
   const zoomPercent = Math.round(zoom * 100);
 
   return (
-    <div className="absolute bottom-6 right-6 bg-[var(--card-bg)] rounded-xl shadow-xl border border-[var(--border-color)] p-2 flex items-center gap-1 z-50 backdrop-blur-xl" role="group" aria-label="Zoom controls">
+    <div
+      className="absolute bottom-3 left-1/2 -translate-x-1/2 lg:left-auto lg:right-6 lg:translate-x-0 lg:bottom-6 bg-[var(--card-bg)] rounded-xl shadow-xl border border-[var(--border-color)] p-2 flex items-center justify-between sm:justify-start gap-1 z-50 backdrop-blur-xl max-w-full overflow-x-auto max-[1024px]:scale-50 max-[1024px]:origin-bottom"
+      role="group"
+      aria-label="Zoom controls"
+    >
       {/* Zoom Out */}
       <button
         onClick={handleZoomOut}
-        className="p-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] hover:text-[var(--color-primary-600)] rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
+        className="shrink-0 p-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] hover:text-[var(--color-primary-600)] rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
         title="Zoom Out (Ctrl+-)"
         aria-label="Zoom out"
       >
@@ -54,7 +61,7 @@ const ZoomControls: React.FC = () => {
       <div className="relative">
         <button
           onClick={() => setShowPresets(!showPresets)}
-          className="px-2 py-1 text-xs font-semibold text-[var(--text-primary)] bg-[var(--bg-primary)] hover:bg-[var(--hover-bg)] rounded-lg border border-[var(--border-color)] min-w-[52px] transition-all focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
+          className="shrink-0 px-2 py-1 text-xs font-semibold text-[var(--text-primary)] bg-[var(--bg-primary)] hover:bg-[var(--hover-bg)] rounded-lg border border-[var(--border-color)] min-w-[52px] transition-all focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
           aria-expanded={showPresets}
           aria-haspopup="listbox"
           aria-label={`Current zoom level: ${zoomPercent}%. Click for zoom presets.`}
@@ -95,19 +102,19 @@ const ZoomControls: React.FC = () => {
       {/* Zoom In */}
       <button
         onClick={handleZoomIn}
-        className="p-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] hover:text-[var(--color-primary-600)] rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
+        className="shrink-0 p-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] hover:text-[var(--color-primary-600)] rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
         title="Zoom In (Ctrl++)"
         aria-label="Zoom in"
       >
         <ZoomIn className="w-4 h-4" aria-hidden="true" />
       </button>
 
-      <div className="w-px h-5 bg-[var(--border-color)] mx-1" aria-hidden="true" />
+      <div className="w-px h-5 bg-[var(--border-color)] mx-1 shrink-0" aria-hidden="true" />
 
       {/* Fit to Width */}
       <button
         onClick={fitToWidth}
-        className="p-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] hover:text-[var(--color-primary-600)] rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
+        className="shrink-0 p-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] hover:text-[var(--color-primary-600)] rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
         title="Fit to Width"
         aria-label="Fit PDF to width"
       >
@@ -117,7 +124,7 @@ const ZoomControls: React.FC = () => {
       {/* Fit to Page */}
       <button
         onClick={fitToPage}
-        className="p-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] hover:text-[var(--color-primary-600)] rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
+        className="hidden sm:inline-flex shrink-0 p-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] hover:text-[var(--color-primary-600)] rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
         title="Fit to Page"
         aria-label="Fit PDF to page"
       >
@@ -127,7 +134,7 @@ const ZoomControls: React.FC = () => {
       {/* Reset Zoom */}
       <button
         onClick={resetZoom}
-        className="p-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] hover:text-[var(--color-primary-600)] rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
+        className="hidden sm:inline-flex shrink-0 p-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] hover:text-[var(--color-primary-600)] rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
         title="Reset to 100%"
         aria-label="Reset zoom to 100%"
       >
