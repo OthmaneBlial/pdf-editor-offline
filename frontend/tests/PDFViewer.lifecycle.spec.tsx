@@ -133,6 +133,7 @@ describe('PDFViewer lifecycle safety', () => {
 
     mockedAxios.get.mockResolvedValue({
       data: {
+        success: true,
         data: {
           image: 'data:image/png;base64,AAA',
         },

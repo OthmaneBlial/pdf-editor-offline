@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as fabric from 'fabric';
 import axios from 'axios';
 import { useEditor } from '../contexts/EditorContext';
+import { getApiData } from '../utils/apiResponse';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
 
@@ -97,8 +98,13 @@ const PDFViewer: React.FC<{ forceRefresh?: number }> = ({ forceRefresh }) => {
         const response = await axios.post(`${API_BASE_URL}/api/documents/upload`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
-        setSessionId(response.data.data.id);
-        setPageCount(response.data.data.page_count);
+        const data = getApiData<{ id?: string; page_count?: number }>(response.data);
+        if (!data?.id || typeof data.page_count !== 'number') {
+          throw new Error('Unexpected upload response format');
+        }
+
+        setSessionId(data.id);
+        setPageCount(data.page_count);
         // Mark this file as uploaded
         lastUploadedFileRef.current = document;
       } catch (error) {
@@ -149,7 +155,12 @@ const PDFViewer: React.FC<{ forceRefresh?: number }> = ({ forceRefresh }) => {
         const response = await axios.get(
           `${API_BASE_URL}/api/documents/${currentSession}/pages/${currentPg}?t=${cacheBuster}`
         );
-        setPageImage(response.data.data.image);
+        const data = getApiData<{ image?: string }>(response.data);
+        if (!data?.image || typeof data.image !== 'string') {
+          throw new Error('Unexpected page response format');
+        }
+
+        setPageImage(data.image);
         currentSessionRef.current = currentSession;
         currentPageRef.current = currentPg;
         lastForceRefreshRef.current = normalizedForceRefresh;

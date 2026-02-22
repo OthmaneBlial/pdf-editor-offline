@@ -5,6 +5,7 @@ import * as fabric from 'fabric';
 import axios from 'axios';
 import type { EditorContextType, EditorState, CanvasState, HistoryState, TOCItem, FontInfo } from './types';
 import { MAX_HISTORY_SIZE } from './types';
+import { getApiData, isApiSuccess } from '../utils/apiResponse';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
 
@@ -227,9 +228,9 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     if (!sessionId) return;
     try {
       const response = await axios.get(`${API_BASE_URL}/api/documents/${sessionId}/toc`);
-      if (response.data.success) {
-        setToc(response.data.data.toc || []);
-      }
+      const data = getApiData<{ toc?: TOCItem[] }>(response.data);
+      if (!data) return;
+      setToc(Array.isArray(data.toc) ? data.toc : []);
     } catch (error) {
       console.error('Failed to load TOC:', error);
     }
@@ -243,7 +244,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         null,
         { params: { level: item.level, title: item.title, page_num: currentPage + 1 } }
       );
-      if (response.data.success) {
+      if (isApiSuccess(response.data)) {
         loadTOC();
       }
     } catch (error) {
@@ -256,7 +257,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     if (!sessionId) return;
     try {
       const response = await axios.delete(`${API_BASE_URL}/api/documents/${sessionId}/bookmarks/${index}`);
-      if (response.data.success) {
+      if (isApiSuccess(response.data)) {
         loadTOC();
       }
     } catch (error) {
@@ -269,9 +270,9 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     if (!sessionId) return;
     try {
       const response = await axios.get(`${API_BASE_URL}/api/documents/${sessionId}/fonts/${currentPage}`);
-      if (response.data.success) {
-        setFonts(response.data.data.fonts || []);
-      }
+      const data = getApiData<{ fonts?: FontInfo[] }>(response.data);
+      if (!data) return;
+      setFonts(Array.isArray(data.fonts) ? data.fonts : []);
     } catch (error) {
       console.error('Failed to load fonts:', error);
     }
