@@ -3,8 +3,7 @@ import * as fabric from 'fabric';
 import axios from 'axios';
 import { useEditor } from '../contexts/EditorContext';
 import { getApiData } from '../utils/apiResponse';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
+import { API_BASE_URL } from '../lib/apiClient';
 
 // Constants - Fabric.js types are complex, using any for fabric-specific objects
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

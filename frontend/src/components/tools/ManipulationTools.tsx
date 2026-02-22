@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { FilePlus, Scissors, Layers, RotateCw, Hash, Download, Copy, Maximize2, Crop, FileInput, RefreshCw, Trash2, FileType, AlignCenter } from 'lucide-react';
-import { API_DEFAULTS, FILENAMES } from '../../constants';
-
-const API_BASE_URL = API_DEFAULTS.BASE_URL;
+import { FILENAMES } from '../../constants';
+import { API_BASE_URL } from '../../lib/apiClient';
 
 const PAGE_FORMATS = [
   { value: 'A4', label: 'A4 (595×842)' },
@@ -641,4 +640,3 @@ const ManipulationTools: React.FC = () => {
 };
 
 export default ManipulationTools;
-

@@ -1,3 +1,5 @@
+import { API_BASE_URL } from '../lib/apiClient';
+
 /**
  * Application constants
  * Centralized location for all hardcoded values
@@ -5,7 +7,7 @@
 
 // API Configuration
 export const API_DEFAULTS = {
-  BASE_URL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000',
+  BASE_URL: API_BASE_URL,
   TIMEOUT: 30000, // 30 seconds
 } as const;
 

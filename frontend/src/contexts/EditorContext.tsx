@@ -6,8 +6,7 @@ import axios from 'axios';
 import type { EditorContextType, EditorState, CanvasState, HistoryState, TOCItem, FontInfo } from './types';
 import { MAX_HISTORY_SIZE } from './types';
 import { getApiData, isApiSuccess } from '../utils/apiResponse';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
+import { API_BASE_URL } from '../lib/apiClient';
 
 const EditorContext = createContext<EditorContextType | undefined>(undefined);
 

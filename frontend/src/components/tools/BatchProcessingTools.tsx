@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { FileText, RefreshCw, Layers, Settings, Download, Upload } from 'lucide-react';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
+import { API_BASE_URL } from '../../lib/apiClient';
 
 const BatchProcessingTools: React.FC = () => {
     const [loading, setLoading] = useState<string | null>(null);
