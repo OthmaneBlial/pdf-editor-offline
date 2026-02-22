@@ -856,6 +856,25 @@ async def get_text_properties(doc_id: str, page_num: int):
     return APIResponse(success=True, data={"blocks": text_props})
 
 
+@router.get("/{doc_id}/pages/{page_num}/text/search", response_model=APIResponse)
+async def search_text(doc_id: str, page_num: int, text: str):
+    """Search text occurrences on a page and return geometric match info."""
+    query = text.strip()
+    if not query:
+        raise HTTPException(status_code=400, detail="Query text cannot be empty")
+
+    session = get_session(doc_id)
+    text_processor = session.get("text_processor")
+    if not text_processor:
+        raise HTTPException(status_code=500, detail="Text processor not available")
+
+    matches = text_processor.search_text_with_quads(page_num, query)
+    return APIResponse(
+        success=True,
+        data={"query": query, "count": len(matches), "matches": matches},
+    )
+
+
 # --- Navigation / TOC Endpoints ---
 
 

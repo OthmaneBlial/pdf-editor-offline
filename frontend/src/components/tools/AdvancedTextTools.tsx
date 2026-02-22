@@ -23,6 +23,12 @@ interface FontInfo {
   color?: number[];
 }
 
+interface SearchMatch {
+  index: number;
+  rect: number[];
+  quad_points: number[][];
+}
+
 interface Message {
   type: 'success' | 'error';
   text: string;
@@ -47,6 +53,8 @@ const AdvancedTextTools: React.FC = () => {
 
   // Font info state
   const [fonts, setFonts] = useState<FontInfo[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchMatches, setSearchMatches] = useState<SearchMatch[]>([]);
 
   const showMessage = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text });
@@ -156,11 +164,25 @@ const AdvancedTextTools: React.FC = () => {
     setMessage(null);
 
     try {
-      // This would require a new endpoint for context search
-      // For now, show a message
-      showMessage('success', 'Text search feature coming soon');
+      const response = await axios.get(
+        `${API_BASE_URL}/api/documents/${sessionId}/pages/${currentPage}/text/search`,
+        { params: { text: searchQuery } }
+      );
+
+      if (response.data.success) {
+        const matches = response.data.data.matches || [];
+        setSearchMatches(matches);
+        showMessage(
+          'success',
+          `Found ${response.data.data.count ?? matches.length} occurrence(s)`
+        );
+      }
     } catch (error) {
-      showMessage('error', 'Failed to search text');
+      if (axios.isAxiosError(error)) {
+        showMessage('error', error.response?.data?.detail || 'Failed to search text');
+      } else {
+        showMessage('error', 'Failed to search text');
+      }
       console.error(error);
     } finally {
       setLoading(null);
@@ -503,6 +525,8 @@ const AdvancedTextTools: React.FC = () => {
               </label>
               <input
                 type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Text to search for..."
                 className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)]"
                 required
@@ -524,6 +548,21 @@ const AdvancedTextTools: React.FC = () => {
               )}
             </button>
           </form>
+          {searchMatches.length > 0 && (
+            <div className="mt-4 max-h-40 overflow-y-auto space-y-2">
+              {searchMatches.map((match) => (
+                <div
+                  key={match.index}
+                  className="p-2 rounded bg-[var(--input-bg)] text-xs text-[var(--text-primary)]"
+                >
+                  <p className="font-semibold">Match #{match.index + 1}</p>
+                  <p className="text-[var(--text-secondary)]">
+                    Rect: [{match.rect.map((v) => v.toFixed(1)).join(', ')}]
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
           <p className="text-xs text-[var(--text-secondary)] mt-3">
             Find all occurrences of text with context preview
           </p>
