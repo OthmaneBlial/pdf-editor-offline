@@ -18,27 +18,43 @@ const COMMENT_COLORS = [
 
 const CollaborativeAnnotations: React.FC = () => {
     const { currentPage } = useEditor();
+    const initialUsername = (localStorage.getItem('pdf_editor_username') || '').trim();
     const [comments, setComments] = useState<Comment[]>([]);
     const [isAddingComment, setIsAddingComment] = useState(false);
     const [newComment, setNewComment] = useState('');
-    const [username, setUsername] = useState(() =>
-        localStorage.getItem('pdf_editor_username') || ''
-    );
-    const [showUsernamePrompt, setShowUsernamePrompt] = useState(!username);
+    const [username, setUsername] = useState(initialUsername);
+    const [showUsernamePrompt, setShowUsernamePrompt] = useState(!initialUsername);
+    const [pendingAddAfterUsername, setPendingAddAfterUsername] = useState(false);
     const [selectedColor, setSelectedColor] = useState(COMMENT_COLORS[0]);
 
     const handleSetUsername = (name: string) => {
-        localStorage.setItem('pdf_editor_username', name);
-        setUsername(name);
+        const normalizedName = name.trim();
+        if (!normalizedName) return;
+        localStorage.setItem('pdf_editor_username', normalizedName);
+        setUsername(normalizedName);
         setShowUsernamePrompt(false);
+        if (pendingAddAfterUsername) {
+            setIsAddingComment(true);
+            setPendingAddAfterUsername(false);
+        }
+    };
+
+    const openAddCommentForm = () => {
+        if (!username.trim()) {
+            setShowUsernamePrompt(true);
+            setPendingAddAfterUsername(true);
+            return;
+        }
+        setIsAddingComment(true);
     };
 
     const addComment = () => {
-        if (!newComment.trim() || !username) return;
+        const commentAuthor = username.trim();
+        if (!newComment.trim() || !commentAuthor) return;
 
         const comment: Comment = {
             id: Date.now().toString(),
-            username,
+            username: commentAuthor,
             text: newComment,
             timestamp: new Date(),
             pageNumber: currentPage,
@@ -78,9 +94,10 @@ const CollaborativeAnnotations: React.FC = () => {
                             </div>
                         </div>
                         <button
-                            onClick={() => setIsAddingComment(true)}
+                            onClick={openAddCommentForm}
                             className="p-2 bg-white text-orange-600 rounded-xl hover:bg-white/90 shadow-lg shadow-black/20 transition-all hover:scale-105 active:scale-95"
                             title="Add Comment"
+                            aria-label="Add comment"
                         >
                             <Plus className="w-4 h-4" />
                         </button>
