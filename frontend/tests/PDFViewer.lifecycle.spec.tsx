@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, render, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import axios from 'axios';
 
@@ -195,5 +195,43 @@ describe('PDFViewer lifecycle safety', () => {
     }).not.toThrow();
 
     expect(fabricState.setDimensionsMock).toHaveBeenCalledTimes(initialResizeCalls);
+  });
+
+  it('shows backend connectivity guidance and retries health check', async () => {
+    mockedAxios.get.mockReset();
+    mockedAxios.get
+      .mockRejectedValueOnce(new Error('Network error'))
+      .mockResolvedValueOnce({
+        data: { openapi: '3.1.0' },
+      });
+
+    useEditorMock.mockReturnValue({
+      document: null,
+      currentPage: 0,
+      canvas: null,
+      setCanvas: vi.fn(),
+      drawingMode: 'select',
+      setDrawingMode: vi.fn(),
+      color: '#000000',
+      strokeWidth: 2,
+      fontSize: 14,
+      fontFamily: 'Arial',
+      sessionId: '',
+      setSessionId: vi.fn(),
+      setPageCount: vi.fn(),
+      zoom: 1,
+      setCurrentPage: vi.fn(),
+      setIsUploading: vi.fn(),
+    });
+
+    render(<PDFViewer />);
+
+    expect(await screen.findByText('Backend API is not reachable.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Retry connection/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByText('Backend API is not reachable.')).not.toBeInTheDocument();
+    });
   });
 });

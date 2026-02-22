@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as fabric from 'fabric';
 import axios from 'axios';
 import { useEditor } from '../contexts/EditorContext';
@@ -67,12 +67,26 @@ const PDFViewer: React.FC<{ forceRefresh?: number }> = ({ forceRefresh }) => {
   const [pageImage, setPageImage] = useState<string>('');
   const [pageLoading, setPageLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [apiStatus, setApiStatus] = useState<'checking' | 'ready' | 'unreachable'>('checking');
   const currentSessionRef = useRef<string>('');
   const currentPageRef = useRef<number>(0);
   const lastForceRefreshRef = useRef<number>(0);
 
   // Track last uploaded file to prevent re-upload on remount
   const lastUploadedFileRef = useRef<File | null>(null);
+
+  const checkApiHealth = useCallback(async () => {
+    try {
+      await axios.get(`${API_BASE_URL}/openapi.json`, { timeout: 4000 });
+      setApiStatus('ready');
+    } catch {
+      setApiStatus('unreachable');
+    }
+  }, []);
+
+  useEffect(() => {
+    checkApiHealth();
+  }, [checkApiHealth]);
 
   // Upload document when file is selected.
   // If a different file is selected, always upload it even if a session exists.
@@ -105,11 +119,17 @@ const PDFViewer: React.FC<{ forceRefresh?: number }> = ({ forceRefresh }) => {
 
         setSessionId(data.id);
         setPageCount(data.page_count);
+        setApiStatus('ready');
         // Mark this file as uploaded
         lastUploadedFileRef.current = document;
       } catch (error) {
         if (axios.isAxiosError(error)) {
-          setErrorMessage(`Upload failed: ${error.response?.data?.detail || error.message}`);
+          if (!error.response) {
+            setApiStatus('unreachable');
+            setErrorMessage(`Backend API is not reachable at ${API_BASE_URL}. Start the backend and retry.`);
+          } else {
+            setErrorMessage(`Upload failed: ${error.response?.data?.detail || error.message}`);
+          }
         } else {
           setErrorMessage('Upload failed. Please check the file and try again.');
         }
@@ -161,12 +181,18 @@ const PDFViewer: React.FC<{ forceRefresh?: number }> = ({ forceRefresh }) => {
         }
 
         setPageImage(data.image);
+        setApiStatus('ready');
         currentSessionRef.current = currentSession;
         currentPageRef.current = currentPg;
         lastForceRefreshRef.current = normalizedForceRefresh;
       } catch (error) {
         if (axios.isAxiosError(error)) {
-          setErrorMessage(`Unable to load page: ${error.response?.data?.detail || error.message}`);
+          if (!error.response) {
+            setApiStatus('unreachable');
+            setErrorMessage(`Backend API is not reachable at ${API_BASE_URL}. Start the backend and retry.`);
+          } else {
+            setErrorMessage(`Unable to load page: ${error.response?.data?.detail || error.message}`);
+          }
         } else {
           setErrorMessage('Unable to load page preview. Try again.');
         }
@@ -411,6 +437,24 @@ const PDFViewer: React.FC<{ forceRefresh?: number }> = ({ forceRefresh }) => {
 
   return (
     <div ref={containerRef} className="pdf-viewer relative w-full h-full overflow-hidden">
+      {apiStatus === 'unreachable' && !pageImage && !pageLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-white/90 z-30 p-4">
+          <div className="max-w-md w-full rounded-xl border border-amber-200 bg-amber-50 text-amber-900 p-4 shadow-sm" role="alert">
+            <p className="font-semibold text-sm mb-2">Backend API is not reachable.</p>
+            <p className="text-xs leading-relaxed mb-3">
+              Check that the API is running at <code>{API_BASE_URL}</code>. This commonly appears as a CORS/network error when the backend is down.
+            </p>
+            <button
+              type="button"
+              onClick={checkApiHealth}
+              className="px-3 py-2 text-xs font-medium rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition-colors"
+            >
+              Retry connection
+            </button>
+          </div>
+        </div>
+      )}
+
       {pageLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-20" role="status" aria-live="polite">
           <div className="px-4 py-2 rounded-lg bg-white shadow border border-sky-100 text-sky-700 text-sm font-medium">

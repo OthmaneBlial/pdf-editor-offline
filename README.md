@@ -125,6 +125,25 @@ npm install
 VITE_API_BASE_URL="http://localhost:8000" npm run dev -- --port 3000
 ```
 
+### Troubleshooting: CORS or Upload Fails
+
+If upload requests fail with a browser `CORS` or `Network Error`, in most cases the backend API is not running.
+
+Check these points:
+
+```bash
+# 1) Verify backend is reachable
+curl http://localhost:8000/openapi.json
+
+# 2) Start backend if needed
+source .venv/bin/activate
+PYTHONPATH=. python -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+
+# 3) Start frontend with matching API base URL
+cd frontend
+VITE_API_BASE_URL="http://localhost:8000" npm run dev -- --port 3000
+```
+
 ### CLI examples
 
 ```bash
