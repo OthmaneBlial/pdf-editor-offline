@@ -35,7 +35,7 @@ interface Message {
 }
 
 const AdvancedTextTools: React.FC = () => {
-  const { sessionId, currentPage, saveChanges, exportPDF, hasUnsavedChanges } = useEditor();
+  const { sessionId, currentPage, saveChanges, exportPDF, hasUnsavedChanges, reportToolResult } = useEditor();
   const [loading, setLoading] = useState<string | null>(null);
   const [message, setMessage] = useState<Message | null>(null);
 
@@ -56,8 +56,9 @@ const AdvancedTextTools: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchMatches, setSearchMatches] = useState<SearchMatch[]>([]);
 
-  const showMessage = (type: 'success' | 'error', text: string) => {
+  const showMessage = (type: 'success' | 'error', text: string, refreshDocument = false) => {
     setMessage({ type, text });
+    reportToolResult(type, text, refreshDocument);
     setTimeout(() => setMessage(null), 5000);
   };
 
@@ -82,7 +83,7 @@ const AdvancedTextTools: React.FC = () => {
       );
 
       if (response.data.success) {
-        showMessage('success', response.data.data.message || 'Text replaced successfully');
+        showMessage('success', response.data.data.message || 'Text replaced successfully', true);
       }
     } catch (error) {
       showMessage('error', 'Failed to replace text');
@@ -117,7 +118,7 @@ const AdvancedTextTools: React.FC = () => {
       );
 
       if (response.data.success) {
-        showMessage('success', 'Rich text inserted successfully');
+        showMessage('success', 'Rich text inserted successfully', true);
       }
     } catch (error) {
       showMessage('error', 'Failed to insert rich text');

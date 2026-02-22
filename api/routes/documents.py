@@ -1,9 +1,10 @@
 import logging
 import os
-from typing import List, Optional
+import uuid
+from typing import List, Optional, Tuple
 
 import fitz
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
 from pdfsmarteditor.core.exceptions import PDFLoadError
@@ -60,6 +61,44 @@ from pdfsmarteditor.utils.canvas_helpers import (
 )
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
+
+
+def _parse_rect_csv(rect_value: str) -> Tuple[float, float, float, float]:
+    """Parse comma-separated rectangle values: x0,y0,x1,y1."""
+    try:
+        values = [float(part.strip()) for part in rect_value.split(",")]
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="old_rect must contain numeric values") from exc
+
+    if len(values) != 4:
+        raise HTTPException(status_code=400, detail="old_rect must have 4 values: x0,y0,x1,y1")
+
+    x0, y0, x1, y1 = values
+    if x1 <= x0 or y1 <= y0:
+        raise HTTPException(status_code=400, detail="old_rect coordinates are invalid")
+
+    return x0, y0, x1, y1
+
+
+async def _store_upload_temporarily(upload: UploadFile, prefix: str) -> str:
+    """Persist uploaded file to TEMP_DIR and return absolute path."""
+    original_name = os.path.basename(upload.filename or "upload.bin")
+    _, extension = os.path.splitext(original_name)
+    temp_path = os.path.join(TEMP_DIR, f"{prefix}_{uuid.uuid4().hex}{extension}")
+
+    file_content = await upload.read()
+    if not file_content:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty")
+
+    try:
+        with open(temp_path, "wb") as handle:
+            handle.write(file_content)
+    except IOError as exc:
+        raise HTTPException(status_code=500, detail="Failed to persist uploaded file") from exc
+    finally:
+        await upload.close()
+
+    return temp_path
 
 
 @router.post("/upload", response_model=APIResponse)
@@ -1061,6 +1100,42 @@ async def add_file_attachment(doc_id: str, request: FileAttachmentRequest):
     return APIResponse(success=True, data=result)
 
 
+@router.post("/{doc_id}/annotations/file/upload", response_model=APIResponse)
+async def add_file_attachment_upload(
+    doc_id: str,
+    page_num: int = Form(...),
+    x: float = Form(...),
+    y: float = Form(...),
+    width: float = Form(32),
+    height: float = Form(32),
+    filename: Optional[str] = Form(None),
+    file: UploadFile = File(...),
+):
+    """Add a file attachment annotation using a direct file upload."""
+    session = get_session(doc_id)
+    annotation_enhancer = session.get("annotation_enhancer")
+    if not annotation_enhancer:
+        raise HTTPException(status_code=500, detail="Annotation enhancer not available")
+
+    temp_path = await _store_upload_temporarily(file, "annotation_file")
+    try:
+        result = annotation_enhancer.add_file_attachment(
+            page_num=page_num,
+            x=x,
+            y=y,
+            width=width,
+            height=height,
+            file_path=temp_path,
+            filename=filename or os.path.basename(file.filename or ""),
+        )
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+
+    persist_session_document(doc_id)
+    return APIResponse(success=True, data=result)
+
+
 @router.post("/{doc_id}/annotations/sound", response_model=APIResponse)
 async def add_sound_annotation(doc_id: str, request: SoundAnnotationRequest):
     """Add a sound/audio annotation."""
@@ -1081,6 +1156,42 @@ async def add_sound_annotation(doc_id: str, request: SoundAnnotationRequest):
     )
     persist_session_document(doc_id)
 
+    return APIResponse(success=True, data=result)
+
+
+@router.post("/{doc_id}/annotations/sound/upload", response_model=APIResponse)
+async def add_sound_annotation_upload(
+    doc_id: str,
+    page_num: int = Form(...),
+    x: float = Form(...),
+    y: float = Form(...),
+    width: float = Form(32),
+    height: float = Form(32),
+    mime_type: str = Form("audio/mpeg"),
+    audio: UploadFile = File(...),
+):
+    """Add a sound annotation using a direct audio file upload."""
+    session = get_session(doc_id)
+    annotation_enhancer = session.get("annotation_enhancer")
+    if not annotation_enhancer:
+        raise HTTPException(status_code=500, detail="Annotation enhancer not available")
+
+    temp_path = await _store_upload_temporarily(audio, "annotation_audio")
+    try:
+        result = annotation_enhancer.add_sound_annotation(
+            page_num=page_num,
+            x=x,
+            y=y,
+            width=width,
+            height=height,
+            audio_path=temp_path,
+            mime_type=mime_type,
+        )
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+
+    persist_session_document(doc_id)
     return APIResponse(success=True, data=result)
 
 
@@ -1281,6 +1392,37 @@ async def replace_image(doc_id: str, request: ImageReplaceRequest):
     return APIResponse(success=True, data=result)
 
 
+@router.post("/{doc_id}/images/replace/upload", response_model=APIResponse)
+async def replace_image_upload(
+    doc_id: str,
+    page_num: int = Form(...),
+    old_rect: str = Form(...),
+    maintain_aspect: bool = Form(True),
+    image: UploadFile = File(...),
+):
+    """Replace an image using an uploaded image file."""
+    session = get_session(doc_id)
+    image_processor = session.get("image_processor")
+    if not image_processor:
+        raise HTTPException(status_code=500, detail="Image processor not available")
+
+    parsed_rect = _parse_rect_csv(old_rect)
+    temp_path = await _store_upload_temporarily(image, "replace_image")
+    try:
+        result = image_processor.replace_image(
+            page_num=page_num,
+            old_rect=parsed_rect,
+            new_image_path=temp_path,
+            maintain_aspect=maintain_aspect,
+        )
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+
+    persist_session_document(doc_id)
+    return APIResponse(success=True, data=result)
+
+
 @router.post("/{doc_id}/images/insert", response_model=APIResponse)
 async def insert_image(doc_id: str, request: ImageInsertRequest):
     """Insert an image at a specific location on a page."""
@@ -1300,6 +1442,42 @@ async def insert_image(doc_id: str, request: ImageInsertRequest):
     )
     persist_session_document(doc_id)
 
+    return APIResponse(success=True, data=result)
+
+
+@router.post("/{doc_id}/images/insert/upload", response_model=APIResponse)
+async def insert_image_upload(
+    doc_id: str,
+    page_num: int = Form(...),
+    x: float = Form(...),
+    y: float = Form(...),
+    width: float = Form(...),
+    height: float = Form(...),
+    maintain_aspect: bool = Form(True),
+    image: UploadFile = File(...),
+):
+    """Insert an image using an uploaded image file."""
+    session = get_session(doc_id)
+    image_processor = session.get("image_processor")
+    if not image_processor:
+        raise HTTPException(status_code=500, detail="Image processor not available")
+
+    temp_path = await _store_upload_temporarily(image, "insert_image")
+    try:
+        result = image_processor.insert_image(
+            page_num=page_num,
+            x=x,
+            y=y,
+            width=width,
+            height=height,
+            image_path=temp_path,
+            maintain_aspect=maintain_aspect,
+        )
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+
+    persist_session_document(doc_id)
     return APIResponse(success=True, data=result)
 
 

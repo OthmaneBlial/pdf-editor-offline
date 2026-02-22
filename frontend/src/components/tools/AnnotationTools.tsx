@@ -25,13 +25,13 @@ interface PolygonPoint {
 }
 
 const AnnotationTools: React.FC = () => {
-  const { sessionId, currentPage, saveChanges, exportPDF, hasUnsavedChanges, pageCount } = useEditor();
+  const { sessionId, currentPage, saveChanges, exportPDF, hasUnsavedChanges, pageCount, reportToolResult } = useEditor();
   const [loading, setLoading] = useState<string | null>(null);
   const [message, setMessage] = useState<Message | null>(null);
   const [activeTab, setActiveTab] = useState<'file' | 'sound' | 'polygon' | 'style'>('file');
 
   // File attachment state
-  const [filePath, setFilePath] = useState('');
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState('');
   const [fileX, setFileX] = useState(100);
   const [fileY, setFileY] = useState(100);
@@ -39,7 +39,7 @@ const AnnotationTools: React.FC = () => {
   const [fileHeight, setFileHeight] = useState(32);
 
   // Sound annotation state
-  const [audioPath, setAudioPath] = useState('');
+  const [audioFile, setAudioFile] = useState<File | null>(null);
   const [audioMimeType, setAudioMimeType] = useState('audio/mp3');
   const [soundX, setSoundX] = useState(100);
   const [soundY, setSoundY] = useState(100);
@@ -57,8 +57,9 @@ const AnnotationTools: React.FC = () => {
   const [borderWidth, setBorderWidth] = useState(1);
   const [opacity, setOpacity] = useState(1);
 
-  const showMessage = (type: 'success' | 'error', text: string) => {
+  const showMessage = (type: 'success' | 'error', text: string, refreshDocument = false) => {
     setMessage({ type, text });
+    reportToolResult(type, text, refreshDocument);
     setTimeout(() => setMessage(null), 5000);
   };
 
@@ -69,24 +70,30 @@ const AnnotationTools: React.FC = () => {
       return;
     }
 
+    if (!attachmentFile) {
+      showMessage('error', 'Select a file to attach');
+      return;
+    }
+
     setLoading('file');
     try {
+      const formData = new FormData();
+      formData.append('page_num', String(currentPage));
+      formData.append('x', String(fileX));
+      formData.append('y', String(fileY));
+      formData.append('width', String(fileWidth));
+      formData.append('height', String(fileHeight));
+      formData.append('filename', fileName || attachmentFile.name);
+      formData.append('file', attachmentFile);
+
       const response = await axios.post(
-        `${API_BASE_URL}/api/documents/${sessionId}/annotations/file`,
-        {
-          page_num: currentPage,
-          x: fileX,
-          y: fileY,
-          width: fileWidth,
-          height: fileHeight,
-          file_path: filePath,
-          filename: fileName || undefined,
-          color: [0, 0, 1],
-        }
+        `${API_BASE_URL}/api/documents/${sessionId}/annotations/file/upload`,
+        formData,
       );
 
       if (response.data.success) {
-        showMessage('success', 'File attachment added');
+        showMessage('success', 'File attachment added', true);
+        setAttachmentFile(null);
       }
     } catch (error) {
       showMessage('error', 'Failed to add file attachment');
@@ -103,24 +110,30 @@ const AnnotationTools: React.FC = () => {
       return;
     }
 
+    if (!audioFile) {
+      showMessage('error', 'Select an audio file');
+      return;
+    }
+
     setLoading('sound');
     try {
+      const formData = new FormData();
+      formData.append('page_num', String(currentPage));
+      formData.append('x', String(soundX));
+      formData.append('y', String(soundY));
+      formData.append('width', '32');
+      formData.append('height', '32');
+      formData.append('mime_type', audioMimeType);
+      formData.append('audio', audioFile);
+
       const response = await axios.post(
-        `${API_BASE_URL}/api/documents/${sessionId}/annotations/sound`,
-        {
-          page_num: currentPage,
-          x: soundX,
-          y: soundY,
-          width: 32,
-          height: 32,
-          audio_path: audioPath,
-          mime_type: audioMimeType,
-          color: [0, 0, 1],
-        }
+        `${API_BASE_URL}/api/documents/${sessionId}/annotations/sound/upload`,
+        formData,
       );
 
       if (response.data.success) {
-        showMessage('success', 'Sound annotation added');
+        showMessage('success', 'Sound annotation added', true);
+        setAudioFile(null);
       }
     } catch (error) {
       showMessage('error', 'Failed to add sound annotation');
@@ -157,7 +170,7 @@ const AnnotationTools: React.FC = () => {
       );
 
       if (response.data.success) {
-        showMessage('success', 'Polygon annotation added');
+        showMessage('success', 'Polygon annotation added', true);
         setPolygonPoints([]);
       }
     } catch (error) {
@@ -311,16 +324,19 @@ const AnnotationTools: React.FC = () => {
             <form onSubmit={handleAddFileAttachment} className="space-y-4 max-w-lg">
               <div>
                 <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                  File Path (server-side)
+                  Attachment File
                 </label>
                 <input
-                  type="text"
-                  value={filePath}
-                  onChange={(e) => setFilePath(e.target.value)}
-                  placeholder="/path/to/file.pdf"
+                  type="file"
+                  onChange={(e) => setAttachmentFile(e.target.files?.[0] || null)}
                   className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)]"
                   required
                 />
+                {attachmentFile && (
+                  <p className="text-xs text-[var(--text-secondary)] mt-1">
+                    Selected: {attachmentFile.name}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
@@ -389,7 +405,7 @@ const AnnotationTools: React.FC = () => {
               </button>
             </form>
             <p className="text-xs text-[var(--text-secondary)] mt-3">
-              Note: The file must exist on the server where the PDF editor is running.
+              The selected file will be uploaded and embedded as an attachment annotation.
             </p>
           </div>
         )}
@@ -403,16 +419,20 @@ const AnnotationTools: React.FC = () => {
             <form onSubmit={handleAddSoundAnnotation} className="space-y-4 max-w-lg">
               <div>
                 <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                  Audio File Path (server-side)
+                  Audio File
                 </label>
                 <input
-                  type="text"
-                  value={audioPath}
-                  onChange={(e) => setAudioPath(e.target.value)}
-                  placeholder="/path/to/audio.mp3"
+                  type="file"
+                  accept="audio/*"
+                  onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
                   className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)]"
                   required
                 />
+                {audioFile && (
+                  <p className="text-xs text-[var(--text-secondary)] mt-1">
+                    Selected: {audioFile.name}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">

@@ -1,5 +1,6 @@
 import os
 import uuid
+import wave
 from typing import Iterator
 
 import docx
@@ -171,4 +172,16 @@ def sample_json(tmp_path) -> Iterator[str]:
     file_path = tmp_path / f"data_{uuid.uuid4().hex}.json"
     with open(file_path, "w") as fh:
         fh.write('[{"name": "Alice", "age": 30, "city": "NYC"}, {"name": "Bob", "age": 25, "city": "LA"}]')
+    yield str(file_path)
+
+
+@pytest.fixture
+def sample_audio(tmp_path) -> Iterator[str]:
+    """Create a simple WAV audio file for sound annotation tests."""
+    file_path = tmp_path / f"audio_{uuid.uuid4().hex}.wav"
+    with wave.open(str(file_path), "wb") as wav_file:
+        wav_file.setnchannels(1)
+        wav_file.setsampwidth(2)
+        wav_file.setframerate(8000)
+        wav_file.writeframes(b"\x00\x00" * 800)
     yield str(file_path)

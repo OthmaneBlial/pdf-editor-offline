@@ -75,6 +75,11 @@ export interface LinkItem {
   rect: number[];
 }
 
+export interface ToolToast {
+  type: 'success' | 'error';
+  text: string;
+}
+
 // Image metadata types
 export interface ImageMetadata {
   index: number;
@@ -126,6 +131,14 @@ export interface EditorContextType extends EditorState, CanvasState, HistoryStat
   addBookmark: (item: Omit<TOCItem, 'page'>) => Promise<void>;
   deleteBookmark: (index: number) => Promise<void>;
   loadFonts: () => Promise<void>;
+  documentMutationVersion: number;
+  toolToast: ToolToast | null;
+  reportToolResult: (
+    type: 'success' | 'error',
+    text: string,
+    refreshDocument?: boolean
+  ) => void;
+  clearToolToast: () => void;
 }
 
 // Constants

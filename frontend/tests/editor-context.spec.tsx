@@ -159,4 +159,22 @@ describe('EditorContext', () => {
     window.URL.revokeObjectURL = revokeObjectURL;
     createElementSpy.mockRestore();
   });
+
+  it('tracks document mutation version and toast notifications', async () => {
+    render(
+      <EditorProvider>
+        <Tracker />
+      </EditorProvider>
+    );
+
+    act(() => {
+      const ctx = ensureContext();
+      ctx.reportToolResult('success', 'Updated successfully', true);
+    });
+
+    const ctx = ensureContext();
+    expect(ctx.documentMutationVersion).toBe(1);
+    expect(ctx.toolToast?.type).toBe('success');
+    expect(ctx.toolToast?.text).toContain('Updated successfully');
+  });
 });

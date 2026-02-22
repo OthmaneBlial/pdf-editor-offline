@@ -36,7 +36,7 @@ interface Message {
 }
 
 const ImageTools: React.FC = () => {
-  const { sessionId, currentPage, saveChanges, exportPDF, hasUnsavedChanges, pageCount } = useEditor();
+  const { sessionId, currentPage, saveChanges, exportPDF, hasUnsavedChanges, pageCount, reportToolResult } = useEditor();
   const [loading, setLoading] = useState<string | null>(null);
   const [message, setMessage] = useState<Message | null>(null);
 
@@ -44,11 +44,11 @@ const ImageTools: React.FC = () => {
   const [images, setImages] = useState<ImageMetadata[]>([]);
 
   // Image replace state
-  const [replaceImagePath, setReplaceImagePath] = useState('');
+  const [replaceImageFile, setReplaceImageFile] = useState<File | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
 
   // Image insert state
-  const [insertImagePath, setInsertImagePath] = useState('');
+  const [insertImageFile, setInsertImageFile] = useState<File | null>(null);
   const [insertX, setInsertX] = useState(100);
   const [insertY, setInsertY] = useState(100);
   const [insertWidth, setInsertWidth] = useState(200);
@@ -59,10 +59,11 @@ const ImageTools: React.FC = () => {
   const [deflate, setDeflate] = useState(true);
   const [clean, setClean] = useState(true);
 
-  const showMessage = useCallback((type: 'success' | 'error', text: string) => {
+  const showMessage = useCallback((type: 'success' | 'error', text: string, refreshDocument = false) => {
     setMessage({ type, text });
+    reportToolResult(type, text, refreshDocument);
     setTimeout(() => setMessage(null), 5000);
-  }, []);
+  }, [reportToolResult]);
 
   const loadPageImages = useCallback(async () => {
     if (!sessionId) return;
@@ -89,25 +90,31 @@ const ImageTools: React.FC = () => {
       showMessage('error', 'Select an image to replace');
       return;
     }
+    if (!replaceImageFile) {
+      showMessage('error', 'Select a replacement image');
+      return;
+    }
 
     setLoading('replace');
     try {
       const img = images[selectedImageIndex];
       const rect = img.bbox || [100, 100, 200, 200];
 
+      const formData = new FormData();
+      formData.append('page_num', String(currentPage));
+      formData.append('old_rect', rect.join(','));
+      formData.append('maintain_aspect', 'true');
+      formData.append('image', replaceImageFile);
+
       const response = await axios.post(
-        `${API_BASE_URL}/api/documents/${sessionId}/images/replace`,
-        {
-          page_num: currentPage,
-          old_rect: rect,
-          new_image_path: replaceImagePath,
-          maintain_aspect: true,
-        }
+        `${API_BASE_URL}/api/documents/${sessionId}/images/replace/upload`,
+        formData
       );
 
       if (response.data.success) {
-        showMessage('success', 'Image replaced successfully');
-        loadPageImages();
+        showMessage('success', 'Image replaced successfully', true);
+        setReplaceImageFile(null);
+        await loadPageImages();
       }
     } catch (error) {
       showMessage('error', 'Failed to replace image');
@@ -120,25 +127,31 @@ const ImageTools: React.FC = () => {
   const handleInsertImage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!sessionId) return;
+    if (!insertImageFile) {
+      showMessage('error', 'Select an image to insert');
+      return;
+    }
 
     setLoading('insert');
     try {
+      const formData = new FormData();
+      formData.append('page_num', String(currentPage));
+      formData.append('x', String(insertX));
+      formData.append('y', String(insertY));
+      formData.append('width', String(insertWidth));
+      formData.append('height', String(insertHeight));
+      formData.append('maintain_aspect', 'true');
+      formData.append('image', insertImageFile);
+
       const response = await axios.post(
-        `${API_BASE_URL}/api/documents/${sessionId}/images/insert`,
-        {
-          page_num: currentPage,
-          x: insertX,
-          y: insertY,
-          width: insertWidth,
-          height: insertHeight,
-          image_path: insertImagePath,
-          maintain_aspect: true,
-        }
+        `${API_BASE_URL}/api/documents/${sessionId}/images/insert/upload`,
+        formData
       );
 
       if (response.data.success) {
-        showMessage('success', 'Image inserted successfully');
-        loadPageImages();
+        showMessage('success', 'Image inserted successfully', true);
+        setInsertImageFile(null);
+        await loadPageImages();
       }
     } catch (error) {
       showMessage('error', 'Failed to insert image');
@@ -196,7 +209,7 @@ const ImageTools: React.FC = () => {
       );
 
       if (response.data.success) {
-        showMessage('success', 'Page optimized successfully');
+        showMessage('success', 'Page optimized successfully', true);
       }
     } catch (error) {
       showMessage('error', 'Failed to optimize page');
@@ -409,16 +422,20 @@ const ImageTools: React.FC = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                New Image Path (server-side)
+                Replacement Image
               </label>
               <input
-                type="text"
-                value={replaceImagePath}
-                onChange={(e) => setReplaceImagePath(e.target.value)}
-                placeholder="/path/to/new-image.png"
+                type="file"
+                accept="image/*"
+                onChange={(e) => setReplaceImageFile(e.target.files?.[0] || null)}
                 className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)]"
                 required
               />
+              {replaceImageFile && (
+                <p className="text-xs text-[var(--text-secondary)] mt-1">
+                  Selected: {replaceImageFile.name}
+                </p>
+              )}
             </div>
             <button
               type="submit"
@@ -450,16 +467,20 @@ const ImageTools: React.FC = () => {
           <form onSubmit={handleInsertImage} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                Image Path (server-side)
+                Image File
               </label>
               <input
-                type="text"
-                value={insertImagePath}
-                onChange={(e) => setInsertImagePath(e.target.value)}
-                placeholder="/path/to/image.png"
+                type="file"
+                accept="image/*"
+                onChange={(e) => setInsertImageFile(e.target.files?.[0] || null)}
                 className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)]"
                 required
               />
+              {insertImageFile && (
+                <p className="text-xs text-[var(--text-secondary)] mt-1">
+                  Selected: {insertImageFile.name}
+                </p>
+              )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>

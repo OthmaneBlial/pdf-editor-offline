@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useRef, useCallback, useMemo, type ReactNode, useEffect } from 'react';
 import * as fabric from 'fabric';
 import axios from 'axios';
-import type { EditorContextType, EditorState, CanvasState, HistoryState, TOCItem, FontInfo } from './types';
+import type { EditorContextType, EditorState, CanvasState, HistoryState, TOCItem, FontInfo, ToolToast } from './types';
 import { MAX_HISTORY_SIZE } from './types';
 import { getApiData, isApiSuccess } from '../utils/apiResponse';
 import { API_BASE_URL } from '../lib/apiClient';
@@ -53,6 +53,9 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const [fonts, setFonts] = useState<FontInfo[]>([]);
   const [bookmarks, setBookmarks] = useState<TOCItem[]>([]);
   const [showTOC, setShowTOC] = useState<boolean>(false);
+  const [documentMutationVersion, setDocumentMutationVersion] = useState<number>(0);
+  const [toolToast, setToolToast] = useState<ToolToast | null>(null);
+  const toastTimeoutRef = useRef<number | null>(null);
 
   // Limit history size to prevent memory issues
   useEffect(() => {
@@ -222,6 +225,32 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     }
   }, [canvas]);
 
+  const clearToolToast = useCallback(() => {
+    if (toastTimeoutRef.current) {
+      window.clearTimeout(toastTimeoutRef.current);
+      toastTimeoutRef.current = null;
+    }
+    setToolToast(null);
+  }, []);
+
+  const reportToolResult = useCallback((
+    type: 'success' | 'error',
+    text: string,
+    refreshDocument: boolean = false
+  ) => {
+    if (refreshDocument) {
+      setDocumentMutationVersion(prev => prev + 1);
+    }
+    setToolToast({ type, text });
+    if (toastTimeoutRef.current) {
+      window.clearTimeout(toastTimeoutRef.current);
+    }
+    toastTimeoutRef.current = window.setTimeout(() => {
+      setToolToast(null);
+      toastTimeoutRef.current = null;
+    }, 5000);
+  }, []);
+
   // Advanced Editing actions
   const loadTOC = useCallback(async () => {
     if (!sessionId) return;
@@ -284,6 +313,14 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     }
   }, [sessionId, loadTOC]);
 
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        window.clearTimeout(toastTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // Memoized context value to prevent unnecessary re-renders
   const value = useMemo<EditorContextType>(() => ({
     // State
@@ -335,6 +372,10 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     addBookmark,
     deleteBookmark,
     loadFonts,
+    documentMutationVersion,
+    toolToast,
+    reportToolResult,
+    clearToolToast,
     // History state
     history,
     historyStep,
@@ -371,6 +412,10 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     addBookmark,
     deleteBookmark,
     loadFonts,
+    documentMutationVersion,
+    toolToast,
+    reportToolResult,
+    clearToolToast,
   ]);
 
   return (

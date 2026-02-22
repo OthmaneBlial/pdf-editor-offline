@@ -62,14 +62,25 @@ class AnnotationEnhancer:
             filename = os.path.basename(file_path)
 
         try:
-            # Create file attachment annotation
+            # PyMuPDF expects raw bytes for file annotations.
+            with open(file_path, "rb") as handle:
+                file_bytes = handle.read()
+
             point = fitz.Point(x, y)
             annot = page.add_file_annot(
                 point,
-                file_path,
+                file_bytes,
                 filename=filename,
-                color=color,
+                ufilename=filename,
+                desc=f"Attached file: {filename}",
             )
+
+            # Some versions allow colors for file annotations via set_colors.
+            try:
+                annot.set_colors(stroke=color)
+                annot.update()
+            except Exception:
+                pass
 
             return {
                 "success": True,
@@ -115,28 +126,51 @@ class AnnotationEnhancer:
             raise InvalidOperationError(f"Audio file not found: {audio_path}")
 
         page = self.document[page_num]
-        rect = fitz.Rect(x, y, x + width, y + height)
+        _ = fitz.Rect(x, y, x + width, y + height)
 
         try:
             # Read audio file content
             with open(audio_path, "rb") as f:
                 sound_data = f.read()
 
-            # Create sound annotation
-            # PyMuPDF's add_sound_annot takes point and sound data
             point = fitz.Point(x, y)
-            annot = page.add_sound_annot(
-                point,
-                sound_data,
-                mime_type=mime_type,
-                color=color,
-            )
+
+            # Newer versions provide add_sound_annot. Fallback to file attachment where unavailable.
+            if hasattr(page, "add_sound_annot"):
+                annot = page.add_sound_annot(
+                    point,
+                    sound_data,
+                    mime_type=mime_type,
+                    color=color,
+                )
+                try:
+                    annot.update()
+                except Exception:
+                    pass
+                fallback_used = False
+            else:
+                filename = os.path.basename(audio_path)
+                annot = page.add_file_annot(
+                    point,
+                    sound_data,
+                    filename=filename,
+                    ufilename=filename,
+                    desc=f"Audio annotation ({mime_type})",
+                    icon="Graph",
+                )
+                fallback_used = True
+                try:
+                    annot.set_colors(stroke=color)
+                    annot.update()
+                except Exception:
+                    pass
 
             return {
                 "success": True,
                 "mime_type": mime_type,
                 "file_size": len(sound_data),
                 "rect": [x, y, x + width, y + height],
+                "fallback_used": fallback_used,
             }
 
         except Exception as e:

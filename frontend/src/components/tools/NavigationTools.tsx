@@ -42,7 +42,7 @@ interface Message {
 type LinkType = 'url' | 'internal';
 
 const NavigationTools: React.FC = () => {
-  const { sessionId, currentPage, setCurrentPage, saveChanges, exportPDF, hasUnsavedChanges, pageCount } = useEditor();
+  const { sessionId, currentPage, setCurrentPage, saveChanges, exportPDF, hasUnsavedChanges, pageCount, reportToolResult } = useEditor();
   const [loading, setLoading] = useState<string | null>(null);
   const [message, setMessage] = useState<Message | null>(null);
 
@@ -68,10 +68,11 @@ const NavigationTools: React.FC = () => {
   // TOC auto-generation state
   const [tocThresholds, setTocThresholds] = useState('18,14,12');
 
-  const showMessage = useCallback((type: 'success' | 'error', text: string) => {
+  const showMessage = useCallback((type: 'success' | 'error', text: string, refreshDocument = false) => {
     setMessage({ type, text });
+    reportToolResult(type, text, refreshDocument);
     setTimeout(() => setMessage(null), 5000);
-  }, []);
+  }, [reportToolResult]);
 
   const loadTOC = useCallback(async () => {
     if (!sessionId) return;
@@ -147,7 +148,7 @@ const NavigationTools: React.FC = () => {
       );
 
       if (response.data.success) {
-        showMessage('success', 'Bookmark added');
+        showMessage('success', 'Bookmark added', true);
         setNewBookmarkTitle('');
         loadBookmarks();
       }
@@ -169,7 +170,7 @@ const NavigationTools: React.FC = () => {
       );
 
       if (response.data.success) {
-        showMessage('success', 'Bookmark deleted');
+        showMessage('success', 'Bookmark deleted', true);
         loadBookmarks();
       }
     } catch (error) {
@@ -190,7 +191,7 @@ const NavigationTools: React.FC = () => {
       );
 
       if (response.data.success) {
-        showMessage('success', 'Link deleted');
+        showMessage('success', 'Link deleted', true);
         loadLinks();
       }
     } catch (error) {
@@ -215,7 +216,7 @@ const NavigationTools: React.FC = () => {
       );
 
       if (response.data.success) {
-        showMessage('success', 'Table of contents generated');
+        showMessage('success', 'Table of contents generated', true);
         await loadTOC();
       }
     } catch (error) {
@@ -256,7 +257,7 @@ const NavigationTools: React.FC = () => {
       );
 
       if (response.data.success) {
-        showMessage('success', 'Link added');
+        showMessage('success', 'Link added', true);
         if (newLinkType === 'url') {
           setNewLinkUrl('');
         }

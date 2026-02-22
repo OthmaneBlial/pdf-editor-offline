@@ -30,6 +30,7 @@ describe('NavigationTools', () => {
       exportPDF: vi.fn(),
       hasUnsavedChanges: false,
       pageCount: 5,
+      reportToolResult: vi.fn(),
     });
 
     mockedAxios.get.mockImplementation((url: string) => {

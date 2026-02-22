@@ -8,6 +8,7 @@ import Header from './components/Header';
 import PageNavigation from './components/PageNavigation';
 import ZoomControls from './components/ZoomControls';
 import Sidebar from './components/Sidebar';
+import ToolToast from './components/ToolToast';
 import ManipulationTools from './components/tools/ManipulationTools';
 import ConversionTools from './components/tools/ConversionTools';
 import SecurityTools from './components/tools/SecurityTools';
@@ -20,6 +21,7 @@ import AnnotationTools from './components/tools/AnnotationTools';
 import ImageTools from './components/tools/ImageTools';
 import './App.css';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { useEditor } from './contexts/EditorContext';
 
 export type ViewMode = 'editor' | 'manipulation' | 'conversion' | 'security' | 'advanced' | 'batch' | 'text' | 'navigation' | 'annotations' | 'images';
 
@@ -48,6 +50,7 @@ function KeyboardShortcutsHandler({ onShowHelp }: { onShowHelp: () => void }) {
 
 // Inner component with access to EditorContext
 function AppContent() {
+  const { documentMutationVersion } = useEditor();
   const [activeView, setActiveView] = useState<ViewMode>('editor');
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -111,7 +114,7 @@ function AppContent() {
                 {/* Decorative corner accent */}
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[var(--accent-primary)]/10 to-transparent pointer-events-none" />
                 <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-[var(--accent-tertiary)]/10 to-transparent pointer-events-none" />
-                <PDFViewer forceRefresh={refreshKey} />
+                <PDFViewer forceRefresh={refreshKey + documentMutationVersion} />
                 {!isMobileSidebarOpen && <PageNavigation />}
                 {!isMobileSidebarOpen && <ZoomControls />}
               </div>
@@ -189,7 +192,7 @@ function AppContent() {
                 {/* Decorative corner accent */}
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[var(--accent-primary)]/10 to-transparent pointer-events-none" />
                 <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-[var(--accent-tertiary)]/10 to-transparent pointer-events-none" />
-                <PDFViewer forceRefresh={refreshKey} />
+                <PDFViewer forceRefresh={refreshKey + documentMutationVersion} />
                 {!isMobileSidebarOpen && <PageNavigation />}
                 {!isMobileSidebarOpen && <ZoomControls />}
               </div>
@@ -206,6 +209,7 @@ function AppContent() {
     <div className="flex h-[100dvh] w-full bg-[var(--bg-app)] overflow-hidden relative">
       <KeyboardShortcutsHandler onShowHelp={() => setShowShortcuts(true)} />
       <ShortcutsModal isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
+      <ToolToast />
 
       {/* Gradient mesh background */}
       <div

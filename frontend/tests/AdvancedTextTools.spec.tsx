@@ -27,6 +27,7 @@ describe('AdvancedTextTools', () => {
       saveChanges: vi.fn(),
       exportPDF: vi.fn(),
       hasUnsavedChanges: false,
+      reportToolResult: vi.fn(),
     });
 
     mockedAxios.get.mockImplementation((url: string) => {
