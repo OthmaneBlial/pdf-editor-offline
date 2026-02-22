@@ -234,4 +234,20 @@ describe('PDFViewer lifecycle safety', () => {
       expect(screen.queryByText('Backend API is not reachable.')).not.toBeInTheDocument();
     });
   });
+
+  it('swallows known removeChild errors during canvas disposal', async () => {
+    fabricState.disposeMock.mockImplementation(() => {
+      throw new Error("Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.");
+    });
+
+    const { unmount } = render(<PDFViewer />);
+
+    await waitFor(() => {
+      expect(fabricState.fromURLMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(() => {
+      unmount();
+    }).not.toThrow();
+  });
 });

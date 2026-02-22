@@ -21,6 +21,29 @@ const isCanvasReady = (currentCanvas: any): currentCanvas is fabric.Canvas => {
   );
 };
 
+// Fabric may throw during disposal if the underlying DOM node was already detached.
+const safeDisposeCanvas = (target: fabric.Canvas | null | undefined) => {
+  if (!target) {
+    return;
+  }
+
+  try {
+    target.off();
+  } catch {
+    // Ignore late listener cleanup failures on disposed instances.
+  }
+
+  try {
+    target.dispose();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes("Failed to execute 'removeChild'")) {
+      return;
+    }
+    console.warn('Canvas disposal error:', error);
+  }
+};
+
 // Helper to update canvas size
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const updateCanvasSize = (currentCanvas: fabric.Canvas, img: any, container: HTMLElement, currentZoom: number) => {
@@ -181,7 +204,7 @@ const PDFViewer: React.FC<{ forceRefresh?: number }> = ({ forceRefresh }) => {
       setErrorMessage('');
       // Clear previous canvas/image so navigation doesn't overlay stale state
       if (canvas) {
-        canvas.dispose();
+        safeDisposeCanvas(canvas);
         setCanvas(null);
       }
       setPageImage('');
@@ -245,7 +268,7 @@ const PDFViewer: React.FC<{ forceRefresh?: number }> = ({ forceRefresh }) => {
 
     // Clean up any existing canvas before creating a new one
     if (canvas) {
-      canvas.dispose();
+      safeDisposeCanvas(canvas);
       setCanvas(null);
     }
 
@@ -325,10 +348,7 @@ const PDFViewer: React.FC<{ forceRefresh?: number }> = ({ forceRefresh }) => {
         resizeObserverRef.current.disconnect();
         resizeObserverRef.current = null;
       }
-      // Remove all event listeners
-      fabricCanvas.off();
-      // Dispose canvas
-      fabricCanvas.dispose();
+      safeDisposeCanvas(fabricCanvas);
       // Clear the canvas reference from context
       setCanvas(null);
     };
