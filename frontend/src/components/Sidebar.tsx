@@ -244,7 +244,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         </button>
 
         {expandedSection === 'comments' && (
-          <div className="px-3 pb-4 h-full overflow-y-auto animate-fade-in">
+          <div className="px-3 pb-4 min-h-0 animate-fade-in">
             <CollaborativeAnnotations />
           </div>
         )}

@@ -58,7 +58,7 @@ const CollaborativeAnnotations: React.FC = () => {
     const pageComments = comments.filter(c => c.pageNumber === currentPage);
 
     return (
-        <div className="overflow-hidden">
+        <div className="overflow-hidden rounded-xl border border-slate-700/50 bg-slate-900/30">
             {/* Beautiful gradient header */}
             <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500" />
@@ -87,12 +87,12 @@ const CollaborativeAnnotations: React.FC = () => {
                     </div>
 
                     {/* Username display */}
-                    <div className="mt-3 flex items-center gap-2 text-xs text-white/90">
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-white/90">
                         <User className="w-3.5 h-3.5" />
                         <span>Commenting as</span>
                         <button
                             onClick={() => setShowUsernamePrompt(true)}
-                            className="px-2 py-0.5 bg-white/20 hover:bg-white/30 rounded-lg font-semibold transition-all"
+                            className="max-w-[140px] sm:max-w-[170px] truncate whitespace-nowrap px-2 py-0.5 bg-white/20 hover:bg-white/30 rounded-lg font-semibold transition-all"
                         >
                             {username || 'Set username'}
                         </button>
@@ -174,7 +174,7 @@ const CollaborativeAnnotations: React.FC = () => {
             )}
 
             {/* Comments List */}
-            <div className="max-h-80 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-slate-950">
+            <div className="max-h-[clamp(12rem,32vh,18rem)] overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-slate-950">
                 {pageComments.length === 0 ? (
                     <div className="p-8 text-center">
                         <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 flex items-center justify-center">
