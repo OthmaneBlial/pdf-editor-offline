@@ -9,9 +9,19 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const FABRIC_IMAGE_CLASS = (fabric as any).FabricImage || (fabric as any).Image;
 
+// Guard against lifecycle races where Fabric internals are already disposed.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const isCanvasReady = (currentCanvas: any): currentCanvas is fabric.Canvas => {
+  return Boolean(currentCanvas?.lower?.el && !currentCanvas?.disposed && !currentCanvas?.destroyed);
+};
+
 // Helper to update canvas size
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const updateCanvasSize = (currentCanvas: fabric.Canvas, img: any, container: HTMLElement, currentZoom: number) => {
+  if (!isCanvasReady(currentCanvas)) {
+    return;
+  }
+
   const imgWidth = img.width || 0;
   const imgHeight = img.height || 0;
   const containerWidth = container.clientWidth;
@@ -21,9 +31,13 @@ const updateCanvasSize = (currentCanvas: fabric.Canvas, img: any, container: HTM
     const displayWidth = imgWidth * fitScale * currentZoom;
     const displayHeight = imgHeight * fitScale * currentZoom;
 
-    currentCanvas.setDimensions({ width: displayWidth, height: displayHeight });
-    currentCanvas.setZoom(fitScale * currentZoom);
-    currentCanvas.requestRenderAll();
+    try {
+      currentCanvas.setDimensions({ width: displayWidth, height: displayHeight });
+      currentCanvas.setZoom(fitScale * currentZoom);
+      currentCanvas.requestRenderAll();
+    } catch {
+      // Ignore late resize calls after canvas disposal.
+    }
   }
 };
 
@@ -150,7 +164,7 @@ const PDFViewer: React.FC<{ forceRefresh?: number }> = ({ forceRefresh }) => {
       }
     };
     loadPageImage();
-  }, [sessionId, currentPage, forceRefresh, canvas, setCanvas]); // eslint-disable-line react-hooks/exhaustive-deps -- Only depend on sessionId, currentPage, forceRefresh
+  }, [sessionId, currentPage, forceRefresh, canvas, setCanvas]);
 
   // Keep track of latest zoom for ResizeObserver
   const zoomRef = useRef(zoom);
@@ -170,6 +184,8 @@ const PDFViewer: React.FC<{ forceRefresh?: number }> = ({ forceRefresh }) => {
     if (!canvasRef.current || !pageImage || !containerRef.current) {
       return;
     }
+
+    let isDisposed = false;
 
     // Clean up any existing canvas before creating a new one
     if (canvas) {
@@ -193,6 +209,10 @@ const PDFViewer: React.FC<{ forceRefresh?: number }> = ({ forceRefresh }) => {
     // Add background image and size canvas to the page
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     FABRIC_IMAGE_CLASS.fromURL(pageImage).then((img: any) => {
+      if (isDisposed || !isCanvasReady(fabricCanvas)) {
+        return;
+      }
+
       img.set({
         selectable: false,
         evented: false,
@@ -211,9 +231,16 @@ const PDFViewer: React.FC<{ forceRefresh?: number }> = ({ forceRefresh }) => {
 
       // Create and store ResizeObserver for proper cleanup
       const resizeObserver = new ResizeObserver(() => {
+        if (isDisposed || !isCanvasReady(fabricCanvas)) {
+          return;
+        }
+
         const currentContainer = containerRef.current;
         if (currentContainer) {
           requestAnimationFrame(() => {
+            if (isDisposed || !isCanvasReady(fabricCanvas)) {
+              return;
+            }
             updateCanvasSize(fabricCanvas, img, currentContainer, zoomRef.current);
           });
         }
@@ -227,13 +254,16 @@ const PDFViewer: React.FC<{ forceRefresh?: number }> = ({ forceRefresh }) => {
       resizeObserverRef.current = resizeObserver;
 
     }).catch(() => {
-      setErrorMessage('Failed to load page image. Please try again.');
+      if (!isDisposed) {
+        setErrorMessage('Failed to load page image. Please try again.');
+      }
     });
 
     setCanvas(fabricCanvas);
 
     // Proper cleanup function
     return () => {
+      isDisposed = true;
       // Disconnect ResizeObserver first
       if (resizeObserverRef.current) {
         resizeObserverRef.current.disconnect();

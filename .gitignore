@@ -17,3 +17,4 @@ coverage.*
 frontend/.vite
 frontend/.turbo
 frontend/coverage
+base/
