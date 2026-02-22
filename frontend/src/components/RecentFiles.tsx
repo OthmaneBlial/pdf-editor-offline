@@ -63,7 +63,7 @@ const RecentFiles: React.FC<RecentFilesProps> = ({ onFileSelect }) => {
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-50">
+        <div className="absolute bottom-full left-0 right-0 mb-2 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-50">
           <div className="flex justify-between items-center px-4 py-2 border-b border-slate-700 bg-slate-900/50">
             <span className="text-xs font-semibold text-slate-400">History</span>
             <button
@@ -73,7 +73,7 @@ const RecentFiles: React.FC<RecentFilesProps> = ({ onFileSelect }) => {
               <Trash2 className="w-3 h-3" /> Clear All
             </button>
           </div>
-          <div className="max-h-60 overflow-y-auto">
+          <div className="max-h-[min(15rem,45vh)] overflow-y-auto">
             {files.map((file) => (
               <div
                 key={file.name}
