@@ -144,6 +144,12 @@ cd frontend
 VITE_API_BASE_URL="http://localhost:8000" npm run dev -- --port 3000
 ```
 
+### Optional smoke test (CI-style)
+
+```bash
+RUN_E2E_SMOKE=1 ./run_ci.sh
+```
+
 ### CLI examples
 
 ```bash
