@@ -227,7 +227,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Comments Section */}
-      <div className="flex-1 min-h-0">
+      <div className="border-b border-slate-700/50">
         <button
           onClick={() => toggleSection('comments')}
           className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium transition-colors ${
