@@ -205,9 +205,15 @@ class NavigationManager:
 
         result = []
         for i, link in enumerate(links):
+            raw_rect = link.get("from", [0, 0, 0, 0])
+            if isinstance(raw_rect, fitz.Rect):
+                rect = [raw_rect.x0, raw_rect.y0, raw_rect.x1, raw_rect.y1]
+            else:
+                rect = raw_rect
+
             link_info = {
                 "index": i,
-                "rect": link.get("from", [0, 0, 0, 0]),
+                "rect": rect,
             }
 
             # Determine link type and extract relevant info

@@ -39,6 +39,8 @@ interface Message {
   text: string;
 }
 
+type LinkType = 'url' | 'internal';
+
 const NavigationTools: React.FC = () => {
   const { sessionId, currentPage, setCurrentPage, saveChanges, exportPDF, hasUnsavedChanges, pageCount } = useEditor();
   const [loading, setLoading] = useState<string | null>(null);
@@ -55,6 +57,16 @@ const NavigationTools: React.FC = () => {
 
   // Link state
   const [links, setLinks] = useState<LinkItem[]>([]);
+  const [newLinkType, setNewLinkType] = useState<LinkType>('url');
+  const [newLinkUrl, setNewLinkUrl] = useState('');
+  const [newLinkDestPage, setNewLinkDestPage] = useState(1);
+  const [linkX, setLinkX] = useState(100);
+  const [linkY, setLinkY] = useState(100);
+  const [linkWidth, setLinkWidth] = useState(180);
+  const [linkHeight, setLinkHeight] = useState(24);
+
+  // TOC auto-generation state
+  const [tocThresholds, setTocThresholds] = useState('18,14,12');
 
   const showMessage = useCallback((type: 'success' | 'error', text: string) => {
     setMessage({ type, text });
@@ -68,7 +80,9 @@ const NavigationTools: React.FC = () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/api/documents/${sessionId}/toc`);
       if (response.data.success) {
-        setToc(response.data.data.toc || []);
+        const tocItems = response.data.data.toc || [];
+        setToc(tocItems);
+        setBookmarks(tocItems);
       }
     } catch (error) {
       showMessage('error', 'Failed to load TOC');
@@ -187,6 +201,75 @@ const NavigationTools: React.FC = () => {
     }
   };
 
+  const handleAutoGenerateTOC = async () => {
+    if (!sessionId) return;
+
+    setLoading('auto-toc');
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/api/documents/${sessionId}/toc/auto`,
+        null,
+        {
+          params: { font_size_thresholds: tocThresholds },
+        }
+      );
+
+      if (response.data.success) {
+        showMessage('success', 'Table of contents generated');
+        await loadTOC();
+      }
+    } catch (error) {
+      showMessage('error', 'Failed to auto-generate TOC');
+      console.error(error);
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleAddLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sessionId) return;
+
+    if (newLinkType === 'url' && !newLinkUrl.trim()) {
+      showMessage('error', 'Enter a valid URL');
+      return;
+    }
+
+    if (newLinkType === 'internal' && (newLinkDestPage < 1 || newLinkDestPage > pageCount)) {
+      showMessage('error', `Destination page must be between 1 and ${pageCount}`);
+      return;
+    }
+
+    setLoading('add-link');
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/api/documents/${sessionId}/links`,
+        {
+          page_num: currentPage,
+          x: linkX,
+          y: linkY,
+          width: linkWidth,
+          height: linkHeight,
+          url: newLinkType === 'url' ? newLinkUrl.trim() : undefined,
+          dest_page: newLinkType === 'internal' ? newLinkDestPage : undefined,
+        }
+      );
+
+      if (response.data.success) {
+        showMessage('success', 'Link added');
+        if (newLinkType === 'url') {
+          setNewLinkUrl('');
+        }
+        await loadLinks();
+      }
+    } catch (error) {
+      showMessage('error', 'Failed to add link');
+      console.error(error);
+    } finally {
+      setLoading(null);
+    }
+  };
+
   const toggleExpanded = (index: number) => {
     const newExpanded = new Set(expandedItems);
     if (newExpanded.has(index)) {
@@ -254,9 +337,15 @@ const NavigationTools: React.FC = () => {
   useEffect(() => {
     if (sessionId) {
       loadTOC();
+      loadBookmarks();
+    }
+  }, [sessionId, loadTOC, loadBookmarks]);
+
+  useEffect(() => {
+    if (sessionId) {
       loadLinks();
     }
-  }, [currentPage, loadLinks, loadTOC, sessionId]);
+  }, [sessionId, currentPage, loadLinks]);
 
   if (!sessionId) {
     return (
@@ -358,9 +447,29 @@ const NavigationTools: React.FC = () => {
             )}
           </div>
 
-          <button className="w-full mt-4 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm">
-            Auto-Generate from Headers
-          </button>
+          <div className="mt-4 space-y-2">
+            <input
+              type="text"
+              value={tocThresholds}
+              onChange={(e) => setTocThresholds(e.target.value)}
+              placeholder="18,14,12"
+              className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)] text-sm"
+            />
+            <button
+              onClick={handleAutoGenerateTOC}
+              disabled={loading === 'auto-toc'}
+              className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {loading === 'auto-toc' ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                'Auto-Generate from Headers'
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Bookmarks */}
@@ -510,9 +619,88 @@ const NavigationTools: React.FC = () => {
             )}
           </div>
 
-          <button className="w-full mt-4 py-2 px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors text-sm flex items-center justify-center gap-2">
-            <Plus className="w-4 h-4" /> Add New Link
-          </button>
+          <form onSubmit={handleAddLink} className="mt-4 space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="col-span-2">
+                <select
+                  value={newLinkType}
+                  onChange={(e) => setNewLinkType(e.target.value as LinkType)}
+                  className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)] text-sm"
+                >
+                  <option value="url">External URL</option>
+                  <option value="internal">Internal Page</option>
+                </select>
+              </div>
+              {newLinkType === 'url' ? (
+                <div className="col-span-2">
+                  <input
+                    type="url"
+                    value={newLinkUrl}
+                    onChange={(e) => setNewLinkUrl(e.target.value)}
+                    placeholder="https://example.com"
+                    className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)] text-sm"
+                    required
+                  />
+                </div>
+              ) : (
+                <div className="col-span-2">
+                  <input
+                    type="number"
+                    min={1}
+                    max={pageCount}
+                    value={newLinkDestPage}
+                    onChange={(e) => setNewLinkDestPage(Number(e.target.value))}
+                    className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)] text-sm"
+                    required
+                  />
+                </div>
+              )}
+              <input
+                type="number"
+                value={linkX}
+                onChange={(e) => setLinkX(Number(e.target.value))}
+                placeholder="X"
+                className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)] text-sm"
+              />
+              <input
+                type="number"
+                value={linkY}
+                onChange={(e) => setLinkY(Number(e.target.value))}
+                placeholder="Y"
+                className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)] text-sm"
+              />
+              <input
+                type="number"
+                value={linkWidth}
+                onChange={(e) => setLinkWidth(Number(e.target.value))}
+                placeholder="Width"
+                className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)] text-sm"
+              />
+              <input
+                type="number"
+                value={linkHeight}
+                onChange={(e) => setLinkHeight(Number(e.target.value))}
+                placeholder="Height"
+                className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)] text-sm"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loading === 'add-link'}
+              className="w-full py-2 px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {loading === 'add-link' ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4" /> Add New Link
+                </>
+              )}
+            </button>
+          </form>
         </div>
       </div>
     </div>
