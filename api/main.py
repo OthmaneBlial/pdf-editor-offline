@@ -3,10 +3,12 @@ import os
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from api.deps import cleanup_all_sessions, cleanup_stale_sessions
+from pdfsmarteditor.core.exceptions import InvalidOperationError
 
 # Setup logging
 logging.basicConfig(
@@ -32,6 +34,14 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+
+@app.exception_handler(InvalidOperationError)
+async def handle_invalid_operation(
+    request: Request, exc: InvalidOperationError
+) -> JSONResponse:
+    """Return consistent 400 responses for user-triggered invalid operations."""
+    return JSONResponse(status_code=400, content={"detail": str(exc)})
 
 # CORS configuration:
 # - If CORS_ORIGINS is set, only those origins are allowed.

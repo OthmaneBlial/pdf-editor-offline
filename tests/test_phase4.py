@@ -430,6 +430,27 @@ class TestImageProcessor:
 
         doc.close()
 
+    def test_replace_image_keeps_insert_rect_inside_target(self, sample_pdf, sample_image):
+        """Ensure replacement insert rect is anchored to the target rectangle origin."""
+        doc = fitz.open(sample_pdf)
+        processor = ImageProcessor(doc)
+
+        target_rect = (50, 50, 150, 150)
+        result = processor.replace_image(
+            0,
+            target_rect,
+            sample_image,
+            maintain_aspect=True,
+        )
+
+        assert result["success"] is True
+        assert result["insert_rect"][0] >= target_rect[0]
+        assert result["insert_rect"][1] >= target_rect[1]
+        assert result["insert_rect"][2] <= target_rect[2]
+        assert result["insert_rect"][3] <= target_rect[3]
+
+        doc.close()
+
     def test_get_page_dimensions(self, sample_pdf):
         """Test getting page dimensions."""
         doc = fitz.open(sample_pdf)

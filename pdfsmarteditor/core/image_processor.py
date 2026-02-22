@@ -176,9 +176,9 @@ class ImageProcessor:
 
                         insert_rect = fitz.Rect(
                             rect.x0 + x_offset,
-                            rect.y1 + y_offset,
+                            rect.y0 + y_offset,
                             rect.x0 + x_offset + new_width,
-                            rect.y1 + y_offset + new_height,
+                            rect.y0 + y_offset + new_height,
                         )
 
                         temp_doc.close()
