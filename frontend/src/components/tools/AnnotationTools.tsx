@@ -671,7 +671,7 @@ const AnnotationTools: React.FC = () => {
                 <div
                   className="h-24 rounded-lg border-2 flex items-center justify-center"
                   style={{
-                    backgroundColor: `rgba(${fillColor?.[0] || 1} * 255, ${fillColor?.[1] || 1} * 255, ${fillColor?.[2] || 1} * 255, ${opacity})`,
+                    backgroundColor: `rgba(${Math.round((fillColor?.[0] ?? 1) * 255)}, ${Math.round((fillColor?.[1] ?? 1) * 255)}, ${Math.round((fillColor?.[2] ?? 1) * 255)}, ${Math.max(0.05, Math.min(opacity, 1) * 0.2)})`,
                     borderColor: `rgb(${strokeColor[0] * 255}, ${strokeColor[1] * 255}, ${strokeColor[2] * 255})`,
                     borderWidth: `${borderWidth}px`,
                   }}
