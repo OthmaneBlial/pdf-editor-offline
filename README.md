@@ -102,31 +102,49 @@ pip install -e ".[dev]"
 ### Web app
 
 ```bash
-pdf-editor-offline serve
+# Start backend + frontend together (recommended)
+./start.sh
 ```
 
-Open `http://localhost:8000` and start editing.
+Open `http://localhost:3000` and start editing.
+
+### Manual dev startup
+
+Terminal 1 (API):
+
+```bash
+source .venv/bin/activate
+PYTHONPATH=. python -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+Terminal 2 (frontend):
+
+```bash
+cd frontend
+npm install
+VITE_API_BASE_URL="http://localhost:8000" npm run dev -- --port 3000
+```
 
 ### CLI examples
 
 ```bash
-# Merge PDFs
-pdf-editor-offline tools merge doc1.pdf doc2.pdf -o combined.pdf
+# Extract text from a PDF
+pdf-editor-offline extract text input.pdf
 
-# Split PDF pages
-pdf-editor-offline tools split input.pdf --ranges "1-3,5-7"
+# Extract images to a folder
+pdf-editor-offline extract images input.pdf --output-dir ./images
 
-# Convert to Word
-pdf-editor-offline tools convert input.pdf --format docx
+# Edit metadata
+pdf-editor-offline edit metadata input.pdf title "Quarterly Report"
 
-# Compress PDF
-pdf-editor-offline tools compress input.pdf --level 4
+# Delete page 0 and write to a new file
+pdf-editor-offline edit delete-page input.pdf 0 --output output.pdf
 
-# Add watermark
-pdf-editor-offline tools watermark input.pdf --text "CONFIDENTIAL" --opacity 0.3
+# Inspect object tree as JSON
+pdf-editor-offline inspect object-tree input.pdf
 
-# Protect PDF
-pdf-editor-offline tools protect input.pdf --password secret123
+# Add an image to page 0
+pdf-editor-offline add image input.pdf stamp.png 0 100 120 180 80 --output stamped.pdf
 ```
 
 ### Python API
@@ -209,7 +227,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 - [ ] Advanced privacy/security workflows
 - [ ] Intelligent automation features
 
-See [docs/FEATURES_ROADMAP.md](docs/FEATURES_ROADMAP.md).
+See [FEATURES_ROADMAP.md](FEATURES_ROADMAP.md).
 
 ---
 
