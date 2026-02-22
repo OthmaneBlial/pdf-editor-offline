@@ -12,7 +12,13 @@ const FABRIC_IMAGE_CLASS = (fabric as any).FabricImage || (fabric as any).Image;
 // Guard against lifecycle races where Fabric internals are already disposed.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const isCanvasReady = (currentCanvas: any): currentCanvas is fabric.Canvas => {
-  return Boolean(currentCanvas?.lower?.el && !currentCanvas?.disposed && !currentCanvas?.destroyed);
+  return Boolean(
+    currentCanvas &&
+    typeof currentCanvas.setDimensions === 'function' &&
+    typeof currentCanvas.requestRenderAll === 'function' &&
+    !currentCanvas.disposed &&
+    !currentCanvas.destroyed
+  );
 };
 
 // Helper to update canvas size
@@ -22,8 +28,22 @@ const updateCanvasSize = (currentCanvas: fabric.Canvas, img: any, container: HTM
     return;
   }
 
-  const imgWidth = img.width || 0;
-  const imgHeight = img.height || 0;
+  const imageElement =
+    (typeof img.getElement === 'function' ? img.getElement() : null) ??
+    img?._originalElement ??
+    img?._element ??
+    null;
+
+  const imgWidth =
+    img.width ||
+    imageElement?.naturalWidth ||
+    imageElement?.width ||
+    0;
+  const imgHeight =
+    img.height ||
+    imageElement?.naturalHeight ||
+    imageElement?.height ||
+    0;
   const containerWidth = container.clientWidth;
 
   if (imgWidth > 0 && containerWidth > 0) {
