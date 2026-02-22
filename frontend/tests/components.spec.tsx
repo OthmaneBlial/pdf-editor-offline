@@ -4,6 +4,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
 import FileUpload from '../src/components/FileUpload';
 import Header from '../src/components/Header';
+import { ThemeProvider } from '../src/contexts/ThemeContext';
 
 const useEditorMock = vi.fn();
 
@@ -38,6 +39,12 @@ describe('FileUpload', () => {
 });
 
 describe('Header', () => {
+  const renderHeader = () => render(
+    <ThemeProvider>
+      <Header />
+    </ThemeProvider>
+  );
+
   afterEach(() => {
     vi.clearAllMocks();
   });
@@ -47,7 +54,7 @@ describe('Header', () => {
     const saveChanges = vi.fn();
     useEditorMock.mockReturnValue({ exportPDF, saveChanges, hasUnsavedChanges: true, sessionId: 'abc', isUploading: false });
 
-    const { getByRole } = render(<Header />);
+    const { getByRole } = renderHeader();
     fireEvent.click(getByRole('button', { name: /Export/i }));
 
     expect(exportPDF).toHaveBeenCalledTimes(1);
@@ -63,8 +70,8 @@ describe('Header', () => {
       isUploading: false,
     });
 
-    const { rerender, getByRole } = render(<Header />);
-    const saveButton = getByRole('button', { name: /Save Changes/i }) as HTMLButtonElement;
+    const { rerender, getByRole } = renderHeader();
+    const saveButton = getByRole('button', { name: /Save/i }) as HTMLButtonElement;
     expect(saveButton.getAttribute('disabled')).not.toBeNull();
 
     useEditorMock.mockReturnValue({
@@ -74,8 +81,12 @@ describe('Header', () => {
       sessionId: 'abc',
       isUploading: false,
     });
-    rerender(<Header />);
-    const enabledButton = getByRole('button', { name: /Save Changes/i }) as HTMLButtonElement;
+    rerender(
+      <ThemeProvider>
+        <Header />
+      </ThemeProvider>
+    );
+    const enabledButton = getByRole('button', { name: /Save/i }) as HTMLButtonElement;
     expect(enabledButton.getAttribute('disabled')).toBeNull();
     fireEvent.click(enabledButton);
     expect(saveChanges).toHaveBeenCalledTimes(1);

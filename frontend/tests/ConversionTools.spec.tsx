@@ -7,7 +7,9 @@ import '@testing-library/jest-dom';
 
 // Mock axios
 vi.mock('axios');
-const mockedAxios = axios as jest.Mocked<typeof axios>;
+const mockedAxios = axios as unknown as {
+    post: ReturnType<typeof vi.fn>;
+};
 
 // Mock URL.createObjectURL
 global.URL.createObjectURL = vi.fn(() => 'blob:test');
@@ -28,12 +30,12 @@ describe('ConversionTools', () => {
     it('switches tabs', () => {
         render(<ConversionTools />);
 
-        // Default is "to_pdf"
-        expect(screen.getByText('Word to PDF')).toBeInTheDocument();
-
-        // Switch to "from_pdf"
-        fireEvent.click(screen.getByText('Convert From PDF'));
+        // Default is "from_pdf"
         expect(screen.getByText('PDF to Word')).toBeInTheDocument();
+
+        // Switch to "to_pdf"
+        fireEvent.click(screen.getByText('Convert To PDF'));
+        expect(screen.getByText('Word to PDF')).toBeInTheDocument();
     });
 
     it('handles PDF to Word conversion', async () => {

@@ -33,6 +33,15 @@ describe('EditorContext', () => {
     exposedContext = null;
     mockedAxios.post.mockReset();
     mockedAxios.get.mockReset();
+    mockedAxios.get.mockResolvedValue({
+      data: {
+        success: true,
+        data: { toc: [] },
+      },
+    });
+    mockedAxios.post.mockResolvedValue({
+      data: { success: true },
+    });
     vi.stubGlobal('alert', vi.fn());
   });
 
@@ -95,10 +104,17 @@ describe('EditorContext', () => {
       off: vi.fn(),
     };
 
-    mockedAxios.get.mockResolvedValue({
-      data: new Blob(['x']),
-      headers: { 'content-disposition': 'filename=test.pdf' }
-    });
+    mockedAxios.get
+      .mockResolvedValueOnce({
+        data: {
+          success: true,
+          data: { toc: [] },
+        },
+      })
+      .mockResolvedValueOnce({
+        data: new Blob(['x']),
+        headers: { 'content-disposition': 'filename=test.pdf' }
+      });
 
     act(() => {
       const ctx = ensureContext();
