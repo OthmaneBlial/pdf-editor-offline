@@ -26,6 +26,17 @@ class TestAdvancedNavigationApi:
         assert response.status_code == 200
         assert response.json()["success"] is True
 
+    def test_auto_generate_toc_endpoint_rejects_invalid_thresholds(self, api_client, sample_pdf: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        response = api_client.post(
+            f"/api/documents/{doc_id}/toc/auto",
+            params={"font_size_thresholds": "18,14"},
+        )
+
+        assert response.status_code == 400
+        assert "3 comma-separated values" in response.json()["detail"]
+
     def test_add_and_delete_link_endpoint(self, api_client, sample_pdf: str):
         doc_id = upload_pdf(api_client, sample_pdf)
 
