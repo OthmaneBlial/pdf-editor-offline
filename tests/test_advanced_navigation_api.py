@@ -63,6 +63,22 @@ class TestAdvancedNavigationApi:
         assert delete_response.status_code == 200
         assert delete_response.json()["success"] is True
 
+    def test_add_bookmark_endpoint_returns_page_results(self, api_client, sample_pdf: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        add_response = api_client.post(
+            f"/api/documents/{doc_id}/bookmarks",
+            params={"level": 1, "title": "Intro", "page_num": 1},
+        )
+        assert add_response.status_code == 200
+        assert add_response.json()["success"] is True
+
+        page_response = api_client.get(f"/api/documents/{doc_id}/bookmarks/page/1")
+        assert page_response.status_code == 200
+        bookmarks = page_response.json()["data"]["bookmarks"]
+        assert len(bookmarks) >= 1
+        assert bookmarks[0]["title"] == "Intro"
+
     def test_get_page_links_endpoint_rejects_invalid_page(self, api_client, sample_pdf: str):
         doc_id = upload_pdf(api_client, sample_pdf)
 
