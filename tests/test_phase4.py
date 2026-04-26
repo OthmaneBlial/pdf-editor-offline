@@ -585,6 +585,31 @@ class TestImageProcessor:
 
         doc.close()
 
+    def test_replace_image_without_aspect_ratio_fills_target(self, sample_pdf, sample_image):
+        """Ensure replacement image fills the target rect when aspect is disabled."""
+        doc = fitz.open(sample_pdf)
+        processor = ImageProcessor(doc)
+
+        target_rect = (50, 50, 150, 150)
+        result = processor.replace_image(
+            0,
+            target_rect,
+            sample_image,
+            maintain_aspect=False,
+        )
+
+        assert result["success"] is True
+        page = doc[0]
+        xref = page.get_images(full=True)[0][0]
+        rects = page.get_image_rects(xref)
+        assert len(rects) == 1
+        assert rects[0].x0 == target_rect[0]
+        assert rects[0].y0 == target_rect[1]
+        assert rects[0].x1 == target_rect[2]
+        assert rects[0].y1 == target_rect[3]
+
+        doc.close()
+
     def test_get_page_dimensions(self, sample_pdf):
         """Test getting page dimensions."""
         doc = fitz.open(sample_pdf)

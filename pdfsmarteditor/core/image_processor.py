@@ -191,7 +191,11 @@ class ImageProcessor:
                 insert_rect = rect
 
             # Insert the new image
-            page.insert_image(insert_rect, filename=new_image_path)
+            page.insert_image(
+                insert_rect,
+                filename=new_image_path,
+                keep_proportion=maintain_aspect,
+            )
 
             return {
                 "success": True,
