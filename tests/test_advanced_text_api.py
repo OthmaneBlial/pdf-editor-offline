@@ -2,6 +2,8 @@
 
 import os
 
+import fitz
+
 
 def upload_pdf(api_client, path: str) -> str:
     """Helper to upload a PDF and return session ID."""
@@ -47,6 +49,15 @@ class TestAdvancedTextApi:
 
         assert response.status_code == 200
         assert response.json()["success"] is True
+
+        download = api_client.get(f"/api/documents/{doc_id}/download")
+        assert download.status_code == 200
+
+        doc = fitz.open(stream=download.content, filetype="pdf")
+        page_text = doc[1].get_text()
+        assert "Hello" in page_text
+        assert "World" in page_text
+        doc.close()
 
     def test_reflow_text_endpoint_rejects_page_num_mismatch(self, api_client, multi_page_pdf: str):
         doc_id = upload_pdf(api_client, multi_page_pdf)
