@@ -188,6 +188,14 @@ class TestAdvancedNavigationApi:
         assert page_response.status_code == 200
         assert page_response.json()["data"]["bookmarks"] == []
 
+    def test_delete_bookmark_endpoint_rejects_invalid_index(self, api_client, sample_pdf: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        delete_response = api_client.delete(f"/api/documents/{doc_id}/bookmarks/0")
+
+        assert delete_response.status_code == 400
+        assert "Invalid bookmark index" in delete_response.json()["detail"]
+
     def test_get_page_links_endpoint_rejects_invalid_page(self, api_client, sample_pdf: str):
         doc_id = upload_pdf(api_client, sample_pdf)
 
