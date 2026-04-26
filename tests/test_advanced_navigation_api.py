@@ -132,6 +132,23 @@ class TestAdvancedNavigationApi:
         assert update_response.status_code == 400
         assert "Invalid page number" in update_response.json()["detail"]
 
+    def test_delete_bookmark_endpoint_removes_entry(self, api_client, sample_pdf: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        add_response = api_client.post(
+            f"/api/documents/{doc_id}/bookmarks",
+            params={"level": 1, "title": "Intro", "page_num": 1},
+        )
+        assert add_response.status_code == 200
+
+        delete_response = api_client.delete(f"/api/documents/{doc_id}/bookmarks/0")
+        assert delete_response.status_code == 200
+        assert delete_response.json()["success"] is True
+
+        page_response = api_client.get(f"/api/documents/{doc_id}/bookmarks/page/1")
+        assert page_response.status_code == 200
+        assert page_response.json()["data"]["bookmarks"] == []
+
     def test_get_page_links_endpoint_rejects_invalid_page(self, api_client, sample_pdf: str):
         doc_id = upload_pdf(api_client, sample_pdf)
 
