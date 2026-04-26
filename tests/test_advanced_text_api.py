@@ -50,6 +50,32 @@ class TestAdvancedTextApi:
         assert "Section" in page_text
         doc.close()
 
+    def test_rich_text_endpoint_persists_content(self, api_client, sample_pdf: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        response = api_client.post(
+            f"/api/documents/{doc_id}/pages/0/text/rich",
+            json={
+                "page_num": 0,
+                "x": 60,
+                "y": 120,
+                "width": 220,
+                "height": 120,
+                "html_content": "<h1>Rich</h1>",
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()["success"] is True
+
+        download = api_client.get(f"/api/documents/{doc_id}/download")
+        assert download.status_code == 200
+
+        doc = fitz.open(stream=download.content, filetype="pdf")
+        page_text = doc[0].get_text()
+        assert "Rich" in page_text
+        doc.close()
+
     def test_multifont_text_endpoint_uses_path_page_num(self, api_client, multi_page_pdf: str):
         doc_id = upload_pdf(api_client, multi_page_pdf)
 
