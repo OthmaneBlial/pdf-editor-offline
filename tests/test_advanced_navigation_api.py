@@ -90,6 +90,14 @@ class TestAdvancedNavigationApi:
         assert response.status_code == 400
         assert "Invalid page number" in response.json()["detail"]
 
+    def test_get_bookmarks_by_page_rejects_invalid_page(self, api_client, sample_pdf: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        response = api_client.get(f"/api/documents/{doc_id}/bookmarks/page/99")
+
+        assert response.status_code == 400
+        assert "Invalid page number" in response.json()["detail"]
+
     def test_update_bookmark_endpoint_rejects_invalid_index(self, api_client, sample_pdf: str):
         doc_id = upload_pdf(api_client, sample_pdf)
 

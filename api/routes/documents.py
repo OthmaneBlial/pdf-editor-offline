@@ -1027,6 +1027,12 @@ async def get_bookmarks_by_page(doc_id: str, page_num: int):
     if not navigation_manager:
         raise HTTPException(status_code=500, detail="Navigation manager not available")
 
+    if page_num < 1 or page_num > len(navigation_manager.document):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid page number: {page_num}. Document has {len(navigation_manager.document)} pages.",
+        )
+
     bookmarks = navigation_manager.get_bookmarks_by_page(page_num)
     return APIResponse(success=True, data={"bookmarks": bookmarks})
 
