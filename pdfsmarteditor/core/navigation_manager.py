@@ -326,49 +326,18 @@ class NavigationManager:
                     f"Invalid link index: {link_index}. Page has {len(links)} links."
                 )
 
-            # Get the link info for the response
             removed_link = links[link_index]
+            # PyMuPDF provides direct link deletion on the page object.
+            page.delete_link(removed_link)
 
-            # PyMuPDF doesn't have a direct delete_link method
-            # We need to work with the page's link dictionary
-            # This is a workaround - we clear and rebuild links
-            new_links = [l for i, l in enumerate(links) if i != link_index]
-
-            # Set links by clearing and re-adding
-            # Note: This is a limitation of PyMuPDF - there's no direct link deletion
-            # We'll need to recreate the page or use a different approach
-
-            # Alternative: Delete the annotation that represents this link
-            annots = page.annots()
-            link_annot = None
-            annot_to_delete = None
-
-            for annot in annots:
-                if annot.type[0] == 1:  # Link annotation
-                    annot_rect = annot.rect
-                    link_rect = removed_link.get("from", [0, 0, 0, 0])
-                    # Check if this annotation corresponds to our link
-                    if (abs(annot_rect.x0 - link_rect[0]) < 1 and
-                        abs(annot_rect.y0 - link_rect[1]) < 1):
-                        annot_to_delete = annot
-                        break
-
-            if annot_to_delete:
-                page.delete_annot(annot_to_delete)
-
-                return {
-                    "success": True,
-                    "removed_link": {
-                        "type": "uri" if "uri" in removed_link else "internal",
-                        "index": link_index,
-                    },
-                    "remaining_links": len(links) - 1,
-                }
-            else:
-                return {
-                    "success": False,
-                    "message": "Link annotation not found",
-                }
+            return {
+                "success": True,
+                "removed_link": {
+                    "type": "uri" if "uri" in removed_link else "internal",
+                    "index": link_index,
+                },
+                "remaining_links": len(page.get_links()),
+            }
 
         except InvalidOperationError:
             raise
