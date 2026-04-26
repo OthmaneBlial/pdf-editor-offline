@@ -76,3 +76,29 @@ class TestAdvancedTextApi:
 
         assert response.status_code == 400
         assert "does not match" in response.json()["detail"]
+
+    def test_reflow_text_endpoint_persists_content(self, api_client, multi_page_pdf: str):
+        doc_id = upload_pdf(api_client, multi_page_pdf)
+
+        response = api_client.post(
+            f"/api/documents/{doc_id}/pages/1/text/reflow",
+            json={
+                "page_num": 1,
+                "x": 60,
+                "y": 120,
+                "width": 220,
+                "height": 120,
+                "html_content": "<p>Reflowed</p>",
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()["success"] is True
+
+        download = api_client.get(f"/api/documents/{doc_id}/download")
+        assert download.status_code == 200
+
+        doc = fitz.open(stream=download.content, filetype="pdf")
+        page_text = doc[1].get_text().replace("ﬂ", "fl")
+        assert "Reflowed" in page_text
+        doc.close()
