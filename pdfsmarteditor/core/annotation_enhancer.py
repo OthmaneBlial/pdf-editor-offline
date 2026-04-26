@@ -322,15 +322,13 @@ class AnnotationEnhancer:
         page = self.document[page_num]
 
         try:
-            # First create a text annotation at the parent location
+            # Create a text annotation at the parent location and attach a popup.
             parent_point = fitz.Point(parent_x, parent_y)
             parent_annot = page.add_text_annot(
                 parent_point,
                 contents,
-                title=title,
             )
 
-            # Create the popup annotation
             popup_rect = fitz.Rect(
                 popup_x,
                 popup_y,
@@ -338,15 +336,18 @@ class AnnotationEnhancer:
                 popup_y + popup_height,
             )
 
-            popup_annot = page.add_popup_annot(
-                popup_rect,
-                parent_annot,
-                title=title,
-            )
+            parent_annot.set_popup(popup_rect)
+            parent_annot.set_info(title=title, content=contents)
+            parent_annot.update()
 
             return {
                 "success": True,
-                "parent_rect": [parent_x, parent_y, parent_x + 20, parent_y + 20],
+                "parent_rect": [
+                    parent_annot.rect.x0,
+                    parent_annot.rect.y0,
+                    parent_annot.rect.x1,
+                    parent_annot.rect.y1,
+                ],
                 "popup_rect": [popup_x, popup_y, popup_x + popup_width, popup_y + popup_height],
                 "title": title,
             }

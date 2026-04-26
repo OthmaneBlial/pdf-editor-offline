@@ -276,20 +276,28 @@ class RichTextEditor:
         rect = fitz.Rect(x, y, x + width, y + height)
 
         try:
-            # Create a Story from HTML content
-            story = fitz.Story(html_content)
+            # Create a Story from HTML content when available. We use it to
+            # determine whether the content fits, but rely on insert_htmlbox()
+            # for the actual rendering because it works reliably across the
+            # PyMuPDF versions supported by this project.
+            more_content = None
+            try:
+                story = fitz.Story(html_content)
+                more_content = story.place(rect)
+            except Exception:
+                more_content = None
 
-            # Try to place it in the specified rectangle
-            # The story will automatically reflow text
-            more = story.place(rect)
-
-            # Draw the placed content
-            story.draw(page)
+            spare_height, scale = page.insert_htmlbox(
+                rect,
+                html_content,
+            )
 
             return {
                 "success": True,
                 "rect": [x, y, x + width, y + height],
-                "more_content": more,  # True if content didn't fit
+                "more_content": more_content,
+                "spare_height": spare_height,
+                "scale": scale,
             }
 
         except AttributeError:
@@ -367,17 +375,17 @@ class RichTextEditor:
             HTML string for the note
         """
         if note_type not in ["info", "warning", "success", "error"]:
+            if note_type == "callout":
+                template = self.TEMPLATES["callout"]
+                return template.format(text=text, title=title or "Note")
             raise InvalidOperationError(
                 f"Invalid note_type: {note_type}. "
-                "Use: info, warning, success, or error"
+                "Use: info, warning, success, error, or callout"
             )
 
         template = self.TEMPLATES[note_type]
 
-        if note_type == "callout" and title:
-            return template.format(text=text, title=title)
-        else:
-            return template.format(text=text)
+        return template.format(text=text)
 
     def insert_textbox_with_border(
         self,
