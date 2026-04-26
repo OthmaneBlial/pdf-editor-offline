@@ -68,6 +68,13 @@ class TestAdvancedUploadFlows:
         assert payload["success"] is True
         assert payload["data"]["mime_type"] == "audio/wav"
 
+        download = api_client.get(f"/api/documents/{doc_id}/download")
+        assert download.status_code == 200
+
+        doc = fitz.open(stream=download.content, filetype="pdf")
+        assert len(list(doc[0].annots())) == 1
+        doc.close()
+
     def test_link_delete_endpoint(self, api_client, sample_pdf: str):
         doc_id = upload_pdf(api_client, sample_pdf)
 
