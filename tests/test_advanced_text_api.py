@@ -31,6 +31,25 @@ class TestAdvancedTextApi:
         assert payload["data"]["count"] >= 1
         assert len(payload["data"]["matches"]) >= 1
 
+    def test_replace_text_endpoint_persists_content(self, api_client, sample_pdf: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        response = api_client.post(
+            f"/api/documents/{doc_id}/pages/0/text/replace",
+            json={"page_num": 0, "search_text": "Page", "new_text": "Section"},
+        )
+
+        assert response.status_code == 200
+        assert response.json()["success"] is True
+
+        download = api_client.get(f"/api/documents/{doc_id}/download")
+        assert download.status_code == 200
+
+        doc = fitz.open(stream=download.content, filetype="pdf")
+        page_text = doc[0].get_text().replace("ﬂ", "fl")
+        assert "Section" in page_text
+        doc.close()
+
     def test_multifont_text_endpoint_uses_path_page_num(self, api_client, multi_page_pdf: str):
         doc_id = upload_pdf(api_client, multi_page_pdf)
 
