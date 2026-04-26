@@ -174,6 +174,32 @@ class TestAdvancedUploadFlows:
         assert list(annot.colors["fill"]) == [1.0, 1.0, 0.0]
         doc.close()
 
+    def test_polygon_annotation_endpoint_persists_shape(self, api_client, sample_pdf: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        response = api_client.post(
+            f"/api/documents/{doc_id}/annotations/polygon",
+            json={
+                "page_num": 0,
+                "points": [[100, 100], [180, 100], [180, 160]],
+                "color": [1, 0, 0],
+                "fill_color": [0, 1, 0],
+                "width": 1,
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()["success"] is True
+
+        download = api_client.get(f"/api/documents/{doc_id}/download")
+        assert download.status_code == 200
+
+        doc = fitz.open(stream=download.content, filetype="pdf")
+        annot = list(doc[0].annots())[0]
+        assert list(annot.colors["stroke"]) == [1.0, 0.0, 0.0]
+        assert list(annot.colors["fill"]) == [0.0, 1.0, 0.0]
+        doc.close()
+
     def test_annotation_appearance_rejects_page_mismatch(self, api_client, sample_pdf: str):
         doc_id = upload_pdf(api_client, sample_pdf)
 
