@@ -42,6 +42,17 @@ class TestAdvancedTextApi:
         assert response.status_code == 400
         assert "cannot be empty" in response.json()["detail"]
 
+    def test_search_text_endpoint_rejects_invalid_page(self, api_client, sample_pdf: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        response = api_client.get(
+            f"/api/documents/{doc_id}/pages/1/text/search",
+            params={"text": "Page"},
+        )
+
+        assert response.status_code == 400
+        assert "Invalid page number" in response.json()["detail"]
+
     def test_get_font_usage_endpoint_returns_stats(self, api_client, sample_pdf: str):
         doc_id = upload_pdf(api_client, sample_pdf)
 
