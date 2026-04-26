@@ -795,16 +795,22 @@ async def insert_rich_text(doc_id: str, page_num: int, request: RichTextInsertRe
 
 
 @router.post("/{doc_id}/pages/{page_num}/text/multifont", response_model=APIResponse)
-async def insert_multifont_text(doc_id: str, request: MultiFontTextRequest):
+async def insert_multifont_text(doc_id: str, page_num: int, request: MultiFontTextRequest):
     """Insert text with multiple fonts/styles."""
     session = get_session(doc_id)
     rich_text_editor = session.get("rich_text_editor")
     if not rich_text_editor:
         raise HTTPException(status_code=500, detail="Rich text editor not available")
 
+    if request.page_num != page_num:
+        raise HTTPException(
+            status_code=400,
+            detail="Path page_num does not match request.page_num",
+        )
+
     fragments = [f.model_dump() for f in request.fragments]
     result = rich_text_editor.insert_multifont_text(
-        request.page_num, request.x, request.y, fragments
+        page_num, request.x, request.y, fragments
     )
     persist_session_document(doc_id)
 
@@ -812,15 +818,21 @@ async def insert_multifont_text(doc_id: str, request: MultiFontTextRequest):
 
 
 @router.post("/{doc_id}/pages/{page_num}/text/reflow", response_model=APIResponse)
-async def insert_reflow_text(doc_id: str, request: ReflowTextRequest):
+async def insert_reflow_text(doc_id: str, page_num: int, request: ReflowTextRequest):
     """Insert HTML text with automatic reflow."""
     session = get_session(doc_id)
     rich_text_editor = session.get("rich_text_editor")
     if not rich_text_editor:
         raise HTTPException(status_code=500, detail="Rich text editor not available")
 
+    if request.page_num != page_num:
+        raise HTTPException(
+            status_code=400,
+            detail="Path page_num does not match request.page_num",
+        )
+
     result = rich_text_editor.insert_reflow_text(
-        request.page_num,
+        page_num,
         request.x,
         request.y,
         request.width,

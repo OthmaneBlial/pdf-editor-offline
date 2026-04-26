@@ -28,3 +28,40 @@ class TestAdvancedTextApi:
         assert payload["success"] is True
         assert payload["data"]["count"] >= 1
         assert len(payload["data"]["matches"]) >= 1
+
+    def test_multifont_text_endpoint_uses_path_page_num(self, api_client, multi_page_pdf: str):
+        doc_id = upload_pdf(api_client, multi_page_pdf)
+
+        response = api_client.post(
+            f"/api/documents/{doc_id}/pages/1/text/multifont",
+            json={
+                "page_num": 1,
+                "x": 60,
+                "y": 120,
+                "fragments": [
+                    {"text": "Hello ", "font": "Helvetica", "size": 12, "color": [0, 0, 0]},
+                    {"text": "World", "font": "Helvetica-Bold", "size": 12, "color": [0, 0, 0]},
+                ],
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()["success"] is True
+
+    def test_reflow_text_endpoint_rejects_page_num_mismatch(self, api_client, multi_page_pdf: str):
+        doc_id = upload_pdf(api_client, multi_page_pdf)
+
+        response = api_client.post(
+            f"/api/documents/{doc_id}/pages/1/text/reflow",
+            json={
+                "page_num": 0,
+                "x": 50,
+                "y": 50,
+                "width": 220,
+                "height": 120,
+                "html_content": "<p>Mismatch</p>",
+            },
+        )
+
+        assert response.status_code == 400
+        assert "does not match" in response.json()["detail"]
