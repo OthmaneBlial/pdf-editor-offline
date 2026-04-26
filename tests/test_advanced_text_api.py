@@ -102,3 +102,22 @@ class TestAdvancedTextApi:
         page_text = doc[1].get_text().replace("ﬂ", "fl")
         assert "Reflowed" in page_text
         doc.close()
+
+    def test_multifont_text_endpoint_rejects_page_num_mismatch(self, api_client, multi_page_pdf: str):
+        doc_id = upload_pdf(api_client, multi_page_pdf)
+
+        response = api_client.post(
+            f"/api/documents/{doc_id}/pages/1/text/multifont",
+            json={
+                "page_num": 0,
+                "x": 60,
+                "y": 120,
+                "fragments": [
+                    {"text": "Hello ", "font": "Helvetica", "size": 12, "color": [0, 0, 0]},
+                    {"text": "World", "font": "Helvetica-Bold", "size": 12, "color": [0, 0, 0]},
+                ],
+            },
+        )
+
+        assert response.status_code == 400
+        assert "does not match" in response.json()["detail"]
