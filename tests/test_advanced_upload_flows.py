@@ -260,6 +260,38 @@ class TestAdvancedUploadFlows:
         assert replace_response.status_code == 200
         assert replace_response.json()["success"] is True
 
+    def test_image_insert_without_aspect_ratio_endpoint(self, api_client, sample_pdf: str, sample_image: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        response = api_client.post(
+            f"/api/documents/{doc_id}/images/insert",
+            json={
+                "page_num": 0,
+                "x": 50,
+                "y": 50,
+                "width": 100,
+                "height": 100,
+                "image_path": sample_image,
+                "maintain_aspect": False,
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()["success"] is True
+
+        download = api_client.get(f"/api/documents/{doc_id}/download")
+        assert download.status_code == 200
+
+        doc = fitz.open(stream=download.content, filetype="pdf")
+        xref = doc[0].get_images(full=True)[0][0]
+        rects = doc[0].get_image_rects(xref)
+        assert len(rects) == 1
+        assert rects[0].x0 == 50
+        assert rects[0].y0 == 50
+        assert rects[0].x1 == 150
+        assert rects[0].y1 == 150
+        doc.close()
+
     def test_image_replace_upload_rejects_invalid_rect(self, api_client, sample_pdf: str, sample_image: str):
         doc_id = upload_pdf(api_client, sample_pdf)
 

@@ -448,12 +448,9 @@ class ImageProcessor:
 
         try:
             if maintain_aspect:
-                # PyMuPDF's insert_image automatically maintains aspect
-                # if we use the "overlay=True" option
-                page.insert_image(rect, filename=image_path, overlay=True)
+                page.insert_image(rect, filename=image_path, keep_proportion=True)
             else:
-                # Force stretch to fill the entire rectangle
-                page.insert_image(rect, filename=image_path, overlay=False)
+                page.insert_image(rect, filename=image_path, keep_proportion=False)
 
             return {
                 "success": True,

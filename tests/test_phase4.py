@@ -543,6 +543,27 @@ class TestImageProcessor:
 
         doc.close()
 
+    def test_insert_image_without_aspect_ratio(self, sample_pdf, sample_image):
+        """Test image insertion stretches to the target rect when asked."""
+        doc = fitz.open(sample_pdf)
+        processor = ImageProcessor(doc)
+
+        result = processor.insert_image(
+            0, 50, 50, 100, 100, sample_image, maintain_aspect=False
+        )
+
+        assert result["success"] is True
+        page = doc[0]
+        xref = page.get_images(full=True)[0][0]
+        rects = page.get_image_rects(xref)
+        assert len(rects) == 1
+        assert rects[0].x0 == 50
+        assert rects[0].y0 == 50
+        assert rects[0].x1 == 150
+        assert rects[0].y1 == 150
+
+        doc.close()
+
     def test_replace_image_keeps_insert_rect_inside_target(self, sample_pdf, sample_image):
         """Ensure replacement insert rect is anchored to the target rectangle origin."""
         doc = fitz.open(sample_pdf)
