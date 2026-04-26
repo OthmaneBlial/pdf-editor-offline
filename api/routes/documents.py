@@ -1282,6 +1282,12 @@ async def set_annotation_appearance(
     if not annotation_enhancer:
         raise HTTPException(status_code=500, detail="Annotation enhancer not available")
 
+    if request.page_num != page_num:
+        raise HTTPException(
+            status_code=400,
+            detail="Path page_num does not match request.page_num",
+        )
+
     colors = {}
     if request.stroke_color:
         colors["stroke"] = request.stroke_color
