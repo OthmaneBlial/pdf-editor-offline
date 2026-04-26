@@ -260,6 +260,60 @@ class TestAdvancedUploadFlows:
         assert replace_response.status_code == 200
         assert replace_response.json()["success"] is True
 
+    def test_image_replace_without_aspect_ratio_endpoint(self, api_client, sample_pdf: str, sample_image: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        with open(sample_image, "rb") as handle:
+            insert_response = api_client.post(
+                f"/api/documents/{doc_id}/images/insert/upload",
+                data={
+                    "page_num": "0",
+                    "x": "50",
+                    "y": "50",
+                    "width": "100",
+                    "height": "100",
+                    "maintain_aspect": "false",
+                },
+                files={"image": ("insert.png", handle, "image/png")},
+            )
+
+        assert insert_response.status_code == 200
+        assert insert_response.json()["success"] is True
+
+        images_response = api_client.get(f"/api/documents/{doc_id}/images/0")
+        assert images_response.status_code == 200
+        images = images_response.json()["data"]["images"]
+        assert len(images) >= 1
+
+        first_rect = images[0].get("bbox") or [50, 50, 150, 150]
+        rect_csv = ",".join(str(value) for value in first_rect)
+        with open(sample_image, "rb") as handle:
+            replace_response = api_client.post(
+                f"/api/documents/{doc_id}/images/replace/upload",
+                data={
+                    "page_num": "0",
+                    "old_rect": rect_csv,
+                    "maintain_aspect": "false",
+                },
+                files={"image": ("replace.png", handle, "image/png")},
+            )
+
+        assert replace_response.status_code == 200
+        assert replace_response.json()["success"] is True
+
+        download = api_client.get(f"/api/documents/{doc_id}/download")
+        assert download.status_code == 200
+
+        doc = fitz.open(stream=download.content, filetype="pdf")
+        xref = doc[0].get_images(full=True)[0][0]
+        rects = doc[0].get_image_rects(xref)
+        assert len(rects) == 1
+        assert rects[0].x0 == first_rect[0]
+        assert rects[0].y0 == first_rect[1]
+        assert rects[0].x1 == first_rect[2]
+        assert rects[0].y1 == first_rect[3]
+        doc.close()
+
     def test_image_insert_without_aspect_ratio_endpoint(self, api_client, sample_pdf: str, sample_image: str):
         doc_id = upload_pdf(api_client, sample_pdf)
 
