@@ -216,6 +216,35 @@ class TestRichTextEditor:
 
         doc.close()
 
+    def test_insert_reflow_text(self, sample_pdf):
+        """Test Story-style reflow insertion."""
+        doc = fitz.open(sample_pdf)
+        editor = RichTextEditor(doc)
+
+        result = editor.insert_reflow_text(
+            0, 50, 320, 220, 120, "<p>Reflow <b>content</b> on the page.</p>"
+        )
+
+        assert result["success"] is True
+        assert "spare_height" in result
+        assert "scale" in result
+
+        doc.close()
+
+    def test_create_formatted_note_callout(self, sample_pdf):
+        """Test callout note formatting."""
+        doc = fitz.open(sample_pdf)
+        editor = RichTextEditor(doc)
+
+        html = editor.create_formatted_note(
+            "Callout text", note_type="callout", title="Attention"
+        )
+
+        assert "Callout text" in html
+        assert "Attention" in html
+
+        doc.close()
+
 
 class TestNavigationManager:
     """Test cases for NavigationManager class."""
@@ -294,6 +323,20 @@ class TestNavigationManager:
 
         doc.close()
 
+    def test_remove_link(self, sample_pdf):
+        """Test deleting an existing link."""
+        doc = fitz.open(sample_pdf)
+        nav = NavigationManager(doc)
+
+        nav.add_link(0, 50, 50, 100, 20, url="https://example.com")
+        result = nav.remove_link(0, 0)
+
+        assert result["success"] is True
+        assert result["remaining_links"] == 0
+        assert nav.get_links(0) == []
+
+        doc.close()
+
     def test_update_bookmark(self, sample_pdf):
         """Test updating a bookmark."""
         doc = fitz.open(sample_pdf)
@@ -351,6 +394,23 @@ class TestAnnotationEnhancer:
 
         assert result["success"] is True
         assert result["text"] == "APPROVED"
+
+        doc.close()
+
+    def test_add_popup_note(self, sample_pdf):
+        """Test popup note creation."""
+        doc = fitz.open(sample_pdf)
+        enhancer = AnnotationEnhancer(doc)
+
+        result = enhancer.add_popup_note(
+            0, 60, 60, 120, 120, 80, 60, title="Reviewer", contents="Check this"
+        )
+
+        assert result["success"] is True
+        annots = list(doc[0].annots())
+        assert len(annots) == 1
+        assert annots[0].has_popup is True
+        assert annots[0].info["title"] == "Reviewer"
 
         doc.close()
 

@@ -2,6 +2,8 @@
 
 import os
 
+import fitz
+
 
 def upload_pdf(api_client, path: str) -> str:
     """Helper to upload a PDF and return session ID."""
@@ -58,6 +60,65 @@ class TestAdvancedUploadFlows:
         payload = response.json()
         assert payload["success"] is True
         assert payload["data"]["mime_type"] == "audio/wav"
+
+    def test_link_delete_endpoint(self, api_client, sample_pdf: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        add_response = api_client.post(
+            f"/api/documents/{doc_id}/links",
+            json={
+                "page_num": 0,
+                "x": 70,
+                "y": 70,
+                "width": 100,
+                "height": 20,
+                "url": "https://example.com",
+            },
+        )
+        assert add_response.status_code == 200
+
+        links_response = api_client.get(f"/api/documents/{doc_id}/links/0")
+        assert links_response.status_code == 200
+        assert len(links_response.json()["data"]["links"]) == 1
+
+        delete_response = api_client.delete(f"/api/documents/{doc_id}/links/0/0")
+        assert delete_response.status_code == 200
+        assert delete_response.json()["data"]["remaining_links"] == 0
+
+        links_after = api_client.get(f"/api/documents/{doc_id}/links/0")
+        assert links_after.status_code == 200
+        assert links_after.json()["data"]["links"] == []
+
+    def test_popup_note_endpoint(self, api_client, sample_pdf: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        response = api_client.post(
+            f"/api/documents/{doc_id}/annotations/popup",
+            json={
+                "page_num": 0,
+                "parent_x": 60,
+                "parent_y": 60,
+                "popup_x": 120,
+                "popup_y": 120,
+                "popup_width": 80,
+                "popup_height": 60,
+                "title": "Reviewer",
+                "contents": "Check this",
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()["success"] is True
+
+        download = api_client.get(f"/api/documents/{doc_id}/download")
+        assert download.status_code == 200
+
+        doc = fitz.open(stream=download.content, filetype="pdf")
+        annots = list(doc[0].annots())
+        assert len(annots) == 1
+        assert annots[0].has_popup is True
+        assert annots[0].info["title"] == "Reviewer"
+        doc.close()
 
     def test_image_insert_and_replace_upload_endpoints(self, api_client, sample_pdf: str, sample_image: str):
         doc_id = upload_pdf(api_client, sample_pdf)
