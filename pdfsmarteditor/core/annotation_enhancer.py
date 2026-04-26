@@ -392,10 +392,10 @@ class AnnotationEnhancer:
         try:
             # Set colors
             if colors:
-                annot.set_colors(
-                    stroke=colors.get("stroke"),
-                    fill=colors.get("fill"),
-                )
+                if "stroke" in colors and colors["stroke"] is not None:
+                    annot.set_colors(stroke=colors["stroke"])
+                if "fill" in colors and colors["fill"] is not None:
+                    annot.set_colors(fill=colors["fill"])
 
             # Set border
             if border:

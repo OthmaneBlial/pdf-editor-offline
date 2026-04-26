@@ -182,6 +182,43 @@ class TestAdvancedUploadFlows:
         assert response.status_code == 400
         assert "does not match" in response.json()["detail"]
 
+    def test_annotation_appearance_preserves_fill_color(self, api_client, sample_pdf: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        create_response = api_client.post(
+            f"/api/documents/{doc_id}/annotations/polygon",
+            json={
+                "page_num": 0,
+                "points": [[100, 100], [180, 100], [180, 160]],
+                "color": [0, 1, 0],
+                "fill_color": [1, 1, 0],
+                "width": 1,
+            },
+        )
+        assert create_response.status_code == 200
+
+        update_response = api_client.put(
+            f"/api/documents/{doc_id}/annotations/0/appearance",
+            json={
+                "page_num": 0,
+                "annot_index": 0,
+                "stroke_color": [1, 0, 0],
+                "border_width": 2,
+                "border_style": 0,
+                "opacity": 1.0,
+            },
+        )
+        assert update_response.status_code == 200
+
+        download = api_client.get(f"/api/documents/{doc_id}/download")
+        assert download.status_code == 200
+
+        doc = fitz.open(stream=download.content, filetype="pdf")
+        annot = list(doc[0].annots())[0]
+        assert list(annot.colors["stroke"]) == [1.0, 0.0, 0.0]
+        assert list(annot.colors["fill"]) == [1.0, 1.0, 0.0]
+        doc.close()
+
     def test_image_insert_and_replace_upload_endpoints(self, api_client, sample_pdf: str, sample_image: str):
         doc_id = upload_pdf(api_client, sample_pdf)
 
