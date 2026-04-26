@@ -867,6 +867,12 @@ async def insert_textbox_with_border(
     if not rich_text_editor:
         raise HTTPException(status_code=500, detail="Rich text editor not available")
 
+    if request.page_num != page_num:
+        raise HTTPException(
+            status_code=400,
+            detail="Path page_num does not match request.page_num",
+        )
+
     result = rich_text_editor.insert_textbox_with_border(
         page_num,
         request.x,

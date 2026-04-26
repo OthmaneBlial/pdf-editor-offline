@@ -105,6 +105,24 @@ class TestAdvancedTextApi:
         assert response.status_code == 400
         assert "does not match" in response.json()["detail"]
 
+    def test_textbox_with_border_endpoint_rejects_page_num_mismatch(self, api_client, sample_pdf: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        response = api_client.post(
+            f"/api/documents/{doc_id}/pages/0/text/textbox",
+            json={
+                "page_num": 1,
+                "x": 60,
+                "y": 120,
+                "width": 220,
+                "height": 120,
+                "text": "Textbox",
+            },
+        )
+
+        assert response.status_code == 400
+        assert "does not match" in response.json()["detail"]
+
     def test_multifont_text_endpoint_uses_path_page_num(self, api_client, multi_page_pdf: str):
         doc_id = upload_pdf(api_client, multi_page_pdf)
 
