@@ -211,6 +211,15 @@ class NavigationManager:
             else:
                 rect = raw_rect
 
+            def _normalize_point_like(value):
+                if isinstance(value, fitz.Rect):
+                    return [value.x0, value.y0, value.x1, value.y1]
+                if isinstance(value, fitz.Point):
+                    return [value.x, value.y]
+                if isinstance(value, (list, tuple)):
+                    return list(value)
+                return value
+
             link_info = {
                 "index": i,
                 "rect": rect,
@@ -226,7 +235,7 @@ class NavigationManager:
                 link_info["dest_page"] = link["page"]
                 # Add link destination rectangle if available
                 if "to" in link:
-                    link_info["dest_rect"] = link["to"]
+                    link_info["dest_rect"] = _normalize_point_like(link["to"])
             elif "named" in link:
                 link_type = "named"
                 link_info["named_dest"] = link["named"]

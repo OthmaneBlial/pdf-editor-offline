@@ -149,6 +149,13 @@ class TestAdvancedNavigationApi:
         assert payload["type"] == "internal"
         assert payload["destination"] == "Page 1"
 
+        links_response = api_client.get(f"/api/documents/{doc_id}/links/0")
+        assert links_response.status_code == 200
+        links = links_response.json()["data"]["links"]
+        assert len(links) == 1
+        assert links[0]["type"] == "internal"
+        assert links[0]["dest_page"] == 0
+
     def test_add_bookmark_endpoint_returns_page_results(self, api_client, sample_pdf: str):
         doc_id = upload_pdf(api_client, sample_pdf)
 
