@@ -62,3 +62,24 @@ class TestAdvancedNavigationApi:
         delete_response = api_client.delete(f"/api/documents/{doc_id}/links/0/0")
         assert delete_response.status_code == 200
         assert delete_response.json()["success"] is True
+
+    def test_delete_link_endpoint_rejects_invalid_index(self, api_client, sample_pdf: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        add_response = api_client.post(
+            f"/api/documents/{doc_id}/links",
+            json={
+                "page_num": 0,
+                "x": 80,
+                "y": 80,
+                "width": 120,
+                "height": 20,
+                "url": "https://example.com",
+            },
+        )
+        assert add_response.status_code == 200
+
+        delete_response = api_client.delete(f"/api/documents/{doc_id}/links/0/1")
+
+        assert delete_response.status_code == 400
+        assert "Invalid link index" in delete_response.json()["detail"]
