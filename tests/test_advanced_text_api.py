@@ -42,6 +42,18 @@ class TestAdvancedTextApi:
         assert response.status_code == 400
         assert "cannot be empty" in response.json()["detail"]
 
+    def test_get_font_usage_endpoint_returns_stats(self, api_client, sample_pdf: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        response = api_client.get(f"/api/documents/{doc_id}/fonts/0")
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["success"] is True
+        assert payload["data"]["page_num"] == 0
+        assert payload["data"]["total_fonts"] >= 1
+        assert len(payload["data"]["fonts"]) >= 1
+
     def test_replace_text_endpoint_persists_content(self, api_client, sample_pdf: str):
         doc_id = upload_pdf(api_client, sample_pdf)
 
