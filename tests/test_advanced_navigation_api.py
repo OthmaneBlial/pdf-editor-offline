@@ -120,6 +120,14 @@ class TestAdvancedNavigationApi:
         assert response.status_code == 400
         assert "Invalid destination page" in response.json()["detail"]
 
+    def test_delete_link_endpoint_rejects_invalid_page(self, api_client, sample_pdf: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        delete_response = api_client.delete(f"/api/documents/{doc_id}/links/99/0")
+
+        assert delete_response.status_code == 400
+        assert "Invalid page number" in delete_response.json()["detail"]
+
     def test_add_internal_link_endpoint_returns_link_data(self, api_client, sample_pdf: str):
         doc_id = upload_pdf(api_client, sample_pdf)
 
