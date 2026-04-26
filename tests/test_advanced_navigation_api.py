@@ -58,6 +58,24 @@ class TestAdvancedNavigationApi:
         assert toc[0]["title"] == "Intro"
         assert toc[0]["page"] == 1
 
+    def test_set_toc_endpoint_skips_invalid_pages(self, api_client, sample_pdf: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        response = api_client.post(
+            f"/api/documents/{doc_id}/toc",
+            json={
+                "toc": [
+                    {"level": 1, "title": "Intro", "page": 1},
+                    {"level": 1, "title": "Invalid", "page": 99},
+                ]
+            },
+        )
+
+        assert response.status_code == 200
+        payload = response.json()["data"]
+        assert payload["count"] == 1
+        assert payload["errors"] == ["Item 1: Invalid page number 99"]
+
     def test_add_and_delete_link_endpoint(self, api_client, sample_pdf: str):
         doc_id = upload_pdf(api_client, sample_pdf)
 
