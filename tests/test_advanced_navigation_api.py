@@ -37,6 +37,27 @@ class TestAdvancedNavigationApi:
         assert response.status_code == 400
         assert "3 comma-separated values" in response.json()["detail"]
 
+    def test_set_toc_endpoint_round_trip(self, api_client, sample_pdf: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        set_response = api_client.post(
+            f"/api/documents/{doc_id}/toc",
+            json={
+                "toc": [
+                    {"level": 1, "title": "Intro", "page": 1},
+                ]
+            },
+        )
+        assert set_response.status_code == 200
+        assert set_response.json()["success"] is True
+
+        get_response = api_client.get(f"/api/documents/{doc_id}/toc")
+        assert get_response.status_code == 200
+        toc = get_response.json()["data"]["toc"]
+        assert len(toc) == 1
+        assert toc[0]["title"] == "Intro"
+        assert toc[0]["page"] == 1
+
     def test_add_and_delete_link_endpoint(self, api_client, sample_pdf: str):
         doc_id = upload_pdf(api_client, sample_pdf)
 
