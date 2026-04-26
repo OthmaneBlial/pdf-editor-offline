@@ -184,11 +184,28 @@ class TestAdvancedManipulation:
 
     def test_flatten_annotations(self, api_client, sample_pdf: str):
         """Test annotation flattening."""
-        doc_id = upload_pdf(api_client, sample_pdf)
+        annotated_pdf = sample_pdf
+        doc = fitz.open(annotated_pdf)
+        page = doc[0]
+        annot = page.add_rect_annot(fitz.Rect(72, 72, 180, 140))
+        annot.set_colors(stroke=(1, 0, 0), fill=(1, 1, 0))
+        annot.update()
+        doc.saveIncr()
+        doc.close()
+
+        doc_id = upload_pdf(api_client, annotated_pdf)
 
         response = api_client.post(f"/api/documents/{doc_id}/flatten-annotations")
         assert response.status_code == 200
-        assert "annotations_flattened" in response.json()["data"]
+        assert response.json()["data"]["annotations_flattened"] >= 1
+
+        download = api_client.get(f"/api/documents/{doc_id}/download")
+        assert download.status_code == 200
+
+        flattened = fitz.open(stream=download.content, filetype="pdf")
+        assert len(list(flattened[0].annots() or [])) == 0
+        assert len(flattened[0].get_images(full=True)) >= 1
+        flattened.close()
 
     def test_custom_numbering_arabic(self, api_client, multi_page_pdf: str):
         """Test adding Arabic page numbers."""

@@ -551,15 +551,16 @@ async def flatten_annotations(doc_id: str):
     annotations_flattened = 0
     for page_num in range(len(doc)):
         page = doc[page_num]
-        annots = page.annots()
+        annots = list(page.annots() or [])
         if annots:
             for annot in annots:
-                # Get annotation appearance and merge into page
+                # Render the annotation appearance into a pixmap so it becomes
+                # part of the page content before the original annotation is removed.
                 annot.update()
-                annotations_flattened += 1
-            # Remove annotations after flattening (they become part of content)
-            for annot in list(page.annots()):
+                pixmap = annot.get_pixmap(alpha=True)
+                page.insert_image(annot.rect, pixmap=pixmap, overlay=True)
                 page.delete_annot(annot)
+                annotations_flattened += 1
 
     persist_session_document(doc_id)
 
