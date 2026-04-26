@@ -54,6 +54,16 @@ class TestAdvancedTextApi:
         assert payload["data"]["total_fonts"] >= 1
         assert len(payload["data"]["fonts"]) >= 1
 
+    def test_get_text_properties_endpoint_returns_blocks(self, api_client, sample_pdf: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        response = api_client.get(f"/api/documents/{doc_id}/pages/0/text/properties")
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["success"] is True
+        assert len(payload["data"]["blocks"]) >= 1
+
     def test_replace_text_endpoint_persists_content(self, api_client, sample_pdf: str):
         doc_id = upload_pdf(api_client, sample_pdf)
 
