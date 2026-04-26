@@ -765,6 +765,12 @@ async def replace_text(doc_id: str, page_num: int, request: TextReplaceRequest):
     if not text_processor:
         raise HTTPException(status_code=500, detail="Text processor not available")
 
+    if request.page_num != page_num:
+        raise HTTPException(
+            status_code=400,
+            detail="Path page_num does not match request.page_num",
+        )
+
     result = text_processor.replace_text_preserve_font(
         page_num, request.search_text, request.new_text
     )

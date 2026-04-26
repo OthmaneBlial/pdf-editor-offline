@@ -50,6 +50,17 @@ class TestAdvancedTextApi:
         assert "Section" in page_text
         doc.close()
 
+    def test_replace_text_endpoint_rejects_page_num_mismatch(self, api_client, sample_pdf: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        response = api_client.post(
+            f"/api/documents/{doc_id}/pages/0/text/replace",
+            json={"page_num": 1, "search_text": "Page", "new_text": "Section"},
+        )
+
+        assert response.status_code == 400
+        assert "does not match" in response.json()["detail"]
+
     def test_rich_text_endpoint_persists_content(self, api_client, sample_pdf: str):
         doc_id = upload_pdf(api_client, sample_pdf)
 
