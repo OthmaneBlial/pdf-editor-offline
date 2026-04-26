@@ -134,6 +134,27 @@ class TestAdvancedUploadFlows:
         assert annots[0].info["title"] == "Reviewer"
         doc.close()
 
+    def test_popup_note_endpoint_rejects_invalid_page(self, api_client, sample_pdf: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        response = api_client.post(
+            f"/api/documents/{doc_id}/annotations/popup",
+            json={
+                "page_num": 99,
+                "parent_x": 60,
+                "parent_y": 60,
+                "popup_x": 120,
+                "popup_y": 120,
+                "popup_width": 80,
+                "popup_height": 60,
+                "title": "Reviewer",
+                "contents": "Check this",
+            },
+        )
+
+        assert response.status_code == 400
+        assert "Invalid page number" in response.json()["detail"]
+
     def test_annotation_appearance_endpoint(self, api_client, sample_pdf: str):
         doc_id = upload_pdf(api_client, sample_pdf)
 
