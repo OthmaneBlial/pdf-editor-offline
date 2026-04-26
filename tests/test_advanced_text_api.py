@@ -87,6 +87,24 @@ class TestAdvancedTextApi:
         assert "Rich" in page_text
         doc.close()
 
+    def test_rich_text_endpoint_rejects_page_num_mismatch(self, api_client, sample_pdf: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        response = api_client.post(
+            f"/api/documents/{doc_id}/pages/0/text/rich",
+            json={
+                "page_num": 1,
+                "x": 60,
+                "y": 120,
+                "width": 220,
+                "height": 120,
+                "html_content": "<h1>Rich</h1>",
+            },
+        )
+
+        assert response.status_code == 400
+        assert "does not match" in response.json()["detail"]
+
     def test_multifont_text_endpoint_uses_path_page_num(self, api_client, multi_page_pdf: str):
         doc_id = upload_pdf(api_client, multi_page_pdf)
 
