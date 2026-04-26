@@ -79,6 +79,17 @@ class TestAdvancedNavigationApi:
         assert len(bookmarks) >= 1
         assert bookmarks[0]["title"] == "Intro"
 
+    def test_add_bookmark_endpoint_rejects_invalid_page(self, api_client, sample_pdf: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        response = api_client.post(
+            f"/api/documents/{doc_id}/bookmarks",
+            params={"level": 1, "title": "Intro", "page_num": 99},
+        )
+
+        assert response.status_code == 400
+        assert "Invalid page number" in response.json()["detail"]
+
     def test_update_bookmark_endpoint_rejects_invalid_index(self, api_client, sample_pdf: str):
         doc_id = upload_pdf(api_client, sample_pdf)
 
