@@ -63,6 +63,14 @@ class TestAdvancedNavigationApi:
         assert delete_response.status_code == 200
         assert delete_response.json()["success"] is True
 
+    def test_get_page_links_endpoint_rejects_invalid_page(self, api_client, sample_pdf: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        response = api_client.get(f"/api/documents/{doc_id}/links/1")
+
+        assert response.status_code == 400
+        assert "Invalid page number" in response.json()["detail"]
+
     def test_delete_link_endpoint_rejects_invalid_index(self, api_client, sample_pdf: str):
         doc_id = upload_pdf(api_client, sample_pdf)
 
