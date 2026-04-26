@@ -392,20 +392,39 @@ class AnnotationEnhancer:
         try:
             # Set colors
             if colors:
-                if "stroke" in colors:
-                    annot.set_colors(stroke=colors["stroke"])
-                if "fill" in colors:
-                    annot.set_colors(fill=colors["fill"])
+                annot.set_colors(
+                    stroke=colors.get("stroke"),
+                    fill=colors.get("fill"),
+                )
 
             # Set border
             if border:
                 width = border.get("width", 1)
-                style = border.get("style", 0)  # 0=solid, 1=dashed, etc.
+                style = border.get("style")
+
+                # The API uses numeric style identifiers, but PyMuPDF expects
+                # the PDF border codes.
+                if isinstance(style, int):
+                    style_map = {
+                        0: "S",  # Solid
+                        1: "D",  # Dashed
+                        2: "B",  # Beveled
+                        3: "I",  # Inset
+                        4: "U",  # Underline
+                    }
+                    style = style_map.get(style)
+                    if style is None:
+                        raise InvalidOperationError(
+                            f"Unsupported border style value: {border.get('style')}"
+                        )
+
                 annot.set_border(width=width, style=style)
 
             # Set opacity
             if opacity is not None:
                 annot.set_opacity(opacity)
+
+            annot.update()
 
             return {
                 "success": True,

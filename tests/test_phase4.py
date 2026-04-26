@@ -414,6 +414,33 @@ class TestAnnotationEnhancer:
 
         doc.close()
 
+    def test_set_annotation_appearance(self, tmp_path):
+        """Test annotation appearance updates persist."""
+        pdf_path = tmp_path / "annot.pdf"
+        doc = fitz.open()
+        page = doc.new_page()
+        page.add_rect_annot(fitz.Rect(72, 72, 180, 140))
+        doc.save(str(pdf_path))
+        doc.close()
+
+        doc = fitz.open(str(pdf_path))
+        enhancer = AnnotationEnhancer(doc)
+
+        result = enhancer.set_annot_appearance(
+            0,
+            0,
+            colors={"stroke": (1, 0, 0), "fill": (0, 1, 0)},
+            border={"width": 2, "style": 1},
+            opacity=0.5,
+        )
+
+        assert result["success"] is True
+        annot = list(doc[0].annots())[0]
+        assert annot.opacity == 0.5
+        assert list(annot.colors["stroke"]) == [1.0, 0.0, 0.0]
+
+        doc.close()
+
     def test_get_annotation_info(self, sample_pdf):
         """Test getting annotation info."""
         doc = fitz.open(sample_pdf)
