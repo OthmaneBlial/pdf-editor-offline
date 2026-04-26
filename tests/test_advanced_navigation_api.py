@@ -84,6 +84,24 @@ class TestAdvancedNavigationApi:
         assert delete_response.status_code == 200
         assert delete_response.json()["success"] is True
 
+    def test_add_link_endpoint_rejects_invalid_destination_page(self, api_client, sample_pdf: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        response = api_client.post(
+            f"/api/documents/{doc_id}/links",
+            json={
+                "page_num": 0,
+                "x": 80,
+                "y": 80,
+                "width": 120,
+                "height": 20,
+                "dest_page": 99,
+            },
+        )
+
+        assert response.status_code == 400
+        assert "Invalid destination page" in response.json()["detail"]
+
     def test_add_bookmark_endpoint_returns_page_results(self, api_client, sample_pdf: str):
         doc_id = upload_pdf(api_client, sample_pdf)
 
