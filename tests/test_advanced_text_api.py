@@ -54,6 +54,14 @@ class TestAdvancedTextApi:
         assert payload["data"]["total_fonts"] >= 1
         assert len(payload["data"]["fonts"]) >= 1
 
+    def test_get_font_usage_endpoint_rejects_invalid_page(self, api_client, sample_pdf: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        response = api_client.get(f"/api/documents/{doc_id}/fonts/1")
+
+        assert response.status_code == 400
+        assert "Invalid page number" in response.json()["detail"]
+
     def test_get_text_properties_endpoint_returns_blocks(self, api_client, sample_pdf: str):
         doc_id = upload_pdf(api_client, sample_pdf)
 
