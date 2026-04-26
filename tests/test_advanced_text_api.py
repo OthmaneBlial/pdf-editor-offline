@@ -31,6 +31,17 @@ class TestAdvancedTextApi:
         assert payload["data"]["count"] >= 1
         assert len(payload["data"]["matches"]) >= 1
 
+    def test_search_text_endpoint_rejects_empty_query(self, api_client, sample_pdf: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        response = api_client.get(
+            f"/api/documents/{doc_id}/pages/0/text/search",
+            params={"text": "   "},
+        )
+
+        assert response.status_code == 400
+        assert "cannot be empty" in response.json()["detail"]
+
     def test_replace_text_endpoint_persists_content(self, api_client, sample_pdf: str):
         doc_id = upload_pdf(api_client, sample_pdf)
 
