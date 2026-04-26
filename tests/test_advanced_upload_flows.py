@@ -151,6 +151,15 @@ class TestAdvancedUploadFlows:
         assert response.status_code == 200
         assert response.json()["success"] is True
 
+        download = api_client.get(f"/api/documents/{doc_id}/download")
+        assert download.status_code == 200
+
+        doc = fitz.open(stream=download.content, filetype="pdf")
+        annot = list(doc[0].annots())[0]
+        assert list(annot.colors["stroke"]) == [0.0, 0.0, 1.0]
+        assert list(annot.colors["fill"]) == [1.0, 1.0, 0.0]
+        doc.close()
+
     def test_annotation_appearance_rejects_page_mismatch(self, api_client, sample_pdf: str):
         doc_id = upload_pdf(api_client, sample_pdf)
 
