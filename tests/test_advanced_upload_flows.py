@@ -200,6 +200,23 @@ class TestAdvancedUploadFlows:
         assert list(annot.colors["fill"]) == [0.0, 1.0, 0.0]
         doc.close()
 
+    def test_polygon_annotation_endpoint_rejects_invalid_page(self, api_client, sample_pdf: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        response = api_client.post(
+            f"/api/documents/{doc_id}/annotations/polygon",
+            json={
+                "page_num": 99,
+                "points": [[100, 100], [180, 100], [180, 160]],
+                "color": [1, 0, 0],
+                "fill_color": [0, 1, 0],
+                "width": 1,
+            },
+        )
+
+        assert response.status_code == 400
+        assert "Invalid page number" in response.json()["detail"]
+
     def test_polyline_annotation_endpoint_persists_shape(self, api_client, sample_pdf: str):
         doc_id = upload_pdf(api_client, sample_pdf)
 
