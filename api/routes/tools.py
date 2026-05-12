@@ -236,10 +236,45 @@ async def unlock_pdf(file: UploadFile = File(...), password: str = Form(...)):
 
 
 @router.post("/protect")
-async def protect_pdf(file: UploadFile = File(...), password: str = Form(...)):
+async def protect_pdf(
+    file: UploadFile = File(...),
+    password: str = Form(...),
+    owner_password: Optional[str] = Form(None),
+    encryption: str = Form("aes-256"),
+    allow_print: bool = Form(True),
+    allow_copy: bool = Form(False),
+    allow_edit: bool = Form(False),
+    allow_annotate: bool = Form(False),
+    allow_form: bool = Form(True),
+    allow_accessibility: bool = Form(True),
+    allow_assemble: bool = Form(False),
+    allow_high_quality_print: bool = Form(True),
+):
+    if len(password) < 8:
+        raise HTTPException(
+            status_code=400, detail="Password must be at least 8 characters"
+        )
+
     path = await persist_upload_file(file, PDF_MIME, "pro_")
     out_path = os.path.join(TEMP_DIR, f"pro_{uuid.uuid4()}.pdf")
-    PDFManipulator().protect_pdf(path, password, out_path)
+    try:
+        PDFManipulator().protect_pdf(
+            path,
+            password,
+            out_path,
+            owner_password=owner_password,
+            encryption=encryption,
+            allow_print=allow_print,
+            allow_copy=allow_copy,
+            allow_edit=allow_edit,
+            allow_annotate=allow_annotate,
+            allow_form=allow_form,
+            allow_accessibility=allow_accessibility,
+            allow_assemble=allow_assemble,
+            allow_high_quality_print=allow_high_quality_print,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     return FileResponse(
         out_path, filename="protected.pdf", media_type="application/pdf"
     )
@@ -363,7 +398,9 @@ async def pdf_to_svg(file: UploadFile = File(...)):
     with zipfile.ZipFile(zip_path, "w") as zipf:
         for f in out_files:
             zipf.write(f, os.path.basename(f))
-    return FileResponse(zip_path, filename="svg_pages.zip", media_type="application/zip")
+    return FileResponse(
+        zip_path, filename="svg_pages.zip", media_type="application/zip"
+    )
 
 
 # =============================================================================
@@ -524,7 +561,9 @@ async def template_process(
     # Build template dictionary
     template = {}
     if watermark_text:
-        color = tuple(int(watermark_color.lstrip("#")[i : i + 2], 16) / 255 for i in (0, 2, 4))
+        color = tuple(
+            int(watermark_color.lstrip("#")[i : i + 2], 16) / 255 for i in (0, 2, 4)
+        )
         template["watermark"] = {
             "text": watermark_text,
             "opacity": watermark_opacity,

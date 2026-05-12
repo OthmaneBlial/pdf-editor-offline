@@ -123,7 +123,38 @@ const SecurityTools: React.FC = () => {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                            <input type="password" name="password" required className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500" />
+                            <input type="password" name="password" minLength={8} required className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Owner Password</label>
+                            <input type="password" name="owner_password" minLength={8} placeholder="Optional" className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Encryption</label>
+                            <select name="encryption" defaultValue="aes-256" className="w-full p-2 border border-gray-300 rounded-lg">
+                                <option value="aes-256">AES-256</option>
+                                <option value="aes-128">AES-128</option>
+                            </select>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {[
+                                ['allow_print', 'Print', 'true'],
+                                ['allow_copy', 'Copy Text', 'false'],
+                                ['allow_edit', 'Edit Content', 'false'],
+                                ['allow_annotate', 'Annotate', 'false'],
+                                ['allow_form', 'Fill Forms', 'true'],
+                                ['allow_accessibility', 'Accessibility', 'true'],
+                                ['allow_assemble', 'Assemble Pages', 'false'],
+                                ['allow_high_quality_print', 'High Quality Print', 'true'],
+                            ].map(([name, label, defaultValue]) => (
+                                <label key={name} className="text-xs font-medium text-gray-700">
+                                    {label}
+                                    <select name={name} defaultValue={defaultValue} className="mt-1 w-full p-2 border border-gray-300 rounded-lg text-sm">
+                                        <option value="true">Allow</option>
+                                        <option value="false">Block</option>
+                                    </select>
+                                </label>
+                            ))}
                         </div>
                         <button type="submit" disabled={!!loading} className="w-full py-2 px-4 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
                             {loading === 'protect' ? <><RefreshCw className="w-4 h-4 animate-spin" /> Processing...</> : <><Lock className="w-4 h-4" /> Protect PDF</>}

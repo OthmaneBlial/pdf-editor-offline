@@ -6,11 +6,14 @@ from typing import Set
 from fastapi import HTTPException, UploadFile
 
 from api.deps import MAX_UPLOAD_MB, TEMP_DIR
+from api.security import validate_content_type, validate_pdf_file
 
 logger = logging.getLogger(__name__)
 
 
 def sanitize_filename(filename: str) -> str:
+    if any(pattern in filename for pattern in ("..", "/", "\\", "\x00")):
+        raise HTTPException(status_code=400, detail="Invalid upload filename")
     return os.path.basename(filename)
 
 
@@ -28,7 +31,7 @@ def _validate_upload_file(
     upload_file: UploadFile, allowed_types: Set[str], max_mb: int = MAX_UPLOAD_MB
 ):
     content_type = upload_file.content_type or ""
-    if allowed_types and content_type not in allowed_types:
+    if allowed_types and not validate_content_type(content_type, allowed_types):
         raise HTTPException(
             status_code=400,
             detail=f"Unsupported file type '{content_type}'. Allowed: {', '.join(sorted(allowed_types))}",
@@ -51,6 +54,8 @@ async def persist_upload_file(
     content = await upload_file.read()
     if not content:
         raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+    if "application/pdf" in allowed_types:
+        validate_pdf_file(content, safe_filename, MAX_UPLOAD_MB * 1024 * 1024)
 
     with open(storage_path, "wb") as f:
         f.write(content)

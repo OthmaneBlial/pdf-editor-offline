@@ -11,18 +11,24 @@ from api.deps import TEMP_DIR
 # Check for optional dependencies
 try:
     import pdfplumber
+
     has_pdfplumber = True
 except ImportError:
     has_pdfplumber = False
 
 try:
     import pytesseract
+
     has_pytesseract = True
 except ImportError:
     has_pytesseract = False
 
-skip_if_no_pdfplumber = pytest.mark.skipif(not has_pdfplumber, reason="pdfplumber not installed")
-skip_if_no_pytesseract = pytest.mark.skipif(not has_pytesseract, reason="pytesseract not installed")
+skip_if_no_pdfplumber = pytest.mark.skipif(
+    not has_pdfplumber, reason="pdfplumber not installed"
+)
+skip_if_no_pytesseract = pytest.mark.skipif(
+    not has_pytesseract, reason="pytesseract not installed"
+)
 
 
 def _prepare_files(file_tuples: Iterable[Tuple[str, str, str]]):
@@ -179,6 +185,90 @@ def test_sign_pdf(api_client, sample_pdf, sample_image):
         _assert_pdf_response(response)
     finally:
         _close_handles(handles)
+
+
+def test_protect_pdf_uses_aes_256_and_permissions(api_client, sample_pdf):
+    files, handles = _prepare_files([("file", sample_pdf, "application/pdf")])
+    try:
+        response = api_client.post(
+            "/api/tools/protect",
+            files=files,
+            data={
+                "password": "secret-password",
+                "owner_password": "owner-password",
+                "encryption": "aes-256",
+                "allow_print": "true",
+                "allow_copy": "false",
+                "allow_edit": "false",
+                "allow_annotate": "true",
+                "allow_form": "true",
+                "allow_accessibility": "true",
+                "allow_assemble": "false",
+                "allow_high_quality_print": "false",
+            },
+        )
+        assert response.status_code == 200
+    finally:
+        _close_handles(handles)
+
+    doc = fitz.open(stream=response.content, filetype="pdf")
+    try:
+        assert doc.is_encrypted
+        assert doc.authenticate("secret-password")
+        assert doc.permissions & fitz.PDF_PERM_PRINT
+        assert doc.permissions & fitz.PDF_PERM_ANNOTATE
+        assert not doc.permissions & fitz.PDF_PERM_COPY
+        assert not doc.permissions & fitz.PDF_PERM_MODIFY
+    finally:
+        doc.close()
+
+
+def test_protect_pdf_rejects_short_password(api_client, sample_pdf):
+    files, handles = _prepare_files([("file", sample_pdf, "application/pdf")])
+    try:
+        response = api_client.post(
+            "/api/tools/protect",
+            files=files,
+            data={"password": "short"},
+        )
+    finally:
+        _close_handles(handles)
+
+    assert response.status_code == 400
+    assert "at least 8" in response.json()["detail"]
+
+
+def test_unlock_pdf_removes_encryption(api_client, sample_pdf):
+    files, handles = _prepare_files([("file", sample_pdf, "application/pdf")])
+    try:
+        protected_response = api_client.post(
+            "/api/tools/protect",
+            files=files,
+            data={"password": "secret-password"},
+        )
+        assert protected_response.status_code == 200
+    finally:
+        _close_handles(handles)
+
+    files = {
+        "file": (
+            "protected.pdf",
+            io.BytesIO(protected_response.content),
+            "application/pdf",
+        )
+    }
+    unlock_response = api_client.post(
+        "/api/tools/unlock",
+        files=files,
+        data={"password": "secret-password"},
+    )
+
+    assert unlock_response.status_code == 200
+    doc = fitz.open(stream=unlock_response.content, filetype="pdf")
+    try:
+        assert not doc.is_encrypted
+    finally:
+        doc.close()
 
 
 def test_organize_pdf(api_client, multi_page_pdf):

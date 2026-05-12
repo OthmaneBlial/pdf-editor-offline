@@ -35,4 +35,12 @@ describe('SecurityTools', () => {
         expect(screen.getAllByText('Sign PDF').length).toBeGreaterThan(0);
         expect(screen.getAllByText('Watermark PDF').length).toBeGreaterThan(0);
     });
+
+    it('renders granular protect options', () => {
+        render(<SecurityTools />);
+        expect(screen.getByText('AES-256')).toBeInTheDocument();
+        expect(screen.getByText('Copy Text')).toBeInTheDocument();
+        expect(screen.getByText('Edit Content')).toBeInTheDocument();
+        expect(screen.getByText('Annotate')).toBeInTheDocument();
+    });
 });

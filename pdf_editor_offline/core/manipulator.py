@@ -214,25 +214,76 @@ class PDFManipulator:
         Unlock PDF (remove password).
         """
         doc = fitz.open(file_path)
-        if doc.is_encrypted:
-            if not doc.authenticate(password):
-                raise ValueError("Incorrect password")
+        try:
+            if doc.is_encrypted:
+                if not doc.authenticate(password):
+                    raise ValueError("Incorrect password")
 
-        doc.save(output_path)
-        doc.close()
+            doc.save(output_path, encryption=fitz.PDF_ENCRYPT_NONE)
+        finally:
+            doc.close()
 
-    def protect_pdf(self, file_path: str, password: str, output_path: str):
+    def protect_pdf(
+        self,
+        file_path: str,
+        password: str,
+        output_path: str,
+        owner_password: str | None = None,
+        allow_print: bool = True,
+        allow_copy: bool = False,
+        allow_edit: bool = False,
+        allow_annotate: bool = False,
+        allow_form: bool = True,
+        allow_accessibility: bool = True,
+        allow_assemble: bool = False,
+        allow_high_quality_print: bool = True,
+        encryption: str = "aes-256",
+    ):
         """
-        Protect PDF with password.
+        Protect PDF with modern encryption and granular permissions.
         """
+        if not password:
+            raise ValueError("Password cannot be empty")
+
+        encryption_map = {
+            "aes-256": fitz.PDF_ENCRYPT_AES_256,
+            "aes-128": fitz.PDF_ENCRYPT_AES_128,
+        }
+        encryption_method = encryption_map.get(encryption.lower())
+        if encryption_method is None:
+            raise ValueError("Unsupported encryption method")
+
+        permissions = 0
+        if allow_print:
+            permissions |= fitz.PDF_PERM_PRINT
+        if allow_copy:
+            permissions |= fitz.PDF_PERM_COPY
+        if allow_edit:
+            permissions |= fitz.PDF_PERM_MODIFY
+        if allow_annotate:
+            permissions |= fitz.PDF_PERM_ANNOTATE
+        if allow_form:
+            permissions |= fitz.PDF_PERM_FORM
+        if allow_accessibility:
+            permissions |= fitz.PDF_PERM_ACCESSIBILITY
+        if allow_assemble:
+            permissions |= fitz.PDF_PERM_ASSEMBLE
+        if allow_high_quality_print:
+            permissions |= fitz.PDF_PERM_PRINT_HQ
+
         doc = fitz.open(file_path)
-        doc.save(
-            output_path,
-            encryption=fitz.PDF_ENCRYPT_AES_256,
-            owner_pw=password,
-            user_pw=password,
-        )
-        doc.close()
+        try:
+            doc.save(
+                output_path,
+                encryption=encryption_method,
+                owner_pw=owner_password or password,
+                user_pw=password,
+                permissions=permissions,
+                garbage=4,
+                deflate=True,
+            )
+        finally:
+            doc.close()
 
     def organize_pdf(self, file_path: str, page_order: List[int], output_path: str):
         """
