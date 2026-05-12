@@ -16,6 +16,7 @@ vi.mock('../src/contexts/EditorContext', () => ({
 const mockedAxios = axios as unknown as {
   get: ReturnType<typeof vi.fn>;
   post: ReturnType<typeof vi.fn>;
+  put: ReturnType<typeof vi.fn>;
   delete: ReturnType<typeof vi.fn>;
 };
 
@@ -35,11 +36,26 @@ describe('NavigationTools', () => {
 
     mockedAxios.get.mockImplementation((url: string) => {
       if (url.includes('/links/')) {
-        return Promise.resolve({ data: { success: true, data: { links: [] } } });
+        return Promise.resolve({
+          data: {
+            success: true,
+            data: {
+              links: [
+                {
+                  index: 0,
+                  type: 'uri',
+                  uri: 'https://example.com',
+                  rect: [10, 20, 110, 40],
+                },
+              ],
+            },
+          },
+        });
       }
       return Promise.resolve({ data: { success: true, data: { toc: [] } } });
     });
     mockedAxios.post.mockResolvedValue({ data: { success: true, data: {} } });
+    mockedAxios.put.mockResolvedValue({ data: { success: true, data: {} } });
     mockedAxios.delete.mockResolvedValue({ data: { success: true, data: {} } });
   });
 
@@ -87,6 +103,33 @@ describe('NavigationTools', () => {
         expect.objectContaining({
           page_num: 0,
           url: 'https://openai.com',
+        })
+      );
+    });
+  });
+
+  it('updates an existing link from the link form', async () => {
+    render(<NavigationTools />);
+
+    await waitFor(() => {
+      expect(screen.getByText('https://example.com')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTitle('Edit link'));
+    fireEvent.change(screen.getByPlaceholderText('https://example.com'), {
+      target: { value: 'https://updated.example' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Update Link/i }));
+
+    await waitFor(() => {
+      expect(mockedAxios.put).toHaveBeenCalledWith(
+        expect.stringContaining('/api/documents/doc-1/links/0/0'),
+        expect.objectContaining({
+          url: 'https://updated.example',
+          x: 10,
+          y: 20,
+          width: 100,
+          height: 20,
         })
       );
     });

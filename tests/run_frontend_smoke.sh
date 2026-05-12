@@ -26,7 +26,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-.venv/bin/python - <<'PY'
+"$PLAYWRIGHT_PYTHON" - <<'PY'
 import wave
 
 from PIL import Image
@@ -49,7 +49,7 @@ image = Image.new('RGB', (120, 80), color=(34, 139, 230))
 image.save('/tmp/advanced-smoke-image.png')
 PY
 
-.venv/bin/python -m uvicorn api.main:app --host 127.0.0.1 --port 8000 >"$BACKEND_LOG" 2>&1 &
+"$PLAYWRIGHT_PYTHON" -m uvicorn api.main:app --host 127.0.0.1 --port 8000 >"$BACKEND_LOG" 2>&1 &
 BACKEND_PID=$!
 
 (

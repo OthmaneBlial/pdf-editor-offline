@@ -161,6 +161,34 @@ const ImageTools: React.FC = () => {
     }
   };
 
+  const handleExtractImage = async (imageIndex: number) => {
+    if (!sessionId) return;
+
+    setLoading(`extract-${imageIndex}`);
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/api/documents/${sessionId}/images/${currentPage}/${imageIndex}/download`,
+        { responseType: 'blob' }
+      );
+
+      const url = window.URL.createObjectURL(response.data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `page-${currentPage + 1}-image-${imageIndex + 1}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      showMessage('success', 'Image extracted and downloaded');
+    } catch (error) {
+      showMessage('error', 'Failed to extract image');
+      console.error(error);
+    } finally {
+      setLoading(null);
+    }
+  };
+
   const handleOptimizeDocument = async () => {
     if (!sessionId) return;
 
@@ -340,11 +368,29 @@ const ImageTools: React.FC = () => {
                     <span className="text-xs font-medium px-2 py-1 bg-purple-100 text-purple-700 rounded">
                       Image #{index + 1}
                     </span>
-                    {img.format && (
-                      <span className="text-xs text-[var(--text-secondary)] uppercase">
-                        {img.format}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {img.format && (
+                        <span className="text-xs text-[var(--text-secondary)] uppercase">
+                          {img.format}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleExtractImage(index);
+                        }}
+                        disabled={loading === `extract-${index}`}
+                        className="inline-flex items-center gap-1 rounded bg-purple-600 px-2 py-1 text-xs font-medium text-white hover:bg-purple-700 disabled:opacity-50"
+                      >
+                        {loading === `extract-${index}` ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Download className="w-3 h-3" />
+                        )}
+                        Extract
+                      </button>
+                    </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                     <div>

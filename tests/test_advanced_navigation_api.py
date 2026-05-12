@@ -26,7 +26,9 @@ class TestAdvancedNavigationApi:
         assert response.status_code == 200
         assert response.json()["success"] is True
 
-    def test_auto_generate_toc_endpoint_rejects_invalid_thresholds(self, api_client, sample_pdf: str):
+    def test_auto_generate_toc_endpoint_rejects_invalid_thresholds(
+        self, api_client, sample_pdf: str
+    ):
         doc_id = upload_pdf(api_client, sample_pdf)
 
         response = api_client.post(
@@ -102,7 +104,56 @@ class TestAdvancedNavigationApi:
         assert delete_response.status_code == 200
         assert delete_response.json()["success"] is True
 
-    def test_add_link_endpoint_rejects_invalid_destination_page(self, api_client, sample_pdf: str):
+    def test_update_link_endpoint_edits_destination_and_geometry(
+        self, api_client, multi_page_pdf: str
+    ):
+        doc_id = upload_pdf(api_client, multi_page_pdf)
+
+        add_response = api_client.post(
+            f"/api/documents/{doc_id}/links",
+            json={
+                "page_num": 0,
+                "x": 80,
+                "y": 80,
+                "width": 120,
+                "height": 20,
+                "url": "https://example.com",
+            },
+        )
+        assert add_response.status_code == 200
+
+        update_response = api_client.put(
+            f"/api/documents/{doc_id}/links/0/0",
+            json={
+                "x": 90,
+                "y": 100,
+                "width": 150,
+                "height": 30,
+                "dest_page": 2,
+            },
+        )
+        assert update_response.status_code == 200
+        updated = update_response.json()["data"]["updated_link"]
+        assert updated["type"] == "internal"
+        assert updated["dest_page"] == 1
+        assert updated["rect"] == [90.0, 100.0, 240.0, 130.0]
+
+    def test_update_link_endpoint_rejects_invalid_index(
+        self, api_client, sample_pdf: str
+    ):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        response = api_client.put(
+            f"/api/documents/{doc_id}/links/0/0",
+            json={"url": "https://example.com"},
+        )
+
+        assert response.status_code == 400
+        assert "Invalid link index" in response.json()["detail"]
+
+    def test_add_link_endpoint_rejects_invalid_destination_page(
+        self, api_client, sample_pdf: str
+    ):
         doc_id = upload_pdf(api_client, sample_pdf)
 
         response = api_client.post(
@@ -120,7 +171,9 @@ class TestAdvancedNavigationApi:
         assert response.status_code == 400
         assert "Invalid destination page" in response.json()["detail"]
 
-    def test_delete_link_endpoint_rejects_invalid_page(self, api_client, sample_pdf: str):
+    def test_delete_link_endpoint_rejects_invalid_page(
+        self, api_client, sample_pdf: str
+    ):
         doc_id = upload_pdf(api_client, sample_pdf)
 
         delete_response = api_client.delete(f"/api/documents/{doc_id}/links/99/0")
@@ -128,7 +181,9 @@ class TestAdvancedNavigationApi:
         assert delete_response.status_code == 400
         assert "Invalid page number" in delete_response.json()["detail"]
 
-    def test_add_internal_link_endpoint_returns_link_data(self, api_client, sample_pdf: str):
+    def test_add_internal_link_endpoint_returns_link_data(
+        self, api_client, sample_pdf: str
+    ):
         doc_id = upload_pdf(api_client, sample_pdf)
 
         response = api_client.post(
@@ -156,7 +211,9 @@ class TestAdvancedNavigationApi:
         assert links[0]["type"] == "internal"
         assert links[0]["dest_page"] == 0
 
-    def test_add_bookmark_endpoint_returns_page_results(self, api_client, sample_pdf: str):
+    def test_add_bookmark_endpoint_returns_page_results(
+        self, api_client, sample_pdf: str
+    ):
         doc_id = upload_pdf(api_client, sample_pdf)
 
         add_response = api_client.post(
@@ -172,7 +229,29 @@ class TestAdvancedNavigationApi:
         assert len(bookmarks) >= 1
         assert bookmarks[0]["title"] == "Intro"
 
-    def test_add_bookmark_endpoint_rejects_invalid_page(self, api_client, sample_pdf: str):
+    def test_navigate_bookmark_endpoint_resolves_page(
+        self, api_client, multi_page_pdf: str
+    ):
+        doc_id = upload_pdf(api_client, multi_page_pdf)
+
+        add_response = api_client.post(
+            f"/api/documents/{doc_id}/bookmarks",
+            params={"level": 1, "title": "Chapter 2", "page_num": 2},
+        )
+        assert add_response.status_code == 200
+
+        navigate_response = api_client.get(
+            f"/api/documents/{doc_id}/bookmarks/0/navigate"
+        )
+        assert navigate_response.status_code == 200
+        payload = navigate_response.json()["data"]
+        assert payload["title"] == "Chapter 2"
+        assert payload["page"] == 2
+        assert payload["page_index"] == 1
+
+    def test_add_bookmark_endpoint_rejects_invalid_page(
+        self, api_client, sample_pdf: str
+    ):
         doc_id = upload_pdf(api_client, sample_pdf)
 
         response = api_client.post(
@@ -183,7 +262,9 @@ class TestAdvancedNavigationApi:
         assert response.status_code == 400
         assert "Invalid page number" in response.json()["detail"]
 
-    def test_get_bookmarks_by_page_rejects_invalid_page(self, api_client, sample_pdf: str):
+    def test_get_bookmarks_by_page_rejects_invalid_page(
+        self, api_client, sample_pdf: str
+    ):
         doc_id = upload_pdf(api_client, sample_pdf)
 
         response = api_client.get(f"/api/documents/{doc_id}/bookmarks/page/99")
@@ -191,7 +272,9 @@ class TestAdvancedNavigationApi:
         assert response.status_code == 400
         assert "Invalid page number" in response.json()["detail"]
 
-    def test_update_bookmark_endpoint_rejects_invalid_index(self, api_client, sample_pdf: str):
+    def test_update_bookmark_endpoint_rejects_invalid_index(
+        self, api_client, sample_pdf: str
+    ):
         doc_id = upload_pdf(api_client, sample_pdf)
 
         add_response = api_client.post(
@@ -208,7 +291,9 @@ class TestAdvancedNavigationApi:
         assert update_response.status_code == 400
         assert "Invalid bookmark index" in update_response.json()["detail"]
 
-    def test_update_bookmark_endpoint_rejects_invalid_page(self, api_client, sample_pdf: str):
+    def test_update_bookmark_endpoint_rejects_invalid_page(
+        self, api_client, sample_pdf: str
+    ):
         doc_id = upload_pdf(api_client, sample_pdf)
 
         add_response = api_client.post(
@@ -264,7 +349,9 @@ class TestAdvancedNavigationApi:
         assert page_response.status_code == 200
         assert page_response.json()["data"]["bookmarks"] == []
 
-    def test_delete_bookmark_endpoint_rejects_invalid_index(self, api_client, sample_pdf: str):
+    def test_delete_bookmark_endpoint_rejects_invalid_index(
+        self, api_client, sample_pdf: str
+    ):
         doc_id = upload_pdf(api_client, sample_pdf)
 
         delete_response = api_client.delete(f"/api/documents/{doc_id}/bookmarks/0")
@@ -272,7 +359,9 @@ class TestAdvancedNavigationApi:
         assert delete_response.status_code == 400
         assert "Invalid bookmark index" in delete_response.json()["detail"]
 
-    def test_get_page_links_endpoint_rejects_invalid_page(self, api_client, sample_pdf: str):
+    def test_get_page_links_endpoint_rejects_invalid_page(
+        self, api_client, sample_pdf: str
+    ):
         doc_id = upload_pdf(api_client, sample_pdf)
 
         response = api_client.get(f"/api/documents/{doc_id}/links/1")
@@ -280,7 +369,9 @@ class TestAdvancedNavigationApi:
         assert response.status_code == 400
         assert "Invalid page number" in response.json()["detail"]
 
-    def test_delete_link_endpoint_rejects_invalid_index(self, api_client, sample_pdf: str):
+    def test_delete_link_endpoint_rejects_invalid_index(
+        self, api_client, sample_pdf: str
+    ):
         doc_id = upload_pdf(api_client, sample_pdf)
 
         add_response = api_client.post(

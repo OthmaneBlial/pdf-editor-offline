@@ -86,12 +86,13 @@
 
 ---
 
-## 📝 Phase 4: Advanced Editing (PyMuPDF Maximized) ✅
+## 📝 Phase 4: Advanced Editing (PyMuPDF Maximized) ✅ Verified
 *Priority: Medium | Complexity: Medium-High*
 *Realistic advanced features using 100% free, open-source PyMuPDF*
+*Audit note: Re-tested on 2026-05-12 with core regression tests, API tests, frontend tests, production build, and browser smoke. Native sound annotations depend on the installed PyMuPDF build; when unavailable, audio is embedded as a file annotation fallback.*
 
 ### Smart Text Replacement
-- [X] **Font-Aware Replace** - Replace text preserving original font properties (size, color, family)
+- [X] **Font-Aware Replace** - Replace text with a redaction-and-overlay flow that preserves size, color, and best-fit font family where PyMuPDF allows it
 - [X] **Quad-Based Search** - Precise 4-corner text detection for rotated/skewed content
 - [X] **Font Extraction Utility** - Extract all fonts used in document with properties
 - [X] **Best-Fit Font Matching** - Map document fonts to available PyMuPDF fonts
@@ -111,7 +112,7 @@
 ### Advanced Annotations
 - [X] **File Attachments** - Embed files as PDF annotations
 - [X] **Polygon/Polyline Shapes** - Free-form geometric annotations
-- [X] **Audio Annotations** - Add sound annotations to PDFs
+- [X] **Audio Annotations** - Add native sound annotations when supported, with embedded audio fallback on current PyMuPDF builds
 - [X] **Popup Notes** - Attach popup notes to existing annotations
 - [X] **Annotation Appearance** - Full control over colors, borders, styles
 

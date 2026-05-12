@@ -79,6 +79,7 @@ class CropPageRequest(BaseModel):
 # PHASE 4: Advanced Editing Models
 # ============================================
 
+
 # Text Processing Models
 class TextReplaceRequest(BaseModel):
     page_num: int
@@ -168,6 +169,15 @@ class LinkRequest(BaseModel):
     y: float
     width: float
     height: float
+    url: Optional[str] = None
+    dest_page: Optional[int] = None
+
+
+class LinkUpdateRequest(BaseModel):
+    x: Optional[float] = None
+    y: Optional[float] = None
+    width: Optional[float] = None
+    height: Optional[float] = None
     url: Optional[str] = None
     dest_page: Optional[int] = None
 

@@ -31,23 +31,37 @@ describe('ImageTools', () => {
       reportToolResult: vi.fn(),
     });
 
-    mockedAxios.get.mockResolvedValue({
-      data: {
-        success: true,
+    Object.defineProperty(window.URL, 'createObjectURL', {
+      writable: true,
+      value: vi.fn(() => 'blob:extracted-image'),
+    });
+    Object.defineProperty(window.URL, 'revokeObjectURL', {
+      writable: true,
+      value: vi.fn(),
+    });
+
+    mockedAxios.get.mockImplementation((url: string) => {
+      if (url.includes('/download')) {
+        return Promise.resolve({ data: new Blob(['image'], { type: 'image/png' }) });
+      }
+      return Promise.resolve({
         data: {
-          images: [
-            {
-              index: 0,
-              width: 100,
-              height: 80,
-              color_space: 'DeviceRGB',
-              bits_per_component: 8,
-              compression: 'DCT',
-              bbox: [100, 100, 200, 180],
-            },
-          ],
+          success: true,
+          data: {
+            images: [
+              {
+                index: 0,
+                width: 100,
+                height: 80,
+                color_space: 'DeviceRGB',
+                bits_per_component: 8,
+                compression: 'DCT',
+                bbox: [100, 100, 200, 180],
+              },
+            ],
+          },
         },
-      },
+      });
     });
     mockedAxios.post.mockResolvedValue({ data: { success: true } });
   });
@@ -96,6 +110,22 @@ describe('ImageTools', () => {
       expect(mockedAxios.post).toHaveBeenCalledWith(
         expect.stringContaining('/api/documents/doc-1/images/insert/upload'),
         expect.any(FormData)
+      );
+    });
+  });
+
+  it('downloads an extracted embedded image', async () => {
+    render(<ImageTools />);
+    await waitFor(() => {
+      expect(screen.getByText('Image #1')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Extract/i }));
+
+    await waitFor(() => {
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        expect.stringContaining('/api/documents/doc-1/images/0/0/download'),
+        { responseType: 'blob' }
       );
     });
   });

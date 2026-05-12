@@ -5,8 +5,11 @@ This module provides rich text insertion capabilities including HTML/CSS renderi
 multi-font text, and automatic text reflow using PyMuPDF's advanced features.
 """
 
+import html as html_lib
 from typing import Any, Dict, List, Optional, Tuple
+
 import fitz
+
 from .exceptions import InvalidOperationError
 
 
@@ -118,28 +121,27 @@ class RichTextEditor:
         rect = fitz.Rect(x, y, x + width, y + height)
 
         try:
-            # PyMuPDF supports basic HTML/CSS rendering
-            if css:
-                full_html = f"<style>{css}</style>{html_content}"
-            else:
-                full_html = html_content
-
             # Insert the HTML content
             # Note: insert_htmlbox is available in PyMuPDF 1.23.0+
             try:
-                result = page.insert_htmlbox(
-                    rect,
-                    full_html,
-                    css=css if css else None
+                spare_height, scale = page.insert_htmlbox(
+                    rect, html_content, css=css if css else None
                 )
             except TypeError:
                 # Fallback for older versions
-                result = page.insert_htmlbox(rect, full_html)
+                full_html = (
+                    f"<style>{css}</style>{html_content}" if css else html_content
+                )
+                spare_height, scale = page.insert_htmlbox(rect, full_html)
 
             return {
                 "success": True,
                 "rect": [x, y, x + width, y + height],
                 "content_length": len(html_content),
+                "spare_height": spare_height,
+                "scale": scale,
+                "overflow": spare_height < 0,
+                "inserted": spare_height >= 0,
             }
 
         except Exception as e:
@@ -147,7 +149,8 @@ class RichTextEditor:
             try:
                 # Strip HTML tags for fallback
                 import re
-                clean_text = re.sub('<[^<]+?>', '', html_content)
+
+                clean_text = re.sub("<[^<]+?>", "", html_content)
                 page.insert_text(fitz.Point(x, y + 12), clean_text, fontsize=12)
                 return {
                     "success": True,
@@ -187,9 +190,10 @@ class RichTextEditor:
         page = self.document[page_num]
 
         try:
-            # Create TextWriter instance
-            tw = fitz.TextWriter(page.rect)
             point = fitz.Point(x, y)
+            rendered_fragments = 0
+            fallback_used = False
+            used_textwriter = False
 
             for frag in fragments:
                 text = frag.get("text", "")
@@ -197,50 +201,58 @@ class RichTextEditor:
                     continue
 
                 # Get font properties
-                font_name = frag.get("font", "Helvetica")
-                font_size = frag.get("size", 12)
-                color = frag.get("color", (0, 0, 0))
+                font_name = frag.get("font", "Helvetica") or "Helvetica"
+                font_size = frag.get("size", 12) or 12
+                color = self._normalize_color(frag.get("color", (0, 0, 0)))
+                safe_font = self._resolve_font_name(
+                    font_name,
+                    bold=bool(frag.get("bold")),
+                    italic=bool(frag.get("italic")),
+                )
 
-                # Convert color name to RGB if needed
-                if isinstance(color, str):
-                    color = self._color_to_rgb(color)
-
-                # Handle bold/italic by modifying font name
-                if frag.get("bold") and "bold" not in font_name.lower():
-                    font_name = font_name.replace("-", "-Bold-") if "-" in font_name else f"{font_name}-Bold"
-                if frag.get("italic") and "italic" not in font_name.lower() and "oblique" not in font_name.lower():
-                    font_name = font_name.replace("Bold", "BoldOblique") if "Bold" in font_name else f"{font_name}-Oblique"
-
-                # Use a safe font name
                 try:
-                    # Check if font exists, otherwise use default
-                    safe_font = self._get_safe_font(font_name)
+                    font = fitz.Font(fontname=safe_font)
+                    tw = fitz.TextWriter(page.rect)
+                    tw.append(point, text, font=font, fontsize=font_size)
+                    tw.write_text(page, color=color)
+                    advance = font.text_length(text, fontsize=font_size)
+                    used_textwriter = True
                 except Exception:
-                    safe_font = "Helvetica"
-
-                try:
-                    # Append text to writer
-                    tw.append(
+                    # Older PyMuPDF builds may not support TextWriter or fitz.Font
+                    # for all built-in font names. Keep the feature usable.
+                    page.insert_text(
                         point,
                         text,
                         fontname=safe_font,
                         fontsize=font_size,
                         color=color,
                     )
-                except Exception:
-                    # Fallback to simple insertion
-                    page.insert_text(point, text, fontname=safe_font, fontsize=font_size, color=color)
+                    advance = fitz.get_text_length(
+                        text,
+                        fontname=safe_font,
+                        fontsize=font_size,
+                    )
+                    fallback_used = True
 
-                # Update point for next fragment (rough approximation)
-                point.x += len(text) * font_size * 0.5  # Approximate character width
+                point.x += advance
+                rendered_fragments += 1
 
-            # Write the accumulated text to the page
-            tw.write_text(page)
+            if rendered_fragments == 0:
+                raise InvalidOperationError(
+                    "At least one non-empty text fragment is required"
+                )
 
             return {
                 "success": True,
                 "fragments_count": len(fragments),
+                "rendered_fragments": rendered_fragments,
                 "position": [x, y],
+                "method": (
+                    "fallback"
+                    if fallback_used and not used_textwriter
+                    else "textwriter"
+                ),
+                "fallback": fallback_used,
             }
 
         except Exception as e:
@@ -281,21 +293,35 @@ class RichTextEditor:
             # for the actual rendering because it works reliably across the
             # PyMuPDF versions supported by this project.
             more_content = None
+            filled_rect = None
             try:
                 story = fitz.Story(html_content)
-                more_content = story.place(rect)
+                story_result = story.place(rect)
+                if isinstance(story_result, tuple):
+                    more_content = bool(story_result[0])
+                    if len(story_result) > 1 and story_result[1] is not None:
+                        filled_rect = list(fitz.Rect(story_result[1]))
+                else:
+                    more_content = bool(story_result)
             except Exception:
                 more_content = None
 
             spare_height, scale = page.insert_htmlbox(
                 rect,
                 html_content,
+                scale_low=1,
             )
+            overflow = spare_height < 0
+            if more_content is not None:
+                overflow = overflow or more_content
 
             return {
                 "success": True,
                 "rect": [x, y, x + width, y + height],
-                "more_content": more_content,
+                "more_content": overflow if more_content is None else more_content,
+                "overflow": overflow,
+                "inserted": spare_height >= 0,
+                "filled_rect": filled_rect,
                 "spare_height": spare_height,
                 "scale": scale,
             }
@@ -309,9 +335,7 @@ class RichTextEditor:
         except Exception as e:
             raise InvalidOperationError(f"Failed to insert reflow text: {str(e)}")
 
-    def create_rich_text_template(
-        self, template_name: str, **kwargs
-    ) -> str:
+    def create_rich_text_template(self, template_name: str, **kwargs) -> str:
         """
         Get a pre-defined HTML template with substituted values.
 
@@ -330,15 +354,16 @@ class RichTextEditor:
             )
 
         try:
-            return template.format(**kwargs)
+            safe_kwargs = {
+                key: self._escape_template_value(value) for key, value in kwargs.items()
+            }
+            return template.format(**safe_kwargs)
         except KeyError as e:
             raise InvalidOperationError(
                 f"Missing required template parameter: {str(e)}"
             )
 
-    def create_bullet_list(
-        self, items: List[str], ordered: bool = False
-    ) -> str:
+    def create_bullet_list(self, items: List[str], ordered: bool = False) -> str:
         """
         Create HTML for a bullet or numbered list.
 
@@ -354,7 +379,9 @@ class RichTextEditor:
         else:
             template = self.TEMPLATES["bullet_list"]
 
-        items_html = "\n".join([f"  <li>{item}</li>" for item in items])
+        items_html = "\n".join(
+            [f"  <li>{html_lib.escape(str(item), quote=True)}</li>" for item in items]
+        )
         return template.format(items=items_html)
 
     def create_formatted_note(
@@ -376,16 +403,15 @@ class RichTextEditor:
         """
         if note_type not in ["info", "warning", "success", "error"]:
             if note_type == "callout":
-                template = self.TEMPLATES["callout"]
-                return template.format(text=text, title=title or "Note")
+                return self.create_rich_text_template(
+                    "callout", text=text, title=title or "Note"
+                )
             raise InvalidOperationError(
                 f"Invalid note_type: {note_type}. "
                 "Use: info, warning, success, error, or callout"
             )
 
-        template = self.TEMPLATES[note_type]
-
-        return template.format(text=text)
+        return self.create_rich_text_template(note_type, text=text)
 
     def insert_textbox_with_border(
         self,
@@ -471,7 +497,7 @@ class RichTextEditor:
         if color.startswith("#"):
             hex_color = color[1:]
             if len(hex_color) == 3:
-                hex_color = "".join([c*2 for c in hex_color])
+                hex_color = "".join([c * 2 for c in hex_color])
             if len(hex_color) == 6:
                 r = int(hex_color[0:2], 16) / 255
                 g = int(hex_color[2:4], 16) / 255
@@ -480,6 +506,58 @@ class RichTextEditor:
 
         # Default to black
         return (0, 0, 0)
+
+    def _normalize_color(self, color: Any) -> Tuple[float, float, float]:
+        """Normalize supported color inputs to an RGB tuple in the 0-1 range."""
+        if isinstance(color, str):
+            return self._color_to_rgb(color)
+
+        if isinstance(color, (list, tuple)) and len(color) >= 3:
+            return tuple(max(0, min(1, float(component))) for component in color[:3])
+
+        return (0, 0, 0)
+
+    def _resolve_font_name(
+        self,
+        font_name: str,
+        bold: bool = False,
+        italic: bool = False,
+    ) -> str:
+        """Resolve requested font/style flags to a supported built-in font."""
+        safe_font = self._get_safe_font(font_name)
+        font_lower = safe_font.lower()
+        wants_bold = bold or "bold" in font_lower
+        wants_italic = italic or "italic" in font_lower or "oblique" in font_lower
+
+        if "times" in font_lower:
+            if wants_bold and wants_italic:
+                return "Times-BoldItalic"
+            if wants_bold:
+                return "Times-Bold"
+            if wants_italic:
+                return "Times-Italic"
+            return "Times-Roman"
+
+        if "courier" in font_lower:
+            if wants_bold and wants_italic:
+                return "Courier-BoldOblique"
+            if wants_bold:
+                return "Courier-Bold"
+            if wants_italic:
+                return "Courier-Oblique"
+            return "Courier"
+
+        if wants_bold and wants_italic:
+            return "Helvetica-BoldOblique"
+        if wants_bold:
+            return "Helvetica-Bold"
+        if wants_italic:
+            return "Helvetica-Oblique"
+        return "Helvetica"
+
+    def _escape_template_value(self, value: Any) -> str:
+        """Escape caller-provided text before inserting it into HTML templates."""
+        return html_lib.escape(str(value), quote=True)
 
     def _get_safe_font(self, font_name: str) -> str:
         """Return a safe built-in font name based on the requested font."""
@@ -503,7 +581,9 @@ class RichTextEditor:
             return "Times-Roman"
 
         if "helvetica" in font_lower or "arial" in font_lower:
-            if "bold" in font_lower and ("oblique" in font_lower or "italic" in font_lower):
+            if "bold" in font_lower and (
+                "oblique" in font_lower or "italic" in font_lower
+            ):
                 return "Helvetica-BoldOblique"
             elif "bold" in font_lower:
                 return "Helvetica-Bold"
@@ -512,7 +592,9 @@ class RichTextEditor:
             return "Helvetica"
 
         if "courier" in font_lower:
-            if "bold" in font_lower and ("oblique" in font_lower or "italic" in font_lower):
+            if "bold" in font_lower and (
+                "oblique" in font_lower or "italic" in font_lower
+            ):
                 return "Courier-BoldOblique"
             elif "bold" in font_lower:
                 return "Courier-Bold"

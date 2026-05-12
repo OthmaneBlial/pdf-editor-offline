@@ -10,6 +10,7 @@ import {
   Settings,
   Save,
   Download,
+  MessageSquare,
 } from 'lucide-react';
 import { useEditor } from '../../contexts/EditorContext';
 import { API_BASE_URL } from '../../lib/apiClient';
@@ -28,7 +29,7 @@ const AnnotationTools: React.FC = () => {
   const { sessionId, currentPage, saveChanges, exportPDF, hasUnsavedChanges, pageCount, reportToolResult } = useEditor();
   const [loading, setLoading] = useState<string | null>(null);
   const [message, setMessage] = useState<Message | null>(null);
-  const [activeTab, setActiveTab] = useState<'file' | 'sound' | 'polygon' | 'style'>('file');
+  const [activeTab, setActiveTab] = useState<'file' | 'sound' | 'polygon' | 'popup' | 'style'>('file');
 
   // File attachment state
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
@@ -45,17 +46,28 @@ const AnnotationTools: React.FC = () => {
   const [soundY, setSoundY] = useState(100);
 
   // Polygon state
+  const [shapeType, setShapeType] = useState<'polygon' | 'polyline'>('polygon');
   const [polygonPoints, setPolygonPoints] = useState<PolygonPoint[]>([]);
   const [tempPoint, setTempPoint] = useState({ x: 0, y: 0 });
   const [polygonColor, setPolygonColor] = useState<[number, number, number]>([1, 0, 0]);
   const [polygonFill, setPolygonFill] = useState<[number, number, number] | null>(null);
-  const [polygonWidth, setPolygonWidth] = useState(1);
+
+  // Popup note state
+  const [popupParentX, setPopupParentX] = useState(100);
+  const [popupParentY, setPopupParentY] = useState(100);
+  const [popupX, setPopupX] = useState(140);
+  const [popupY, setPopupY] = useState(140);
+  const [popupWidth, setPopupWidth] = useState(160);
+  const [popupHeight, setPopupHeight] = useState(100);
+  const [popupTitle, setPopupTitle] = useState('Comment');
+  const [popupContents, setPopupContents] = useState('');
 
   // Style settings
   const [strokeColor, setStrokeColor] = useState<[number, number, number]>([0, 0, 1]);
   const [fillColor] = useState<[number, number, number] | null>(null);
   const [borderWidth, setBorderWidth] = useState(1);
   const [opacity, setOpacity] = useState(1);
+  const [appearanceAnnotIndex, setAppearanceAnnotIndex] = useState(0);
 
   const showMessage = (type: 'success' | 'error', text: string, refreshDocument = false) => {
     setMessage({ type, text });
@@ -143,38 +155,105 @@ const AnnotationTools: React.FC = () => {
     }
   };
 
-  const handleAddPolygon = async (e: React.FormEvent) => {
+  const handleAddShape = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!sessionId) {
       showMessage('error', 'No document loaded');
       return;
     }
 
-    if (polygonPoints.length < 3) {
-      showMessage('error', 'Polygon requires at least 3 points');
+    const minPoints = shapeType === 'polygon' ? 3 : 2;
+    if (polygonPoints.length < minPoints) {
+      showMessage('error', `${shapeType === 'polygon' ? 'Polygon' : 'Polyline'} requires at least ${minPoints} points`);
       return;
     }
 
     setLoading('polygon');
     try {
       const response = await axios.post(
-        `${API_BASE_URL}/api/documents/${sessionId}/annotations/polygon`,
+        `${API_BASE_URL}/api/documents/${sessionId}/annotations/${shapeType}`,
         {
           page_num: currentPage,
           points: polygonPoints.map((p) => [p.x, p.y]),
-          color: polygonColor,
-          fill_color: polygonFill,
-          width: polygonWidth,
-          opacity: 1,
+          color: strokeColor,
+          fill_color: shapeType === 'polygon' ? polygonFill : undefined,
+          width: borderWidth,
+          opacity,
         }
       );
 
       if (response.data.success) {
-        showMessage('success', 'Polygon annotation added', true);
+        showMessage('success', `${shapeType === 'polygon' ? 'Polygon' : 'Polyline'} annotation added`, true);
         setPolygonPoints([]);
       }
     } catch (error) {
-      showMessage('error', 'Failed to add polygon');
+      showMessage('error', `Failed to add ${shapeType}`);
+      console.error(error);
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleAddPopup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sessionId) {
+      showMessage('error', 'No document loaded');
+      return;
+    }
+
+    setLoading('popup');
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/api/documents/${sessionId}/annotations/popup`,
+        {
+          page_num: currentPage,
+          parent_x: popupParentX,
+          parent_y: popupParentY,
+          popup_x: popupX,
+          popup_y: popupY,
+          popup_width: popupWidth,
+          popup_height: popupHeight,
+          title: popupTitle,
+          contents: popupContents,
+        }
+      );
+
+      if (response.data.success) {
+        showMessage('success', 'Popup note added', true);
+        setPopupContents('');
+      }
+    } catch (error) {
+      showMessage('error', 'Failed to add popup note');
+      console.error(error);
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleApplyAppearance = async () => {
+    if (!sessionId) {
+      showMessage('error', 'No document loaded');
+      return;
+    }
+
+    setLoading('appearance');
+    try {
+      const response = await axios.put(
+        `${API_BASE_URL}/api/documents/${sessionId}/annotations/${currentPage}/appearance`,
+        {
+          page_num: currentPage,
+          annot_index: appearanceAnnotIndex,
+          stroke_color: strokeColor,
+          border_width: borderWidth,
+          opacity,
+        }
+      );
+
+      if (response.data.success) {
+        showMessage('success', 'Annotation appearance updated', true);
+      }
+    } catch (error) {
+      showMessage('error', 'Failed to update annotation appearance');
       console.error(error);
     } finally {
       setLoading(null);
@@ -299,7 +378,18 @@ const AnnotationTools: React.FC = () => {
           }`}
         >
           <PenTool className="w-4 h-4 inline mr-2" />
-          Polygon
+          Shapes
+        </button>
+        <button
+          onClick={() => setActiveTab('popup')}
+          className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+            activeTab === 'popup'
+              ? 'border-sky-600 text-sky-600'
+              : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+          }`}
+        >
+          <MessageSquare className="w-4 h-4 inline mr-2" />
+          Popup
         </button>
         <button
           onClick={() => setActiveTab('style')}
@@ -491,19 +581,30 @@ const AnnotationTools: React.FC = () => {
           </div>
         )}
 
-        {/* Polygon Tab */}
+        {/* Shape Tab */}
         {activeTab === 'polygon' && (
           <div className="bg-[var(--card-bg)] p-6 rounded-xl shadow-sm border border-[var(--border-color)] lg:col-span-2">
             <h3 className="font-semibold text-lg text-[var(--text-primary)] mb-4">
-              Polygon / Free-form Shape
+              Polygon / Polyline Shape
             </h3>
-            <form onSubmit={handleAddPolygon} className="space-y-4">
+            <form onSubmit={handleAddShape} className="space-y-4">
+              <select
+                value={shapeType}
+                onChange={(e) => setShapeType(e.target.value as 'polygon' | 'polyline')}
+                className="w-full max-w-xs p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)]"
+              >
+                <option value="polygon">Closed polygon</option>
+                <option value="polyline">Open polyline</option>
+              </select>
               <div className="flex flex-wrap gap-2 mb-4">
                 {colorOptions.map((c) => (
                   <button
                     key={c.hex}
                     type="button"
-                    onClick={() => setPolygonColor(c.rgb as [number, number, number])}
+                    onClick={() => {
+                      setPolygonColor(c.rgb as [number, number, number]);
+                      setStrokeColor(c.rgb as [number, number, number]);
+                    }}
                     className={`w-8 h-8 rounded border-2 ${
                       polygonColor[0] === c.rgb[0] &&
                       polygonColor[1] === c.rgb[1] &&
@@ -524,8 +625,8 @@ const AnnotationTools: React.FC = () => {
                     type="number"
                     min="1"
                     max="10"
-                    value={polygonWidth}
-                    onChange={(e) => setPolygonWidth(Number(e.target.value))}
+                    value={borderWidth}
+                    onChange={(e) => setBorderWidth(Number(e.target.value))}
                     className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)]"
                   />
                 </div>
@@ -534,6 +635,7 @@ const AnnotationTools: React.FC = () => {
                   <select
                     value={polygonFill ? 'custom' : 'none'}
                     onChange={(e) => setPolygonFill(e.target.value === 'none' ? null : polygonColor)}
+                    disabled={shapeType === 'polyline'}
                     className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)]"
                   >
                     <option value="none">No Fill</option>
@@ -543,7 +645,7 @@ const AnnotationTools: React.FC = () => {
               </div>
 
               <div className="border border-[var(--border-color)] rounded-lg p-4 bg-[var(--input-bg)]">
-                <h4 className="text-sm font-medium text-[var(--text-secondary)] mb-2">Polygon Points</h4>
+                <h4 className="text-sm font-medium text-[var(--text-secondary)] mb-2">Shape Points</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
                   <div>
                     <label className="block text-xs text-[var(--text-secondary)] mb-1">X</label>
@@ -600,7 +702,7 @@ const AnnotationTools: React.FC = () => {
 
               <button
                 type="submit"
-                disabled={!!loading || polygonPoints.length < 3}
+                disabled={!!loading || polygonPoints.length < (shapeType === 'polygon' ? 3 : 2)}
                 className="w-full py-2 px-4 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {loading === 'polygon' ? (
@@ -609,7 +711,91 @@ const AnnotationTools: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    <PenTool className="w-4 h-4" /> Create Polygon ({polygonPoints.length} points)
+                    <PenTool className="w-4 h-4" /> Create {shapeType === 'polygon' ? 'Polygon' : 'Polyline'} ({polygonPoints.length} points)
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* Popup Tab */}
+        {activeTab === 'popup' && (
+          <div className="bg-[var(--card-bg)] p-6 rounded-xl shadow-sm border border-[var(--border-color)] lg:col-span-2">
+            <h3 className="font-semibold text-lg text-[var(--text-primary)] mb-4">
+              Popup Note
+            </h3>
+            <form onSubmit={handleAddPopup} className="space-y-4 max-w-2xl">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <input
+                  type="number"
+                  value={popupParentX}
+                  onChange={(e) => setPopupParentX(Number(e.target.value))}
+                  placeholder="Parent X"
+                  className="p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)] text-sm"
+                />
+                <input
+                  type="number"
+                  value={popupParentY}
+                  onChange={(e) => setPopupParentY(Number(e.target.value))}
+                  placeholder="Parent Y"
+                  className="p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)] text-sm"
+                />
+                <input
+                  type="number"
+                  value={popupX}
+                  onChange={(e) => setPopupX(Number(e.target.value))}
+                  placeholder="Popup X"
+                  className="p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)] text-sm"
+                />
+                <input
+                  type="number"
+                  value={popupY}
+                  onChange={(e) => setPopupY(Number(e.target.value))}
+                  placeholder="Popup Y"
+                  className="p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)] text-sm"
+                />
+                <input
+                  type="number"
+                  value={popupWidth}
+                  onChange={(e) => setPopupWidth(Number(e.target.value))}
+                  placeholder="Width"
+                  className="p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)] text-sm"
+                />
+                <input
+                  type="number"
+                  value={popupHeight}
+                  onChange={(e) => setPopupHeight(Number(e.target.value))}
+                  placeholder="Height"
+                  className="p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)] text-sm"
+                />
+              </div>
+              <input
+                type="text"
+                value={popupTitle}
+                onChange={(e) => setPopupTitle(e.target.value)}
+                placeholder="Title"
+                className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)]"
+              />
+              <textarea
+                value={popupContents}
+                onChange={(e) => setPopupContents(e.target.value)}
+                placeholder="Note contents"
+                rows={4}
+                className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)]"
+              />
+              <button
+                type="submit"
+                disabled={loading === 'popup'}
+                className="w-full py-2 px-4 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {loading === 'popup' ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> Adding...
+                  </>
+                ) : (
+                  <>
+                    <MessageSquare className="w-4 h-4" /> Add Popup Note
                   </>
                 )}
               </button>
@@ -624,8 +810,7 @@ const AnnotationTools: React.FC = () => {
               Annotation Style Settings
             </h3>
             <p className="text-[var(--text-secondary)] mb-4">
-              Configure default appearance for new annotations. These settings will be applied to
-              newly created annotations.
+              Configure shape defaults and update an existing annotation on the current page.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -701,6 +886,29 @@ const AnnotationTools: React.FC = () => {
                   </span>
                 </div>
               </div>
+            </div>
+            <div className="mt-6 flex flex-col sm:flex-row gap-3">
+              <input
+                type="number"
+                min={0}
+                value={appearanceAnnotIndex}
+                onChange={(e) => setAppearanceAnnotIndex(Number(e.target.value))}
+                className="w-full sm:w-40 p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)]"
+                placeholder="Annotation index"
+              />
+              <button
+                type="button"
+                onClick={handleApplyAppearance}
+                disabled={loading === 'appearance'}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50"
+              >
+                {loading === 'appearance' ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Settings className="w-4 h-4" />
+                )}
+                Apply Appearance
+              </button>
             </div>
           </div>
         )}

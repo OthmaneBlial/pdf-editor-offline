@@ -35,6 +35,7 @@ from api.models import (
     ImageMetadata,
     ImageReplaceRequest,
     LinkRequest,
+    LinkUpdateRequest,
     MetadataUpdate,
     MultiFontTextRequest,
     PopupNoteRequest,
@@ -68,10 +69,14 @@ def _parse_rect_csv(rect_value: str) -> Tuple[float, float, float, float]:
     try:
         values = [float(part.strip()) for part in rect_value.split(",")]
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail="old_rect must contain numeric values") from exc
+        raise HTTPException(
+            status_code=400, detail="old_rect must contain numeric values"
+        ) from exc
 
     if len(values) != 4:
-        raise HTTPException(status_code=400, detail="old_rect must have 4 values: x0,y0,x1,y1")
+        raise HTTPException(
+            status_code=400, detail="old_rect must have 4 values: x0,y0,x1,y1"
+        )
 
     x0, y0, x1, y1 = values
     if x1 <= x0 or y1 <= y0:
@@ -94,7 +99,9 @@ async def _store_upload_temporarily(upload: UploadFile, prefix: str) -> str:
         with open(temp_path, "wb") as handle:
             handle.write(file_content)
     except IOError as exc:
-        raise HTTPException(status_code=500, detail="Failed to persist uploaded file") from exc
+        raise HTTPException(
+            status_code=500, detail="Failed to persist uploaded file"
+        ) from exc
     finally:
         await upload.close()
 
@@ -808,7 +815,9 @@ async def insert_rich_text(doc_id: str, page_num: int, request: RichTextInsertRe
 
 
 @router.post("/{doc_id}/pages/{page_num}/text/multifont", response_model=APIResponse)
-async def insert_multifont_text(doc_id: str, page_num: int, request: MultiFontTextRequest):
+async def insert_multifont_text(
+    doc_id: str, page_num: int, request: MultiFontTextRequest
+):
     """Insert text with multiple fonts/styles."""
     session = get_session(doc_id)
     rich_text_editor = session.get("rich_text_editor")
@@ -1005,6 +1014,18 @@ async def update_bookmark(doc_id: str, request: UpdateBookmarkRequest):
     return APIResponse(success=True, data=result)
 
 
+@router.get("/{doc_id}/bookmarks/{index}/navigate", response_model=APIResponse)
+async def navigate_to_bookmark(doc_id: str, index: int):
+    """Resolve a bookmark to its page destination."""
+    session = get_session(doc_id)
+    navigation_manager = session.get("navigation_manager")
+    if not navigation_manager:
+        raise HTTPException(status_code=500, detail="Navigation manager not available")
+
+    result = navigation_manager.navigate_to_bookmark(index)
+    return APIResponse(success=True, data=result)
+
+
 @router.delete("/{doc_id}/bookmarks/{index}", response_model=APIResponse)
 async def delete_bookmark(doc_id: str, index: int):
     """Delete a bookmark by index."""
@@ -1051,7 +1072,8 @@ async def create_toc_from_headers(
     thresholds = tuple(int(x.strip()) for x in font_size_thresholds.split(","))
     if len(thresholds) != 3:
         raise HTTPException(
-            status_code=400, detail="font_size_thresholds must be 3 comma-separated values"
+            status_code=400,
+            detail="font_size_thresholds must be 3 comma-separated values",
         )
 
     result = navigation_manager.create_toc_from_headers(thresholds)
@@ -1085,6 +1107,31 @@ async def add_link(doc_id: str, request: LinkRequest):
 
     result = navigation_manager.add_link(
         request.page_num,
+        request.x,
+        request.y,
+        request.width,
+        request.height,
+        request.url,
+        request.dest_page,
+    )
+    persist_session_document(doc_id)
+
+    return APIResponse(success=True, data=result)
+
+
+@router.put("/{doc_id}/links/{page_num}/{link_index}", response_model=APIResponse)
+async def update_link(
+    doc_id: str, page_num: int, link_index: int, request: LinkUpdateRequest
+):
+    """Update a clickable link on a page."""
+    session = get_session(doc_id)
+    navigation_manager = session.get("navigation_manager")
+    if not navigation_manager:
+        raise HTTPException(status_code=500, detail="Navigation manager not available")
+
+    result = navigation_manager.update_link(
+        page_num,
+        link_index,
         request.x,
         request.y,
         request.width,
@@ -1377,7 +1424,9 @@ async def add_freehand_highlight(doc_id: str, request: FreehandHighlightRequest)
     return APIResponse(success=True, data=result)
 
 
-@router.get("/{doc_id}/annotations/{page_num}/{annot_index}", response_model=APIResponse)
+@router.get(
+    "/{doc_id}/annotations/{page_num}/{annot_index}", response_model=APIResponse
+)
 async def get_annotation_info(doc_id: str, page_num: int, annot_index: int):
     """Get detailed information about a specific annotation."""
     session = get_session(doc_id)
@@ -1402,6 +1451,34 @@ async def get_page_images(doc_id: str, page_num: int):
 
     images = image_processor.extract_images_metadata(page_num)
     return APIResponse(success=True, data={"images": images})
+
+
+@router.get("/{doc_id}/images/{page_num}/{image_index}/download")
+async def download_image(doc_id: str, page_num: int, image_index: int):
+    """Extract one embedded image and return it as a browser download."""
+    session = get_session(doc_id)
+    image_processor = session.get("image_processor")
+    if not image_processor:
+        raise HTTPException(status_code=500, detail="Image processor not available")
+
+    output_base = os.path.join(
+        TEMP_DIR, f"image_{doc_id}_{page_num}_{image_index}_{uuid.uuid4().hex}"
+    )
+    result = image_processor.extract_image_to_file(page_num, image_index, output_base)
+    image_format = result.get("format", "png")
+    source_name = (
+        os.path.splitext(os.path.basename(session["filename"]))[0] or "document"
+    )
+    filename = (
+        f"{source_name}_page_{page_num + 1}_image_{image_index + 1}.{image_format}"
+    )
+    media_format = "jpeg" if image_format.lower() in {"jpg", "jpeg"} else image_format
+
+    return FileResponse(
+        path=result["output_path"],
+        filename=filename,
+        media_type=f"image/{media_format}",
+    )
 
 
 @router.get("/{doc_id}/images", response_model=APIResponse)
@@ -1561,6 +1638,8 @@ async def optimize_document(
     garbage: int = 4,
     deflate: bool = True,
     clean: bool = True,
+    deflate_images: Optional[bool] = None,
+    deflate_fonts: Optional[bool] = None,
     output_filename: Optional[str] = None,
 ):
     """Optimize the entire document and return it."""
@@ -1583,7 +1662,12 @@ async def optimize_document(
         image_processor = ImageProcessor(doc)
 
     result = image_processor.optimize_document(
-        output_path, garbage=garbage, deflate=deflate, clean=clean
+        output_path,
+        garbage=garbage,
+        deflate=deflate,
+        clean=clean,
+        deflate_images=deflate_images,
+        deflate_fonts=deflate_fonts,
     )
 
     # Return the optimized file

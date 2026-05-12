@@ -17,7 +17,9 @@ def upload_pdf(api_client, path: str) -> str:
 
 
 class TestAdvancedUploadFlows:
-    def test_file_attachment_upload_endpoint(self, api_client, sample_pdf: str, sample_docx: str):
+    def test_file_attachment_upload_endpoint(
+        self, api_client, sample_pdf: str, sample_docx: str
+    ):
         doc_id = upload_pdf(api_client, sample_pdf)
 
         with open(sample_docx, "rb") as handle:
@@ -31,7 +33,13 @@ class TestAdvancedUploadFlows:
                     "height": "32",
                     "filename": "attachment.docx",
                 },
-                files={"file": ("attachment.docx", handle, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")},
+                files={
+                    "file": (
+                        "attachment.docx",
+                        handle,
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    )
+                },
             )
 
         assert response.status_code == 200
@@ -46,7 +54,9 @@ class TestAdvancedUploadFlows:
         assert len(list(doc[0].annots())) == 1
         doc.close()
 
-    def test_sound_annotation_upload_endpoint(self, api_client, sample_pdf: str, sample_audio: str):
+    def test_sound_annotation_upload_endpoint(
+        self, api_client, sample_pdf: str, sample_audio: str
+    ):
         doc_id = upload_pdf(api_client, sample_pdf)
 
         with open(sample_audio, "rb") as handle:
@@ -134,7 +144,9 @@ class TestAdvancedUploadFlows:
         assert annots[0].info["title"] == "Reviewer"
         doc.close()
 
-    def test_popup_note_endpoint_rejects_invalid_page(self, api_client, sample_pdf: str):
+    def test_popup_note_endpoint_rejects_invalid_page(
+        self, api_client, sample_pdf: str
+    ):
         doc_id = upload_pdf(api_client, sample_pdf)
 
         response = api_client.post(
@@ -195,7 +207,9 @@ class TestAdvancedUploadFlows:
         assert list(annot.colors["fill"]) == [1.0, 1.0, 0.0]
         doc.close()
 
-    def test_polygon_annotation_endpoint_persists_shape(self, api_client, sample_pdf: str):
+    def test_polygon_annotation_endpoint_persists_shape(
+        self, api_client, sample_pdf: str
+    ):
         doc_id = upload_pdf(api_client, sample_pdf)
 
         response = api_client.post(
@@ -221,7 +235,9 @@ class TestAdvancedUploadFlows:
         assert list(annot.colors["fill"]) == [0.0, 1.0, 0.0]
         doc.close()
 
-    def test_polygon_annotation_endpoint_rejects_invalid_page(self, api_client, sample_pdf: str):
+    def test_polygon_annotation_endpoint_rejects_invalid_page(
+        self, api_client, sample_pdf: str
+    ):
         doc_id = upload_pdf(api_client, sample_pdf)
 
         response = api_client.post(
@@ -238,7 +254,9 @@ class TestAdvancedUploadFlows:
         assert response.status_code == 400
         assert "Invalid page number" in response.json()["detail"]
 
-    def test_polyline_annotation_endpoint_persists_shape(self, api_client, sample_pdf: str):
+    def test_polyline_annotation_endpoint_persists_shape(
+        self, api_client, sample_pdf: str
+    ):
         doc_id = upload_pdf(api_client, sample_pdf)
 
         response = api_client.post(
@@ -262,7 +280,9 @@ class TestAdvancedUploadFlows:
         assert list(annot.colors["stroke"]) == [1.0, 0.0, 0.0]
         doc.close()
 
-    def test_polyline_annotation_endpoint_rejects_invalid_page(self, api_client, sample_pdf: str):
+    def test_polyline_annotation_endpoint_rejects_invalid_page(
+        self, api_client, sample_pdf: str
+    ):
         doc_id = upload_pdf(api_client, sample_pdf)
 
         response = api_client.post(
@@ -278,7 +298,9 @@ class TestAdvancedUploadFlows:
         assert response.status_code == 400
         assert "Invalid page number" in response.json()["detail"]
 
-    def test_annotation_appearance_rejects_page_mismatch(self, api_client, sample_pdf: str):
+    def test_annotation_appearance_rejects_page_mismatch(
+        self, api_client, sample_pdf: str
+    ):
         doc_id = upload_pdf(api_client, sample_pdf)
 
         create_response = api_client.post(
@@ -309,7 +331,9 @@ class TestAdvancedUploadFlows:
         assert response.status_code == 400
         assert "does not match" in response.json()["detail"]
 
-    def test_annotation_appearance_preserves_fill_color(self, api_client, sample_pdf: str):
+    def test_annotation_appearance_preserves_fill_color(
+        self, api_client, sample_pdf: str
+    ):
         doc_id = upload_pdf(api_client, sample_pdf)
 
         create_response = api_client.post(
@@ -346,7 +370,9 @@ class TestAdvancedUploadFlows:
         assert list(annot.colors["fill"]) == [1.0, 1.0, 0.0]
         doc.close()
 
-    def test_image_insert_and_replace_upload_endpoints(self, api_client, sample_pdf: str, sample_image: str):
+    def test_image_insert_and_replace_upload_endpoints(
+        self, api_client, sample_pdf: str, sample_image: str
+    ):
         doc_id = upload_pdf(api_client, sample_pdf)
 
         with open(sample_image, "rb") as handle:
@@ -400,7 +426,9 @@ class TestAdvancedUploadFlows:
         assert rects[0].y1 <= first_rect[3]
         doc.close()
 
-    def test_image_replace_without_aspect_ratio_endpoint(self, api_client, sample_pdf: str, sample_image: str):
+    def test_image_replace_without_aspect_ratio_endpoint(
+        self, api_client, sample_pdf: str, sample_image: str
+    ):
         doc_id = upload_pdf(api_client, sample_pdf)
 
         with open(sample_image, "rb") as handle:
@@ -454,7 +482,9 @@ class TestAdvancedUploadFlows:
         assert rects[0].y1 == first_rect[3]
         doc.close()
 
-    def test_image_replace_json_endpoint_without_aspect_ratio(self, api_client, sample_pdf: str, sample_image: str):
+    def test_image_replace_json_endpoint_without_aspect_ratio(
+        self, api_client, sample_pdf: str, sample_image: str
+    ):
         doc_id = upload_pdf(api_client, sample_pdf)
 
         insert_response = api_client.post(
@@ -497,7 +527,9 @@ class TestAdvancedUploadFlows:
         assert rects[0].y1 == 150
         doc.close()
 
-    def test_image_insert_without_aspect_ratio_endpoint(self, api_client, sample_pdf: str, sample_image: str):
+    def test_image_insert_without_aspect_ratio_endpoint(
+        self, api_client, sample_pdf: str, sample_image: str
+    ):
         doc_id = upload_pdf(api_client, sample_pdf)
 
         response = api_client.post(
@@ -529,7 +561,9 @@ class TestAdvancedUploadFlows:
         assert rects[0].y1 == 150
         doc.close()
 
-    def test_image_replace_upload_rejects_invalid_rect(self, api_client, sample_pdf: str, sample_image: str):
+    def test_image_replace_upload_rejects_invalid_rect(
+        self, api_client, sample_pdf: str, sample_image: str
+    ):
         doc_id = upload_pdf(api_client, sample_pdf)
 
         with open(sample_image, "rb") as handle:
@@ -545,6 +579,34 @@ class TestAdvancedUploadFlows:
 
         assert response.status_code == 400
         assert "old_rect" in response.json()["detail"]
+
+    def test_image_download_endpoint_returns_embedded_image(
+        self, api_client, sample_pdf: str, sample_image: str
+    ):
+        doc_id = upload_pdf(api_client, sample_pdf)
+
+        with open(sample_image, "rb") as handle:
+            insert_response = api_client.post(
+                f"/api/documents/{doc_id}/images/insert/upload",
+                data={
+                    "page_num": "0",
+                    "x": "80",
+                    "y": "80",
+                    "width": "60",
+                    "height": "60",
+                    "maintain_aspect": "true",
+                },
+                files={"image": ("insert.png", handle, "image/png")},
+            )
+        assert insert_response.status_code == 200
+
+        download_response = api_client.get(
+            f"/api/documents/{doc_id}/images/0/0/download"
+        )
+
+        assert download_response.status_code == 200
+        assert download_response.headers["content-type"].startswith("image/")
+        assert len(download_response.content) > 0
 
 
 class TestAdvancedEditingSmoke:
@@ -603,15 +665,34 @@ class TestAdvancedEditingSmoke:
         with open(sample_docx, "rb") as attachment:
             file_annot_response = api_client.post(
                 f"/api/documents/{doc_id}/annotations/file/upload",
-                data={"page_num": "0", "x": "100", "y": "100", "width": "32", "height": "32"},
-                files={"file": ("attachment.docx", attachment, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")},
+                data={
+                    "page_num": "0",
+                    "x": "100",
+                    "y": "100",
+                    "width": "32",
+                    "height": "32",
+                },
+                files={
+                    "file": (
+                        "attachment.docx",
+                        attachment,
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    )
+                },
             )
         assert file_annot_response.status_code == 200
 
         with open(sample_audio, "rb") as audio:
             sound_response = api_client.post(
                 f"/api/documents/{doc_id}/annotations/sound/upload",
-                data={"page_num": "0", "x": "140", "y": "140", "width": "32", "height": "32", "mime_type": "audio/wav"},
+                data={
+                    "page_num": "0",
+                    "x": "140",
+                    "y": "140",
+                    "width": "32",
+                    "height": "32",
+                    "mime_type": "audio/wav",
+                },
                 files={"audio": ("audio.wav", audio, "audio/wav")},
             )
         assert sound_response.status_code == 200

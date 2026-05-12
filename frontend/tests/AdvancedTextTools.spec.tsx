@@ -77,4 +77,25 @@ describe('AdvancedTextTools', () => {
 
     expect(await screen.findByText(/Match #1/i)).toBeInTheDocument();
   });
+
+  it('can send rich text through the reflow endpoint', async () => {
+    render(<AdvancedTextTools />);
+
+    fireEvent.change(screen.getByRole('combobox'), {
+      target: { value: 'reflow' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('<p>HTML content here...</p>'), {
+      target: { value: '<p>Wrapped text</p>' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Insert Rich Text/i }));
+
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        expect.stringContaining('/api/documents/doc-1/pages/0/text/reflow'),
+        expect.objectContaining({
+          html_content: '<p>Wrapped text</p>',
+        })
+      );
+    });
+  });
 });

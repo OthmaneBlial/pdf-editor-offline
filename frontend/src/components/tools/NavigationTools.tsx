@@ -14,6 +14,8 @@ import {
   Loader2,
   Save,
   Download,
+  Pencil,
+  X,
 } from 'lucide-react';
 import { useEditor } from '../../contexts/EditorContext';
 import { API_BASE_URL } from '../../lib/apiClient';
@@ -60,6 +62,7 @@ const NavigationTools: React.FC = () => {
   const [newLinkType, setNewLinkType] = useState<LinkType>('url');
   const [newLinkUrl, setNewLinkUrl] = useState('');
   const [newLinkDestPage, setNewLinkDestPage] = useState(1);
+  const [editingLinkIndex, setEditingLinkIndex] = useState<number | null>(null);
   const [linkX, setLinkX] = useState(100);
   const [linkY, setLinkY] = useState(100);
   const [linkWidth, setLinkWidth] = useState(180);
@@ -181,6 +184,31 @@ const NavigationTools: React.FC = () => {
     }
   };
 
+  const handleNavigateBookmark = async (index: number, fallbackPage: number) => {
+    if (!sessionId) {
+      navigateToPage(fallbackPage);
+      return;
+    }
+
+    setLoading('navigate-bookmark');
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/api/documents/${sessionId}/bookmarks/${index}/navigate`
+      );
+
+      if (response.data.success) {
+        const pageIndex = response.data.data.page_index;
+        setCurrentPage(pageIndex);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    } catch (error) {
+      navigateToPage(fallbackPage);
+      console.error(error);
+    } finally {
+      setLoading(null);
+    }
+  };
+
   const handleDeleteLink = async (linkIndex: number) => {
     if (!sessionId) return;
 
@@ -192,6 +220,9 @@ const NavigationTools: React.FC = () => {
 
       if (response.data.success) {
         showMessage('success', 'Link deleted', true);
+        if (editingLinkIndex === linkIndex) {
+          resetLinkForm();
+        }
         loadLinks();
       }
     } catch (error) {
@@ -227,7 +258,35 @@ const NavigationTools: React.FC = () => {
     }
   };
 
-  const handleAddLink = async (e: React.FormEvent) => {
+  const resetLinkForm = () => {
+    setEditingLinkIndex(null);
+    setNewLinkType('url');
+    setNewLinkUrl('');
+    setNewLinkDestPage(1);
+    setLinkX(100);
+    setLinkY(100);
+    setLinkWidth(180);
+    setLinkHeight(24);
+  };
+
+  const startEditingLink = (link: LinkItem) => {
+    setEditingLinkIndex(link.index);
+    if (link.uri) {
+      setNewLinkType('url');
+      setNewLinkUrl(link.uri);
+    } else {
+      setNewLinkType('internal');
+      setNewLinkUrl('');
+      setNewLinkDestPage((link.dest_page ?? 0) + 1);
+    }
+    const [x0, y0, x1, y1] = link.rect;
+    setLinkX(Math.round(x0));
+    setLinkY(Math.round(y0));
+    setLinkWidth(Math.max(1, Math.round(x1 - x0)));
+    setLinkHeight(Math.max(1, Math.round(y1 - y0)));
+  };
+
+  const handleSubmitLink = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!sessionId) return;
 
@@ -243,28 +302,33 @@ const NavigationTools: React.FC = () => {
 
     setLoading('add-link');
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/api/documents/${sessionId}/links`,
-        {
-          page_num: currentPage,
-          x: linkX,
-          y: linkY,
-          width: linkWidth,
-          height: linkHeight,
-          url: newLinkType === 'url' ? newLinkUrl.trim() : undefined,
-          dest_page: newLinkType === 'internal' ? newLinkDestPage : undefined,
-        }
-      );
+      const payload = {
+        page_num: currentPage,
+        x: linkX,
+        y: linkY,
+        width: linkWidth,
+        height: linkHeight,
+        url: newLinkType === 'url' ? newLinkUrl.trim() : undefined,
+        dest_page: newLinkType === 'internal' ? newLinkDestPage : undefined,
+      };
+
+      const response = editingLinkIndex === null
+        ? await axios.post(`${API_BASE_URL}/api/documents/${sessionId}/links`, payload)
+        : await axios.put(
+            `${API_BASE_URL}/api/documents/${sessionId}/links/${currentPage}/${editingLinkIndex}`,
+            payload
+          );
 
       if (response.data.success) {
-        showMessage('success', 'Link added', true);
+        showMessage('success', editingLinkIndex === null ? 'Link added' : 'Link updated', true);
         if (newLinkType === 'url') {
           setNewLinkUrl('');
         }
+        setEditingLinkIndex(null);
         await loadLinks();
       }
     } catch (error) {
-      showMessage('error', 'Failed to add link');
+      showMessage('error', editingLinkIndex === null ? 'Failed to add link' : 'Failed to update link');
       console.error(error);
     } finally {
       setLoading(null);
@@ -526,7 +590,7 @@ const NavigationTools: React.FC = () => {
                   style={{ paddingLeft: `${item.level * 12 + 8}px` }}
                 >
                   <button
-                    onClick={() => navigateToPage(item.page)}
+                    onClick={() => handleNavigateBookmark(index, item.page)}
                     className="flex-1 text-left text-sm text-[var(--text-primary)] hover:text-[var(--accent-color)]"
                   >
                     {item.title}
@@ -605,6 +669,13 @@ const NavigationTools: React.FC = () => {
                       )}
                     </div>
                     <button
+                      onClick={() => startEditingLink(link)}
+                      className="p-1 opacity-0 group-hover:opacity-100 hover:bg-blue-100 rounded text-blue-500"
+                      title="Edit link"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                    <button
                       onClick={() => handleDeleteLink(link.index)}
                       className="p-1 opacity-0 group-hover:opacity-100 hover:bg-red-100 rounded text-red-500"
                     >
@@ -620,7 +691,20 @@ const NavigationTools: React.FC = () => {
             )}
           </div>
 
-          <form onSubmit={handleAddLink} className="mt-4 space-y-2">
+          <form onSubmit={handleSubmitLink} className="mt-4 space-y-2">
+            {editingLinkIndex !== null && (
+              <div className="flex items-center justify-between rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 text-sm text-purple-700">
+                <span>Editing link #{editingLinkIndex + 1}</span>
+                <button
+                  type="button"
+                  onClick={resetLinkForm}
+                  className="p-1 hover:bg-purple-100 rounded"
+                  title="Cancel link edit"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-2">
               <div className="col-span-2">
                 <select
@@ -693,11 +777,11 @@ const NavigationTools: React.FC = () => {
               {loading === 'add-link' ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Adding...
+                  {editingLinkIndex === null ? 'Adding...' : 'Updating...'}
                 </>
               ) : (
                 <>
-                  <Plus className="w-4 h-4" /> Add New Link
+                  <Plus className="w-4 h-4" /> {editingLinkIndex === null ? 'Add New Link' : 'Update Link'}
                 </>
               )}
             </button>

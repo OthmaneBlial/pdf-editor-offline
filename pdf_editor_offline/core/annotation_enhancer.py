@@ -135,20 +135,33 @@ class AnnotationEnhancer:
 
             point = fitz.Point(x, y)
 
-            # Newer versions provide add_sound_annot. Fallback to file attachment where unavailable.
-            if hasattr(page, "add_sound_annot"):
-                annot = page.add_sound_annot(
-                    point,
-                    sound_data,
-                    mime_type=mime_type,
-                    color=color,
-                )
-                try:
-                    annot.update()
-                except Exception:
-                    pass
-                fallback_used = False
-            else:
+            # PyMuPDF commonly lacks a public sound-annotation creator. If a
+            # version provides one but its signature rejects our call, preserve
+            # the audio by falling back to a discoverable file attachment.
+            annot = None
+            sound_error = None
+            add_sound_annot = getattr(page, "add_sound_annot", None)
+            if callable(add_sound_annot):
+                for args, kwargs in (
+                    ((point, sound_data), {"mime_type": mime_type, "color": color}),
+                    ((point, sound_data), {"mime_type": mime_type}),
+                    ((point, sound_data), {}),
+                ):
+                    try:
+                        annot = add_sound_annot(*args, **kwargs)
+                        try:
+                            annot.set_colors(stroke=color)
+                        except Exception:
+                            pass
+                        try:
+                            annot.update()
+                        except Exception:
+                            pass
+                        break
+                    except Exception as exc:
+                        sound_error = exc
+
+            if annot is None:
                 filename = os.path.basename(audio_path)
                 annot = page.add_file_annot(
                     point,
@@ -164,6 +177,8 @@ class AnnotationEnhancer:
                     annot.update()
                 except Exception:
                     pass
+            else:
+                fallback_used = False
 
             return {
                 "success": True,
@@ -171,6 +186,9 @@ class AnnotationEnhancer:
                 "file_size": len(sound_data),
                 "rect": [x, y, x + width, y + height],
                 "fallback_used": fallback_used,
+                "fallback_reason": (
+                    str(sound_error) if fallback_used and sound_error else None
+                ),
             }
 
         except Exception as e:
@@ -220,7 +238,9 @@ class AnnotationEnhancer:
                 annot.set_colors(stroke=color, fill=fill_color)
             else:
                 annot.set_colors(stroke=color)
-            annot.set_border(width)
+            annot.set_border(width=width)
+            annot.set_opacity(opacity)
+            annot.update()
 
             # Get the bounding rect
             rect = annot.rect
@@ -231,6 +251,8 @@ class AnnotationEnhancer:
                 "rect": [rect.x0, rect.y0, rect.x1, rect.y1],
                 "color": color,
                 "fill_color": fill_color,
+                "width": width,
+                "opacity": opacity,
             }
 
         except Exception as e:
@@ -274,6 +296,8 @@ class AnnotationEnhancer:
             # Set appearance - no fill
             annot.set_colors(stroke=color)
             annot.set_border(width=width)
+            annot.set_opacity(opacity)
+            annot.update()
 
             rect = annot.rect
 
@@ -282,6 +306,8 @@ class AnnotationEnhancer:
                 "points_count": len(points),
                 "rect": [rect.x0, rect.y0, rect.x1, rect.y1],
                 "color": color,
+                "width": width,
+                "opacity": opacity,
             }
 
         except Exception as e:
@@ -348,7 +374,12 @@ class AnnotationEnhancer:
                     parent_annot.rect.x1,
                     parent_annot.rect.y1,
                 ],
-                "popup_rect": [popup_x, popup_y, popup_x + popup_width, popup_y + popup_height],
+                "popup_rect": [
+                    popup_x,
+                    popup_y,
+                    popup_x + popup_width,
+                    popup_y + popup_height,
+                ],
                 "title": title,
             }
 
@@ -432,7 +463,9 @@ class AnnotationEnhancer:
             }
 
         except Exception as e:
-            raise InvalidOperationError(f"Failed to set annotation appearance: {str(e)}")
+            raise InvalidOperationError(
+                f"Failed to set annotation appearance: {str(e)}"
+            )
 
     def add_freehand_highlight(
         self,
@@ -525,7 +558,9 @@ class AnnotationEnhancer:
                     "fallback": "ink",
                 }
             except Exception:
-                raise InvalidOperationError(f"Failed to add freehand highlight: {str(e)}")
+                raise InvalidOperationError(
+                    f"Failed to add freehand highlight: {str(e)}"
+                )
 
         return {
             "success": False,

@@ -34,6 +34,8 @@ interface Message {
   text: string;
 }
 
+type RichInsertMode = 'html' | 'reflow' | 'textbox' | 'multifont';
+
 const AdvancedTextTools: React.FC = () => {
   const { sessionId, currentPage, saveChanges, exportPDF, hasUnsavedChanges, reportToolResult } = useEditor();
   const [loading, setLoading] = useState<string | null>(null);
@@ -50,6 +52,7 @@ const AdvancedTextTools: React.FC = () => {
   const [textBoxHeight, setTextBoxHeight] = useState(100);
   const [textBoxX, setTextBoxX] = useState(100);
   const [textBoxY, setTextBoxY] = useState(100);
+  const [richInsertMode, setRichInsertMode] = useState<RichInsertMode>('html');
 
   // Font info state
   const [fonts, setFonts] = useState<FontInfo[]>([]);
@@ -104,21 +107,72 @@ const AdvancedTextTools: React.FC = () => {
     setMessage(null);
 
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/api/documents/${sessionId}/pages/${currentPage}/text/rich`,
-        {
+      const basePayload = {
+        page_num: currentPage,
+        x: textBoxX,
+        y: textBoxY,
+        width: textBoxWidth,
+        height: textBoxHeight,
+      };
+
+      const endpointByMode: Record<RichInsertMode, string> = {
+        html: 'rich',
+        reflow: 'reflow',
+        textbox: 'textbox',
+        multifont: 'multifont',
+      };
+
+      const plainText = richText.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() || 'Mixed font text';
+      const payloadByMode = {
+        html: {
+          ...basePayload,
+          html_content: richText,
+          css: richTextCss || undefined,
+        },
+        reflow: {
+          ...basePayload,
+          html_content: richText,
+        },
+        textbox: {
+          ...basePayload,
+          text: plainText,
+          border_color: [0, 0, 0],
+          background_color: [1, 1, 1],
+          font_size: 12,
+          padding: 5,
+        },
+        multifont: {
           page_num: currentPage,
           x: textBoxX,
           y: textBoxY,
-          width: textBoxWidth,
-          height: textBoxHeight,
-          html_content: richText,
-          css: richTextCss || undefined,
-        }
+          fragments: [
+            {
+              text: plainText,
+              font: 'Helvetica',
+              size: 14,
+              color: [0, 0, 0],
+              bold: false,
+              italic: false,
+            },
+            {
+              text: '  styled',
+              font: 'Helvetica',
+              size: 16,
+              color: [0.1, 0.35, 0.75],
+              bold: true,
+              italic: false,
+            },
+          ],
+        },
+      };
+
+      const response = await axios.post(
+        `${API_BASE_URL}/api/documents/${sessionId}/pages/${currentPage}/text/${endpointByMode[richInsertMode]}`,
+        payloadByMode[richInsertMode]
       );
 
       if (response.data.success) {
-        showMessage('success', 'Rich text inserted successfully', true);
+        showMessage('success', 'Text inserted successfully', true);
       }
     } catch (error) {
       showMessage('error', 'Failed to insert rich text');
@@ -383,6 +437,21 @@ const AdvancedTextTools: React.FC = () => {
           </div>
 
           <form onSubmit={handleRichTextInsert} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
+                Insert Mode
+              </label>
+              <select
+                value={richInsertMode}
+                onChange={(e) => setRichInsertMode(e.target.value as RichInsertMode)}
+                className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)] text-sm"
+              >
+                <option value="html">HTML/CSS box</option>
+                <option value="reflow">Story reflow</option>
+                <option value="textbox">Bordered text box</option>
+                <option value="multifont">Multi-font line</option>
+              </select>
+            </div>
             <div>
               <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
                 HTML Content

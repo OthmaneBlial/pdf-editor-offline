@@ -15,6 +15,7 @@ vi.mock('../src/contexts/EditorContext', () => ({
 
 const mockedAxios = axios as unknown as {
   post: ReturnType<typeof vi.fn>;
+  put: ReturnType<typeof vi.fn>;
 };
 
 describe('AnnotationTools', () => {
@@ -30,6 +31,7 @@ describe('AnnotationTools', () => {
       reportToolResult: vi.fn(),
     });
     mockedAxios.post.mockResolvedValue({ data: { success: true } });
+    mockedAxios.put.mockResolvedValue({ data: { success: true } });
   });
 
   it('uploads file attachment annotation using multipart endpoint', async () => {
@@ -67,6 +69,25 @@ describe('AnnotationTools', () => {
       expect(mockedAxios.post).toHaveBeenCalledWith(
         expect.stringContaining('/api/documents/doc-1/annotations/sound/upload'),
         expect.any(FormData)
+      );
+    });
+  });
+
+  it('applies annotation appearance through the appearance endpoint', async () => {
+    render(<AnnotationTools />);
+    fireEvent.click(screen.getByRole('button', { name: /Style Settings/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Apply Appearance/i }));
+
+    await waitFor(() => {
+      expect(mockedAxios.put).toHaveBeenCalledWith(
+        expect.stringContaining('/api/documents/doc-1/annotations/0/appearance'),
+        expect.objectContaining({
+          page_num: 0,
+          annot_index: 0,
+          stroke_color: [0, 0, 1],
+          border_width: 1,
+          opacity: 1,
+        })
       );
     });
   });

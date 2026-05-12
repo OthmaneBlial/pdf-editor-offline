@@ -21,6 +21,117 @@ class ImageProcessor:
             raise InvalidOperationError("Document is None")
         self.document = document
 
+    def _get_page(self, page_num: int):
+        if page_num < 0 or page_num >= len(self.document):
+            raise InvalidOperationError(f"Invalid page number: {page_num}")
+        return self.document[page_num]
+
+    @staticmethod
+    def _normalize_rect(rect_values: Tuple[float, float, float, float]) -> fitz.Rect:
+        try:
+            rect_length = len(rect_values)
+        except TypeError as exc:
+            raise InvalidOperationError(
+                "Rectangle must contain four coordinates"
+            ) from exc
+
+        if rect_length != 4:
+            raise InvalidOperationError("Rectangle must contain four coordinates")
+
+        try:
+            rect = fitz.Rect(*rect_values)
+        except Exception as exc:
+            raise InvalidOperationError(f"Invalid rectangle: {rect_values}") from exc
+
+        if rect.is_empty or rect.width <= 0 or rect.height <= 0:
+            raise InvalidOperationError(f"Invalid rectangle: {rect_values}")
+
+        return rect
+
+    @staticmethod
+    def _get_image_dimensions(image_path: str) -> Tuple[int, int]:
+        try:
+            pixmap = fitz.Pixmap(image_path)
+        except Exception as exc:
+            raise InvalidOperationError(f"Invalid image file: {image_path}") from exc
+
+        width = pixmap.width
+        height = pixmap.height
+        pixmap = None
+
+        if width <= 0 or height <= 0:
+            raise InvalidOperationError(f"Invalid image dimensions: {image_path}")
+
+        return width, height
+
+    @staticmethod
+    def _fit_rect_to_aspect(
+        rect: fitz.Rect, image_width: int, image_height: int
+    ) -> fitz.Rect:
+        image_aspect = image_width / image_height
+        rect_aspect = rect.width / rect.height
+
+        if rect_aspect > image_aspect:
+            new_height = rect.height
+            new_width = new_height * image_aspect
+            x_offset = (rect.width - new_width) / 2
+            y_offset = 0
+        else:
+            new_width = rect.width
+            new_height = new_width / image_aspect
+            x_offset = 0
+            y_offset = (rect.height - new_height) / 2
+
+        return fitz.Rect(
+            rect.x0 + x_offset,
+            rect.y0 + y_offset,
+            rect.x0 + x_offset + new_width,
+            rect.y0 + y_offset + new_height,
+        )
+
+    def _content_stream_size(self, page) -> int:
+        total = 0
+        for xref in page.get_contents() or []:
+            try:
+                total += len(self.document.xref_stream(xref) or b"")
+            except Exception:
+                continue
+        return total
+
+    @staticmethod
+    def _page_image_info(page) -> List[Dict[str, Any]]:
+        try:
+            return page.get_image_info(xrefs=True)
+        except TypeError:
+            return page.get_image_info()
+        except Exception:
+            return []
+
+    @classmethod
+    def _image_info_by_xref(cls, page) -> Dict[int, Dict[str, Any]]:
+        by_xref = {}
+        for info in cls._page_image_info(page):
+            xref = info.get("xref")
+            if xref:
+                by_xref.setdefault(xref, info)
+        return by_xref
+
+    @classmethod
+    def _intersecting_image_xrefs(cls, page, rect: fitz.Rect) -> List[int]:
+        xrefs = []
+        for info in cls._page_image_info(page):
+            xref = info.get("xref")
+            bbox = info.get("bbox")
+            if not xref or not bbox:
+                continue
+            try:
+                image_rect = fitz.Rect(bbox)
+            except Exception:
+                continue
+            if image_rect.intersects(rect):
+                xrefs.append(xref)
+        return list(dict.fromkeys(xrefs))
+
     def extract_images_metadata(self, page_num: int) -> List[Dict[str, Any]]:
         """
         Get detailed metadata for all images on a page.
@@ -31,10 +142,7 @@ class ImageProcessor:
         Returns:
             List of image metadata dictionaries
         """
-        if page_num < 0 or page_num >= len(self.document):
-            raise InvalidOperationError(f"Invalid page number: {page_num}")
-
-        page = self.document[page_num]
+        page = self._get_page(page_num)
 
         try:
             images = page.get_images(full=True)
@@ -42,10 +150,12 @@ class ImageProcessor:
             return []
 
         result = []
+        image_info_by_xref = self._image_info_by_xref(page)
 
         for img_index, img_info in enumerate(images):
             # Basic image info
-            # Structure: (xref, smask, width, height, bpc, colorspace, alt_colorspace, name, filter, bbox)
+            # Structure: (xref, smask, width, height, bpc, colorspace,
+            # alt_colorspace, name, filter, referencer)
             xref = img_info[0]
             smask = img_info[1] if len(img_info) > 1 else None
             width = img_info[2] if len(img_info) > 2 else 0
@@ -54,7 +164,32 @@ class ImageProcessor:
             colorspace = img_info[5] if len(img_info) > 5 else 0
             name = img_info[7] if len(img_info) > 7 else None
             filter_type = img_info[8] if len(img_info) > 8 else None
-            bbox = img_info[9] if len(img_info) > 9 else None
+            display_info = image_info_by_xref.get(xref, {})
+
+            base_image = {}
+            try:
+                base_image = self.document.extract_image(xref) or {}
+            except Exception:
+                base_image = {}
+
+            color_space = (
+                base_image.get("cs-name")
+                or display_info.get("cs-name")
+                or (colorspace if isinstance(colorspace, str) else None)
+            )
+            if not color_space:
+                color_space = f"Unknown({colorspace})"
+
+            xres = base_image.get("xres") or display_info.get("xres") or 0
+            yres = base_image.get("yres") or display_info.get("yres") or 0
+            extension = base_image.get("ext", "unknown")
+            image_bytes = base_image.get("image", b"") or b""
+            size_bytes = (
+                len(image_bytes)
+                or base_image.get("size")
+                or display_info.get("size")
+                or 0
+            )
 
             image_meta = {
                 "index": img_index,
@@ -63,46 +198,27 @@ class ImageProcessor:
                 "height": height,
                 "bits_per_component": bpc,
                 "has_mask": smask is not None and smask > 0,
+                "color_space": color_space,
+                "colorspace": color_space,
+                "compression": filter_type or "None",
+                "extension": extension,
+                "format": extension,
+                "size_bytes": size_bytes,
+                "dpi": {"x": xres, "y": yres},
+                "xres": xres,
+                "yres": yres,
             }
-
-            # Add color space info
-            color_spaces = {
-                0: "DeviceGray",
-                1: "DeviceRGB",
-                2: "DeviceCMYK",
-                3: "Indexed",
-            }
-            if colorspace in color_spaces:
-                image_meta["color_space"] = color_spaces[colorspace]
-            else:
-                image_meta["color_space"] = f"Unknown({colorspace})"
-
-            # Add filter info
-            if filter_type:
-                image_meta["compression"] = filter_type
-            else:
-                image_meta["compression"] = "None"
 
             # Add image name if available
             if name:
                 image_meta["name"] = name
 
-            # Add bounding box if available
+            bbox = display_info.get("bbox")
             if bbox and len(bbox) == 4:
-                image_meta["bbox"] = list(bbox)
+                image_meta["bbox"] = [float(value) for value in bbox]
 
-            # Try to extract the image to get more info
-            try:
-                base_image = self.document.extract_image(xref)
-                if base_image:
-                    image_meta["format"] = base_image.get("ext", "unknown")
-                    image_meta["size_bytes"] = len(base_image.get("image", b""))
-
-                    # Calculate image aspect ratio
-                    if width > 0 and height > 0:
-                        image_meta["aspect_ratio"] = round(width / height, 3)
-            except Exception:
-                pass
+            if width > 0 and height > 0:
+                image_meta["aspect_ratio"] = round(width / height, 3)
 
             result.append(image_meta)
 
@@ -127,71 +243,30 @@ class ImageProcessor:
         Returns:
             Result dictionary
         """
-        if page_num < 0 or page_num >= len(self.document):
-            raise InvalidOperationError(f"Invalid page number: {page_num}")
-
         if not os.path.exists(new_image_path):
             raise InvalidOperationError(f"Image file not found: {new_image_path}")
 
-        page = self.document[page_num]
-        rect = fitz.Rect(old_rect[0], old_rect[1], old_rect[2], old_rect[3])
+        page = self._get_page(page_num)
+        rect = self._normalize_rect(old_rect)
 
         try:
-            # First, redact the old image area (cover with white)
+            removed_xrefs = self._intersecting_image_xrefs(page, rect)
+
+            # Remove old image resources in the target area and cover the area.
             page.add_redact_annot(rect, fill=(1, 1, 1))
-            page.apply_redactions()
+            page.apply_redactions(
+                images=getattr(fitz, "PDF_REDACT_IMAGE_REMOVE", 1),
+                graphics=getattr(fitz, "PDF_REDACT_LINE_ART_NONE", 0),
+                text=getattr(fitz, "PDF_REDACT_TEXT_NONE", 1),
+            )
 
-            # Calculate dimensions for new image
-            rect_width = rect.width
-            rect_height = rect.height
-
+            insert_rect = rect
             if maintain_aspect:
-                # Get image dimensions to calculate aspect ratio
-                try:
-                    with open(new_image_path, "rb") as f:
-                        img_data = f.read()
-
-                    # Use PyMuPDF to get image dimensions
-                    temp_doc = fitz.open(stream=img_data)
-                    if temp_doc.page_count > 0:
-                        img_page = temp_doc[0]
-                        img_rect = img_page.rect
-                        img_aspect = img_rect.width / img_rect.height
-
-                        # Fit within the original rectangle
-                        if rect_width / rect_height > img_aspect:
-                            # Rectangle is wider than image
-                            new_height = rect_height
-                            new_width = new_height * img_aspect
-                            # Center horizontally
-                            x_offset = (rect_width - new_width) / 2
-                            y_offset = 0
-                        else:
-                            # Rectangle is taller than image
-                            new_width = rect_width
-                            new_height = new_width / img_aspect
-                            # Center vertically
-                            x_offset = 0
-                            y_offset = (rect_height - new_height) / 2
-
-                        insert_rect = fitz.Rect(
-                            rect.x0 + x_offset,
-                            rect.y0 + y_offset,
-                            rect.x0 + x_offset + new_width,
-                            rect.y0 + y_offset + new_height,
-                        )
-
-                        temp_doc.close()
-                    else:
-                        insert_rect = rect
-                        temp_doc.close()
-                except Exception:
-                    insert_rect = rect
-            else:
-                insert_rect = rect
+                image_width, image_height = self._get_image_dimensions(new_image_path)
+                insert_rect = self._fit_rect_to_aspect(rect, image_width, image_height)
 
             # Insert the new image
-            page.insert_image(
+            new_xref = page.insert_image(
                 insert_rect,
                 filename=new_image_path,
                 keep_proportion=maintain_aspect,
@@ -200,8 +275,15 @@ class ImageProcessor:
             return {
                 "success": True,
                 "original_rect": list(old_rect),
-                "insert_rect": [insert_rect.x0, insert_rect.y0, insert_rect.x1, insert_rect.y1],
+                "insert_rect": [
+                    insert_rect.x0,
+                    insert_rect.y0,
+                    insert_rect.x1,
+                    insert_rect.y1,
+                ],
                 "maintain_aspect": maintain_aspect,
+                "removed_xrefs": removed_xrefs,
+                "new_xref": new_xref,
             }
 
         except Exception as e:
@@ -217,33 +299,32 @@ class ImageProcessor:
         Returns:
             Result dictionary with optimization statistics
         """
-        if page_num < 0 or page_num >= len(self.document):
-            raise InvalidOperationError(f"Invalid page number: {page_num}")
-
-        page = self.document[page_num]
+        page = self._get_page(page_num)
 
         # Get initial content length for comparison
-        try:
-            initial_content = page.get_text("raw")
-            initial_length = len(initial_content)
-        except Exception:
-            initial_length = 0
+        initial_contents = page.get_contents() or []
+        initial_length = self._content_stream_size(page)
 
         stats = {
             "page_num": page_num,
             "cleaned": False,
+            "content_streams_before": len(initial_contents),
+            "content_size_before": initial_length,
         }
 
         try:
             # Clean the page contents
             # PyMuPDF's clean_contents() removes redundant content stream items
-            page.clean_contents()
-            stats["cleaned"] = True
+            if initial_contents:
+                page.clean_contents()
+                stats["cleaned"] = True
 
             # Get final content length
             try:
-                final_content = page.get_text("raw")
-                final_length = len(final_content)
+                final_contents = page.get_contents() or []
+                final_length = self._content_stream_size(page)
+                stats["content_streams_after"] = len(final_contents)
+                stats["content_size_after"] = final_length
                 stats["content_reduction"] = initial_length - final_length
                 stats["content_reduction_percent"] = (
                     round((1 - final_length / initial_length) * 100, 2)
@@ -251,6 +332,8 @@ class ImageProcessor:
                     else 0
                 )
             except Exception:
+                stats["content_streams_after"] = 0
+                stats["content_size_after"] = 0
                 stats["content_reduction"] = 0
                 stats["content_reduction_percent"] = 0
 
@@ -265,6 +348,8 @@ class ImageProcessor:
         garbage: int = 4,
         deflate: bool = True,
         clean: bool = True,
+        deflate_images: Optional[bool] = None,
+        deflate_fonts: Optional[bool] = None,
     ) -> Dict[str, Any]:
         """
         Optimize the entire document and save to a new path.
@@ -279,19 +364,23 @@ class ImageProcessor:
                 4 = additionally remove unused fonts
             deflate: Whether to compress streams
             clean: Whether to clean content streams
+            deflate_images: Whether to compress image streams
+            deflate_fonts: Whether to compress font streams
 
         Returns:
             Result dictionary with optimization statistics
         """
+        effective_deflate_images = deflate if deflate_images is None else deflate_images
+        effective_deflate_fonts = deflate if deflate_fonts is None else deflate_fonts
+
         # Get original document size
         original_size = 0
         try:
-            import io
-            buffer = io.BytesIO()
-            temp = self.document.write(buffer)
-            original_size = len(buffer.getvalue())
+            original_size = len(self.document.write())
         except Exception:
-            pass
+            doc_name = getattr(self.document, "name", None)
+            if doc_name and os.path.exists(doc_name):
+                original_size = os.path.getsize(doc_name)
 
         try:
             # Save with optimization options
@@ -299,11 +388,17 @@ class ImageProcessor:
                 output_path,
                 garbage=garbage,
                 deflate=deflate,
+                deflate_images=effective_deflate_images,
+                deflate_fonts=effective_deflate_fonts,
                 clean=clean,
             )
 
             # Get optimized document size
             optimized_size = os.path.getsize(output_path)
+            validation_doc = fitz.open(output_path)
+            page_count = validation_doc.page_count
+            xref_length = validation_doc.xref_length()
+            validation_doc.close()
 
             # Calculate savings
             if original_size > 0:
@@ -315,14 +410,19 @@ class ImageProcessor:
 
             return {
                 "success": True,
+                "valid": True,
                 "original_size": original_size,
                 "optimized_size": optimized_size,
                 "size_reduction": size_reduction,
                 "reduction_percent": reduction_percent,
                 "output_path": output_path,
+                "page_count": page_count,
+                "xref_length": xref_length,
                 "options": {
                     "garbage": garbage,
                     "deflate": deflate,
+                    "deflate_images": effective_deflate_images,
+                    "deflate_fonts": effective_deflate_fonts,
                     "clean": clean,
                 },
             }
@@ -489,6 +589,6 @@ class ImageProcessor:
         return {
             "success": False,
             "message": "Direct image rotation is not supported. "
-                      "Use the page rotation feature instead, or extract, "
-                      "rotate, and reinsert the image manually.",
+            "Use the page rotation feature instead, or extract, "
+            "rotate, and reinsert the image manually.",
         }

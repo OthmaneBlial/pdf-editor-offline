@@ -23,8 +23,7 @@ def _trigger_and_wait_for_response(
     """Run an action and wait for the matching API response."""
     with page.expect_response(
         lambda response: (
-            url_fragment in response.url
-            and response.request.method == method
+            url_fragment in response.url and response.request.method == method
         ),
         timeout=timeout_ms,
     ) as response_info:
@@ -32,9 +31,7 @@ def _trigger_and_wait_for_response(
 
     response = response_info.value
     if not 200 <= response.status < 300:
-        raise RuntimeError(
-            f"Unexpected {response.status} for {method} {url_fragment}"
-        )
+        raise RuntimeError(f"Unexpected {response.status} for {method} {url_fragment}")
 
 
 def _wait_for_tool_toast(page: Page, timeout_ms: int = 15000) -> None:
@@ -116,7 +113,9 @@ def run_smoke(
             page,
             url_fragment="/toc/auto",
             method="POST",
-            action=lambda: page.get_by_role("button", name="Auto-Generate from Headers").click(force=True),
+            action=lambda: page.get_by_role(
+                "button", name="Auto-Generate from Headers"
+            ).click(force=True),
         )
         page.get_by_placeholder("Bookmark title...").fill("Intro")
         _trigger_and_wait_for_response(
@@ -158,7 +157,7 @@ def run_smoke(
             action=lambda: add_sound_button.click(),
         )
 
-        page.get_by_role("button", name="Polygon", exact=True).click()
+        page.get_by_role("button", name="Shapes", exact=True).click()
         polygon_submit = page.get_by_role("button", name=re.compile(r"Create Polygon"))
         polygon_form = polygon_submit.locator("xpath=ancestor::form")
         polygon_number_inputs = polygon_form.locator("input[type='number']")
