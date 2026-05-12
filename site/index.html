@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PDF Editor Offline</title>
+    <meta name="description" content="A local PDF editor with web app, FastAPI backend, CLI, and Python package.">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <a class="brand" href="index.html" aria-label="PDF Editor Offline home">
+        <span class="brand-mark">PDF</span>
+        <span>PDF Editor Offline</span>
+      </a>
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="#features">Features</a>
+        <a href="#proof">Proof</a>
+        <a href="#install">Run</a>
+        <a href="docs.html">Docs</a>
+        <a href="https://github.com/OthmaneBlial/pdf-editor-offline">GitHub</a>
+      </nav>
+    </header>
+
+    <main id="main">
+      <section class="hero section-band">
+        <div class="hero-copy">
+          <p class="eyebrow">Local PDF editing for desktop workflows</p>
+          <h1>PDF work without accounts, upload queues, or cloud storage.</h1>
+          <p class="hero-lede">
+            PDF Editor Offline ships a React web app, FastAPI server, Typer CLI, and Python package for editing, converting, securing, and cleaning PDFs on your machine.
+          </p>
+          <div class="hero-actions" aria-label="Primary actions">
+            <a class="button primary" href="#install">Run locally</a>
+            <a class="button secondary" href="docs.html">Read docs</a>
+          </div>
+        </div>
+        <div class="hero-media" aria-label="Project header artwork">
+          <img src="assets/readme-header.svg" alt="PDF Editor Offline product header">
+        </div>
+      </section>
+
+      <section class="metrics" aria-label="Project facts">
+        <div>
+          <strong>62</strong>
+          <span>tracked features</span>
+        </div>
+        <div>
+          <strong>100+</strong>
+          <span>API routes</span>
+        </div>
+        <div>
+          <strong>400+</strong>
+          <span>tests in repo</span>
+        </div>
+        <div>
+          <strong>3</strong>
+          <span>sample PDFs</span>
+        </div>
+      </section>
+
+      <section id="features" class="section">
+        <div class="section-heading">
+          <p class="eyebrow">What the repo supports</p>
+          <h2>One local toolchain for common PDF jobs</h2>
+          <p>
+            The public surface is split into web workflows, API endpoints, CLI commands, and reusable Python core modules.
+          </p>
+        </div>
+        <div class="feature-grid">
+          <article class="feature-tile">
+            <span>01</span>
+            <h3>Edit and annotate</h3>
+            <p>Page editing, metadata, watermarks, signatures, drawings, comments, images, file attachments, popup notes, polygons, and annotation appearance controls.</p>
+          </article>
+          <article class="feature-tile">
+            <span>02</span>
+            <h3>Convert both ways</h3>
+            <p>PDF export to Word, PowerPoint, Excel, JPG, Markdown, TXT, EPUB, SVG, and PDF/A, plus document, text, image, CSV, JSON, and HTML imports.</p>
+          </article>
+          <article class="feature-tile">
+            <span>03</span>
+            <h3>Manipulate pages</h3>
+            <p>Merge, split, extract, insert, duplicate, organize, rotate, crop, resize, compress, repair, number, and remove blank pages.</p>
+          </article>
+          <article class="feature-tile">
+            <span>04</span>
+            <h3>Protect privacy</h3>
+            <p>AES PDF protection, granular permissions, unlock, metadata cleanup, hidden data cleanup, permanent redaction, temp cleanup, and safe upload validation.</p>
+          </article>
+          <article class="feature-tile">
+            <span>05</span>
+            <h3>Advanced text tools</h3>
+            <p>Font-aware replace, quad-based search, font extraction, rich HTML text boxes, multi-font composition, reflow, bookmarks, TOC, and link management.</p>
+          </article>
+          <article class="feature-tile">
+            <span>06</span>
+            <h3>Automation ready</h3>
+            <p>FastAPI routes, Typer commands, batch processing examples, local sample PDFs, and smoke tests for web and advanced editing flows.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="workflow section-band">
+        <div class="section-heading compact">
+          <p class="eyebrow">Local workflow</p>
+          <h2>Upload locally, operate locally, export locally.</h2>
+        </div>
+        <ol class="workflow-list">
+          <li>
+            <strong>Start the app</strong>
+            <span>Run the backend and Vite frontend, then open the local web workspace.</span>
+          </li>
+          <li>
+            <strong>Load a PDF</strong>
+            <span>Use the editor upload flow or API upload endpoint. Files stay in local app storage.</span>
+          </li>
+          <li>
+            <strong>Choose a tool</strong>
+            <span>Edit pages, convert files, manage navigation, add annotations, clean metadata, or run batch work.</span>
+          </li>
+          <li>
+            <strong>Export the result</strong>
+            <span>Save the edited PDF or download converted outputs from the browser, CLI, or API.</span>
+          </li>
+        </ol>
+      </section>
+
+      <section id="proof" class="section">
+        <div class="section-heading">
+          <p class="eyebrow">Captured proof</p>
+          <h2>Real screenshots from the local app</h2>
+          <p>
+            These images were captured after real API-backed operations using the sample PDFs included in this repository.
+          </p>
+        </div>
+        <div class="proof-grid">
+          <figure>
+            <button class="image-button" type="button" data-full="assets/screenshots/01-editor-workspace.png">
+              <img src="assets/screenshots/01-editor-workspace.png" alt="Editor workspace with demo PDF loaded">
+            </button>
+            <figcaption>Editor workspace after uploading <code>demo-basic.pdf</code>.</figcaption>
+          </figure>
+          <figure>
+            <button class="image-button" type="button" data-full="assets/screenshots/02-text-search-redaction.png">
+              <img src="assets/screenshots/02-text-search-redaction.png" alt="Text search and redaction tool result">
+            </button>
+            <figcaption>Text search, font data, and permanent redaction.</figcaption>
+          </figure>
+          <figure>
+            <button class="image-button" type="button" data-full="assets/screenshots/05-annotations-file-attachment.png">
+              <img src="assets/screenshots/05-annotations-file-attachment.png" alt="File attachment annotation success">
+            </button>
+            <figcaption>File attachment annotation created through the web app.</figcaption>
+          </figure>
+          <figure>
+            <button class="image-button" type="button" data-full="assets/screenshots/07-security-privacy-cleanup.png">
+              <img src="assets/screenshots/07-security-privacy-cleanup.png" alt="Security and privacy cleanup tools">
+            </button>
+            <figcaption>Metadata and hidden-data cleanup tools.</figcaption>
+          </figure>
+          <figure>
+            <button class="image-button" type="button" data-full="assets/screenshots/08-manipulation-merge.png">
+              <img src="assets/screenshots/08-manipulation-merge.png" alt="PDF merge success">
+            </button>
+            <figcaption>Two sample PDFs merged successfully.</figcaption>
+          </figure>
+          <figure>
+            <button class="image-button" type="button" data-full="assets/screenshots/09-conversion-pdf-to-txt.png">
+              <img src="assets/screenshots/09-conversion-pdf-to-txt.png" alt="PDF to TXT conversion tool">
+            </button>
+            <figcaption>PDF to TXT conversion from the conversion panel.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section id="install" class="section split-section">
+        <div class="section-heading compact">
+          <p class="eyebrow">Run it</p>
+          <h2>Install, start, or automate.</h2>
+          <p>
+            The repo supports a Python package, local web app, Docker image, and direct Python imports.
+          </p>
+        </div>
+        <div class="code-stack">
+          <div class="code-card">
+            <div class="code-card-head">
+              <span>Install from package</span>
+              <button class="copy-code" type="button" data-copy-target="code-install">Copy</button>
+            </div>
+            <pre id="code-install"><code>pip install pdf-editor-offline</code></pre>
+          </div>
+          <div class="code-card">
+            <div class="code-card-head">
+              <span>Run from source</span>
+              <button class="copy-code" type="button" data-copy-target="code-source">Copy</button>
+            </div>
+            <pre id="code-source"><code>git clone https://github.com/OthmaneBlial/pdf-editor-offline.git
+cd pdf-editor-offline
+pip install -e ".[dev]"
+./start.sh</code></pre>
+          </div>
+          <div class="code-card">
+            <div class="code-card-head">
+              <span>CLI examples</span>
+              <button class="copy-code" type="button" data-copy-target="code-cli">Copy</button>
+            </div>
+            <pre id="code-cli"><code>pdf-editor-offline extract text input.pdf
+pdf-editor-offline extract images input.pdf --output-dir ./images
+pdf-editor-offline edit metadata input.pdf title "Quarterly Report"
+pdf-editor-offline add image input.pdf stamp.png 0 100 120 180 80 --output stamped.pdf</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="section samples">
+        <div class="section-heading">
+          <p class="eyebrow">Local fixtures</p>
+          <h2>Sample PDFs included for demos and smoke tests</h2>
+        </div>
+        <div class="sample-list">
+          <a href="assets/samples/demo-basic.pdf">
+            <strong>demo-basic.pdf</strong>
+            <span>General editing, annotations, export, and conversion.</span>
+          </a>
+          <a href="assets/samples/demo-redaction.pdf">
+            <strong>demo-redaction.pdf</strong>
+            <span>Permanent redaction checks for sensitive text.</span>
+          </a>
+          <a href="assets/samples/demo-privacy.pdf">
+            <strong>demo-privacy.pdf</strong>
+            <span>Metadata, embedded file, link, and annotation cleanup.</span>
+          </a>
+        </div>
+      </section>
+
+      <section class="section docs-cta">
+        <div>
+          <p class="eyebrow">Deeper documentation</p>
+          <h2>Need the full project map?</h2>
+          <p>The docs page covers architecture, tool categories, API surface, security and privacy, examples, release checks, and copied source docs.</p>
+        </div>
+        <a class="button primary" href="docs.html">Open documentation</a>
+      </section>
+    </main>
+
+    <div class="lightbox" hidden>
+      <button class="lightbox-close" type="button" aria-label="Close image preview">Close</button>
+      <img alt="">
+    </div>
+
+    <footer class="site-footer">
+      <span>PDF Editor Offline</span>
+      <span>MIT License</span>
+      <a href="https://github.com/OthmaneBlial/pdf-editor-offline">Repository</a>
+    </footer>
+    <script src="app.js"></script>
+  </body>
+</html>

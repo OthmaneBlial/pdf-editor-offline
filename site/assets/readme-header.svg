@@ -1,0 +1,81 @@
+<svg width="960" height="300" viewBox="0 0 960 300" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">PDF Editor Offline</title>
+  <desc id="desc">A polished product header showing a local PDF editor workspace with conversion, privacy, and editing tools.</desc>
+  <defs>
+    <linearGradient id="paper" x1="174" y1="48" x2="392" y2="258" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#EEF2F7"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="596" y1="70" x2="812" y2="234" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF4D3D"/>
+      <stop offset="0.52" stop-color="#18A999"/>
+      <stop offset="1" stop-color="#2B6DE8"/>
+    </linearGradient>
+    <filter id="shadow" x="90" y="24" width="790" height="268" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="12"/>
+      <feGaussianBlur stdDeviation="18"/>
+      <feComposite in2="hardAlpha" operator="out"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.08 0 0 0 0 0.1 0 0 0 0 0.14 0 0 0 0.18 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1" result="shape"/>
+    </filter>
+    <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
+      <path d="M24 0H0V24" stroke="#D9DEE8" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="960" height="300" rx="28" fill="#F6F1E8"/>
+  <rect width="960" height="300" rx="28" fill="url(#grid)" opacity="0.55"/>
+  <path d="M0 229C96 206 178 217 264 243C358 271 436 277 535 235C629 195 720 182 815 203C884 218 930 215 960 198V300H0V229Z" fill="#E6F4EF"/>
+  <path d="M0 46C88 70 169 66 255 35C351 1 448 11 522 45C610 86 693 84 784 47C846 22 912 23 960 39V0H0V46Z" fill="#FFF9EE"/>
+
+  <g filter="url(#shadow)">
+    <rect x="104" y="44" width="752" height="212" rx="18" fill="#14161F"/>
+    <rect x="120" y="60" width="720" height="180" rx="12" fill="#F8FAFC"/>
+
+    <g transform="translate(142 82)">
+      <rect width="188" height="136" rx="10" fill="#1F2530"/>
+      <rect x="14" y="15" width="60" height="8" rx="4" fill="#FD4F3F"/>
+      <rect x="90" y="15" width="42" height="8" rx="4" fill="#18A999"/>
+      <rect x="146" y="15" width="28" height="8" rx="4" fill="#2B6DE8"/>
+      <rect x="14" y="42" width="160" height="74" rx="8" fill="#F8FAFC"/>
+      <path d="M34 64H154M34 82H124M34 100H144" stroke="#4B5563" stroke-width="7" stroke-linecap="round"/>
+      <path d="M14 42H174V53H14V42Z" fill="#FD4F3F"/>
+      <circle cx="151" cy="93" r="18" fill="#18A999"/>
+      <path d="M142 93L149 100L161 85" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+
+    <g transform="translate(352 68)">
+      <path d="M0 14C0 6.268 6.268 0 14 0H122L164 42V162C164 169.732 157.732 176 150 176H14C6.268 176 0 169.732 0 162V14Z" fill="url(#paper)" stroke="#CBD5E1" stroke-width="2"/>
+      <path d="M122 0V34C122 38.418 125.582 42 130 42H164L122 0Z" fill="#CBD5E1"/>
+      <rect x="28" y="66" width="102" height="10" rx="5" fill="#FD4F3F"/>
+      <rect x="28" y="88" width="84" height="8" rx="4" fill="#64748B"/>
+      <rect x="28" y="106" width="108" height="8" rx="4" fill="#64748B"/>
+      <rect x="28" y="124" width="68" height="8" rx="4" fill="#64748B"/>
+      <rect x="108" y="118" width="30" height="30" rx="6" fill="#14161F"/>
+      <path d="M114 133H132M123 124V142" stroke="#F8FAFC" stroke-width="3" stroke-linecap="round"/>
+    </g>
+
+    <g transform="translate(532 78)">
+      <text x="0" y="31" fill="#111827" font-family="Verdana, Geneva, sans-serif" font-size="27" font-weight="800">PDF Editor Offline</text>
+      <text x="2" y="60" fill="#475569" font-family="Verdana, Geneva, sans-serif" font-size="12" font-weight="500">Edit, convert, protect, clean locally.</text>
+      <rect x="2" y="84" width="66" height="28" rx="7" fill="#FFF1ED" stroke="#FEB2A8"/>
+      <text x="18" y="103" fill="#B42318" font-family="Verdana, Geneva, sans-serif" font-size="10" font-weight="800">LOCAL</text>
+      <rect x="78" y="84" width="82" height="28" rx="7" fill="#EAF9F4" stroke="#A8E6D3"/>
+      <text x="98" y="103" fill="#067A6A" font-family="Verdana, Geneva, sans-serif" font-size="10" font-weight="800">PRIVATE</text>
+      <rect x="170" y="84" width="66" height="28" rx="7" fill="#EEF4FF" stroke="#B8CCFF"/>
+      <text x="193" y="103" fill="#1D4ED8" font-family="Verdana, Geneva, sans-serif" font-size="10" font-weight="800">FREE</text>
+      <rect x="2" y="124" width="250" height="8" rx="4" fill="#E2E8F0"/>
+      <rect x="2" y="124" width="196" height="8" rx="4" fill="url(#accent)"/>
+      <text x="2" y="150" fill="#111827" font-family="Verdana, Geneva, sans-serif" font-size="10" font-weight="700">No accounts. No uploads. Files stay local.</text>
+    </g>
+
+    <g transform="translate(786 154)">
+      <rect width="42" height="42" rx="11" fill="#14161F"/>
+      <path d="M21 8L32 13V23C32 30.6 26.6 35.4 21 37.6C15.4 35.4 10 30.6 10 23V13L21 8Z" fill="#18A999"/>
+      <path d="M16 23L20 27L28 18" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+</svg>

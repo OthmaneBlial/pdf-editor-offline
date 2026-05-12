@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PDF Editor Offline Docs</title>
+    <meta name="description" content="Documentation site generated from the PDF Editor Offline repository.">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body class="docs-body">
+    <a class="skip-link" href="#docs-main">Skip to content</a>
+    <header class="site-header">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">PDF</span>
+        <span>PDF Editor Offline</span>
+      </a>
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="index.html#features">Features</a>
+        <a href="index.html#proof">Proof</a>
+        <a href="index.html#install">Run</a>
+        <a href="docs.html">Docs</a>
+        <a href="https://github.com/OthmaneBlial/pdf-editor-offline">GitHub</a>
+      </nav>
+    </header>
+
+    <main id="docs-main" class="docs-layout">
+      <aside class="docs-sidebar" aria-label="Documentation sections">
+        <label for="doc-filter">Filter docs</label>
+        <input id="doc-filter" type="search" placeholder="Search sections">
+        <nav>
+          <a href="#overview">Overview</a>
+          <a href="#architecture">Architecture</a>
+          <a href="#tools">Tool map</a>
+          <a href="#api">API surface</a>
+          <a href="#cli">CLI and Python</a>
+          <a href="#privacy">Security and privacy</a>
+          <a href="#samples">Samples</a>
+          <a href="#checks">Verification</a>
+          <a href="#copied-docs">Copied docs</a>
+        </nav>
+      </aside>
+
+      <div class="docs-content">
+        <section id="overview" class="doc-section">
+          <p class="eyebrow">Repository-driven docs</p>
+          <h1>PDF Editor Offline documentation</h1>
+          <p>
+            This static page was generated from the repository itself. It documents the web app, API, CLI, core Python modules, examples, sample PDFs, screenshots, roadmap, and release checks currently present in the codebase.
+          </p>
+          <dl class="fact-list">
+            <div><dt>Package</dt><dd><code>pdf-editor-offline</code> version <code>2.0.0</code></dd></div>
+            <div><dt>Backend</dt><dd>FastAPI with PyMuPDF-powered core modules</dd></div>
+            <div><dt>Frontend</dt><dd>React, TypeScript, Vite, Tailwind-style utility classes, Fabric.js, pdf.js</dd></div>
+            <div><dt>CLI</dt><dd>Typer command app exposed as <code>pdf-editor-offline</code></dd></div>
+          </dl>
+        </section>
+
+        <section id="architecture" class="doc-section">
+          <h2>Architecture</h2>
+          <div class="doc-grid">
+            <article>
+              <h3><code>api/</code></h3>
+              <p>FastAPI app with upload/session storage, tool routes, document routes, security headers, logging, rate limiting, CORS for local development, and sanitized user-facing errors.</p>
+            </article>
+            <article>
+              <h3><code>frontend/</code></h3>
+              <p>React workspace with editor, thumbnails, navigation, recent files, history, tool panels, upload flow, PDF viewer, and UI tests.</p>
+            </article>
+            <article>
+              <h3><code>pdf_editor_offline/</code></h3>
+              <p>Reusable Python package containing converter, manipulator, editor, text, rich text, navigation, annotation, image, metadata, privacy, and object inspection modules.</p>
+            </article>
+            <article>
+              <h3><code>tests/</code> and <code>frontend/tests/</code></h3>
+              <p>Backend, API, Phase 4, Phase 5, smoke, frontend component, and lifecycle coverage. The repository currently contains more than 400 test definitions.</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="tools" class="doc-section">
+          <h2>Tool map</h2>
+          <div class="tool-table" role="table" aria-label="Tool categories">
+            <div role="row"><strong role="cell">Editing</strong><span role="cell">Text insertion, rich text, page text, metadata, images, drawings, annotations, stamps, freehand highlights, and signatures.</span></div>
+            <div role="row"><strong role="cell">Manipulation</strong><span role="cell">Merge, split, extract, insert, duplicate, resize, crop, organize, flatten annotations, remove blanks, numbering, headers, and footers.</span></div>
+            <div role="row"><strong role="cell">Conversion</strong><span role="cell">PDF to Word, PowerPoint, Excel, JPG, Markdown, TXT, EPUB, SVG, PDF/A, plus Word, PowerPoint, Excel, HTML, Markdown, TXT, CSV, JSON, and images to PDF.</span></div>
+            <div role="row"><strong role="cell">Security</strong><span role="cell">Protect, unlock, granular permissions, strict upload validation, safe errors, metadata cleanup, hidden data cleanup, and permanent redaction.</span></div>
+            <div role="row"><strong role="cell">Advanced structure</strong><span role="cell">TOC, bookmarks, page links, font extraction, quad search, image extraction metadata, replacement, insertion, and optimization.</span></div>
+            <div role="row"><strong role="cell">Automation</strong><span role="cell">FastAPI routes, Typer CLI, Python classes, batch conversion, auto-merge folder, and template processing.</span></div>
+          </div>
+        </section>
+
+        <section id="api" class="doc-section">
+          <h2>API surface</h2>
+          <p>The FastAPI app registers document-scoped routes and file-based tool routes. The codebase currently exposes more than 100 route decorators across `api/routes/documents.py` and `api/routes/tools.py`.</p>
+          <div class="endpoint-groups">
+            <article>
+              <h3>Document sessions</h3>
+              <p>Upload, inspect, download, delete, page render, metadata, privacy cleanup, page transforms, annotations, images, TOC, bookmarks, links, optimization, and maintenance cleanup.</p>
+            </article>
+            <article>
+              <h3>File tools</h3>
+              <p>Merge, split, compress, convert, sign, watermark, rotate, protect, unlock, repair, OCR, compare, batch convert, auto-merge folder, and template processing.</p>
+            </article>
+          </div>
+          <div class="code-card">
+            <div class="code-card-head">
+              <span>Manual backend startup</span>
+              <button class="copy-code" type="button" data-copy-target="code-api-start">Copy</button>
+            </div>
+            <pre id="code-api-start"><code>PYTHONPATH=. python -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload</code></pre>
+          </div>
+        </section>
+
+        <section id="cli" class="doc-section">
+          <h2>CLI and Python usage</h2>
+          <p>The Typer CLI exposes extract, edit, inspect, and add command groups. The Python package exposes reusable converter and manipulator classes.</p>
+          <div class="code-card">
+            <div class="code-card-head">
+              <span>CLI commands</span>
+              <button class="copy-code" type="button" data-copy-target="code-doc-cli">Copy</button>
+            </div>
+            <pre id="code-doc-cli"><code>pdf-editor-offline extract text input.pdf
+pdf-editor-offline extract images input.pdf --output-dir ./images
+pdf-editor-offline edit metadata input.pdf title "Quarterly Report"
+pdf-editor-offline edit delete-page input.pdf 0 --output output.pdf
+pdf-editor-offline inspect object-tree input.pdf
+pdf-editor-offline add image input.pdf stamp.png 0 100 120 180 80 --output stamped.pdf</code></pre>
+          </div>
+          <div class="code-card">
+            <div class="code-card-head">
+              <span>Python API</span>
+              <button class="copy-code" type="button" data-copy-target="code-python-api">Copy</button>
+            </div>
+            <pre id="code-python-api"><code>from pdf_editor_offline import PDFConverter, PDFManipulator
+
+converter = PDFConverter()
+converter.pdf_to_word("input.pdf", "output.docx")
+
+manipulator = PDFManipulator()
+manipulator.merge_pdfs(["file1.pdf", "file2.pdf"], "merged.pdf")</code></pre>
+          </div>
+        </section>
+
+        <section id="privacy" class="doc-section">
+          <h2>Security and privacy</h2>
+          <ul class="check-list">
+            <li>AES-256 and AES-128 PDF protection with password length validation.</li>
+            <li>Separate PDF permissions for print, copy, edit, annotate, form fill, accessibility, assembly, and high-quality print.</li>
+            <li>Strict file validation for content type, PDF signature, size, extension, and unsafe filenames.</li>
+            <li>Metadata cleanup for document metadata and XML metadata.</li>
+            <li>Hidden data cleanup for hidden text, embedded files, JavaScript, thumbnails, links, annotations, and form data when requested.</li>
+            <li>Permanent redaction with garbage collection so removed text is not recoverable.</li>
+            <li>App-owned temp and stale-session cleanup.</li>
+          </ul>
+        </section>
+
+        <section id="samples" class="doc-section">
+          <h2>Sample PDFs</h2>
+          <p>The repository includes small fixture PDFs for demos, screenshots, and manual smoke tests.</p>
+          <div class="sample-list inline">
+            <a href="assets/samples/demo-basic.pdf"><strong>demo-basic.pdf</strong><span>Editing and export</span></a>
+            <a href="assets/samples/demo-redaction.pdf"><strong>demo-redaction.pdf</strong><span>Permanent redaction</span></a>
+            <a href="assets/samples/demo-privacy.pdf"><strong>demo-privacy.pdf</strong><span>Privacy cleanup</span></a>
+          </div>
+        </section>
+
+        <section id="checks" class="doc-section">
+          <h2>Verification and release checks</h2>
+          <p>The release checklist in the repository asks for backend tests, frontend tests, frontend build, formatting checks, Docker build, package build, and manual PDF smoke tests.</p>
+          <div class="code-card">
+            <div class="code-card-head">
+              <span>Full local check</span>
+              <button class="copy-code" type="button" data-copy-target="code-checks">Copy</button>
+            </div>
+            <pre id="code-checks"><code>python -m pytest -q
+cd frontend && npm test && npm run build
+python -m black --check api pdf_editor_offline tests
+git diff --check</code></pre>
+          </div>
+        </section>
+
+        <section id="copied-docs" class="doc-section">
+          <h2>Copied source docs</h2>
+          <p>These files are copied into <code>site/assets/docs/</code> so the generated folder remains portable.</p>
+          <ul class="doc-link-list">
+            <li><a href="assets/docs/project-readme.md">Project README</a></li>
+            <li><a href="assets/docs/features-roadmap.md">Features roadmap</a></li>
+            <li><a href="assets/docs/release-checklist.md">Release checklist</a></li>
+            <li><a href="assets/docs/contributing.md">Contributing guide</a></li>
+            <li><a href="assets/docs/examples-readme.md">Examples README</a></li>
+            <li><a href="assets/docs/sample-pdfs-readme.md">Sample PDFs README</a></li>
+            <li><a href="assets/docs/screenshots-readme.md">Screenshot proof manifest</a></li>
+          </ul>
+        </section>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <span>PDF Editor Offline Docs</span>
+      <a href="index.html">Site home</a>
+      <a href="https://github.com/OthmaneBlial/pdf-editor-offline">Repository</a>
+    </footer>
+    <script src="app.js"></script>
+  </body>
+</html>
