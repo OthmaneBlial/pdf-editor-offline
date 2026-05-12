@@ -58,24 +58,24 @@
       <path d="M114 133H132M123 124V142" stroke="#F8FAFC" stroke-width="3" stroke-linecap="round"/>
     </g>
 
-    <g transform="translate(532 80)">
-      <text x="0" y="31" fill="#111827" font-family="Verdana, Geneva, sans-serif" font-size="31" font-weight="800">PDF Editor Offline</text>
-      <text x="2" y="63" fill="#475569" font-family="Verdana, Geneva, sans-serif" font-size="14" font-weight="500">Edit, convert, protect, and clean PDFs locally.</text>
-      <rect x="2" y="88" width="68" height="28" rx="7" fill="#FFF1ED" stroke="#FEB2A8"/>
-      <text x="17" y="107" fill="#B42318" font-family="Verdana, Geneva, sans-serif" font-size="11" font-weight="800">LOCAL</text>
-      <rect x="80" y="88" width="84" height="28" rx="7" fill="#EAF9F4" stroke="#A8E6D3"/>
-      <text x="98" y="107" fill="#067A6A" font-family="Verdana, Geneva, sans-serif" font-size="11" font-weight="800">PRIVATE</text>
-      <rect x="174" y="88" width="68" height="28" rx="7" fill="#EEF4FF" stroke="#B8CCFF"/>
-      <text x="195" y="107" fill="#1D4ED8" font-family="Verdana, Geneva, sans-serif" font-size="11" font-weight="800">FREE</text>
-      <rect x="2" y="134" width="280" height="8" rx="4" fill="#E2E8F0"/>
-      <rect x="2" y="134" width="216" height="8" rx="4" fill="url(#accent)"/>
-      <text x="2" y="161" fill="#111827" font-family="Verdana, Geneva, sans-serif" font-size="12" font-weight="700">No accounts. No uploads. Your files stay local.</text>
+    <g transform="translate(532 78)">
+      <text x="0" y="31" fill="#111827" font-family="Verdana, Geneva, sans-serif" font-size="28" font-weight="800">PDF Editor Offline</text>
+      <text x="2" y="61" fill="#475569" font-family="Verdana, Geneva, sans-serif" font-size="13" font-weight="500">Edit, protect, convert, and clean PDFs locally.</text>
+      <rect x="2" y="84" width="66" height="28" rx="7" fill="#FFF1ED" stroke="#FEB2A8"/>
+      <text x="16" y="103" fill="#B42318" font-family="Verdana, Geneva, sans-serif" font-size="11" font-weight="800">LOCAL</text>
+      <rect x="78" y="84" width="82" height="28" rx="7" fill="#EAF9F4" stroke="#A8E6D3"/>
+      <text x="95" y="103" fill="#067A6A" font-family="Verdana, Geneva, sans-serif" font-size="11" font-weight="800">PRIVATE</text>
+      <rect x="170" y="84" width="66" height="28" rx="7" fill="#EEF4FF" stroke="#B8CCFF"/>
+      <text x="190" y="103" fill="#1D4ED8" font-family="Verdana, Geneva, sans-serif" font-size="11" font-weight="800">FREE</text>
+      <rect x="2" y="124" width="250" height="8" rx="4" fill="#E2E8F0"/>
+      <rect x="2" y="124" width="196" height="8" rx="4" fill="url(#accent)"/>
+      <text x="2" y="150" fill="#111827" font-family="Verdana, Geneva, sans-serif" font-size="11" font-weight="700">No accounts. No uploads. Files stay local.</text>
     </g>
 
-    <g transform="translate(786 150)">
-      <rect width="50" height="50" rx="12" fill="#14161F"/>
-      <path d="M25 10L38 16V27C38 36 31.5 41.5 25 44C18.5 41.5 12 36 12 27V16L25 10Z" fill="#18A999"/>
-      <path d="M19 27L24 32L33 21" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <g transform="translate(786 154)">
+      <rect width="42" height="42" rx="11" fill="#14161F"/>
+      <path d="M21 8L32 13V23C32 30.6 26.6 35.4 21 37.6C15.4 35.4 10 30.6 10 23V13L21 8Z" fill="#18A999"/>
+      <path d="M16 23L20 27L28 18" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
     </g>
   </g>
 </svg>
