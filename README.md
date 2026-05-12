@@ -26,6 +26,20 @@ PDF Editor Offline gives you a web app, API server, CLI, and Python package for 
 - Clean metadata, remove hidden data, redact page areas, and clear app temp files
 - Run OCR and batch jobs locally
 
+## Screenshots
+
+Captured from the local web app with the sample PDFs in `examples/sample_pdfs/`.
+
+| Editor workspace | Text search and redaction |
+| --- | --- |
+| ![Editor workspace showing demo PDF](screenshots/01-editor-workspace.png) | ![Text search, font analysis, and permanent redaction](screenshots/02-text-search-redaction.png) |
+
+| File attachments | Merge PDFs |
+| --- | --- |
+| ![File attachment added in the annotations tool](screenshots/05-annotations-file-attachment.png) | ![PDF merge completed successfully](screenshots/08-manipulation-merge.png) |
+
+More captures are in `screenshots/`, including image insertion, privacy cleanup, and PDF-to-TXT conversion.
+
 ## Install
 
 ```bash
