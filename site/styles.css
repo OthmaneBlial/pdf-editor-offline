@@ -147,10 +147,10 @@ pre,
 
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(360px, 1.1fr);
+  grid-template-columns: minmax(320px, 0.82fr) minmax(460px, 1.18fr);
   gap: clamp(28px, 5vw, 72px);
   align-items: center;
-  min-height: calc(100vh - 80px);
+  min-height: min(760px, calc(100vh - 80px));
 }
 
 .hero h1,
@@ -164,15 +164,15 @@ pre,
 }
 
 .hero h1 {
-  max-width: 760px;
-  font-size: clamp(3rem, 7vw, 6.6rem);
+  max-width: 680px;
+  font-size: clamp(4.2rem, 8vw, 8.2rem);
 }
 
 .hero-lede {
-  max-width: 670px;
+  max-width: 600px;
   margin: 24px 0 0;
   color: var(--muted);
-  font-size: clamp(1.05rem, 2vw, 1.35rem);
+  font-size: clamp(1.05rem, 1.6vw, 1.24rem);
   line-height: 1.6;
 }
 
@@ -189,7 +189,24 @@ pre,
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
-  margin-top: 32px;
+  margin-top: 24px;
+}
+
+.hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.hero-badges span {
+  padding: 8px 11px;
+  color: #0f766e;
+  background: #e7f7f3;
+  border: 1px solid #bfe7dc;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 900;
 }
 
 .button {
@@ -782,7 +799,7 @@ pre {
 
   .hero h1 {
     max-width: 100%;
-    font-size: 2rem;
+    font-size: 3.1rem;
     line-height: 1.08;
     overflow-wrap: anywhere;
   }
