@@ -17,7 +17,7 @@
 - **100% Private** - Your files never leave your computer
 - **100% Free** - No paywalls, no subscriptions, no cloud accounts
 
-**Existing Features (57):**
+**Existing Features (50):**
 - PDF Manipulation (merge, split, compress, rotate, organize, repair)
 - Bi-directional Conversion (Word, PowerPoint, Excel, Images, HTML, Markdown, TXT, CSV, JSON, EPUB, SVG)
 - Batch Processing (convert multiple files, template processing)
@@ -123,62 +123,28 @@
 
 ---
 
-## 🛡️ Phase 5: Security & Privacy
-*Priority: High | Complexity: Medium*
+## 🛡️ Phase 5: Security, Privacy & Final Polish
+*Priority: High | Complexity: Low-Medium*
 
-### Advanced Protection
-- [ ] **Granular Permissions** - Control print, copy, edit separately
-- [ ] **X.509 Digital Signature** - Signatures with official certificates
-- [ ] **Signature Verification** - Validate existing signatures
-- [ ] **AES-256 Encryption** - Enterprise-level encryption
+This is the final roadmap phase before a polished public release. The goal is not enterprise bloat. The goal is a clean, trustworthy offline PDF editor that handles local files carefully and feels finished.
 
-### Privacy
-- [ ] **Metadata Removal** - Clean all hidden metadata
-- [ ] **Auto-anonymization** - Detect and mask personal data
-- [ ] **Audit Trail** - Modification logging
+### Minimal Security Baseline
+- [ ] **Strong PDF Password Options** - Use modern encryption settings where PyMuPDF supports them
+- [ ] **Granular PDF Permissions** - Control print, copy, edit, and annotate permissions separately
+- [ ] **Strict File Validation** - Check file type, PDF signature, file size, and unsafe inputs before processing
+- [ ] **Safe Error Messages** - Return helpful errors without leaking local paths or internal stack traces
 
----
+### Privacy Tools
+- [ ] **Metadata Cleaner** - Remove author, title, producer, creation date, custom fields, and other document metadata
+- [ ] **Hidden Data Cleanup** - Remove hidden text, unused objects, embedded leftovers, and stale annotations when requested
+- [ ] **Permanent Redaction Tool** - Redact selected text or areas and save the result irreversibly
+- [ ] **Temporary File Cleanup** - Clear sessions, uploads, generated files, and previews on demand or after timeout
 
-## 🧠 Phase 6: Intelligence & Automation
-*Priority: Medium | Complexity: High*
-
-### Enhanced OCR
-- [ ] **Multilingual OCR** - Support multiple languages simultaneously
-- [ ] **Layout-preserving OCR** - Keep original layout
-- [ ] **Auto Language Detection** - Adaptive OCR
-- [ ] **Post-OCR Spell Check** - Improve accuracy
-
-### Smart Features
-- [ ] **Auto Table of Contents** - Generate TOC from headings
-- [ ] **Enhanced Table Extraction** - Better table detection
-- [ ] **Auto Summary** - Generate document summary
-- [ ] **Duplicate Detection** - Identify similar/identical pages
-
----
-
-## ⚙️ Phase 7: Performance & Optimization
-*Priority: Medium | Complexity: Medium*
-
-### Performance
-- [ ] **Progressive Loading** - Lazy loading of pages
-- [ ] **Smart Cache** - Render caching
-- [ ] **Async Processing** - Task queue for large operations
-- [ ] **Type-optimized Compression** - Adaptive compression (images, text)
-
-### Technical UX
-- [ ] **Large File Support** - PDFs over 100MB
-- [ ] **Progress Indicators** - Detailed progress bars
-- [ ] **Task Cancellation** - Ability to stop long operations
-
----
-
-## 🔌 Phase 8: Integrations & Ecosystem
-*Priority: Low | Complexity: Medium-High*
-
-### Developer Experience
-- [ ] **Python SDK** - Library for programmatic integration
-- [ ] **Complete Swagger Documentation** - Interactive API docs
-- [ ] **Examples & Tutorials** - Integration guides
+### Final Touches
+- [ ] **Consistent Empty States** - Make every tool panel clear when no document is loaded
+- [ ] **Better Progress Feedback** - Show useful status for long conversions, OCR, compression, and batch jobs
+- [ ] **Release Checklist** - Document build, test, Docker, PyPI, and frontend release steps
+- [ ] **Polished Example Files** - Add small sample PDFs for demos, tests, and screenshots
 
 ---
 
@@ -190,12 +156,9 @@
 | Phase 2 | 9 | 9 | 100% ✅ |
 | Phase 3 | 11 | 11 | 100% ✅ |
 | Phase 4 | 21 | 21 | 100% ✅ |
-| Phase 5 | 7 | 0 | 0% |
-| Phase 6 | 8 | 0 | 0% |
-| Phase 7 | 8 | 0 | 0% |
-| Phase 8 | 3 | 0 | 0% |
-| **TOTAL** | **76** | **50** | **66%** |
+| Phase 5 | 12 | 0 | 0% |
+| **TOTAL** | **62** | **50** | **81%** |
 
 ---
 
-*Last updated: 2026-01-26*
+*Last updated: 2026-05-12*
