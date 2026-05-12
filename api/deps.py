@@ -169,13 +169,13 @@ def cleanup_all_sessions():
         logger.info("Cleaned up %s active session(s) on shutdown", removed)
 
 
-def persist_session_document(session_id: str) -> Dict[str, Any]:
+def persist_session_document(session_id: str, **save_options) -> Dict[str, Any]:
     session = get_session(session_id)
     storage_path = session["storage_path"]
     doc_manager = session["document_manager"]
     temp_path = f"{storage_path}.tmp"
     try:
-        doc_manager.save_pdf(temp_path)
+        doc_manager.save_pdf(temp_path, **save_options)
         os.replace(temp_path, storage_path)
     except Exception:
         if os.path.exists(temp_path):

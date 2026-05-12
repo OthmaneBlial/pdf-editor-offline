@@ -11,6 +11,7 @@ from api.deps import TEMP_DIR
 from api.utils import persist_upload_file
 from pdf_editor_offline.core.converter import PDFConverter
 from pdf_editor_offline.core.manipulator import PDFManipulator
+from pdf_editor_offline.core.privacy_cleaner import PDFPrivacyCleaner
 
 router = APIRouter(prefix="/api/tools", tags=["tools"])
 
@@ -277,6 +278,55 @@ async def protect_pdf(
         raise HTTPException(status_code=400, detail=str(e))
     return FileResponse(
         out_path, filename="protected.pdf", media_type="application/pdf"
+    )
+
+
+@router.post("/clean-metadata")
+async def clean_pdf_metadata(file: UploadFile = File(...)):
+    path = await persist_upload_file(file, PDF_MIME, "meta_")
+    out_path = os.path.join(TEMP_DIR, f"meta_clean_{uuid.uuid4()}.pdf")
+    PDFPrivacyCleaner().clean_metadata_file(path, out_path)
+    return FileResponse(
+        out_path,
+        filename="metadata-cleaned.pdf",
+        media_type="application/pdf",
+    )
+
+
+@router.post("/clean-hidden-data")
+async def clean_pdf_hidden_data(
+    file: UploadFile = File(...),
+    remove_metadata: bool = Form(True),
+    remove_embedded_files: bool = Form(True),
+    remove_hidden_text: bool = Form(True),
+    remove_javascript: bool = Form(True),
+    remove_links: bool = Form(False),
+    remove_annotations: bool = Form(False),
+    remove_thumbnails: bool = Form(True),
+    reset_form_fields: bool = Form(False),
+    apply_redactions: bool = Form(True),
+    clean_pages: bool = Form(True),
+):
+    path = await persist_upload_file(file, PDF_MIME, "privacy_")
+    out_path = os.path.join(TEMP_DIR, f"privacy_clean_{uuid.uuid4()}.pdf")
+    PDFPrivacyCleaner().cleanup_hidden_data_file(
+        path,
+        out_path,
+        remove_metadata=remove_metadata,
+        remove_embedded_files=remove_embedded_files,
+        remove_hidden_text=remove_hidden_text,
+        remove_javascript=remove_javascript,
+        remove_links=remove_links,
+        remove_annotations=remove_annotations,
+        remove_thumbnails=remove_thumbnails,
+        reset_form_fields=reset_form_fields,
+        apply_redactions=apply_redactions,
+        clean_pages=clean_pages,
+    )
+    return FileResponse(
+        out_path,
+        filename="privacy-cleaned.pdf",
+        media_type="application/pdf",
     )
 
 

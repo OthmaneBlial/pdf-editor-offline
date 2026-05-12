@@ -50,6 +50,19 @@ class MetadataUpdate(BaseModel):
     keywords: Optional[str] = None
 
 
+class HiddenDataCleanupRequest(BaseModel):
+    remove_metadata: bool = True
+    remove_embedded_files: bool = True
+    remove_hidden_text: bool = True
+    remove_javascript: bool = True
+    remove_links: bool = False
+    remove_annotations: bool = False
+    remove_thumbnails: bool = True
+    reset_form_fields: bool = False
+    apply_redactions: bool = True
+    clean_pages: bool = True
+
+
 # Page Manipulation Models
 class ExtractPagesRequest(BaseModel):
     pages: List[int]  # 0-indexed page numbers

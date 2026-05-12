@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { Lock, Unlock, PenTool, Stamp, RefreshCw } from 'lucide-react';
+import { Lock, Unlock, PenTool, Stamp, RefreshCw, ShieldCheck, Eraser } from 'lucide-react';
 import { API_BASE_URL } from '../../lib/apiClient';
 
 const SecurityTools: React.FC = () => {
@@ -81,6 +81,46 @@ const SecurityTools: React.FC = () => {
             setMessage({ type: 'success', text: 'Watermark added successfully!' });
         } catch (error) {
             setMessage({ type: 'error', text: 'Failed to add watermark.' });
+            console.error(error);
+        } finally {
+            setLoading(null);
+        }
+    };
+
+    const handleCleanMetadata = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        setLoading('metadata');
+        setMessage(null);
+        const formData = new FormData(e.currentTarget);
+
+        try {
+            const response = await axios.post(`${API_BASE_URL}/api/tools/clean-metadata`, formData, {
+                responseType: 'blob'
+            });
+            downloadFile(response.data, 'metadata-cleaned.pdf');
+            setMessage({ type: 'success', text: 'Metadata cleaned successfully!' });
+        } catch (error) {
+            setMessage({ type: 'error', text: 'Failed to clean metadata.' });
+            console.error(error);
+        } finally {
+            setLoading(null);
+        }
+    };
+
+    const handleCleanHiddenData = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        setLoading('privacy');
+        setMessage(null);
+        const formData = new FormData(e.currentTarget);
+
+        try {
+            const response = await axios.post(`${API_BASE_URL}/api/tools/clean-hidden-data`, formData, {
+                responseType: 'blob'
+            });
+            downloadFile(response.data, 'privacy-cleaned.pdf');
+            setMessage({ type: 'success', text: 'Hidden data cleaned successfully!' });
+        } catch (error) {
+            setMessage({ type: 'error', text: 'Failed to clean hidden data.' });
             console.error(error);
         } finally {
             setLoading(null);
@@ -255,6 +295,64 @@ const SecurityTools: React.FC = () => {
                         </div>
                         <button type="submit" disabled={!!loading} className="w-full py-2 px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
                             {loading === 'watermark' ? <><RefreshCw className="w-4 h-4 animate-spin" /> Processing...</> : <><Stamp className="w-4 h-4" /> Add Watermark</>}
+                        </button>
+                    </form>
+                </div>
+
+                {/* Metadata Cleaner */}
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-amber-100 rounded-lg text-amber-700">
+                            <Eraser className="w-6 h-6" />
+                        </div>
+                        <h3 className="font-semibold text-lg">Clean Metadata</h3>
+                    </div>
+                    <form onSubmit={handleCleanMetadata} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Upload PDF</label>
+                            <input type="file" name="file" accept=".pdf" required className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100" />
+                        </div>
+                        <button type="submit" disabled={!!loading} className="w-full py-2 px-4 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                            {loading === 'metadata' ? <><RefreshCw className="w-4 h-4 animate-spin" /> Processing...</> : <><Eraser className="w-4 h-4" /> Clean Metadata</>}
+                        </button>
+                    </form>
+                </div>
+
+                {/* Hidden Data Cleanup */}
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-slate-100 rounded-lg text-slate-700">
+                            <ShieldCheck className="w-6 h-6" />
+                        </div>
+                        <h3 className="font-semibold text-lg">Clean Hidden Data</h3>
+                    </div>
+                    <form onSubmit={handleCleanHiddenData} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Upload PDF</label>
+                            <input type="file" name="file" accept=".pdf" required className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-slate-50 file:text-slate-700 hover:file:bg-slate-100" />
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {[
+                                ['remove_metadata', 'Metadata', 'true'],
+                                ['remove_embedded_files', 'Embedded Files', 'true'],
+                                ['remove_hidden_text', 'Hidden Text', 'true'],
+                                ['remove_javascript', 'JavaScript', 'true'],
+                                ['remove_links', 'Links', 'false'],
+                                ['remove_annotations', 'Annotations', 'false'],
+                                ['reset_form_fields', 'Form Fields', 'false'],
+                                ['clean_pages', 'Page Streams', 'true'],
+                            ].map(([name, label, defaultValue]) => (
+                                <label key={name} className="text-xs font-medium text-gray-700">
+                                    {label}
+                                    <select name={name} defaultValue={defaultValue} className="mt-1 w-full p-2 border border-gray-300 rounded-lg text-sm">
+                                        <option value="true">Clean</option>
+                                        <option value="false">Keep</option>
+                                    </select>
+                                </label>
+                            ))}
+                        </div>
+                        <button type="submit" disabled={!!loading} className="w-full py-2 px-4 bg-slate-700 hover:bg-slate-800 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                            {loading === 'privacy' ? <><RefreshCw className="w-4 h-4 animate-spin" /> Processing...</> : <><ShieldCheck className="w-4 h-4" /> Clean Hidden Data</>}
                         </button>
                     </form>
                 </div>

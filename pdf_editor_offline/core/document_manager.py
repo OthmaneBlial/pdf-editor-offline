@@ -14,11 +14,11 @@ class DocumentManager:
         except Exception as e:
             raise PDFLoadError(f"Failed to load PDF from {path}: {e}")
 
-    def save_pdf(self, path: str):
+    def save_pdf(self, path: str, **save_options):
         if self.document is None:
             raise InvalidOperationError("No document is currently loaded.")
         try:
-            self.document.save(path)
+            self.document.save(path, **save_options)
         except Exception as e:
             raise PDFSaveError(f"Failed to save PDF to {path}: {e}")
 

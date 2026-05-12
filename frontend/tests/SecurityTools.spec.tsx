@@ -34,6 +34,8 @@ describe('SecurityTools', () => {
         expect(screen.getAllByText('Unlock PDF').length).toBeGreaterThan(0);
         expect(screen.getAllByText('Sign PDF').length).toBeGreaterThan(0);
         expect(screen.getAllByText('Watermark PDF').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('Clean Metadata').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('Clean Hidden Data').length).toBeGreaterThan(0);
     });
 
     it('renders granular protect options', () => {
@@ -42,5 +44,13 @@ describe('SecurityTools', () => {
         expect(screen.getByText('Copy Text')).toBeInTheDocument();
         expect(screen.getByText('Edit Content')).toBeInTheDocument();
         expect(screen.getByText('Annotate')).toBeInTheDocument();
+    });
+
+    it('renders privacy cleanup options', () => {
+        render(<SecurityTools />);
+        expect(screen.getByText('Embedded Files')).toBeInTheDocument();
+        expect(screen.getByText('Hidden Text')).toBeInTheDocument();
+        expect(screen.getByText('JavaScript')).toBeInTheDocument();
+        expect(screen.getByText('Page Streams')).toBeInTheDocument();
     });
 });

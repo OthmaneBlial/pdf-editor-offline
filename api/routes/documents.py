@@ -35,6 +35,7 @@ from api.models import (
     FileAttachmentRequest,
     FontUsageResponse,
     FreehandHighlightRequest,
+    HiddenDataCleanupRequest,
     ImageAnnotation,
     ImageExtractRequest,
     ImageInsertRequest,
@@ -58,6 +59,7 @@ from api.models import (
     TOCItem,
     UpdateBookmarkRequest,
 )
+from pdf_editor_offline.core.privacy_cleaner import PDFPrivacyCleaner
 from pdf_editor_offline.utils.canvas_helpers import (
     convert_to_pymupdf_annotation,
     decode_canvas_overlay,
@@ -336,6 +338,44 @@ async def update_metadata(doc_id: str, metadata: MetadataUpdate):
     session["metadata_editor"].write_metadata(update_dict)
     persist_session_document(doc_id)
     return APIResponse(success=True, message="Metadata updated successfully")
+
+
+@router.post("/{doc_id}/metadata/clean", response_model=APIResponse)
+async def clean_metadata(doc_id: str):
+    session = get_session(doc_id)
+    doc = session["document_manager"].get_document()
+    stats = PDFPrivacyCleaner(doc).clear_metadata()
+    persist_session_document(
+        doc_id,
+        garbage=4,
+        clean=True,
+        deflate=True,
+        preserve_metadata=False,
+    )
+    return APIResponse(
+        success=True,
+        message="Metadata cleaned successfully",
+        data=stats,
+    )
+
+
+@router.post("/{doc_id}/privacy/cleanup", response_model=APIResponse)
+async def cleanup_hidden_data(doc_id: str, request: HiddenDataCleanupRequest):
+    session = get_session(doc_id)
+    doc = session["document_manager"].get_document()
+    stats = PDFPrivacyCleaner(doc).cleanup_hidden_data(**request.model_dump())
+    persist_session_document(
+        doc_id,
+        garbage=4,
+        clean=True,
+        deflate=True,
+        preserve_metadata=False,
+    )
+    return APIResponse(
+        success=True,
+        message="Hidden data cleaned successfully",
+        data=stats,
+    )
 
 
 # ============================================
