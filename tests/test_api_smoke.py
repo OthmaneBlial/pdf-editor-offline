@@ -6,7 +6,7 @@ import fitz
 from PIL import Image, ImageDraw
 
 from api.deps import TEMP_DIR
-from pdfsmarteditor.core.document_manager import DocumentManager
+from pdf_editor_offline.core.document_manager import DocumentManager
 
 
 def _create_overlay_image() -> str:

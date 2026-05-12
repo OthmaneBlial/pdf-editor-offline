@@ -65,11 +65,10 @@ Repository = "https://github.com/OthmaneBlial/pdf-editor-offline"
 Issues = "https://github.com/OthmaneBlial/pdf-editor-offline/issues"
 
 [project.scripts]
-pdf-editor-offline = "pdfsmarteditor.cli.main:app"
-pdfsmarteditor = "pdfsmarteditor.cli.main:app"
+pdf-editor-offline = "pdf_editor_offline.cli.main:app"
 
 [tool.setuptools.packages.find]
-include = ["pdfsmarteditor*", "pdf_editor_offline*"]
+include = ["pdf_editor_offline*"]
 
 [tool.isort]
 profile = "black"

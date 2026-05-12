@@ -4,7 +4,7 @@ import tempfile
 import pytest
 from typer.testing import CliRunner
 
-from pdfsmarteditor.cli.main import app
+from pdf_editor_offline.cli.main import app
 
 
 class TestCLI:

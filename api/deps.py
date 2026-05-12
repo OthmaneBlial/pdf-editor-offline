@@ -9,16 +9,16 @@ from typing import Any, Dict, Optional
 from fastapi import HTTPException
 
 from api.storage import STORAGE_DIR, SessionRecord, session_store
-from pdfsmarteditor.core.document_manager import DocumentManager
-from pdfsmarteditor.core.editor import Editor
-from pdfsmarteditor.core.metadata_editor import MetadataEditor
-from pdfsmarteditor.core.page_manipulator import PageManipulator
-from pdfsmarteditor.core.object_inspector import ObjectInspector
-from pdfsmarteditor.core.text_processor import TextProcessor
-from pdfsmarteditor.core.rich_text_editor import RichTextEditor
-from pdfsmarteditor.core.navigation_manager import NavigationManager
-from pdfsmarteditor.core.annotation_enhancer import AnnotationEnhancer
-from pdfsmarteditor.core.image_processor import ImageProcessor
+from pdf_editor_offline.core.document_manager import DocumentManager
+from pdf_editor_offline.core.editor import Editor
+from pdf_editor_offline.core.metadata_editor import MetadataEditor
+from pdf_editor_offline.core.page_manipulator import PageManipulator
+from pdf_editor_offline.core.object_inspector import ObjectInspector
+from pdf_editor_offline.core.text_processor import TextProcessor
+from pdf_editor_offline.core.rich_text_editor import RichTextEditor
+from pdf_editor_offline.core.navigation_manager import NavigationManager
+from pdf_editor_offline.core.annotation_enhancer import AnnotationEnhancer
+from pdf_editor_offline.core.image_processor import ImageProcessor
 
 logger = logging.getLogger(__name__)
 

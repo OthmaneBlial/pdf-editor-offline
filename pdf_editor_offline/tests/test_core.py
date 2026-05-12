@@ -4,16 +4,16 @@ import tempfile
 import fitz
 import pytest
 
-from pdfsmarteditor.core.document_manager import DocumentManager
-from pdfsmarteditor.core.editor import Editor
-from pdfsmarteditor.core.exceptions import (
+from pdf_editor_offline.core.document_manager import DocumentManager
+from pdf_editor_offline.core.editor import Editor
+from pdf_editor_offline.core.exceptions import (
     InvalidOperationError,
     PDFLoadError,
     PDFSaveError,
 )
-from pdfsmarteditor.core.metadata_editor import MetadataEditor
-from pdfsmarteditor.core.object_inspector import ObjectInspector
-from pdfsmarteditor.core.page_manipulator import PageManipulator
+from pdf_editor_offline.core.metadata_editor import MetadataEditor
+from pdf_editor_offline.core.object_inspector import ObjectInspector
+from pdf_editor_offline.core.page_manipulator import PageManipulator
 
 
 class TestDocumentManager:

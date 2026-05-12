@@ -549,7 +549,7 @@ class PDFConverter:
         book = epub.EpubBook()
 
         # Set metadata
-        book.set_identifier("pdfsmarteditor-" + str(hash(pdf_path)))
+        book.set_identifier("pdf-editor-offline-" + str(hash(pdf_path)))
         book.set_title(os.path.splitext(os.path.basename(pdf_path))[0])
         book.set_language("en")
 
@@ -1119,7 +1119,7 @@ class PDFConverter:
             raise ValueError("At least 2 PDF files are required for merging")
 
         # Merge PDFs using existing merge functionality
-        from pdfsmarteditor.core.manipulator import PDFManipulator
+        from pdf_editor_offline.core.manipulator import PDFManipulator
 
         manipulator = PDFManipulator()
         manipulator.merge_pdfs(pdf_files, output_path)
@@ -1149,7 +1149,7 @@ class PDFConverter:
         import uuid
 
         output_files = []
-        from pdfsmarteditor.core.manipulator import PDFManipulator
+        from pdf_editor_offline.core.manipulator import PDFManipulator
 
         manipulator = PDFManipulator()
 

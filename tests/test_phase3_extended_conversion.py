@@ -11,7 +11,7 @@ import fitz
 import pytest
 
 from api.deps import TEMP_DIR
-from pdfsmarteditor.core.converter import PDFConverter
+from pdf_editor_offline.core.converter import PDFConverter
 
 
 def upload_pdf(api_client, path: str) -> str:
@@ -506,7 +506,7 @@ class TestPhase3AutoMergeFolder:
 
     def test_merge_multiple_pdfs(self, tmp_path):
         """Test merging multiple PDFs into one."""
-        from pdfsmarteditor.core.manipulator import PDFManipulator
+        from pdf_editor_offline.core.manipulator import PDFManipulator
 
         # Create test PDFs
         pdf1 = tmp_path / "pdf1.pdf"

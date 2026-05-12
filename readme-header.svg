@@ -1,0 +1,25 @@
+<svg width="720" height="180" viewBox="0 0 720 180" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">PDF Editor Offline</title>
+  <desc id="desc">A simple SVG header for the PDF Editor Offline project.</desc>
+  <rect width="720" height="180" rx="24" fill="#0F172A"/>
+  <rect x="24" y="24" width="672" height="132" rx="18" fill="#111827" stroke="#334155"/>
+  <g transform="translate(64 42)">
+    <path d="M0 10C0 4.477 4.477 0 10 0H68L96 28V106C96 111.523 91.523 116 86 116H10C4.477 116 0 111.523 0 106V10Z" fill="#F8FAFC"/>
+    <path d="M68 0V24C68 26.209 69.791 28 72 28H96L68 0Z" fill="#CBD5E1"/>
+    <rect x="18" y="42" width="60" height="9" rx="4.5" fill="#EF4444"/>
+    <rect x="18" y="61" width="44" height="7" rx="3.5" fill="#475569"/>
+    <rect x="18" y="77" width="54" height="7" rx="3.5" fill="#475569"/>
+    <circle cx="74" cy="88" r="16" fill="#10B981"/>
+    <path d="M66 88L71 93L82 81" stroke="#F8FAFC" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="194" y="78" fill="#F8FAFC" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="700">PDF Editor Offline</text>
+  <text x="196" y="112" fill="#CBD5E1" font-family="Arial, Helvetica, sans-serif" font-size="18">Edit, convert, and organize PDFs locally.</text>
+  <g transform="translate(196 130)">
+    <rect width="72" height="24" rx="12" fill="#1E293B" stroke="#334155"/>
+    <text x="18" y="17" fill="#A7F3D0" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700">FREE</text>
+    <rect x="84" width="88" height="24" rx="12" fill="#1E293B" stroke="#334155"/>
+    <text x="102" y="17" fill="#BFDBFE" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700">OFFLINE</text>
+    <rect x="184" width="78" height="24" rx="12" fill="#1E293B" stroke="#334155"/>
+    <text x="204" y="17" fill="#FECACA" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700">LOCAL</text>
+  </g>
+</svg>

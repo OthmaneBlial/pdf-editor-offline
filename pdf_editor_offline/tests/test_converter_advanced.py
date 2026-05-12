@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 from pptx import Presentation
 
-from pdfsmarteditor.core.converter import PDFConverter
+from pdf_editor_offline.core.converter import PDFConverter
 
 
 @pytest.fixture

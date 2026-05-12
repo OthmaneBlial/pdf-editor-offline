@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 # Copy project files
 COPY pyproject.toml README.md LICENSE ./
-COPY pdfsmarteditor/ ./pdfsmarteditor/
+COPY pdf_editor_offline/ ./pdf_editor_offline/
 COPY api/ ./api/
 
 # Install the package

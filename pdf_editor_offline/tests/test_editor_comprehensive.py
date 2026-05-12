@@ -1,8 +1,8 @@
 import fitz
 import pytest
 
-from pdfsmarteditor.core.editor import Editor
-from pdfsmarteditor.core.exceptions import InvalidOperationError
+from pdf_editor_offline.core.editor import Editor
+from pdf_editor_offline.core.exceptions import InvalidOperationError
 
 
 @pytest.fixture

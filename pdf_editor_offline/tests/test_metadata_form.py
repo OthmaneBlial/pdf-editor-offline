@@ -1,10 +1,10 @@
 import fitz
 import pytest
 
-from pdfsmarteditor.core.exceptions import InvalidOperationError
-from pdfsmarteditor.core.form_handler import FormHandler
-from pdfsmarteditor.core.metadata_editor import MetadataEditor
-from pdfsmarteditor.core.object_inspector import ObjectInspector
+from pdf_editor_offline.core.exceptions import InvalidOperationError
+from pdf_editor_offline.core.form_handler import FormHandler
+from pdf_editor_offline.core.metadata_editor import MetadataEditor
+from pdf_editor_offline.core.object_inspector import ObjectInspector
 
 
 @pytest.fixture

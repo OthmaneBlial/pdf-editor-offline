@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from api.deps import cleanup_all_sessions, cleanup_stale_sessions
-from pdfsmarteditor.core.exceptions import InvalidOperationError
+from pdf_editor_offline.core.exceptions import InvalidOperationError
 
 # Setup logging
 logging.basicConfig(

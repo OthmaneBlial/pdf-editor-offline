@@ -3,7 +3,7 @@ import os
 import fitz
 import pytest
 
-from pdfsmarteditor.core.manipulator import PDFManipulator
+from pdf_editor_offline.core.manipulator import PDFManipulator
 
 
 @pytest.fixture

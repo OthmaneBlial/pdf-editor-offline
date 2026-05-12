@@ -1,3 +1,0 @@
-[console_scripts]
-pdf-editor-offline = pdfsmarteditor.cli.main:app
-pdfsmarteditor = pdfsmarteditor.cli.main:app

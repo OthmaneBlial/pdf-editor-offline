@@ -9,11 +9,11 @@ import tempfile
 import pytest
 import fitz
 
-from pdfsmarteditor.core.text_processor import TextProcessor
-from pdfsmarteditor.core.rich_text_editor import RichTextEditor
-from pdfsmarteditor.core.navigation_manager import NavigationManager
-from pdfsmarteditor.core.annotation_enhancer import AnnotationEnhancer
-from pdfsmarteditor.core.image_processor import ImageProcessor
+from pdf_editor_offline.core.text_processor import TextProcessor
+from pdf_editor_offline.core.rich_text_editor import RichTextEditor
+from pdf_editor_offline.core.navigation_manager import NavigationManager
+from pdf_editor_offline.core.annotation_enhancer import AnnotationEnhancer
+from pdf_editor_offline.core.image_processor import ImageProcessor
 
 
 @pytest.fixture
@@ -614,7 +614,7 @@ class TestImageProcessor:
         """Test getting page dimensions."""
         doc = fitz.open(sample_pdf)
 
-        from pdfsmarteditor.core.object_inspector import ObjectInspector
+        from pdf_editor_offline.core.object_inspector import ObjectInspector
         inspector = ObjectInspector(doc)
 
         dims = inspector.get_page_dimensions(0)
@@ -629,7 +629,7 @@ class TestImageProcessor:
         """Test annotation summary."""
         doc = fitz.open(sample_pdf)
 
-        from pdfsmarteditor.core.object_inspector import ObjectInspector
+        from pdf_editor_offline.core.object_inspector import ObjectInspector
         inspector = ObjectInspector(doc)
 
         summary = inspector.get_annotations_summary(0)

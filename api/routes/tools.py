@@ -9,8 +9,8 @@ from fastapi.responses import FileResponse
 
 from api.deps import TEMP_DIR
 from api.utils import persist_upload_file
-from pdfsmarteditor.core.converter import PDFConverter
-from pdfsmarteditor.core.manipulator import PDFManipulator
+from pdf_editor_offline.core.converter import PDFConverter
+from pdf_editor_offline.core.manipulator import PDFManipulator
 
 router = APIRouter(prefix="/api/tools", tags=["tools"])
 

@@ -3,18 +3,18 @@ import tempfile
 
 import pytest
 
-from pdfsmarteditor.utils.image_utils import (
+from pdf_editor_offline.utils.image_utils import (
     convert_format,
     get_image_size,
     resize_image,
 )
-from pdfsmarteditor.utils.pdf_helpers import (
+from pdf_editor_offline.utils.pdf_helpers import (
     get_metadata,
     get_page_count,
     get_page_dimensions,
     get_pdf_version,
 )
-from pdfsmarteditor.utils.validators import validate_image, validate_pdf
+from pdf_editor_offline.utils.validators import validate_image, validate_pdf
 
 
 class TestValidators:

@@ -7,7 +7,7 @@ import fitz
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
-from pdfsmarteditor.core.exceptions import PDFLoadError
+from pdf_editor_offline.core.exceptions import PDFLoadError
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ from api.models import (
     TOCItem,
     UpdateBookmarkRequest,
 )
-from pdfsmarteditor.utils.canvas_helpers import (
+from pdf_editor_offline.utils.canvas_helpers import (
     convert_to_pymupdf_annotation,
     decode_canvas_overlay,
     parse_fabric_objects,
@@ -1578,7 +1578,7 @@ async def optimize_document(
     image_processor = session.get("image_processor")
     if not image_processor:
         # Create temporary image processor for this operation
-        from pdfsmarteditor.core.image_processor import ImageProcessor
+        from pdf_editor_offline.core.image_processor import ImageProcessor
 
         image_processor = ImageProcessor(doc)
 
