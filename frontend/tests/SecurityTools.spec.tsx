@@ -36,6 +36,7 @@ describe('SecurityTools', () => {
         expect(screen.getAllByText('Watermark PDF').length).toBeGreaterThan(0);
         expect(screen.getAllByText('Clean Metadata').length).toBeGreaterThan(0);
         expect(screen.getAllByText('Clean Hidden Data').length).toBeGreaterThan(0);
+        expect(screen.getByText('Maintenance Cleanup')).toBeInTheDocument();
     });
 
     it('renders granular protect options', () => {
@@ -52,5 +53,7 @@ describe('SecurityTools', () => {
         expect(screen.getByText('Hidden Text')).toBeInTheDocument();
         expect(screen.getByText('JavaScript')).toBeInTheDocument();
         expect(screen.getByText('Page Streams')).toBeInTheDocument();
+        expect(screen.getByText('Temp Age Minutes')).toBeInTheDocument();
+        expect(screen.getByText('Session Age Hours')).toBeInTheDocument();
     });
 });

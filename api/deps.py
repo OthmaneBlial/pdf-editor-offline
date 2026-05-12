@@ -2,6 +2,7 @@ import logging
 import os
 import shutil
 import tempfile
+import time
 import uuid
 from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
@@ -27,6 +28,52 @@ logger = logging.getLogger(__name__)
 TEMP_DIR = tempfile.gettempdir()
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "50"))
 SESSION_TTL_HOURS = int(os.getenv("SESSION_TTL_HOURS", "24"))
+APP_TEMP_PREFIXES = (
+    "annotation_audio_",
+    "annotation_file_",
+    "auto_merge_",
+    "batch_",
+    "cmp_",
+    "cmp1_",
+    "cmp2_",
+    "compressed_",
+    "conv_",
+    "e2p_",
+    "extracted_",
+    "h2p_",
+    "i2p_",
+    "image_",
+    "imgs_",
+    "insert_",
+    "merge_",
+    "meta_",
+    "meta_clean_",
+    "num_",
+    "ocr_",
+    "org_",
+    "p2e_",
+    "p2j_",
+    "p2md_",
+    "p2p_",
+    "p2t_",
+    "p2w_",
+    "pdfa_",
+    "privacy_",
+    "privacy_clean_",
+    "pro_",
+    "rep_",
+    "rot_",
+    "scan_",
+    "sign_d_",
+    "sign_s_",
+    "split_",
+    "svgs_",
+    "template_",
+    "unl_",
+    "upload_",
+    "wm_",
+    "w2p_",
+)
 
 # In-memory session storage
 sessions = {}
@@ -132,24 +179,88 @@ def delete_session(session_id: str):
     session_store.delete(session_id)
 
 
-def cleanup_stale_sessions():
-    cutoff = datetime.now() - timedelta(hours=SESSION_TTL_HOURS)
+def cleanup_sessions_older_than(
+    max_age_hours: int = SESSION_TTL_HOURS, include_active: bool = False
+) -> Dict[str, int]:
+    cutoff = datetime.now() - timedelta(hours=max_age_hours)
     removed = 0
+    skipped_active = 0
+    failed = 0
     for record in session_store.list_all():
-        if record.last_modified < cutoff and record.session_id not in sessions:
+        if record.last_modified >= cutoff:
+            continue
+
+        if record.session_id in sessions:
+            if not include_active:
+                skipped_active += 1
+                continue
             try:
-                if os.path.exists(record.storage_path):
-                    os.remove(record.storage_path)
+                delete_session(record.session_id)
+                removed += 1
             except Exception as exc:
+                failed += 1
                 logger.warning(
-                    "Failed to remove stale file %s: %s", record.storage_path, exc
+                    "Failed to remove active stale session %s: %s",
+                    record.session_id,
+                    exc,
                 )
+            continue
+
+        try:
+            if os.path.exists(record.storage_path):
+                os.remove(record.storage_path)
             session_store.delete(record.session_id)
             removed += 1
-    if removed:
+        except Exception as exc:
+            failed += 1
+            logger.warning(
+                "Failed to remove stale file %s: %s", record.storage_path, exc
+            )
+
+    return {
+        "sessions_removed": removed,
+        "active_sessions_skipped": skipped_active,
+        "session_cleanup_failures": failed,
+    }
+
+
+def cleanup_temp_files(max_age_minutes: int = 60) -> Dict[str, int]:
+    cutoff = time.time() - (max_age_minutes * 60)
+    removed = 0
+    bytes_removed = 0
+    failed = 0
+
+    for entry in os.scandir(TEMP_DIR):
+        if not entry.is_file():
+            continue
+        if not entry.name.startswith(APP_TEMP_PREFIXES):
+            continue
+
+        try:
+            stat = entry.stat()
+            if stat.st_mtime > cutoff:
+                continue
+            size = stat.st_size
+            os.remove(entry.path)
+            removed += 1
+            bytes_removed += size
+        except OSError as exc:
+            failed += 1
+            logger.warning("Failed to remove temp file %s: %s", entry.path, exc)
+
+    return {
+        "temp_files_removed": removed,
+        "temp_bytes_removed": bytes_removed,
+        "temp_cleanup_failures": failed,
+    }
+
+
+def cleanup_stale_sessions():
+    stats = cleanup_sessions_older_than(SESSION_TTL_HOURS, include_active=False)
+    if stats["sessions_removed"]:
         logger.info(
             "Cleaned up %s stale session(s) older than %s hours",
-            removed,
+            stats["sessions_removed"],
             SESSION_TTL_HOURS,
         )
 

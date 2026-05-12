@@ -81,7 +81,7 @@ describe('AdvancedTextTools', () => {
   it('can send rich text through the reflow endpoint', async () => {
     render(<AdvancedTextTools />);
 
-    fireEvent.change(screen.getByRole('combobox'), {
+    fireEvent.change(screen.getAllByRole('combobox')[0], {
       target: { value: 'reflow' },
     });
     fireEvent.change(screen.getByPlaceholderText('<p>HTML content here...</p>'), {
@@ -94,6 +94,25 @@ describe('AdvancedTextTools', () => {
         expect.stringContaining('/api/documents/doc-1/pages/0/text/reflow'),
         expect.objectContaining({
           html_content: '<p>Wrapped text</p>',
+        })
+      );
+    });
+  });
+
+  it('can send permanent redaction coordinates', async () => {
+    render(<AdvancedTextTools />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Redact Area/i }));
+
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        expect.stringContaining('/api/documents/doc-1/pages/0/redact'),
+        expect.objectContaining({
+          x: 72,
+          y: 72,
+          width: 160,
+          height: 24,
+          fill_color: [0, 0, 0],
         })
       );
     });

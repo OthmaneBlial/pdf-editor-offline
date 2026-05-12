@@ -20,6 +20,8 @@ from api.security import (
 from api.deps import (
     MAX_UPLOAD_MB,
     TEMP_DIR,
+    cleanup_sessions_older_than,
+    cleanup_temp_files,
     create_session,
     delete_session,
     get_session,
@@ -43,12 +45,14 @@ from api.models import (
     ImageReplaceRequest,
     LinkRequest,
     LinkUpdateRequest,
+    MaintenanceCleanupRequest,
     MetadataUpdate,
     MultiFontTextRequest,
     PopupNoteRequest,
     PolygonAnnotationRequest,
     PolylineAnnotationRequest,
     ReflowTextRequest,
+    RedactionRequest,
     RichTextInsertRequest,
     SetTOCRequest,
     SoundAnnotationRequest,
@@ -229,6 +233,20 @@ async def upload_document(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@router.post("/maintenance/cleanup", response_model=APIResponse)
+async def cleanup_maintenance(request: MaintenanceCleanupRequest):
+    temp_stats = cleanup_temp_files(request.temp_max_age_minutes)
+    session_stats = cleanup_sessions_older_than(
+        request.session_max_age_hours,
+        include_active=request.include_active_sessions,
+    )
+    return APIResponse(
+        success=True,
+        message="Maintenance cleanup completed",
+        data={**temp_stats, **session_stats},
+    )
+
+
 @router.get("/{doc_id}", response_model=APIResponse)
 async def get_document_info(doc_id: str):
     session = get_session(doc_id)
@@ -297,6 +315,58 @@ async def add_text_annotation(doc_id: str, page_num: int, annotation: TextAnnota
     session["editor"].add_text(page_num, annotation.text, (annotation.x, annotation.y))
     persist_session_document(doc_id)
     return APIResponse(success=True, message="Text annotation added successfully")
+
+
+@router.post("/{doc_id}/pages/{page_num}/redact", response_model=APIResponse)
+async def redact_page_area(doc_id: str, page_num: int, request: RedactionRequest):
+    if request.width <= 0 or request.height <= 0:
+        raise HTTPException(status_code=400, detail="Redaction area must be positive")
+    if any(component < 0 or component > 1 for component in request.fill_color):
+        raise HTTPException(
+            status_code=400,
+            detail="fill_color components must be between 0 and 1",
+        )
+
+    session = get_session(doc_id)
+    doc = session["document_manager"].get_document()
+    if page_num < 0 or page_num >= len(doc):
+        raise HTTPException(status_code=400, detail=f"Invalid page number: {page_num}")
+
+    page = doc[page_num]
+    rect = fitz.Rect(
+        request.x,
+        request.y,
+        request.x + request.width,
+        request.y + request.height,
+    )
+    if not page.rect.intersects(rect):
+        raise HTTPException(
+            status_code=400,
+            detail="Redaction area must overlap the page",
+        )
+
+    page_rect = rect & page.rect
+    applied = session["editor"].redact_text(
+        page_num,
+        page_rect,
+        tuple(request.fill_color),
+    )
+    persist_session_document(
+        doc_id,
+        garbage=4,
+        clean=True,
+        deflate=True,
+        preserve_metadata=False,
+    )
+    return APIResponse(
+        success=True,
+        message="Area permanently redacted",
+        data={
+            "page_num": page_num,
+            "rect": [page_rect.x0, page_rect.y0, page_rect.x1, page_rect.y1],
+            "redactions_applied": bool(applied),
+        },
+    )
 
 
 @router.post("/{doc_id}/pages/{page_num}/canvas", response_model=APIResponse)

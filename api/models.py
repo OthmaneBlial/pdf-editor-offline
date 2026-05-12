@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class DocumentSession(BaseModel):
@@ -61,6 +61,20 @@ class HiddenDataCleanupRequest(BaseModel):
     reset_form_fields: bool = False
     apply_redactions: bool = True
     clean_pages: bool = True
+
+
+class RedactionRequest(BaseModel):
+    x: float
+    y: float
+    width: float
+    height: float
+    fill_color: Tuple[float, float, float] = (0, 0, 0)
+
+
+class MaintenanceCleanupRequest(BaseModel):
+    temp_max_age_minutes: int = Field(default=60, ge=0, le=24 * 60)
+    session_max_age_hours: int = Field(default=24, ge=1, le=7 * 24)
+    include_active_sessions: bool = False
 
 
 # Page Manipulation Models

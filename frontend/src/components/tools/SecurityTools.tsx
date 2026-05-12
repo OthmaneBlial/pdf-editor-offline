@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { Lock, Unlock, PenTool, Stamp, RefreshCw, ShieldCheck, Eraser } from 'lucide-react';
+import { Lock, Unlock, PenTool, Stamp, RefreshCw, ShieldCheck, Eraser, Trash2 } from 'lucide-react';
 import { API_BASE_URL } from '../../lib/apiClient';
 
 const SecurityTools: React.FC = () => {
@@ -121,6 +121,27 @@ const SecurityTools: React.FC = () => {
             setMessage({ type: 'success', text: 'Hidden data cleaned successfully!' });
         } catch (error) {
             setMessage({ type: 'error', text: 'Failed to clean hidden data.' });
+            console.error(error);
+        } finally {
+            setLoading(null);
+        }
+    };
+
+    const handleMaintenanceCleanup = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        setLoading('cleanup');
+        setMessage(null);
+        const formData = new FormData(e.currentTarget);
+
+        try {
+            await axios.post(`${API_BASE_URL}/api/documents/maintenance/cleanup`, {
+                temp_max_age_minutes: Number(formData.get('temp_max_age_minutes')),
+                session_max_age_hours: Number(formData.get('session_max_age_hours')),
+                include_active_sessions: formData.get('include_active_sessions') === 'true',
+            });
+            setMessage({ type: 'success', text: 'Maintenance cleanup completed!' });
+        } catch (error) {
+            setMessage({ type: 'error', text: 'Failed to run maintenance cleanup.' });
             console.error(error);
         } finally {
             setLoading(null);
@@ -353,6 +374,38 @@ const SecurityTools: React.FC = () => {
                         </div>
                         <button type="submit" disabled={!!loading} className="w-full py-2 px-4 bg-slate-700 hover:bg-slate-800 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
                             {loading === 'privacy' ? <><RefreshCw className="w-4 h-4 animate-spin" /> Processing...</> : <><ShieldCheck className="w-4 h-4" /> Clean Hidden Data</>}
+                        </button>
+                    </form>
+                </div>
+
+                {/* Maintenance Cleanup */}
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-zinc-100 rounded-lg text-zinc-700">
+                            <Trash2 className="w-6 h-6" />
+                        </div>
+                        <h3 className="font-semibold text-lg">Maintenance Cleanup</h3>
+                    </div>
+                    <form onSubmit={handleMaintenanceCleanup} className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <label className="text-xs font-medium text-gray-700">
+                                Temp Age Minutes
+                                <input type="number" name="temp_max_age_minutes" defaultValue="60" min="0" max="1440" className="mt-1 w-full p-2 border border-gray-300 rounded-lg text-sm" />
+                            </label>
+                            <label className="text-xs font-medium text-gray-700">
+                                Session Age Hours
+                                <input type="number" name="session_max_age_hours" defaultValue="24" min="1" max="168" className="mt-1 w-full p-2 border border-gray-300 rounded-lg text-sm" />
+                            </label>
+                        </div>
+                        <label className="text-xs font-medium text-gray-700 block">
+                            Active Sessions
+                            <select name="include_active_sessions" defaultValue="false" className="mt-1 w-full p-2 border border-gray-300 rounded-lg text-sm">
+                                <option value="false">Keep</option>
+                                <option value="true">Remove Expired</option>
+                            </select>
+                        </label>
+                        <button type="submit" disabled={!!loading} className="w-full py-2 px-4 bg-zinc-700 hover:bg-zinc-800 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                            {loading === 'cleanup' ? <><RefreshCw className="w-4 h-4 animate-spin" /> Processing...</> : <><Trash2 className="w-4 h-4" /> Run Cleanup</>}
                         </button>
                     </form>
                 </div>

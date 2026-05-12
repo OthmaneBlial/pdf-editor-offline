@@ -23,12 +23,18 @@ class Editor:
         page = self.document[page_num]
         page.insert_text(position, text)
 
-    def redact_text(self, page_num: int, rect: fitz.Rect):
+    def redact_text(
+        self, page_num: int, rect: fitz.Rect, fill_color: tuple = (0, 0, 0)
+    ) -> bool:
         if page_num < 0 or page_num >= len(self.document):
             raise InvalidOperationError(f"Invalid page number: {page_num}")
         page = self.document[page_num]
-        page.add_redact_annot(rect)
-        page.apply_redactions()
+        page.add_redact_annot(rect, fill=fill_color)
+        return page.apply_redactions(
+            images=fitz.PDF_REDACT_IMAGE_PIXELS,
+            graphics=fitz.PDF_REDACT_LINE_ART_REMOVE_IF_TOUCHED,
+            text=fitz.PDF_REDACT_TEXT_REMOVE,
+        )
 
     def add_image(self, page_num: int, image_path: str, rect: fitz.Rect):
         if page_num < 0 or page_num >= len(self.document):

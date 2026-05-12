@@ -11,6 +11,7 @@ import {
   Loader2,
   Save,
   Download,
+  ShieldX,
 } from 'lucide-react';
 import { useEditor } from '../../contexts/EditorContext';
 import { API_BASE_URL } from '../../lib/apiClient';
@@ -58,6 +59,11 @@ const AdvancedTextTools: React.FC = () => {
   const [fonts, setFonts] = useState<FontInfo[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchMatches, setSearchMatches] = useState<SearchMatch[]>([]);
+  const [redactionX, setRedactionX] = useState(72);
+  const [redactionY, setRedactionY] = useState(72);
+  const [redactionWidth, setRedactionWidth] = useState(160);
+  const [redactionHeight, setRedactionHeight] = useState(24);
+  const [redactionFill, setRedactionFill] = useState('black');
 
   const showMessage = (type: 'success' | 'error', text: string, refreshDocument = false) => {
     setMessage({ type, text });
@@ -237,6 +243,45 @@ const AdvancedTextTools: React.FC = () => {
         showMessage('error', error.response?.data?.detail || 'Failed to search text');
       } else {
         showMessage('error', 'Failed to search text');
+      }
+      console.error(error);
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleRedactArea = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sessionId) {
+      showMessage('error', 'No document loaded');
+      return;
+    }
+
+    setLoading('redact');
+    setMessage(null);
+
+    const fillColor = redactionFill === 'white' ? [1, 1, 1] : [0, 0, 0];
+
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/api/documents/${sessionId}/pages/${currentPage}/redact`,
+        {
+          x: redactionX,
+          y: redactionY,
+          width: redactionWidth,
+          height: redactionHeight,
+          fill_color: fillColor,
+        }
+      );
+
+      if (response.data.success) {
+        showMessage('success', 'Area redacted permanently', true);
+      }
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        showMessage('error', error.response?.data?.detail || 'Failed to redact area');
+      } else {
+        showMessage('error', 'Failed to redact area');
       }
       console.error(error);
     } finally {
@@ -578,6 +623,86 @@ const AdvancedTextTools: React.FC = () => {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Permanent Redaction */}
+        <div className="bg-[var(--card-bg)] p-6 rounded-xl shadow-sm border border-[var(--border-color)]">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-red-100 rounded-lg text-red-700">
+              <ShieldX className="w-6 h-6" />
+            </div>
+            <h3 className="font-semibold text-lg text-[var(--text-primary)]">Permanent Redaction</h3>
+          </div>
+          <form onSubmit={handleRedactArea} className="space-y-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div>
+                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">X</label>
+                <input
+                  type="number"
+                  value={redactionX}
+                  onChange={(e) => setRedactionX(Number(e.target.value))}
+                  className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)] text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Y</label>
+                <input
+                  type="number"
+                  value={redactionY}
+                  onChange={(e) => setRedactionY(Number(e.target.value))}
+                  className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)] text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Width</label>
+                <input
+                  type="number"
+                  value={redactionWidth}
+                  min={1}
+                  onChange={(e) => setRedactionWidth(Number(e.target.value))}
+                  className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)] text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Height</label>
+                <input
+                  type="number"
+                  value={redactionHeight}
+                  min={1}
+                  onChange={(e) => setRedactionHeight(Number(e.target.value))}
+                  className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)] text-sm"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
+                Fill Color
+              </label>
+              <select
+                value={redactionFill}
+                onChange={(e) => setRedactionFill(e.target.value)}
+                className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)] text-sm"
+              >
+                <option value="black">Black</option>
+                <option value="white">White</option>
+              </select>
+            </div>
+            <button
+              type="submit"
+              disabled={!!loading}
+              className="w-full py-2 px-4 bg-red-700 hover:bg-red-800 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {loading === 'redact' ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Redacting...
+                </>
+              ) : (
+                <>
+                  <ShieldX className="w-4 h-4" /> Redact Area
+                </>
+              )}
+            </button>
+          </form>
         </div>
 
         {/* Text Search */}
