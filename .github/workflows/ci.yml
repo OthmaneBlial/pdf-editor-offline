@@ -35,7 +35,7 @@ jobs:
     - name: Run tests
       run: |
         export PYTHONPATH=$PYTHONPATH:.
-        pytest --cov=pdfsmarteditor --cov-report=xml
+        pytest --cov=pdf_editor_offline --cov-report=xml
 
     - name: Upload coverage to Codecov
       if: runner.os == 'Linux' && matrix.python-version == '3.12'
@@ -72,7 +72,7 @@ jobs:
     - name: Test installation
       run: |
         pip install dist/*.whl
-        pdfsmarteditor --help
+        pdf-editor-offline --help
 
   docker:
     runs-on: ubuntu-latest
@@ -81,8 +81,8 @@ jobs:
 
     - name: Build Docker image
       run: |
-        docker build -t pdfsmarteditor .
+        docker build -t pdf-editor-offline .
 
     - name: Test Docker image
       run: |
-        docker run --rm pdfsmarteditor pdfsmarteditor --help
+        docker run --rm pdf-editor-offline pdf-editor-offline --help
