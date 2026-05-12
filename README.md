@@ -23,6 +23,7 @@ PDF Editor Offline gives you a web app, API server, CLI, and Python package for 
 - Merge, split, rotate, crop, resize, compress, repair, protect, and unlock PDFs
 - Convert PDF to Word, PowerPoint, Excel, JPG, Markdown, TXT, EPUB, SVG, and PDF/A
 - Convert Word, PowerPoint, Excel, Markdown, TXT, CSV, JSON, HTML, and images to PDF
+- Clean metadata, remove hidden data, redact page areas, and clear app temp files
 - Run OCR and batch jobs locally
 
 ## Install
@@ -112,6 +113,23 @@ Full local check:
 ./run_ci.sh
 ```
 
+Release checklist:
+
+```bash
+pytest
+cd frontend && npm test && npm run build
+docker build -t pdf-editor-offline .
+python -m build
+```
+
+## Sample PDFs
+
+Small demo PDFs live in `examples/sample_pdfs/`:
+
+- `demo-basic.pdf` for page editing, annotations, and exports
+- `demo-redaction.pdf` for permanent redaction checks
+- `demo-privacy.pdf` for metadata and hidden-data cleanup
+
 ## Project Layout
 
 ```text
@@ -119,6 +137,7 @@ api/                 FastAPI app
 frontend/            React app
 pdf_editor_offline/  Python package and CLI
 examples/            Example scripts
+examples/sample_pdfs/ Small local demo PDFs
 tests/               Integration tests
 ```
 
