@@ -8,6 +8,7 @@ from typing import Any, Dict, Optional
 
 from fastapi import HTTPException
 
+from api.security import sanitize_filename as sanitize_pdf_filename
 from api.storage import STORAGE_DIR, SessionRecord, session_store
 from pdf_editor_offline.core.document_manager import DocumentManager
 from pdf_editor_offline.core.editor import Editor
@@ -32,7 +33,7 @@ sessions = {}
 
 
 def sanitize_filename(filename: str) -> str:
-    return os.path.basename(filename)
+    return sanitize_pdf_filename(filename)
 
 
 def build_session_data(

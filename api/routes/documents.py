@@ -11,6 +11,12 @@ from pdf_editor_offline.core.exceptions import PDFLoadError
 
 logger = logging.getLogger(__name__)
 
+from api.security import (
+    sanitize_download_filename,
+    sanitize_filename,
+    validate_content_type,
+    validate_pdf_file,
+)
 from api.deps import (
     MAX_UPLOAD_MB,
     TEMP_DIR,
@@ -63,6 +69,10 @@ from pdf_editor_offline.utils.canvas_helpers import (
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 
+ALLOWED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"}
+ALLOWED_AUDIO_EXTENSIONS = {".mp3", ".mpeg", ".mp4", ".m4a", ".wav", ".aac", ".ogg"}
+MAX_TEMP_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024
+
 
 def _parse_rect_csv(rect_value: str) -> Tuple[float, float, float, float]:
     """Parse comma-separated rectangle values: x0,y0,x1,y1."""
@@ -85,15 +95,37 @@ def _parse_rect_csv(rect_value: str) -> Tuple[float, float, float, float]:
     return x0, y0, x1, y1
 
 
-async def _store_upload_temporarily(upload: UploadFile, prefix: str) -> str:
+async def _store_upload_temporarily(
+    upload: UploadFile,
+    prefix: str,
+    *,
+    allowed_extensions: Optional[set[str]] = None,
+    allowed_content_types: Optional[set[str]] = None,
+    max_size_bytes: int = MAX_TEMP_UPLOAD_BYTES,
+) -> str:
     """Persist uploaded file to TEMP_DIR and return absolute path."""
-    original_name = os.path.basename(upload.filename or "upload.bin")
+    raw_name = upload.filename or "upload.bin"
+    if any(pattern in raw_name for pattern in ("..", "/", "\\", "\x00")):
+        raise HTTPException(status_code=400, detail="Invalid upload filename")
+    original_name = os.path.basename(raw_name)
     _, extension = os.path.splitext(original_name)
+    extension = extension.lower() or ".bin"
+    if allowed_extensions and extension not in allowed_extensions:
+        raise HTTPException(status_code=400, detail="Uploaded file type is not allowed")
+    if allowed_content_types and not validate_content_type(
+        upload.content_type, allowed_content_types
+    ):
+        raise HTTPException(
+            status_code=400, detail="Uploaded content type is not allowed"
+        )
+
     temp_path = os.path.join(TEMP_DIR, f"{prefix}_{uuid.uuid4().hex}{extension}")
 
     file_content = await upload.read()
     if not file_content:
         raise HTTPException(status_code=400, detail="Uploaded file is empty")
+    if len(file_content) > max_size_bytes:
+        raise HTTPException(status_code=413, detail="Uploaded file is too large")
 
     try:
         with open(temp_path, "wb") as handle:
@@ -108,42 +140,50 @@ async def _store_upload_temporarily(upload: UploadFile, prefix: str) -> str:
     return temp_path
 
 
-@router.post("/upload", response_model=APIResponse)
-async def upload_document(file: UploadFile = File(...)):
-    """Upload a PDF document and create an editing session."""
-    # Validate file type
-    if not file.filename or not file.filename.lower().endswith(".pdf"):
+async def _store_pdf_upload_temporarily(
+    upload: UploadFile, prefix: str
+) -> tuple[str, str]:
+    """Validate and persist an uploaded PDF, returning temp path and safe filename."""
+    if not upload.filename:
+        raise HTTPException(status_code=400, detail="Filename cannot be empty")
+
+    if not upload.filename.lower().endswith(".pdf"):
         raise HTTPException(
             status_code=400, detail="Invalid file type. Only PDF files are accepted."
         )
 
-    # Check file size
-    file.file.seek(0, os.SEEK_END)
-    size = file.file.tell()
-    file.file.seek(0)
-
-    if size == 0:
-        raise HTTPException(status_code=400, detail="Empty file uploaded")
-
-    if size > MAX_UPLOAD_MB * 1024 * 1024:
+    if upload.content_type and not validate_content_type(
+        upload.content_type, {"application/pdf", "application/octet-stream"}
+    ):
         raise HTTPException(
-            status_code=413,
-            detail=f"File too large. Maximum size is {MAX_UPLOAD_MB}MB.",
+            status_code=400, detail="Uploaded content type is not allowed"
         )
 
-    # Save temporarily
-    temp_path = os.path.join(TEMP_DIR, f"upload_{file.filename}")
+    safe_filename = sanitize_filename(upload.filename)
+    content = await upload.read()
+    validate_pdf_file(content, safe_filename, MAX_TEMP_UPLOAD_BYTES)
+
+    temp_path = os.path.join(TEMP_DIR, f"{prefix}_{uuid.uuid4().hex}.pdf")
     try:
-        with open(temp_path, "wb") as f:
-            f.write(await file.read())
-    except IOError as e:
-        logger.error(f"Failed to write uploaded file: {e}")
+        with open(temp_path, "wb") as handle:
+            handle.write(content)
+    except IOError as exc:
         raise HTTPException(
-            status_code=500, detail="Failed to save uploaded file. Please try again."
-        )
+            status_code=500, detail="Failed to persist uploaded file"
+        ) from exc
+    finally:
+        await upload.close()
+
+    return temp_path, safe_filename
+
+
+@router.post("/upload", response_model=APIResponse)
+async def upload_document(file: UploadFile = File(...)):
+    """Upload a PDF document and create an editing session."""
+    temp_path, safe_filename = await _store_pdf_upload_temporarily(file, "upload")
 
     try:
-        session_id = create_session(temp_path, file.filename)
+        session_id = create_session(temp_path, safe_filename)
         session = sessions[session_id]
 
         doc_session = DocumentSession(
@@ -155,7 +195,9 @@ async def upload_document(file: UploadFile = File(...)):
         )
 
         logger.info(
-            f"Document uploaded successfully: {file.filename} (session: {session_id})"
+            "Document uploaded successfully: %s (session: %s)",
+            safe_filename,
+            session_id,
         )
         return APIResponse(
             success=True,
@@ -507,29 +549,23 @@ async def insert_pages_from_file(
     if position < 0 or position > len(doc):
         position = len(doc)  # Append to end if invalid
 
-    # Validate uploaded file
-    if not file.filename or not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Only PDF files are accepted.")
-
-    # Save uploaded file temporarily
-    temp_path = os.path.join(TEMP_DIR, f"insert_{doc_id}_{file.filename}")
+    temp_path, safe_filename = await _store_pdf_upload_temporarily(file, "insert")
+    insert_doc = None
     try:
-        with open(temp_path, "wb") as f:
-            f.write(await file.read())
-
-        # Open and insert pages
         insert_doc = fitz.open(temp_path)
         pages_to_insert = len(insert_doc)
 
         doc.insert_pdf(insert_doc, start_at=position)
-        insert_doc.close()
 
         # Update session
         session["page_count"] = len(doc)
         persist_session_document(doc_id)
 
         logger.info(
-            f"Inserted {pages_to_insert} pages from {file.filename} at position {position}"
+            "Inserted %s pages from %s at position %s",
+            pages_to_insert,
+            safe_filename,
+            position,
         )
         return APIResponse(
             success=True,
@@ -537,9 +573,11 @@ async def insert_pages_from_file(
             data={"new_page_count": len(doc), "inserted_at": position},
         )
     except Exception as e:
-        logger.error(f"Failed to insert pages: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to insert pages: {str(e)}")
+        logger.error("Failed to insert pages: %s", e)
+        raise HTTPException(status_code=400, detail="Failed to insert pages")
     finally:
+        if insert_doc:
+            insert_doc.close()
         if os.path.exists(temp_path):
             os.remove(temp_path)
 
@@ -1210,7 +1248,22 @@ async def add_file_attachment_upload(
             width=width,
             height=height,
             file_path=temp_path,
-            filename=filename or os.path.basename(file.filename or ""),
+            filename=sanitize_download_filename(
+                filename or file.filename,
+                default="attachment.bin",
+                allowed_extensions=(
+                    ".bin",
+                    ".txt",
+                    ".pdf",
+                    ".docx",
+                    ".xlsx",
+                    ".csv",
+                    ".json",
+                    ".png",
+                    ".jpg",
+                    ".jpeg",
+                ),
+            ),
         )
     finally:
         if os.path.exists(temp_path):
@@ -1260,7 +1313,12 @@ async def add_sound_annotation_upload(
     if not annotation_enhancer:
         raise HTTPException(status_code=500, detail="Annotation enhancer not available")
 
-    temp_path = await _store_upload_temporarily(audio, "annotation_audio")
+    temp_path = await _store_upload_temporarily(
+        audio,
+        "annotation_audio",
+        allowed_extensions=ALLOWED_AUDIO_EXTENSIONS,
+        allowed_content_types={"audio/*", "application/octet-stream"},
+    )
     try:
         result = annotation_enhancer.add_sound_annotation(
             page_num=page_num,
@@ -1472,6 +1530,11 @@ async def download_image(doc_id: str, page_num: int, image_index: int):
     filename = (
         f"{source_name}_page_{page_num + 1}_image_{image_index + 1}.{image_format}"
     )
+    filename = sanitize_download_filename(
+        filename,
+        default=f"page_{page_num + 1}_image_{image_index + 1}.png",
+        allowed_extensions=tuple(ALLOWED_IMAGE_EXTENSIONS),
+    )
     media_format = "jpeg" if image_format.lower() in {"jpg", "jpeg"} else image_format
 
     return FileResponse(
@@ -1527,7 +1590,12 @@ async def replace_image_upload(
         raise HTTPException(status_code=500, detail="Image processor not available")
 
     parsed_rect = _parse_rect_csv(old_rect)
-    temp_path = await _store_upload_temporarily(image, "replace_image")
+    temp_path = await _store_upload_temporarily(
+        image,
+        "replace_image",
+        allowed_extensions=ALLOWED_IMAGE_EXTENSIONS,
+        allowed_content_types={"image/*", "application/octet-stream"},
+    )
     try:
         result = image_processor.replace_image(
             page_num=page_num,
@@ -1582,7 +1650,12 @@ async def insert_image_upload(
     if not image_processor:
         raise HTTPException(status_code=500, detail="Image processor not available")
 
-    temp_path = await _store_upload_temporarily(image, "insert_image")
+    temp_path = await _store_upload_temporarily(
+        image,
+        "insert_image",
+        allowed_extensions=ALLOWED_IMAGE_EXTENSIONS,
+        allowed_content_types={"image/*", "application/octet-stream"},
+    )
     try:
         result = image_processor.insert_image(
             page_num=page_num,
@@ -1647,10 +1720,11 @@ async def optimize_document(
     doc_manager = session["document_manager"]
     doc = doc_manager.get_document()
 
-    if output_filename:
-        safe_filename = output_filename
-    else:
-        safe_filename = f"optimized_{session['filename']}"
+    safe_filename = sanitize_download_filename(
+        output_filename or f"optimized_{session['filename']}",
+        default=f"optimized_{session['filename']}",
+        allowed_extensions=(".pdf",),
+    )
 
     output_path = os.path.join(TEMP_DIR, f"optimized_{doc_id}_{safe_filename}")
 

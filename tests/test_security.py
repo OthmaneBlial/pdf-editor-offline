@@ -4,6 +4,7 @@ Security-focused tests for PDF Editor Offline API.
 Tests file validation, path traversal prevention, and input sanitization.
 """
 
+import io
 import os
 
 import pytest
@@ -13,6 +14,8 @@ from api.security import (
     get_safe_filename,
     get_security_headers,
     sanitize_filename,
+    sanitize_download_filename,
+    sanitize_error_detail,
     sanitize_user_input,
     validate_content_type,
     validate_file_signature,
@@ -58,6 +61,7 @@ class TestFilenameSanitization:
             "..\\..\\..\\windows\\system32",
             "./secret.pdf",
             "~/.ssh/config",
+            "folder/secret.pdf",
         ]
         for filename in dangerous_filenames:
             with pytest.raises(HTTPException) as exc_info:
@@ -199,6 +203,35 @@ class TestSafeFilenameGeneration:
             get_safe_filename("../../../etc/passwd", "session-123")
 
 
+class TestDownloadFilenameSanitization:
+    """Tests for safe generated download filenames."""
+
+    def test_preserves_allowed_extension(self):
+        assert (
+            sanitize_download_filename(
+                "image.PNG", default="image.png", allowed_extensions=(".png", ".jpg")
+            )
+            == "image.PNG"
+        )
+
+    def test_replaces_path_traversal_with_default(self):
+        assert (
+            sanitize_download_filename(
+                "../secret.pdf", default="download.pdf", allowed_extensions=(".pdf",)
+            )
+            == "download.pdf"
+        )
+
+
+class TestSafeErrorMessages:
+    """Tests for user-facing error scrubbing."""
+
+    def test_removes_absolute_paths_from_error_detail(self):
+        detail = sanitize_error_detail("Image file not found: /tmp/private/file.png")
+        assert "/tmp/private/file.png" not in detail
+        assert "[path]" in detail
+
+
 class TestSecurityHeaders:
     """Tests for security headers."""
 
@@ -237,3 +270,31 @@ class TestSecurityHeaders:
         assert "geolocation=()" in policy
         assert "microphone=()" in policy
         assert "camera=()" in policy
+
+
+class TestUploadSecurity:
+    """API-level upload validation checks."""
+
+    def test_upload_rejects_invalid_pdf_signature(self, api_client):
+        response = api_client.post(
+            "/api/documents/upload",
+            files={"file": ("fake.pdf", io.BytesIO(b"not a pdf"), "application/pdf")},
+        )
+
+        assert response.status_code == 400
+        assert "signature" in response.json()["detail"].lower()
+
+    def test_upload_rejects_unsafe_filename(self, api_client):
+        response = api_client.post(
+            "/api/documents/upload",
+            files={
+                "file": (
+                    "../evil.pdf",
+                    io.BytesIO(b"%PDF-1.4\n%%EOF"),
+                    "application/pdf",
+                )
+            },
+        )
+
+        assert response.status_code == 400
+        assert "path traversal" in response.json()["detail"].lower()

@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from api.deps import cleanup_all_sessions, cleanup_stale_sessions
+from api.security import sanitize_error_detail
 from pdf_editor_offline.core.exceptions import InvalidOperationError
 
 # Setup logging
@@ -41,7 +42,10 @@ async def handle_invalid_operation(
     request: Request, exc: InvalidOperationError
 ) -> JSONResponse:
     """Return consistent 400 responses for user-triggered invalid operations."""
-    return JSONResponse(status_code=400, content={"detail": str(exc)})
+    return JSONResponse(
+        status_code=400, content={"detail": sanitize_error_detail(str(exc))}
+    )
+
 
 # CORS configuration:
 # - If CORS_ORIGINS is set, only those origins are allowed.

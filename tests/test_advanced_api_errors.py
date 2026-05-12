@@ -35,6 +35,7 @@ class TestAdvancedApiErrorResponses:
 
         assert response.status_code == 400
         assert "Image file not found" in response.json()["detail"]
+        assert "/definitely/missing/image.png" not in response.json()["detail"]
 
     def test_replace_image_missing_file_returns_400(self, api_client, sample_pdf: str):
         doc_id = upload_pdf(api_client, sample_pdf)
@@ -51,3 +52,4 @@ class TestAdvancedApiErrorResponses:
 
         assert response.status_code == 400
         assert "Image file not found" in response.json()["detail"]
+        assert "/definitely/missing/image.png" not in response.json()["detail"]

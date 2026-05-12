@@ -4,11 +4,10 @@ Security utilities for PDF Editor Offline API.
 Provides file validation, sanitization, and security headers.
 """
 
-import logging
-import os
 import re
+import logging
 from pathlib import Path
-from typing import Optional, Set
+from typing import Optional, Sequence, Set
 
 from fastapi import HTTPException
 
@@ -27,11 +26,14 @@ ALLOWED_FILENAME_PATTERN = re.compile(r"^[\w\s\-_.()]+\.pdf$", re.IGNORECASE)
 PATH_TRAVERSAL_PATTERNS = [
     "..",
     "~",
+    "/",
     "./",
     "//",
     "\\",
     "\x00",  # Null byte
 ]
+
+ABSOLUTE_PATH_PATTERN = re.compile(r"(?P<path>(?:[A-Za-z]:\\|/)[^\s'\"<>]+)")
 
 
 def validate_file_signature(file_content: bytes) -> bool:
@@ -91,6 +93,54 @@ def sanitize_filename(filename: str) -> str:
     safe_name = safe_name_without_ext + ".pdf"
 
     return safe_name
+
+
+def sanitize_download_filename(
+    filename: Optional[str],
+    *,
+    default: str,
+    allowed_extensions: Sequence[str] = (".pdf",),
+) -> str:
+    """
+    Return a safe download filename with one of the allowed extensions.
+
+    Unlike sanitize_filename(), this preserves allowed non-PDF extensions for
+    generated downloads such as extracted images.
+    """
+    raw_name = filename or default
+    for pattern in PATH_TRAVERSAL_PATTERNS:
+        if pattern in raw_name:
+            logger.warning("Unsafe download filename rejected: %s", raw_name)
+            raw_name = default
+            break
+
+    base_name = Path(raw_name).name
+    cleaned = re.sub(r"[^\w\s\-_.()]", "_", base_name).strip(" ._")
+    if not cleaned:
+        cleaned = default
+
+    if len(cleaned) > MAX_FILENAME_LENGTH:
+        stem, ext = Path(cleaned).stem, Path(cleaned).suffix
+        cleaned = f"{stem[: MAX_FILENAME_LENGTH - len(ext)]}{ext}"
+
+    allowed = {ext.lower() for ext in allowed_extensions}
+    suffix = Path(cleaned).suffix.lower()
+    if suffix not in allowed:
+        default_suffix = Path(default).suffix.lower()
+        fallback_suffix = (
+            default_suffix if default_suffix in allowed else next(iter(allowed))
+        )
+        cleaned = f"{Path(cleaned).stem}{fallback_suffix}"
+
+    return cleaned
+
+
+def sanitize_error_detail(detail: object) -> str:
+    """Strip local filesystem paths from user-facing error messages."""
+    text = str(detail) if detail is not None else "Operation failed"
+    text = ABSOLUTE_PATH_PATTERN.sub("[path]", text)
+    text = text.replace("\\", "/")
+    return sanitize_user_input(text, max_length=500)
 
 
 def validate_content_type(content_type: Optional[str], allowed_types: Set[str]) -> bool:
