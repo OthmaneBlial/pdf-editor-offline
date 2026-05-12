@@ -19,7 +19,9 @@
 
 ## Project Site
 
-Open the generated static docs site at [`site/index.html`](site/index.html). It is self-contained and includes product docs, screenshots, sample PDFs, API/CLI notes, and release checks.
+Open the live project site: [PDF Editor Offline Project Site](https://othmaneblial.github.io/pdf-editor-offline/).
+
+The self-contained local copy lives at [`site/index.html`](site/index.html). It includes product docs, screenshots, sample PDFs, API/CLI notes, and release checks.
 
 PDF Editor Offline gives you a web app, API server, CLI, and Python package for common PDF work:
 
