@@ -35,6 +35,12 @@ def _assert_pdf_valid(pdf_path):
         raise
 
 
+def _assert_rgb_color_space(color_space):
+    # PyMuPDF may expose the same RGB PNG as DeviceRGB or as an ICCBased sRGB
+    # profile depending on the runtime build.
+    assert color_space == "DeviceRGB" or color_space.startswith("ICCBased(RGB")
+
+
 def test_extract_images_metadata_from_real_pdf_reports_useful_fields(tmp_path):
     image_path = _make_image(tmp_path / "embedded.png")
     pdf_path = _make_pdf_with_image(tmp_path / "with_image.pdf", image_path)
@@ -52,8 +58,8 @@ def test_extract_images_metadata_from_real_pdf_reports_useful_fields(tmp_path):
     assert image["height"] == 80
     assert image["extension"] == "png"
     assert image["format"] == "png"
-    assert image["color_space"] == "DeviceRGB"
-    assert image["colorspace"] == "DeviceRGB"
+    _assert_rgb_color_space(image["color_space"])
+    assert image["colorspace"] == image["color_space"]
     assert image["bits_per_component"] == 8
     assert image["size_bytes"] > 0
     assert image["dpi"]["x"] > 0
