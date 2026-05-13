@@ -24,8 +24,10 @@ interface EditorProviderProps {
 
 export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   // Editor state (document-related, changes less frequently)
-  const [document, setDocument] = useState<File | null>(null);
+  const [document, setDocumentState] = useState<File | null>(null);
   const [sessionId, setSessionId] = useState<string>('');
+  const [documentUploadVersion, setDocumentUploadVersion] = useState<number>(0);
+  const [uploadedDocumentVersion, setUploadedDocumentVersion] = useState<number>(0);
   const [pageCount, setPageCount] = useState<number>(1);
   const [isUploading, setIsUploading] = useState<boolean>(false);
 
@@ -56,6 +58,17 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const [documentMutationVersion, setDocumentMutationVersion] = useState<number>(0);
   const [toolToast, setToolToast] = useState<ToolToast | null>(null);
   const toastTimeoutRef = useRef<number | null>(null);
+
+  const setDocument = useCallback((doc: File | null) => {
+    setDocumentState(doc);
+    setDocumentUploadVersion(prev => prev + 1);
+    setUploadedDocumentVersion(0);
+    setSessionId('');
+    setCurrentPage(0);
+    if (!doc) {
+      setPageCount(1);
+    }
+  }, []);
 
   // Limit history size to prevent memory issues
   useEffect(() => {
@@ -334,6 +347,8 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     fontFamily,
     canvasObjects,
     sessionId,
+    documentUploadVersion,
+    uploadedDocumentVersion,
     hasUnsavedChanges,
     pageCount,
     zoom,
@@ -349,6 +364,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     setFontFamily,
     setCanvasObjects,
     setSessionId,
+    setUploadedDocumentVersion,
     setPageCount,
     setZoom,
     setIsUploading,
@@ -392,6 +408,9 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     fontFamily,
     canvasObjects,
     sessionId,
+    documentUploadVersion,
+    uploadedDocumentVersion,
+    setDocument,
     hasUnsavedChanges,
     pageCount,
     zoom,

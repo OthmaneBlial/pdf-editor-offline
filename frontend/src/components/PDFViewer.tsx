@@ -98,6 +98,9 @@ const PDFViewer: React.FC<{ forceRefresh?: number }> = ({ forceRefresh }) => {
     fontFamily,
     sessionId,
     setSessionId,
+    documentUploadVersion,
+    uploadedDocumentVersion,
+    setUploadedDocumentVersion,
     setPageCount,
     zoom,
     setCurrentPage,
@@ -113,9 +116,6 @@ const PDFViewer: React.FC<{ forceRefresh?: number }> = ({ forceRefresh }) => {
   const currentSessionRef = useRef<string>('');
   const currentPageRef = useRef<number>(0);
   const lastForceRefreshRef = useRef<number>(0);
-
-  // Track last uploaded file to prevent re-upload on remount
-  const lastUploadedFileRef = useRef<File | null>(null);
 
   const checkApiHealth = useCallback(async () => {
     try {
@@ -137,10 +137,14 @@ const PDFViewer: React.FC<{ forceRefresh?: number }> = ({ forceRefresh }) => {
       return;
     }
 
-    // Skip re-upload when the same file/session are already active (e.g. remounts)
-    if (lastUploadedFileRef.current === document && sessionId) {
+    // Skip re-upload when this selected document is already bound to a live
+    // backend session. This state lives in context so tab remounts preserve it.
+    if (sessionId && uploadedDocumentVersion === documentUploadVersion) {
       return;
     }
+
+    const uploadVersion = documentUploadVersion;
+    let isCancelled = false;
 
     const uploadDocument = async () => {
       setIsUploading(true);
@@ -154,6 +158,9 @@ const PDFViewer: React.FC<{ forceRefresh?: number }> = ({ forceRefresh }) => {
         const response = await axios.post(`${API_BASE_URL}/api/documents/upload`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
+        if (isCancelled) {
+          return;
+        }
         const data = getApiData<{ id?: string; page_count?: number }>(response.data);
         if (!data?.id || typeof data.page_count !== 'number') {
           throw new Error('Unexpected upload response format');
@@ -162,9 +169,11 @@ const PDFViewer: React.FC<{ forceRefresh?: number }> = ({ forceRefresh }) => {
         setSessionId(data.id);
         setPageCount(data.page_count);
         setApiStatus('ready');
-        // Mark this file as uploaded
-        lastUploadedFileRef.current = document;
+        setUploadedDocumentVersion(uploadVersion);
       } catch (error) {
+        if (isCancelled) {
+          return;
+        }
         if (axios.isAxiosError(error)) {
           if (!error.response) {
             setApiStatus('unreachable');
@@ -176,13 +185,30 @@ const PDFViewer: React.FC<{ forceRefresh?: number }> = ({ forceRefresh }) => {
           setErrorMessage('Upload failed. Please check the file and try again.');
         }
         setSessionId('');
+        setUploadedDocumentVersion(0);
         setPageImage('');
       } finally {
-        setIsUploading(false);
+        if (!isCancelled) {
+          setIsUploading(false);
+        }
       }
     };
     uploadDocument();
-  }, [document, sessionId, setSessionId, setPageCount, setCurrentPage, setIsUploading]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    document,
+    sessionId,
+    documentUploadVersion,
+    uploadedDocumentVersion,
+    setSessionId,
+    setUploadedDocumentVersion,
+    setPageCount,
+    setCurrentPage,
+    setIsUploading,
+  ]);
 
   // Load page image when session or page changes - FIXED DEPENDENCIES
   useEffect(() => {

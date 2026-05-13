@@ -99,6 +99,7 @@ vi.mock('fabric', () => {
 
 const mockedAxios = axios as unknown as {
   get: ReturnType<typeof vi.fn>;
+  post: ReturnType<typeof vi.fn>;
 };
 
 describe('PDFViewer lifecycle safety', () => {
@@ -139,6 +140,15 @@ describe('PDFViewer lifecycle safety', () => {
         },
       },
     });
+    mockedAxios.post.mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          id: 'session-2',
+          page_count: 1,
+        },
+      },
+    });
 
     fabricState.fromURLMock.mockResolvedValue({
       width: 1000,
@@ -159,6 +169,9 @@ describe('PDFViewer lifecycle safety', () => {
       fontFamily: 'Arial',
       sessionId: 'session-1',
       setSessionId: vi.fn(),
+      documentUploadVersion: 0,
+      uploadedDocumentVersion: 0,
+      setUploadedDocumentVersion: vi.fn(),
       setPageCount: vi.fn(),
       zoom: 1,
       setCurrentPage: vi.fn(),
@@ -218,6 +231,9 @@ describe('PDFViewer lifecycle safety', () => {
       fontFamily: 'Arial',
       sessionId: '',
       setSessionId: vi.fn(),
+      documentUploadVersion: 0,
+      uploadedDocumentVersion: 0,
+      setUploadedDocumentVersion: vi.fn(),
       setPageCount: vi.fn(),
       zoom: 1,
       setCurrentPage: vi.fn(),
@@ -249,5 +265,82 @@ describe('PDFViewer lifecycle safety', () => {
     expect(() => {
       unmount();
     }).not.toThrow();
+  });
+
+  it('does not re-upload an already uploaded document after viewer remounts', async () => {
+    const file = new File(['%PDF-1.7'], 'demo.pdf', { type: 'application/pdf' });
+
+    useEditorMock.mockReturnValue({
+      document: file,
+      currentPage: 0,
+      canvas: null,
+      setCanvas: vi.fn(),
+      drawingMode: 'select',
+      setDrawingMode: vi.fn(),
+      color: '#000000',
+      strokeWidth: 2,
+      fontSize: 14,
+      fontFamily: 'Arial',
+      sessionId: 'session-1',
+      setSessionId: vi.fn(),
+      documentUploadVersion: 3,
+      uploadedDocumentVersion: 3,
+      setUploadedDocumentVersion: vi.fn(),
+      setPageCount: vi.fn(),
+      zoom: 1,
+      setCurrentPage: vi.fn(),
+      setIsUploading: vi.fn(),
+    });
+
+    render(<PDFViewer />);
+
+    await waitFor(() => {
+      expect(fabricState.fromURLMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(mockedAxios.post).not.toHaveBeenCalled();
+  });
+
+  it('uploads when the selected document version is not bound to the active session', async () => {
+    const file = new File(['%PDF-1.7'], 'demo.pdf', { type: 'application/pdf' });
+    const setSessionId = vi.fn();
+    const setUploadedDocumentVersion = vi.fn();
+    const setPageCount = vi.fn();
+
+    useEditorMock.mockReturnValue({
+      document: file,
+      currentPage: 0,
+      canvas: null,
+      setCanvas: vi.fn(),
+      drawingMode: 'select',
+      setDrawingMode: vi.fn(),
+      color: '#000000',
+      strokeWidth: 2,
+      fontSize: 14,
+      fontFamily: 'Arial',
+      sessionId: 'session-1',
+      setSessionId,
+      documentUploadVersion: 4,
+      uploadedDocumentVersion: 3,
+      setUploadedDocumentVersion,
+      setPageCount,
+      zoom: 1,
+      setCurrentPage: vi.fn(),
+      setIsUploading: vi.fn(),
+    });
+
+    render(<PDFViewer />);
+
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        expect.stringContaining('/api/documents/upload'),
+        expect.any(FormData),
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+    });
+
+    expect(setSessionId).toHaveBeenCalledWith('session-2');
+    expect(setPageCount).toHaveBeenCalledWith(1);
+    expect(setUploadedDocumentVersion).toHaveBeenCalledWith(4);
   });
 });

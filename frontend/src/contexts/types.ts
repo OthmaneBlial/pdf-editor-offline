@@ -9,6 +9,8 @@ import type * as fabric from 'fabric';
 export interface EditorState {
   document: File | null;
   sessionId: string;
+  documentUploadVersion: number;
+  uploadedDocumentVersion: number;
   hasUnsavedChanges: boolean;
   pageCount: number;
   isUploading: boolean;
@@ -109,6 +111,7 @@ export interface EditorContextType extends EditorState, CanvasState, HistoryStat
   setFontFamily: (font: string) => void;
   setCanvasObjects: (objects: fabric.Object[]) => void;
   setSessionId: (id: string) => void;
+  setUploadedDocumentVersion: (version: number) => void;
   setPageCount: (count: number) => void;
   setZoom: (zoom: number) => void;
   setIsUploading: (uploading: boolean) => void;
