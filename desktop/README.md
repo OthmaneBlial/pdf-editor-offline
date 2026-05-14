@@ -39,6 +39,12 @@ npm run build:sidecar
 npm run build
 ```
 
+Create a portable Ubuntu x86_64 test archive:
+
+```bash
+bash scripts/package-ubuntu.sh
+```
+
 Installers and code signing are intentionally deferred. This milestone creates a complete source-buildable desktop app for Windows, macOS, and Linux.
 
 ## Notes

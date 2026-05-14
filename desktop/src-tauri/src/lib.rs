@@ -12,7 +12,7 @@ use tauri_plugin_shell::{
     ShellExt,
 };
 
-const SIDECAR_NAME: &str = "bin/pdf-editor-offline-api";
+const SIDECAR_NAME: &str = "pdf-editor-offline-api";
 
 struct DesktopState {
     api_base_url: String,
