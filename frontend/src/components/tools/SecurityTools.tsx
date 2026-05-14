@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { Lock, Unlock, PenTool, Stamp, RefreshCw, ShieldCheck, Eraser, Trash2 } from 'lucide-react';
 import { API_BASE_URL } from '../../lib/apiClient';
+import { saveBlob } from '../../lib/downloads';
 
 const SecurityTools: React.FC = () => {
     const [loading, setLoading] = useState<string | null>(null);
@@ -17,7 +18,7 @@ const SecurityTools: React.FC = () => {
             const response = await axios.post(`${API_BASE_URL}/api/tools/protect`, formData, {
                 responseType: 'blob'
             });
-            downloadFile(response.data, 'protected.pdf');
+            await saveBlob(response.data, 'protected.pdf');
             setMessage({ type: 'success', text: 'PDF protected successfully!' });
         } catch (error) {
             setMessage({ type: 'error', text: 'Failed to protect PDF.' });
@@ -37,7 +38,7 @@ const SecurityTools: React.FC = () => {
             const response = await axios.post(`${API_BASE_URL}/api/tools/unlock`, formData, {
                 responseType: 'blob'
             });
-            downloadFile(response.data, 'unlocked.pdf');
+            await saveBlob(response.data, 'unlocked.pdf');
             setMessage({ type: 'success', text: 'PDF unlocked successfully!' });
         } catch (error) {
             setMessage({ type: 'error', text: 'Failed to unlock PDF.' });
@@ -57,7 +58,7 @@ const SecurityTools: React.FC = () => {
             const response = await axios.post(`${API_BASE_URL}/api/tools/sign`, formData, {
                 responseType: 'blob'
             });
-            downloadFile(response.data, 'signed.pdf');
+            await saveBlob(response.data, 'signed.pdf');
             setMessage({ type: 'success', text: 'PDF signed successfully!' });
         } catch (error) {
             setMessage({ type: 'error', text: 'Failed to sign PDF.' });
@@ -77,7 +78,7 @@ const SecurityTools: React.FC = () => {
             const response = await axios.post(`${API_BASE_URL}/api/tools/watermark`, formData, {
                 responseType: 'blob'
             });
-            downloadFile(response.data, 'watermarked.pdf');
+            await saveBlob(response.data, 'watermarked.pdf');
             setMessage({ type: 'success', text: 'Watermark added successfully!' });
         } catch (error) {
             setMessage({ type: 'error', text: 'Failed to add watermark.' });
@@ -97,7 +98,7 @@ const SecurityTools: React.FC = () => {
             const response = await axios.post(`${API_BASE_URL}/api/tools/clean-metadata`, formData, {
                 responseType: 'blob'
             });
-            downloadFile(response.data, 'metadata-cleaned.pdf');
+            await saveBlob(response.data, 'metadata-cleaned.pdf');
             setMessage({ type: 'success', text: 'Metadata cleaned successfully!' });
         } catch (error) {
             setMessage({ type: 'error', text: 'Failed to clean metadata.' });
@@ -117,7 +118,7 @@ const SecurityTools: React.FC = () => {
             const response = await axios.post(`${API_BASE_URL}/api/tools/clean-hidden-data`, formData, {
                 responseType: 'blob'
             });
-            downloadFile(response.data, 'privacy-cleaned.pdf');
+            await saveBlob(response.data, 'privacy-cleaned.pdf');
             setMessage({ type: 'success', text: 'Hidden data cleaned successfully!' });
         } catch (error) {
             setMessage({ type: 'error', text: 'Failed to clean hidden data.' });
@@ -146,16 +147,6 @@ const SecurityTools: React.FC = () => {
         } finally {
             setLoading(null);
         }
-    };
-
-    const downloadFile = (data: Blob, filename: string) => {
-        const url = window.URL.createObjectURL(new Blob([data]));
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', filename);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
     };
 
     return (

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useEditor } from '../../contexts/EditorContext';
 import { API_BASE_URL } from '../../lib/apiClient';
+import { saveBlob } from '../../lib/downloads';
 
 interface ImageMetadata {
   index: number;
@@ -171,14 +172,7 @@ const ImageTools: React.FC = () => {
         { responseType: 'blob' }
       );
 
-      const url = window.URL.createObjectURL(response.data);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `page-${currentPage + 1}-image-${imageIndex + 1}`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
+      await saveBlob(response.data, `page-${currentPage + 1}-image-${imageIndex + 1}`);
 
       showMessage('success', 'Image extracted and downloaded');
     } catch (error) {
@@ -208,15 +202,7 @@ const ImageTools: React.FC = () => {
         }
       );
 
-      // Download the optimized file
-      const url = window.URL.createObjectURL(response.data);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `optimized_document.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
+      await saveBlob(response.data, 'optimized_document.pdf');
 
       showMessage('success', 'Document optimized and downloaded');
     } catch (error) {

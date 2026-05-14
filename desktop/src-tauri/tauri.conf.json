@@ -1,0 +1,33 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "PDF Editor Offline",
+  "version": "2.0.1",
+  "identifier": "com.othmaneblial.pdf-editor-offline",
+  "build": {
+    "beforeDevCommand": "npm --prefix ../frontend run dev -- --host 127.0.0.1",
+    "devUrl": "http://127.0.0.1:3000",
+    "beforeBuildCommand": "npm --prefix ../frontend run build",
+    "frontendDist": "../../frontend/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "PDF Editor Offline",
+        "width": 1440,
+        "height": 960,
+        "minWidth": 1024,
+        "minHeight": 720
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": false,
+    "targets": "all",
+    "externalBin": [
+      "bin/pdf-editor-offline-api"
+    ]
+  }
+}

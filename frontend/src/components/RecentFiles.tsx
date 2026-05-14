@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Clock, FileText, X, Trash2 } from 'lucide-react';
 import {
   getRecentFiles,
+  loadRecentFiles,
   removeRecentFile,
   clearRecentFiles,
   formatFileSize,
@@ -17,28 +18,29 @@ const RecentFiles: React.FC<RecentFilesProps> = ({ onFileSelect }) => {
   const [files, setFiles] = useState<RecentFile[]>(getRecentFiles);
   const [isOpen, setIsOpen] = useState(false);
 
-  const loadFiles = () => {
-    setFiles(getRecentFiles());
+  const loadFiles = async () => {
+    setFiles(await loadRecentFiles());
   };
 
-  const handleRemove = (e: React.MouseEvent, fileName: string) => {
+  const handleRemove = async (e: React.MouseEvent, fileName: string) => {
     e.stopPropagation();
-    removeRecentFile(fileName);
-    loadFiles();
+    await removeRecentFile(fileName);
+    await loadFiles();
   };
 
-  const handleClear = (e: React.MouseEvent) => {
+  const handleClear = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    clearRecentFiles();
-    loadFiles();
+    await clearRecentFiles();
+    await loadFiles();
   };
 
   // Track when PDF is opened - event is dispatched from the service
   useEffect(() => {
     const handleFileOpened = () => {
-      loadFiles();
+      void loadFiles();
     };
 
+    void loadFiles();
     window.addEventListener('pdf-opened', handleFileOpened);
     return () => {
       window.removeEventListener('pdf-opened', handleFileOpened);

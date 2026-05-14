@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 
 from api.deps import cleanup_all_sessions, cleanup_stale_sessions
 from api.security import sanitize_error_detail
+from pdf_editor_offline import __version__ as package_version
 from pdf_editor_offline.core.exceptions import InvalidOperationError
 
 # Setup logging
@@ -32,9 +33,18 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="PDF Editor Offline API",
-    version="1.0.0",
+    version=package_version,
     lifespan=lifespan,
 )
+
+
+@app.get("/api/health", tags=["health"])
+async def health_check():
+    return {
+        "status": "ok",
+        "name": "PDF Editor Offline API",
+        "version": package_version,
+    }
 
 
 @app.exception_handler(InvalidOperationError)

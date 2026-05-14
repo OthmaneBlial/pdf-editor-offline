@@ -25,7 +25,8 @@ from pdf_editor_offline.core.image_processor import ImageProcessor
 logger = logging.getLogger(__name__)
 
 # Constants
-TEMP_DIR = tempfile.gettempdir()
+TEMP_DIR = os.getenv("PDF_EDITOR_OFFLINE_TEMP_DIR", tempfile.gettempdir())
+os.makedirs(TEMP_DIR, exist_ok=True)
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "50"))
 SESSION_TTL_HOURS = int(os.getenv("SESSION_TTL_HOURS", "24"))
 APP_TEMP_PREFIXES = (

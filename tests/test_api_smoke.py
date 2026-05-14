@@ -9,6 +9,15 @@ from api.deps import TEMP_DIR
 from pdf_editor_offline.core.document_manager import DocumentManager
 
 
+def test_health_check(api_client):
+    response = api_client.get("/api/health")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "ok"
+    assert payload["name"] == "PDF Editor Offline API"
+    assert payload["version"]
+
+
 def _create_overlay_image() -> str:
     overlay = Image.new("RGBA", (200, 200), (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)

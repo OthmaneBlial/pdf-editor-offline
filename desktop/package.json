@@ -1,0 +1,16 @@
+{
+  "name": "pdf-editor-offline-desktop",
+  "private": true,
+  "version": "2.0.1",
+  "type": "module",
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "build:frontend": "npm --prefix ../frontend run build",
+    "build:sidecar": "python scripts/build-sidecar.py"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.1"
+  }
+}

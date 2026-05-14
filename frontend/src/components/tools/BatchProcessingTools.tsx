@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { FileText, RefreshCw, Layers, Settings, Download, Upload } from 'lucide-react';
 import { API_BASE_URL } from '../../lib/apiClient';
+import { saveBlob } from '../../lib/downloads';
 
 const BatchProcessingTools: React.FC = () => {
     const [loading, setLoading] = useState<string | null>(null);
@@ -37,16 +38,6 @@ const BatchProcessingTools: React.FC = () => {
         { value: 'json-to-pdf', label: 'JSON to PDF' },
     ];
 
-    const downloadFile = (data: Blob, filename: string) => {
-        const url = window.URL.createObjectURL(data);
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', filename);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-    };
-
     const handleBatchConvert = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading('batch-convert');
@@ -64,7 +55,7 @@ const BatchProcessingTools: React.FC = () => {
                 responseType: 'blob',
             });
             const filename = response.headers['content-disposition']?.split('filename=')[1]?.replace(/"/g, '') || 'batch_converted.zip';
-            downloadFile(response.data, filename);
+            await saveBlob(response.data, filename);
             setMessage({ type: 'success', text: `Batch conversion complete! Processed ${selectedFiles?.length || 0} files.` });
         } catch (error) {
             setMessage({ type: 'error', text: 'Batch conversion failed.' });
@@ -91,7 +82,7 @@ const BatchProcessingTools: React.FC = () => {
                 responseType: 'blob',
             });
             const filename = response.headers['content-disposition']?.split('filename=')[1]?.replace(/"/g, '') || 'merged.pdf';
-            downloadFile(response.data, filename);
+            await saveBlob(response.data, filename);
             setMessage({ type: 'success', text: `Merged ${selectedFiles?.length || 0} PDFs successfully!` });
         } catch (error) {
             setMessage({ type: 'error', text: 'Merge failed.' });
@@ -136,7 +127,7 @@ const BatchProcessingTools: React.FC = () => {
                 responseType: 'blob',
             });
             const filename = response.headers['content-disposition']?.split('filename=')[1]?.replace(/"/g, '') || 'template_processed.zip';
-            downloadFile(response.data, filename);
+            await saveBlob(response.data, filename);
             setMessage({ type: 'success', text: `Template applied to ${selectedFiles?.length || 0} files!` });
         } catch (error) {
             setMessage({ type: 'error', text: 'Template processing failed.' });

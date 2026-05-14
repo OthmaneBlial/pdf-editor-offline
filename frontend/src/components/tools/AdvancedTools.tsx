@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { Minimize2, Wrench, Scan, Text, GitCompare, RefreshCw } from 'lucide-react';
 import { API_BASE_URL } from '../../lib/apiClient';
+import { saveBlob } from '../../lib/downloads';
 
 const AdvancedTools: React.FC = () => {
     const [loading, setLoading] = useState<string | null>(null);
@@ -18,7 +19,7 @@ const AdvancedTools: React.FC = () => {
                 responseType: 'blob'
             });
             const filename = response.headers['content-disposition']?.split('filename=')[1]?.replace(/"/g, '') || 'compressed.pdf';
-            downloadFile(response.data, filename);
+            await saveBlob(response.data, filename);
             setMessage({ type: 'success', text: 'PDF compressed successfully!' });
         } catch (error) {
             setMessage({ type: 'error', text: 'Failed to compress PDF.' });
@@ -39,7 +40,7 @@ const AdvancedTools: React.FC = () => {
                 responseType: 'blob'
             });
             const filename = response.headers['content-disposition']?.split('filename=')[1]?.replace(/"/g, '') || 'repaired.pdf';
-            downloadFile(response.data, filename);
+            await saveBlob(response.data, filename);
             setMessage({ type: 'success', text: 'PDF repaired successfully!' });
         } catch (error) {
             setMessage({ type: 'error', text: 'Failed to repair PDF.' });
@@ -60,7 +61,7 @@ const AdvancedTools: React.FC = () => {
                 responseType: 'blob'
             });
             const filename = response.headers['content-disposition']?.split('filename=')[1]?.replace(/"/g, '') || 'scanned.pdf';
-            downloadFile(response.data, filename);
+            await saveBlob(response.data, filename);
             setMessage({ type: 'success', text: 'Scanned images converted to PDF!' });
         } catch (error) {
             setMessage({ type: 'error', text: 'Failed to convert scanned images.' });
@@ -81,7 +82,7 @@ const AdvancedTools: React.FC = () => {
                 responseType: 'blob'
             });
             const filename = response.headers['content-disposition']?.split('filename=')[1]?.replace(/"/g, '') || 'ocr_result.pdf';
-            downloadFile(response.data, filename);
+            await saveBlob(response.data, filename);
             setMessage({ type: 'success', text: 'OCR completed successfully!' });
         } catch (error) {
             setMessage({ type: 'error', text: 'Failed to perform OCR.' });
@@ -102,7 +103,7 @@ const AdvancedTools: React.FC = () => {
                 responseType: 'blob'
             });
             const filename = response.headers['content-disposition']?.split('filename=')[1]?.replace(/"/g, '') || 'comparison_diff.pdf';
-            downloadFile(response.data, filename);
+            await saveBlob(response.data, filename);
             setMessage({ type: 'success', text: 'Comparison completed successfully!' });
         } catch (error) {
             setMessage({ type: 'error', text: 'Failed to compare PDFs.' });
@@ -110,16 +111,6 @@ const AdvancedTools: React.FC = () => {
         } finally {
             setLoading(null);
         }
-    };
-
-    const downloadFile = (data: Blob, filename: string) => {
-        const url = window.URL.createObjectURL(data);
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', filename);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
     };
 
     return (

@@ -106,6 +106,29 @@ npm install
 VITE_API_BASE_URL="http://localhost:8000" npm run dev -- --port 3000
 ```
 
+## Desktop App
+
+The desktop shell lives in [`desktop/`](desktop/). It uses Tauri with the existing React frontend and a bundled local Python API sidecar:
+
+```bash
+cd frontend
+npm install
+cd ../desktop
+npm install
+npm run build:sidecar
+npm run dev
+```
+
+To build the source desktop binary:
+
+```bash
+cd desktop
+npm run build:sidecar
+npm run build
+```
+
+Installers and code signing are tracked as a later milestone.
+
 ## CLI
 
 ```bash

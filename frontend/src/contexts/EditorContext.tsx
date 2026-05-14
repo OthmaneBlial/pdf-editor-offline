@@ -7,6 +7,7 @@ import type { EditorContextType, EditorState, CanvasState, HistoryState, TOCItem
 import { MAX_HISTORY_SIZE } from './types';
 import { getApiData, isApiSuccess } from '../utils/apiResponse';
 import { API_BASE_URL } from '../lib/apiClient';
+import { saveBlob } from '../lib/downloads';
 
 const EditorContext = createContext<EditorContextType | undefined>(undefined);
 
@@ -196,14 +197,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       });
 
       const filename = response.headers['content-disposition']?.split('filename=')[1]?.replace(/"/g, '') || `document_${sessionId}.pdf`;
-      const url = window.URL.createObjectURL(response.data);
-      const link = window.document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', filename);
-      window.document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
+      await saveBlob(response.data, filename);
     } catch (error) {
       if (error instanceof Error) {
         console.error('Failed to export PDF:', error.message);

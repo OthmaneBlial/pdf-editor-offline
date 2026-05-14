@@ -1,6 +1,14 @@
+import {
+    addDesktopRecentFile,
+    clearDesktopRecentFiles,
+    getDesktopRecentFiles,
+    removeDesktopRecentFile,
+} from '../lib/desktop';
+
 export interface RecentFile {
     name: string;
     size: number;
+    path?: string;
     lastOpened: string;
 }
 
@@ -19,7 +27,23 @@ export const getRecentFiles = (): RecentFile[] => {
     }
 };
 
-export const addRecentFile = (file: File) => {
+export const loadRecentFiles = async (): Promise<RecentFile[]> => {
+    const desktopFiles = await getDesktopRecentFiles();
+    if (desktopFiles) {
+        return desktopFiles;
+    }
+
+    return getRecentFiles();
+};
+
+export const addRecentFile = async (file: File) => {
+    if (await addDesktopRecentFile(file)) {
+        window.dispatchEvent(new CustomEvent('pdf-opened', {
+            detail: { fileName: file.name, fileSize: file.size }
+        }));
+        return;
+    }
+
     const current = getRecentFiles() ?? [];
     const newFile: RecentFile = {
         name: file.name,
@@ -40,13 +64,21 @@ export const addRecentFile = (file: File) => {
     }));
 };
 
-export const removeRecentFile = (fileName: string) => {
+export const removeRecentFile = async (fileName: string) => {
+    if (await removeDesktopRecentFile(fileName)) {
+        return;
+    }
+
     const current = getRecentFiles() ?? [];
     const updated = current.filter(f => f && f.name !== fileName);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
 };
 
-export const clearRecentFiles = () => {
+export const clearRecentFiles = async () => {
+    if (await clearDesktopRecentFiles()) {
+        return;
+    }
+
     localStorage.removeItem(STORAGE_KEY);
 };
 

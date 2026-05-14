@@ -1,10 +1,16 @@
+import os
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-STORAGE_DIR = Path(__file__).resolve().parent.parent / "storage"
+STORAGE_DIR = Path(
+    os.getenv(
+        "PDF_EDITOR_OFFLINE_STORAGE_DIR",
+        str(Path(__file__).resolve().parent.parent / "storage"),
+    )
+)
 STORAGE_DIR.mkdir(parents=True, exist_ok=True)
 DB_PATH = STORAGE_DIR / "sessions.db"
 

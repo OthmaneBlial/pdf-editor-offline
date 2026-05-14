@@ -2,6 +2,14 @@
 
 All notable changes to PDF Editor Offline are documented here.
 
+## Unreleased
+
+### Added
+
+- Added a Tauri desktop app in `desktop/` that reuses the React frontend and runs the FastAPI backend as a bundled local Python sidecar.
+- Added native desktop open/save dialogs, desktop-backed recent file storage, and automatic per-session local API port discovery.
+- Added desktop build documentation and runtime checks for the sidecar health endpoint.
+
 ## 2.0.1 - 2026-05-14
 
 ### Fixed

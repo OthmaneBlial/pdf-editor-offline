@@ -3,6 +3,7 @@ import axios from 'axios';
 import { FilePlus, Scissors, Layers, RotateCw, Hash, Download, Copy, Maximize2, Crop, FileInput, RefreshCw, Trash2, FileType, AlignCenter } from 'lucide-react';
 import { FILENAMES } from '../../constants';
 import { API_BASE_URL } from '../../lib/apiClient';
+import { saveBlob } from '../../lib/downloads';
 
 const PAGE_FORMATS = [
   { value: 'A4', label: 'A4 (595×842)' },
@@ -36,7 +37,7 @@ const ManipulationTools: React.FC = () => {
         responseType: 'blob'
       });
       const filename = response.headers['content-disposition']?.split('filename=')[1]?.replace(/"/g, '') || 'merged.pdf';
-      downloadFile(response.data, filename);
+      await saveBlob(response.data, filename);
       setMessage({ type: 'success', text: 'PDFs merged successfully!' });
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to merge PDFs.' });
@@ -57,7 +58,7 @@ const ManipulationTools: React.FC = () => {
         responseType: 'blob'
       });
       const filename = response.headers['content-disposition']?.split('filename=')[1]?.replace(/"/g, '') || 'split.zip';
-      downloadFile(response.data, filename);
+      await saveBlob(response.data, filename);
       setMessage({ type: 'success', text: 'PDF split successfully!' });
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to split PDF.' });
@@ -83,7 +84,7 @@ const ManipulationTools: React.FC = () => {
         responseType: 'blob'
       });
       const filename = response.headers['content-disposition']?.split('filename=')[1]?.replace(/"/g, '') || 'organized.pdf';
-      downloadFile(response.data, filename);
+      await saveBlob(response.data, filename);
       setMessage({ type: 'success', text: 'PDF organized successfully!' });
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to organize PDF.' });
@@ -104,7 +105,7 @@ const ManipulationTools: React.FC = () => {
         responseType: 'blob'
       });
       const filename = response.headers['content-disposition']?.split('filename=')[1]?.replace(/"/g, '') || 'rotated.pdf';
-      downloadFile(response.data, filename);
+      await saveBlob(response.data, filename);
       setMessage({ type: 'success', text: 'PDF rotated successfully!' });
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to rotate PDF.' });
@@ -125,7 +126,7 @@ const ManipulationTools: React.FC = () => {
         responseType: 'blob'
       });
       const filename = response.headers['content-disposition']?.split('filename=')[1]?.replace(/"/g, '') || 'numbered.pdf';
-      downloadFile(response.data, filename);
+      await saveBlob(response.data, filename);
       setMessage({ type: 'success', text: 'Page numbers added successfully!' });
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to add page numbers.' });
@@ -149,7 +150,7 @@ const ManipulationTools: React.FC = () => {
         responseType: 'blob'
       });
       const filename = FILENAMES.EXTRACTED_PAGES;
-      downloadFile(response.data, filename);
+      await saveBlob(response.data, filename);
       setMessage({ type: 'success', text: `Extracted ${pages.length} page(s) successfully!` });
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to extract pages.' });
@@ -176,7 +177,7 @@ const ManipulationTools: React.FC = () => {
         responseType: 'blob'
       });
       const filename = FILENAMES.MERGED_WITH_INSERT;
-      downloadFile(response.data, filename);
+      await saveBlob(response.data, filename);
       setMessage({ type: 'success', text: 'Pages inserted successfully!' });
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to insert pages.' });
@@ -211,7 +212,7 @@ const ManipulationTools: React.FC = () => {
         responseType: 'blob'
       });
       const filename = FILENAMES.DUPLICATED;
-      downloadFile(response.data, filename);
+      await saveBlob(response.data, filename);
       setMessage({ type: 'success', text: `Page ${pageNum} duplicated ${count} time(s)!` });
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to duplicate page.' });
@@ -219,16 +220,6 @@ const ManipulationTools: React.FC = () => {
     } finally {
       setLoading(null);
     }
-  };
-
-  const downloadFile = (data: Blob, filename: string) => {
-    const url = window.URL.createObjectURL(data);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', filename);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
   };
 
   return (

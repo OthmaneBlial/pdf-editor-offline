@@ -1,13 +1,22 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import App from './App.tsx'
-import { ThemeProvider } from './contexts/ThemeContext'
+import { initializeDesktopRuntime } from './lib/desktop'
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <ThemeProvider>
-      <App />
-    </ThemeProvider>
-  </StrictMode>,
-)
+const mount = async () => {
+  await initializeDesktopRuntime();
+  const [{ default: App }, { ThemeProvider }] = await Promise.all([
+    import('./App.tsx'),
+    import('./contexts/ThemeContext'),
+  ]);
+
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
+    </StrictMode>,
+  );
+};
+
+mount();

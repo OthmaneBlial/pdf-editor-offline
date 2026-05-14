@@ -1,0 +1,120 @@
+type InvokeFn = <T>(command: string, args?: Record<string, unknown>) => Promise<T>;
+
+export interface DesktopFilePayload {
+  name: string;
+  size: number;
+  bytes: number[];
+}
+
+export interface DesktopRecentFile {
+  name: string;
+  size: number;
+  path?: string;
+  lastOpened: string;
+}
+
+declare global {
+  interface Window {
+    __TAURI_INTERNALS__?: unknown;
+    __PDF_EDITOR_OFFLINE_API_BASE_URL__?: string;
+  }
+}
+
+export const isDesktopRuntime = () =>
+  typeof window !== 'undefined' &&
+  Boolean(window.__TAURI_INTERNALS__ || window.location.protocol === 'tauri:');
+
+const getInvoke = async (): Promise<InvokeFn | null> => {
+  if (!isDesktopRuntime()) {
+    return null;
+  }
+
+  const api = await import('@tauri-apps/api/core');
+  return api.invoke as InvokeFn;
+};
+
+export const initializeDesktopRuntime = async () => {
+  const invoke = await getInvoke();
+  if (!invoke) {
+    return;
+  }
+
+  window.__PDF_EDITOR_OFFLINE_API_BASE_URL__ = await invoke<string>('get_api_base_url');
+};
+
+export const openPdfWithDesktopDialog = async (): Promise<File | null> => {
+  const invoke = await getInvoke();
+  if (!invoke) {
+    return null;
+  }
+
+  const payload = await invoke<DesktopFilePayload | null>('open_pdf_file');
+  if (!payload) {
+    return null;
+  }
+
+  const bytes = new Uint8Array(payload.bytes);
+  return new File([bytes], payload.name, { type: 'application/pdf' });
+};
+
+export const saveBlobWithDesktopDialog = async (
+  blob: Blob,
+  defaultFilename: string,
+): Promise<boolean> => {
+  const invoke = await getInvoke();
+  if (!invoke) {
+    return false;
+  }
+
+  const bytes = Array.from(new Uint8Array(await blob.arrayBuffer()));
+  await invoke('save_file', {
+    defaultFilename,
+    bytes,
+  });
+  return true;
+};
+
+export const getDesktopRecentFiles = async (): Promise<DesktopRecentFile[] | null> => {
+  const invoke = await getInvoke();
+  if (!invoke) {
+    return null;
+  }
+
+  return invoke<DesktopRecentFile[]>('recent_files_get');
+};
+
+export const addDesktopRecentFile = async (file: File) => {
+  const invoke = await getInvoke();
+  if (!invoke) {
+    return false;
+  }
+
+  await invoke('recent_files_add', {
+    file: {
+      name: file.name,
+      size: file.size,
+      lastOpened: new Date().toISOString(),
+    },
+  });
+  return true;
+};
+
+export const removeDesktopRecentFile = async (fileName: string) => {
+  const invoke = await getInvoke();
+  if (!invoke) {
+    return false;
+  }
+
+  await invoke('recent_files_remove', { fileName });
+  return true;
+};
+
+export const clearDesktopRecentFiles = async () => {
+  const invoke = await getInvoke();
+  if (!invoke) {
+    return false;
+  }
+
+  await invoke('recent_files_clear');
+  return true;
+};

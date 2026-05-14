@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { FileText, Image, FileSpreadsheet, Presentation, Globe, RefreshCw, Code, BookOpen, FileType } from 'lucide-react';
 import { API_BASE_URL } from '../../lib/apiClient';
+import { saveBlob } from '../../lib/downloads';
 
 const ConversionTools: React.FC = () => {
     const [loading, setLoading] = useState<string | null>(null); // Track specific endpoint loading
@@ -19,7 +20,7 @@ const ConversionTools: React.FC = () => {
                 responseType: 'blob'
             });
             const filename = response.headers['content-disposition']?.split('filename=')[1]?.replace(/"/g, '') || outputName;
-            downloadFile(response.data, filename);
+            await saveBlob(response.data, filename);
             setMessage({ type: 'success', text: 'Conversion successful!' });
         } catch (error) {
             setMessage({ type: 'error', text: 'Conversion failed.' });
@@ -27,16 +28,6 @@ const ConversionTools: React.FC = () => {
         } finally {
             setLoading(null);
         }
-    };
-
-    const downloadFile = (data: Blob, filename: string) => {
-        const url = window.URL.createObjectURL(data);
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', filename);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
     };
 
     return (

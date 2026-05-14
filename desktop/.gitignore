@@ -1,0 +1,6 @@
+node_modules/
+.venv-sidecar/
+build/
+src-tauri/bin/*
+src-tauri/gen/
+src-tauri/target/

@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { useEditor } from '../contexts/EditorContext';
 import { FileUp } from 'lucide-react';
 import { addRecentFile } from '../services/recentFiles';
+import { isDesktopRuntime, openPdfWithDesktopDialog } from '../lib/desktop';
 
 const FileUpload: React.FC = () => {
   const { setDocument } = useEditor();
@@ -11,11 +12,20 @@ const FileUpload: React.FC = () => {
     const file = event.target.files?.[0];
     if (file) {
       setDocument(file);
-      addRecentFile(file);
+      void addRecentFile(file);
     }
   };
 
-  const triggerFileInput = () => {
+  const triggerFileInput = async () => {
+    if (isDesktopRuntime()) {
+      const file = await openPdfWithDesktopDialog();
+      if (file) {
+        setDocument(file);
+        void addRecentFile(file);
+      }
+      return;
+    }
+
     fileInputRef.current?.click();
   };
 
@@ -24,7 +34,7 @@ const FileUpload: React.FC = () => {
     const file = e.dataTransfer.files?.[0];
     if (file && file.type === 'application/pdf') {
       setDocument(file);
-      addRecentFile(file);
+      void addRecentFile(file);
     }
   };
 
@@ -46,7 +56,7 @@ const FileUpload: React.FC = () => {
         onKeyPress={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            triggerFileInput();
+            void triggerFileInput();
           }
         }}
       >
