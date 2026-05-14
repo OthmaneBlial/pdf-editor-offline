@@ -2,6 +2,12 @@
 
 All notable changes to PDF Editor Offline are documented here.
 
+## 2.0.1 - 2026-05-14
+
+### Fixed
+
+- Updated README images to absolute GitHub raw URLs so the PyPI project page renders the header and screenshots correctly.
+
 ## 2.0.0 - 2026-05-14
 
 ### Added

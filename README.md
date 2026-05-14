@@ -1,7 +1,7 @@
 # PDF Editor Offline
 
 <p align="center">
-  <img src="./readme-header.svg" alt="PDF Editor Offline" width="720">
+  <img src="https://raw.githubusercontent.com/OthmaneBlial/pdf-editor-offline/main/readme-header.svg" alt="PDF Editor Offline" width="720">
 </p>
 
 <p align="center">
@@ -44,11 +44,11 @@ Captured from the local web app with the sample PDFs in `examples/sample_pdfs/`.
 
 | Editor workspace | Text search and redaction |
 | --- | --- |
-| ![Editor workspace showing demo PDF](screenshots/01-editor-workspace.png) | ![Text search, font analysis, and permanent redaction](screenshots/02-text-search-redaction.png) |
+| ![Editor workspace showing demo PDF](https://raw.githubusercontent.com/OthmaneBlial/pdf-editor-offline/main/screenshots/01-editor-workspace.png) | ![Text search, font analysis, and permanent redaction](https://raw.githubusercontent.com/OthmaneBlial/pdf-editor-offline/main/screenshots/02-text-search-redaction.png) |
 
 | File attachments | Merge PDFs |
 | --- | --- |
-| ![File attachment added in the annotations tool](screenshots/05-annotations-file-attachment.png) | ![PDF merge completed successfully](screenshots/08-manipulation-merge.png) |
+| ![File attachment added in the annotations tool](https://raw.githubusercontent.com/OthmaneBlial/pdf-editor-offline/main/screenshots/05-annotations-file-attachment.png) | ![PDF merge completed successfully](https://raw.githubusercontent.com/OthmaneBlial/pdf-editor-offline/main/screenshots/08-manipulation-merge.png) |
 
 More captures are in `screenshots/`, including image insertion, privacy cleanup, and PDF-to-TXT conversion.
 
