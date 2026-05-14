@@ -14,8 +14,9 @@ git diff --check
 ## Package Build
 
 ```bash
+rm -rf dist build
 python -m build
-twine check dist/*
+python -m twine check dist/*
 ```
 
 ## Docker
@@ -36,7 +37,10 @@ docker run --rm pdf-editor-offline pdf-editor-offline --help
 ## Publish
 
 - Confirm `README.md` and `FEATURES_ROADMAP.md` match the release
-- Tag the release
-- Push the tag
-- Upload Python package artifacts
+- Confirm the changelog has a dated entry for the release
+- Upload Python package artifacts with `python -m twine upload dist/*`
+- Verify `python -m pip install --upgrade pdf-editor-offline`
+- Tag the release with `git tag -a vX.Y.Z -m "Release vX.Y.Z"`
+- Push the commit and tag
+- Publish GitHub release notes from `CHANGELOG.md`
 - Publish the Docker image

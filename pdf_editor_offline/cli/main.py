@@ -1,6 +1,7 @@
 import fitz
 import typer
 
+from .._version import __version__
 from ..core.document_manager import DocumentManager
 from ..core.editor import Editor
 from ..core.exceptions import InvalidOperationError, PDFLoadError, PDFSaveError
@@ -8,7 +9,26 @@ from ..core.metadata_editor import MetadataEditor
 from ..core.object_inspector import ObjectInspector
 from ..core.page_manipulator import PageManipulator
 
-app = typer.Typer()
+app = typer.Typer(help="Offline PDF editing and automation tools.")
+
+
+def version_callback(value: bool):
+    if value:
+        typer.echo(f"pdf-editor-offline {__version__}")
+        raise typer.Exit()
+
+
+@app.callback()
+def main(
+    version: bool = typer.Option(
+        False,
+        "--version",
+        callback=version_callback,
+        is_eager=True,
+        help="Show the installed version and exit.",
+    ),
+):
+    """Run PDF Editor Offline commands."""
 
 # Extract subcommands
 extract_app = typer.Typer()

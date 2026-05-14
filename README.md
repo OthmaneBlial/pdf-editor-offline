@@ -15,6 +15,12 @@
   <a href="https://opensource.org/licenses/MIT">
     <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License">
   </a>
+  <a href="https://pypi.org/project/pdf-editor-offline/">
+    <img src="https://img.shields.io/pypi/v/pdf-editor-offline.svg" alt="PyPI version">
+  </a>
+  <a href="https://pypi.org/project/pdf-editor-offline/">
+    <img src="https://img.shields.io/pypi/pyversions/pdf-editor-offline.svg" alt="Python versions">
+  </a>
 </p>
 
 ## Project Site
@@ -48,8 +54,17 @@ More captures are in `screenshots/`, including image insertion, privacy cleanup,
 
 ## Install
 
+Install the published Python package and CLI from PyPI:
+
 ```bash
 pip install pdf-editor-offline
+```
+
+Verify the install:
+
+```bash
+pdf-editor-offline --version
+python -c "import pdf_editor_offline; print(pdf_editor_offline.__version__)"
 ```
 
 From source:
@@ -59,6 +74,8 @@ git clone https://github.com/OthmaneBlial/pdf-editor-offline.git
 cd pdf-editor-offline
 pip install -e ".[dev]"
 ```
+
+The PyPI package includes the Python API and CLI. Run the full local web app from a source checkout because the frontend is a separate React application.
 
 Docker:
 
@@ -92,6 +109,7 @@ VITE_API_BASE_URL="http://localhost:8000" npm run dev -- --port 3000
 ## CLI
 
 ```bash
+pdf-editor-offline --version
 pdf-editor-offline extract text input.pdf
 pdf-editor-offline extract images input.pdf --output-dir ./images
 pdf-editor-offline edit metadata input.pdf title "Quarterly Report"
@@ -141,6 +159,10 @@ cd frontend && npm test && npm run build
 docker build -t pdf-editor-offline .
 python -m build
 ```
+
+## Release Notes
+
+See [CHANGELOG.md](CHANGELOG.md) for public release history.
 
 ## Sample PDFs
 
