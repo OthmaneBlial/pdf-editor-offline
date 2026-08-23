@@ -190,10 +190,10 @@ Time ranges are planning estimates for a small maintainer team, not release prom
 #### Redact & Prove
 
 - [ ] Build a guarded `mark → review → apply → sanitize → verify → save copy` flow.
-- [ ] Verify absence of targeted text in text extraction, OCR layers, annotations, metadata, attachments, thumbnails, form values, JavaScript, and previous revisions.
-- [ ] Reopen the output in a second rendering/extraction path before reporting success.
-- [ ] Generate a human-readable and machine-readable redaction report with checks performed, warnings, app version, and output hash—never document content.
-- [ ] Fail closed: if verification cannot establish removal, say so and block a green “verified” state.
+- [x] Verify absence of targeted text in text extraction, OCR layers, annotations, metadata, attachments, thumbnails, form values, JavaScript, and previous revisions. Evidence: [content-free verifier](pdf_editor_offline/core/redaction_verifier.py) and [adversarial tests](tests/test_redaction_verifier.py).
+- [x] Reopen the output in a second rendering/extraction path before reporting success. Evidence: independent `pdfplumber` extraction and PDFium render in [the verifier](pdf_editor_offline/core/redaction_verifier.py).
+- [x] Generate a human-readable and machine-readable redaction report with checks performed, warnings, app version, and output hash—never document content. Evidence: [verification contract](docs/REDACTION_VERIFICATION.md).
+- [x] Fail closed: if verification cannot establish removal, say so and block a green “verified” state. Evidence: missing local OCR produces `incomplete`, covered by [regression tests](tests/test_redaction_verifier.py).
 
 #### Sanitize & Share
 

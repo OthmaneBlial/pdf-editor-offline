@@ -50,6 +50,7 @@ dependencies = [
     "pdf2docx",
     "python-pptx",
     "pdfplumber",
+    "pypdfium2",
     "pandas",
     "openpyxl",
     "pytesseract",
