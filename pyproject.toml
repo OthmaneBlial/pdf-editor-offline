@@ -51,6 +51,7 @@ dependencies = [
     "python-pptx",
     "pdfplumber",
     "pypdfium2",
+    "cryptography",
     "pandas",
     "openpyxl",
     "pytesseract",

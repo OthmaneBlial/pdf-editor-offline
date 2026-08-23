@@ -1,0 +1,126 @@
+{
+  "cases": [
+    {
+      "bytes": 2806,
+      "expected_behavior": "preserve_or_warn",
+      "features": [
+        "forms",
+        "text",
+        "checkbox",
+        "dropdown"
+      ],
+      "filename": "forms.pdf",
+      "id": "forms",
+      "pages": 1,
+      "sha256": "43aea97bb178876fe284f5e5b91c34e8893782e3a68c6ef2a97e2dd7f99ca641",
+      "valid_pdf": true
+    },
+    {
+      "bytes": 1933,
+      "expected_behavior": "preserve_or_warn",
+      "features": [
+        "mixed_fonts",
+        "text"
+      ],
+      "filename": "mixed-fonts.pdf",
+      "id": "mixed-fonts",
+      "pages": 1,
+      "sha256": "9ca593c5f1b8b9cec4cb72c834ebcdc46dc06ce1e145d6866e45d4f30ca4dd02",
+      "valid_pdf": true
+    },
+    {
+      "bytes": 16418,
+      "expected_behavior": "render_and_ocr_optional",
+      "features": [
+        "scan",
+        "image_only"
+      ],
+      "filename": "image-scan.pdf",
+      "id": "image-scan",
+      "pages": 1,
+      "sha256": "7da67f820a5c7ed9a7b08474d94c881ebb4dc66fec06c9687cfc044b25413bed",
+      "valid_pdf": true
+    },
+    {
+      "bytes": 1689,
+      "expected_behavior": "preserve_or_warn",
+      "features": [
+        "layers",
+        "transparency",
+        "vector"
+      ],
+      "filename": "layers-transparency.pdf",
+      "id": "layers-transparency",
+      "pages": 1,
+      "sha256": "7c5290c629b8d09896c29d58ad8b34188cd37f9b398a7a7560dd1391bbcdbc70",
+      "valid_pdf": true
+    },
+    {
+      "bytes": 1036,
+      "expected_behavior": "preserve",
+      "features": [
+        "rotation"
+      ],
+      "filename": "rotated-page.pdf",
+      "id": "rotated-page",
+      "pages": 1,
+      "sha256": "a0c8881c02155c0ff707183818859679dc34262d107ab22010bf7926a34ad54b",
+      "valid_pdf": true
+    },
+    {
+      "bytes": 2288,
+      "expected_behavior": "preserve_or_warn",
+      "features": [
+        "bookmarks",
+        "reading_order"
+      ],
+      "filename": "bookmarks.pdf",
+      "id": "bookmarks",
+      "pages": 3,
+      "sha256": "3e73ba71c9e6cd355c48e7a4de2088f2371d2ebb622e3ebc5b05fa6db75373ff",
+      "valid_pdf": true
+    },
+    {
+      "bytes": 1490,
+      "expected_behavior": "preserve_or_warn",
+      "features": [
+        "attachments"
+      ],
+      "filename": "attachment.pdf",
+      "id": "attachment",
+      "pages": 1,
+      "sha256": "446ae33f1ec7c801e62429cc0bc110a0681433a129ad2a2458662bff8d3cbf96",
+      "valid_pdf": true
+    },
+    {
+      "bytes": 38797,
+      "expected_behavior": "detect_and_warn_before_change",
+      "features": [
+        "digital_signature",
+        "signature_field",
+        "incremental_integrity"
+      ],
+      "filename": "signed.pdf",
+      "id": "signed",
+      "pages": 1,
+      "sha256": "ccc3e14fd8fe22cd4305b103d38044c0c8327c100462fcda2628d4ec6142e545",
+      "valid_pdf": true
+    },
+    {
+      "bytes": 133,
+      "expected_behavior": "reject_safely",
+      "features": [
+        "malformed_input"
+      ],
+      "filename": "malformed.pdf",
+      "id": "malformed",
+      "pages": null,
+      "sha256": "5963331762e09b64197b0e3dec8ba10bac18daa2594ec37404b53d3f43634c34",
+      "valid_pdf": false
+    }
+  ],
+  "corpus_version": "1.0.0",
+  "privacy": "synthetic-only",
+  "schema": "pdf-editor-offline.compatibility-corpus",
+  "schema_version": "1.0.0"
+}

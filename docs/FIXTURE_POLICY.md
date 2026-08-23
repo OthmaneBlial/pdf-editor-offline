@@ -22,3 +22,7 @@ Large decompression and allocation cases are represented with small declared
 limits or suspicious metadata rather than gigabytes of expanded data. Any
 future real-world malicious sample belongs in access-controlled security
 research storage, not this public repository.
+
+The versioned public compatibility set, generation command, coverage table,
+and visual/semantic comparison tolerance are documented in
+[Synthetic compatibility corpus](TRUST_LAB_CORPUS.md).
