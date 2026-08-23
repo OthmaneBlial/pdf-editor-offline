@@ -197,10 +197,10 @@ Time ranges are planning estimates for a small maintainer team, not release prom
 
 #### Sanitize & Share
 
-- [ ] Add clear cleanup profiles: minimal metadata, collaboration cleanup, and maximum sanitization.
-- [ ] Preview exactly what will be removed and which capabilities may be damaged.
-- [ ] Show before/after metadata, attachments, comments, scripts, forms, layers, and file-size differences.
-- [ ] Export a privacy report suitable for a user's audit trail.
+- [x] Add clear cleanup profiles: minimal metadata, collaboration cleanup, and maximum sanitization. Evidence: [profile contracts](pdf_editor_offline/core/sanitization.py) and [public comparison](docs/SANITIZE_SHARE.md).
+- [x] Preview exactly what will be removed and which capabilities may be damaged. Evidence: [guarded preview UI](frontend/src/components/workflows/SanitizeShareWorkflow.tsx) and [profile API](api/routes/sanitization.py).
+- [x] Show before/after metadata, attachments, comments, scripts, forms, layers, and file-size differences. Evidence: [content-free inventory/diff engine](pdf_editor_offline/core/sanitization.py) and [workflow tests](frontend/tests/SanitizeShareWorkflow.spec.tsx).
+- [x] Export a privacy report suitable for a user's audit trail. Evidence: [JSON/Markdown report contract](docs/SANITIZE_SHARE.md) and [download/cleanup regression tests](tests/test_sanitization_api.py).
 
 #### Local-only proof
 

@@ -20,17 +20,19 @@ import NavigationTools from './components/tools/NavigationTools';
 import AnnotationTools from './components/tools/AnnotationTools';
 import ImageTools from './components/tools/ImageTools';
 import RedactProveWorkflow from './components/workflows/RedactProveWorkflow';
+import SanitizeShareWorkflow from './components/workflows/SanitizeShareWorkflow';
 import './App.css';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useEditor } from './contexts/EditorContext';
 
-export type ViewMode = 'editor' | 'redact' | 'manipulation' | 'conversion' | 'security' | 'advanced' | 'batch' | 'text' | 'navigation' | 'annotations' | 'images';
+export type ViewMode = 'editor' | 'redact' | 'sanitize' | 'manipulation' | 'conversion' | 'security' | 'advanced' | 'batch' | 'text' | 'navigation' | 'annotations' | 'images';
 
 // Advanced Editing tools that need tabbed interface
 const ADVANCED_EDITING_TOOLS: ViewMode[] = ['text', 'navigation', 'annotations', 'images'];
 const VIEW_LABELS: Record<ViewMode, string> = {
   editor: 'Editor',
   redact: 'Redact & Prove',
+  sanitize: 'Sanitize & Share',
   manipulation: 'Manipulation',
   conversion: 'Conversion',
   security: 'Security',
@@ -124,6 +126,8 @@ function AppContent() {
           );
         case 'redact':
           return <RedactProveWorkflow />;
+        case 'sanitize':
+          return <SanitizeShareWorkflow />;
         case 'manipulation':
           return <ManipulationTools />;
         case 'conversion':

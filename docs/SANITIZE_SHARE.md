@@ -38,3 +38,5 @@ The Python entry points are `preview_sanitization()` and `sanitize_pdf()` in `pd
 - A successful apply creates a separate document session and returns PDF, JSON report, and Markdown report URLs.
 
 The report hash matches the bytes served by the read-only download endpoint. Privacy-report sidecars are removed with their local document session.
+
+The sidebar's **Sanitize & Share** workflow is the supported end-user path. It compares the three profiles, shows detected counts and fixed damage explanations, requires explicit acknowledgement, then presents the reopened output's before/after/removed diff with PDF, JSON, and Markdown downloads.

@@ -40,7 +40,7 @@ Python package. Capability status is deliberately explicit:
 - Create a copy-first **Redact & Prove** result with independent extraction, rendering, OCR checks, and content-free JSON/Markdown evidence
 - Run OCR and batch jobs locally
 
-The primary privacy workflow is **Redact & Prove** in the sidebar: search exact text, add every match to a guarded plan, review the destructive actions, and explicitly approve them. The app preserves the source and only offers a downloadable copy when all required local checks establish removal. A missing OCR engine or an uncertain result fails closed.
+The primary privacy workflows live directly in the sidebar. **Redact & Prove** searches exact text, binds every mark to an explicit review, and only offers a copy after independent verification. **Sanitize & Share** compares three cleanup profiles, previews exact removals and likely capability damage, then exports a reopened copy with before/after JSON and Markdown evidence. Both preserve the source.
 
 Read the [capability matrix](docs/CAPABILITIES.md) before relying on a workflow:
 it distinguishes stable, beta, experimental, external-dependency, and

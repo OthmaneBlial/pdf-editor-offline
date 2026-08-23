@@ -24,6 +24,7 @@ interface NavItem {
 const basicNavItems: NavItem[] = [
   { id: 'editor', label: 'Editor', icon: FileText },
   { id: 'redact', label: 'Redact & Prove', icon: ShieldCheck },
+  { id: 'sanitize', label: 'Sanitize & Share', icon: Sparkles },
   { id: 'manipulation', label: 'Manipulation', icon: Scissors },
   { id: 'conversion', label: 'Conversion', icon: RefreshCw },
   { id: 'security', label: 'Security', icon: Shield },
