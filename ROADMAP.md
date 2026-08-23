@@ -234,7 +234,7 @@ Time ranges are planning estimates for a small maintainer team, not release prom
 
 - [x] Make multi-select, reorder, rotate, delete, duplicate, extract, insert, merge, crop, and undo first-class in one thumbnail workspace.
 - [x] Add keyboard and non-drag alternatives for every page operation.
-- [ ] Add odd/even/range selection, interleave, duplicate detection, and Bates numbering only after the core is solid.
+- [x] Add odd/even/range selection, interleave, duplicate detection, and Bates numbering only after the core is solid.
 - [x] Preserve bookmarks, labels, links, forms, signatures, and reading order, or warn precisely when preservation is impossible.
 
 #### Fill & Sign

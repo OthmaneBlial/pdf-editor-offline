@@ -48,6 +48,7 @@ from api.deps import (
 from api.models import (
     APIResponse,
     AnnotationAppearanceRequest,
+    BatesNumberingRequest,
     CanvasData,
     DocumentSession,
     ExtractPagesRequest,
@@ -808,7 +809,7 @@ def _organizer_preservation_warnings(document, action: str) -> list[str]:
     warnings = []
     if inventory.signature_structures:
         warnings.append("existing_signatures_will_be_invalidated")
-    if action in {"delete", "duplicate", "reorder", "insert"}:
+    if action in {"delete", "duplicate", "reorder", "insert", "bates"}:
         warnings.append("document_reading_order_changes")
     if action == "crop":
         warnings.append("crop_hides_content_without_removing_it")
@@ -829,14 +830,31 @@ def _organizer_preservation_warnings(document, action: str) -> list[str]:
     return warnings
 
 
+def _validated_selected_pages(document, pages: List[int]) -> list[int]:
+    selected = sorted(set(pages))
+    if any(page < 0 or page >= len(document) for page in selected):
+        raise HTTPException(status_code=400, detail="Page selection is outside the document")
+    return selected
+
+
+def _bates_rectangle(page, position: str) -> tuple[fitz.Rect, int]:
+    margin = 18
+    width = min(210, max(120, page.rect.width * 0.4))
+    height = 24
+    on_left = position.endswith("left")
+    on_top = position.startswith("top")
+    x0 = margin if on_left else page.rect.width - margin - width
+    y0 = margin if on_top else page.rect.height - margin - height
+    alignment = fitz.TEXT_ALIGN_LEFT if on_left else fitz.TEXT_ALIGN_RIGHT
+    return fitz.Rect(x0, y0, x0 + width, y0 + height), alignment
+
+
 @router.post("/{doc_id}/pages/organize", response_model=APIResponse)
 async def organize_selected_pages(doc_id: str, request: OrganizePagesRequest):
     """Apply one atomic, undoable operation to a validated page selection."""
     session = get_session(doc_id)
     document = session["document_manager"].get_document()
-    pages = sorted(set(request.pages))
-    if any(page < 0 or page >= len(document) for page in pages):
-        raise HTTPException(status_code=400, detail="Page selection is outside the document")
+    pages = _validated_selected_pages(document, request.pages)
     if request.action == "delete" and len(pages) == len(document):
         raise HTTPException(status_code=400, detail="A PDF must retain at least one page")
     if request.action == "crop":
@@ -886,6 +904,87 @@ async def organize_selected_pages(doc_id: str, request: OrganizePagesRequest):
             "action": request.action,
             "affected_pages": len(pages),
             "page_count": session["page_count"],
+            "warnings": warnings,
+            "can_undo": True,
+            "can_redo": False,
+        },
+    )
+
+
+@router.get("/{doc_id}/page-duplicates", response_model=APIResponse)
+async def detect_duplicate_pages(doc_id: str):
+    """Find pixel-identical rendered pages without returning page content or hashes."""
+    session = get_session(doc_id)
+    document = session["document_manager"].get_document()
+    fingerprints: dict[tuple[int, int, str], list[int]] = {}
+    for page_number, page in enumerate(document):
+        scale = min(1.0, 1024 / max(page.rect.width, page.rect.height))
+        pixmap = page.get_pixmap(
+            matrix=fitz.Matrix(scale, scale),
+            colorspace=fitz.csGRAY,
+            alpha=False,
+            annots=True,
+        )
+        digest = hashlib.sha256(pixmap.samples).hexdigest()
+        fingerprints.setdefault((pixmap.width, pixmap.height, digest), []).append(page_number)
+    groups = [pages for pages in fingerprints.values() if len(pages) > 1]
+    groups.sort(key=lambda pages: pages[0])
+    return APIResponse(
+        success=True,
+        message="Duplicate-page scan completed locally",
+        data={
+            "groups": groups,
+            "duplicate_pages": [page for group in groups for page in group[1:]],
+            "duplicate_count": sum(len(group) - 1 for group in groups),
+            "method": "pixel_identical_render_max_1024px",
+        },
+    )
+
+
+@router.post("/{doc_id}/pages/bates", response_model=APIResponse)
+async def apply_bates_numbering(doc_id: str, request: BatesNumberingRequest):
+    """Overlay visible, sequential Bates identifiers on selected pages."""
+    if any(ord(character) < 32 for character in request.prefix):
+        raise HTTPException(status_code=400, detail="Bates prefix contains control characters")
+    session = get_session(doc_id)
+    document = session["document_manager"].get_document()
+    pages = _validated_selected_pages(document, request.pages)
+    final_number = request.start + len(pages) - 1
+    if len(str(final_number)) > request.digits:
+        raise HTTPException(status_code=400, detail="Bates digit width is too small for the sequence")
+    warnings = _organizer_preservation_warnings(document, "bates")
+    warnings.append("bates_numbers_are_visible_page_content")
+    capture_page_operation_snapshot(doc_id, "bates_numbering")
+    try:
+        for offset, page_number in enumerate(pages):
+            page = document[page_number]
+            label = f"{request.prefix}{request.start + offset:0{request.digits}d}"
+            rectangle, alignment = _bates_rectangle(page, request.position)
+            shape = page.new_shape()
+            shape.draw_rect(rectangle)
+            shape.finish(color=None, fill=(1, 1, 1), fill_opacity=0.88)
+            shape.commit(overlay=True)
+            inserted = page.insert_textbox(
+                rectangle + (4, 5, -4, -3),
+                label,
+                fontsize=9,
+                fontname="helv",
+                color=(0.08, 0.12, 0.18),
+                align=alignment,
+                overlay=True,
+            )
+            if inserted < 0:
+                raise ValueError("Bates label does not fit on a selected page")
+        persist_session_document(doc_id, recovery_stage="bates_numbering")
+    except Exception:
+        rollback_page_operation_snapshot(doc_id)
+        raise
+    return APIResponse(
+        success=True,
+        message="Bates numbering applied",
+        data={
+            "page_count": session["page_count"],
+            "affected_pages": len(pages),
             "warnings": warnings,
             "can_undo": True,
             "can_redo": False,
@@ -1232,6 +1331,78 @@ async def insert_pages_from_file(
     finally:
         if insert_doc:
             insert_doc.close()
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+
+
+@router.post("/{doc_id}/pages/interleave", response_model=APIResponse)
+async def interleave_pages_from_file(
+    doc_id: str, file: UploadFile = File(...), current_first: bool = True
+):
+    """Alternate current and uploaded pages, appending either remainder."""
+    session = get_session(doc_id)
+    document = session["document_manager"].get_document()
+    temp_path, safe_filename = await _store_pdf_upload_temporarily(file, "interleave")
+    inserted = None
+    snapshot_captured = False
+    try:
+        inserted = fitz.open(temp_path)
+        original_count = len(document)
+        inserted_count = len(inserted)
+        if inserted_count == 0:
+            raise HTTPException(status_code=400, detail="The inserted PDF has no pages")
+
+        warnings = _organizer_preservation_warnings(document, "insert")
+        inserted_inventory = inspect_change_inventory(inserted)
+        if inserted_inventory.bookmarks:
+            warnings.append("inserted_bookmarks_are_not_imported")
+        if inserted_inventory.signature_structures:
+            warnings.append("inserted_signatures_will_not_remain_valid")
+        if inserted_inventory.form_fields:
+            warnings.append("inserted_form_fields_may_require_review")
+
+        capture_page_operation_snapshot(doc_id, "interleave")
+        snapshot_captured = True
+        document.insert_pdf(inserted)
+        current_pages = list(range(original_count))
+        inserted_pages = list(range(original_count, original_count + inserted_count))
+        page_order = []
+        for index in range(max(original_count, inserted_count)):
+            first, second = (
+                (current_pages, inserted_pages)
+                if current_first
+                else (inserted_pages, current_pages)
+            )
+            if index < len(first):
+                page_order.append(first[index])
+            if index < len(second):
+                page_order.append(second[index])
+        document.select(page_order)
+        persist_session_document(doc_id, recovery_stage="interleave_pages")
+        return APIResponse(
+            success=True,
+            message="PDFs interleaved locally",
+            data={
+                "page_count": session["page_count"],
+                "current_page_count": original_count,
+                "inserted_page_count": inserted_count,
+                "warnings": warnings,
+                "can_undo": True,
+                "can_redo": False,
+            },
+        )
+    except HTTPException:
+        if snapshot_captured:
+            rollback_page_operation_snapshot(doc_id)
+        raise
+    except Exception as exc:
+        if snapshot_captured:
+            rollback_page_operation_snapshot(doc_id)
+        logger.error("Failed to interleave %s: %s", safe_filename, exc)
+        raise HTTPException(status_code=400, detail="Failed to interleave PDFs") from exc
+    finally:
+        if inserted:
+            inserted.close()
         if os.path.exists(temp_path):
             os.remove(temp_path)
 

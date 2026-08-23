@@ -147,6 +147,16 @@ class OrganizePagesRequest(BaseModel):
     crop_bottom: float = Field(default=0, ge=0, le=10_000)
 
 
+class BatesNumberingRequest(BaseModel):
+    pages: List[int] = Field(min_length=1, max_length=1000)
+    prefix: str = Field(default="", max_length=64)
+    start: int = Field(default=1, ge=0, le=999_999_999_999)
+    digits: int = Field(default=6, ge=1, le=12)
+    position: Literal["top_left", "top_right", "bottom_left", "bottom_right"] = (
+        "bottom_right"
+    )
+
+
 # ============================================
 # PHASE 4: Advanced Editing Models
 # ============================================

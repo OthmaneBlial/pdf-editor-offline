@@ -38,7 +38,12 @@ describe('OrganizePagesWorkflow', () => {
     editor.sessionId = 'doc-1';
     editor.pageCount = 3;
     editor.currentPage = 0;
-    mockedAxios.get.mockResolvedValue({ data: { data: { image: 'data:image/png;base64,cGFnZQ==' } } });
+    mockedAxios.get.mockImplementation(async url => {
+      if (String(url).includes('/page-duplicates')) {
+        return { data: { data: { groups: [[0, 2]], duplicate_pages: [2], duplicate_count: 1 } } };
+      }
+      return { data: { data: { image: 'data:image/png;base64,cGFnZQ==' } } };
+    });
     mockedAxios.post.mockResolvedValue({
       data: {
         data: {
@@ -112,5 +117,44 @@ describe('OrganizePagesWorkflow', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
     expect(screen.getByText('Keep at least one page in the PDF.')).toBeInTheDocument();
     expect(mockedAxios.post).not.toHaveBeenCalled();
+  });
+
+  it('finds exact duplicates locally and selects only repeated copies', async () => {
+    render(<OrganizePagesWorkflow />);
+    fireEvent.click(screen.getByRole('button', { name: 'Find exact duplicates' }));
+
+    await waitFor(() => expect(mockedAxios.get).toHaveBeenCalledWith(
+      expect.stringContaining('/api/documents/doc-1/page-duplicates'),
+    ));
+    expect(screen.getByRole('checkbox', { name: 'Select page 1' })).not.toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Select page 3' })).toBeChecked();
+    expect(screen.getByText(/Found and selected 1 pixel-identical duplicate page/)).toBeInTheDocument();
+  });
+
+  it('configures Bates numbering for the current selection', async () => {
+    render(<OrganizePagesWorkflow />);
+    fireEvent.click(screen.getByRole('button', { name: 'Odd' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Bates numbering' }));
+    fireEvent.change(screen.getByLabelText('Prefix'), { target: { value: 'LEGAL-' } });
+    fireEvent.change(screen.getByLabelText('Starts at'), { target: { value: '42' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Apply to 2' }));
+
+    await waitFor(() => expect(mockedAxios.post).toHaveBeenCalledWith(
+      expect.stringContaining('/api/documents/doc-1/pages/bates'),
+      expect.objectContaining({ pages: [0, 2], prefix: 'LEGAL-', start: 42, digits: 6 }),
+    ));
+  });
+
+  it('uploads a second PDF with an explicit interleave order', async () => {
+    render(<OrganizePagesWorkflow />);
+    fireEvent.change(screen.getByLabelText('Interleave order'), { target: { value: 'inserted' } });
+    const file = new File(['%PDF-1.7'], 'second.pdf', { type: 'application/pdf' });
+    fireEvent.change(screen.getByLabelText('Interleave PDF'), { target: { files: [file] } });
+
+    await waitFor(() => expect(mockedAxios.post).toHaveBeenCalledWith(
+      expect.stringContaining('/api/documents/doc-1/pages/interleave'),
+      expect.any(FormData),
+      { params: { current_first: false } },
+    ));
   });
 });

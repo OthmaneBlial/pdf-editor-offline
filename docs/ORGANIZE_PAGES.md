@@ -24,6 +24,16 @@ The following operations participate in the same history:
 
 Extraction creates a new copy and therefore does not change history. Cropping changes the visible crop box only: hidden content remains in the file and must not be treated as redaction.
 
+## Advanced assembly
+
+The advanced actions stay in the same workspace after the core selection and history model:
+
+- **Interleave PDF** alternates the current and uploaded PDFs, with an explicit choice of which source comes first. If one source has more pages, its remainder is appended in order. The operation is atomic and undoable.
+- **Find exact duplicates** makes bounded grayscale renders locally (maximum dimension 1,024 pixels), groups pixel-identical pages, and selects every repeated copy after the first. Page content, rendered pixels, and SHA-256 fingerprints never appear in the response. It deliberately does not claim fuzzy or semantic duplicate detection.
+- **Bates numbering** overlays sequential visible identifiers on the current selection. Prefix, starting number, digit width, and corner are explicit. The sequence follows ascending selected-page order and participates in full undo/redo history.
+
+Bates identifiers are page content, not metadata. They can change reading order and invalidate digital signatures, so the result reports both risks. A prefix containing control characters or a sequence that exceeds the configured digit width is rejected before mutation.
+
 ## Preservation and warnings
 
 PDF page-tree edits can invalidate or detach document structures. The app inspects the current document before each operation and reports the relevant risk instead of silently promising preservation.
@@ -31,7 +41,7 @@ PDF page-tree edits can invalidate or detach document structures. The app inspec
 | Structure | Behavior |
 | --- | --- |
 | Digital signatures | Any page mutation warns that existing signatures will no longer validate. |
-| Reading order | Delete, duplicate, reorder, and insert warn that document reading order changed and requires review. |
+| Reading order | Delete, duplicate, reorder, insert/interleave, and Bates numbering warn that document reading order changed and requires review. |
 | Bookmarks | The app preserves what the PDF library can retain but warns when destinations may require review. Bookmarks from inserted PDFs are not imported. |
 | Page labels | Existing labels are retained where supported; page-tree edits warn that labels may require review. |
 | Internal links | Page-tree edits warn when internal destinations may require review. |

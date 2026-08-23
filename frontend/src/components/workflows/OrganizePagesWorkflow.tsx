@@ -9,10 +9,13 @@ import {
   Download,
   FileInput,
   GripVertical,
+  Hash,
   Loader2,
   Redo2,
   RotateCcw,
   RotateCw,
+  Search,
+  Shuffle,
   Trash2,
   Undo2,
 } from 'lucide-react';
@@ -34,6 +37,7 @@ const warningLabels: Record<string, string> = {
   inserted_bookmarks_are_not_imported: 'Bookmarks from inserted PDFs are not imported.',
   inserted_signatures_will_not_remain_valid: 'Signatures in inserted PDFs will not remain valid.',
   inserted_form_fields_may_require_review: 'Inserted form fields may need review.',
+  bates_numbers_are_visible_page_content: 'Bates identifiers become visible page content.',
 };
 
 const parseRange = (value: string, pageCount: number) => {
@@ -90,11 +94,15 @@ export default function OrganizePagesWorkflow() {
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [showCrop, setShowCrop] = useState(false);
+  const [showBates, setShowBates] = useState(false);
   const [crop, setCrop] = useState({ left: 0, top: 0, right: 0, bottom: 0 });
+  const [bates, setBates] = useState({ prefix: 'CASE-', start: 1, digits: 6, position: 'bottom_right' });
   const [insertPosition, setInsertPosition] = useState<'after-selection' | 'end'>('after-selection');
+  const [interleaveFirst, setInterleaveFirst] = useState<'current' | 'inserted'>('current');
   const [dragged, setDragged] = useState<number | null>(null);
   const anchorRef = useRef<number | null>(null);
   const insertInputRef = useRef<HTMLInputElement>(null);
+  const interleaveInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setSelected(current => new Set([...current].filter(page => page < pageCount)));
@@ -262,6 +270,69 @@ export default function OrganizePagesWorkflow() {
     }
   };
 
+  const detectDuplicates = async () => {
+    if (!sessionId) return;
+    setBusy('duplicates');
+    setStatus('Comparing rendered pages locally…');
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/documents/${sessionId}/page-duplicates`);
+      const data = response.data?.data ?? {};
+      const duplicatePages = data.duplicate_pages ?? [];
+      setSelected(new Set(duplicatePages));
+      setWarnings([]);
+      setStatus(duplicatePages.length
+        ? `Found and selected ${duplicatePages.length} pixel-identical duplicate page${duplicatePages.length === 1 ? '' : 's'}; the first copy in each group stays unselected.`
+        : 'No pixel-identical duplicate pages found in bounded local renders.');
+    } catch {
+      setStatus('Duplicate-page comparison could not be completed.');
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const applyBates = async () => {
+    if (!sessionId || !selectedPages.length) return;
+    setBusy('bates');
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/documents/${sessionId}/pages/bates`, {
+        pages: selectedPages,
+        prefix: bates.prefix,
+        start: bates.start,
+        digits: bates.digits,
+        position: bates.position,
+      });
+      applyResult(response.data?.data ?? {}, `Applied ${selectedPages.length} sequential Bates identifier${selectedPages.length === 1 ? '' : 's'}.`);
+      setShowBates(false);
+    } catch (error) {
+      const detail = axios.isAxiosError(error) ? error.response?.data?.detail : undefined;
+      setStatus(detail || 'Bates numbering could not be applied.');
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const interleave = async (file: File | null) => {
+    if (!sessionId || !file) return;
+    setBusy('interleave');
+    const form = new FormData();
+    form.append('file', file);
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/api/documents/${sessionId}/pages/interleave`,
+        form,
+        { params: { current_first: interleaveFirst === 'current' } },
+      );
+      applyResult(response.data?.data ?? {}, `Interleaved ${file.name} with the current PDF.`);
+      setSelected(new Set());
+      if (interleaveInputRef.current) interleaveInputRef.current.value = '';
+    } catch (error) {
+      const detail = axios.isAxiosError(error) ? error.response?.data?.detail : undefined;
+      setStatus(detail || 'The PDFs could not be interleaved.');
+    } finally {
+      setBusy('');
+    }
+  };
+
   if (!sessionId) {
     return (
       <div className="flex min-h-full items-center justify-center p-6">
@@ -315,10 +386,29 @@ export default function OrganizePagesWorkflow() {
           </div>
         </section>
 
+        <section aria-label="Advanced page assembly" className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-slate-950 p-3 text-white shadow-sm">
+          <button type="button" onClick={() => void detectDuplicates()} disabled={Boolean(busy)} className="flex items-center gap-2 rounded-xl border border-white/20 px-3 py-2.5 text-xs font-bold transition hover:border-cyan-300 disabled:opacity-35"><Search className="h-4 w-4" /> Find exact duplicates</button>
+          <button type="button" onClick={() => setShowBates(value => !value)} disabled={!selected.size || Boolean(busy)} className="flex items-center gap-2 rounded-xl border border-white/20 px-3 py-2.5 text-xs font-bold transition hover:border-cyan-300 disabled:opacity-35"><Hash className="h-4 w-4" /> Bates numbering</button>
+          <div className="ml-auto flex min-w-64 flex-1 items-center justify-end gap-2 sm:flex-none">
+            <select aria-label="Interleave order" value={interleaveFirst} onChange={event => setInterleaveFirst(event.target.value as typeof interleaveFirst)} className="min-w-0 rounded-xl border border-white/20 bg-slate-900 px-2 py-2 text-[11px] font-bold text-white"><option value="current">Current PDF first</option><option value="inserted">Inserted PDF first</option></select>
+            <label className="flex cursor-pointer items-center gap-2 rounded-xl bg-cyan-300 px-3 py-2.5 text-xs font-black text-slate-950"><Shuffle className="h-4 w-4" /> Interleave PDF<input ref={interleaveInputRef} type="file" accept="application/pdf,.pdf" className="sr-only" aria-label="Interleave PDF" onChange={event => void interleave(event.target.files?.[0] ?? null)} /></label>
+          </div>
+        </section>
+
         {showCrop && (
           <section className="mt-3 grid gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:grid-cols-[repeat(4,minmax(0,1fr))_auto]">
             {(['left', 'top', 'right', 'bottom'] as const).map(side => <label key={side} className="text-[10px] font-bold uppercase tracking-wider text-amber-900">{side} pt<input type="number" min="0" value={crop[side]} onChange={event => setCrop(current => ({ ...current, [side]: Math.max(0, Number(event.target.value)) }))} className="mt-1 w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm" /></label>)}
             <button type="button" onClick={() => void runBatch('crop')} disabled={Boolean(busy)} className="self-end rounded-xl bg-amber-900 px-4 py-2.5 text-xs font-black text-white">Apply non-destructive crop box</button>
+          </section>
+        )}
+
+        {showBates && (
+          <section aria-label="Bates numbering settings" className="mt-3 grid gap-3 rounded-2xl border border-cyan-200 bg-cyan-50 p-4 sm:grid-cols-[minmax(8rem,1.5fr)_repeat(2,minmax(5rem,.6fr))_minmax(9rem,1fr)_auto]">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-700">Prefix<input value={bates.prefix} maxLength={64} onChange={event => setBates(current => ({ ...current, prefix: event.target.value }))} className="mt-1 w-full rounded-lg border border-cyan-200 bg-white px-3 py-2 text-sm normal-case" /></label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-700">Starts at<input type="number" min="0" value={bates.start} onChange={event => setBates(current => ({ ...current, start: Math.max(0, Number(event.target.value)) }))} className="mt-1 w-full rounded-lg border border-cyan-200 bg-white px-3 py-2 text-sm" /></label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-700">Digits<input type="number" min="1" max="12" value={bates.digits} onChange={event => setBates(current => ({ ...current, digits: Math.min(12, Math.max(1, Number(event.target.value))) }))} className="mt-1 w-full rounded-lg border border-cyan-200 bg-white px-3 py-2 text-sm" /></label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-700">Position<select value={bates.position} onChange={event => setBates(current => ({ ...current, position: event.target.value }))} className="mt-1 w-full rounded-lg border border-cyan-200 bg-white px-3 py-2 text-sm normal-case"><option value="bottom_right">Bottom right</option><option value="bottom_left">Bottom left</option><option value="top_right">Top right</option><option value="top_left">Top left</option></select></label>
+            <button type="button" onClick={() => void applyBates()} disabled={Boolean(busy)} className="self-end rounded-xl bg-slate-950 px-4 py-2.5 text-xs font-black text-white">Apply to {selected.size}</button>
           </section>
         )}
 
