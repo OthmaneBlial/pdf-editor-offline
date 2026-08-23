@@ -170,7 +170,7 @@ Time ranges are planning estimates for a small maintainer team, not release prom
 - [ ] Publish a real GitHub Release with binary assets and edited, human-readable release notes.
 - [ ] Put “Download for your OS” above source/PyPI/Docker instructions in the README and Pages site.
 - [ ] Add a 60-second real product video/GIF and a five-minute sample workflow using synthetic PDFs.
-- [ ] Add a startup health panel that shows: local API status, installed capabilities, storage use, network policy, and cleanup action.
+- [x] Add a startup health panel that shows: local API status, installed capabilities, storage use, network policy, and cleanup action. Evidence: [runtime trust console](frontend/src/components/RuntimeHealthPanel.tsx) and [interaction tests](frontend/tests/RuntimeHealthPanel.spec.tsx).
 
 #### Exit gate
 
