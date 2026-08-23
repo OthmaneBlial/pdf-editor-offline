@@ -162,10 +162,10 @@ Time ranges are planning estimates for a small maintainer team, not release prom
 - **Release:** 3.0.0
 - **Goal:** let a non-developer reach first value without Python, Node, Docker, or a terminal.
 
-- [ ] Enable Tauri bundling and produce Windows x64, macOS Apple Silicon/Intel, and Linux AppImage or `.deb` artifacts.
-- [ ] Bundle or guide every required runtime dependency; never discover after installation that OCR or conversion is unusable.
+- [x] Enable Tauri bundling and produce Windows x64, macOS Apple Silicon/Intel, and Linux AppImage or `.deb` artifacts.
+- [x] Bundle or guide every required runtime dependency; never discover after installation that OCR or conversion is unusable.
 - [ ] Sign Windows artifacts and sign/notarize macOS artifacts. Publish Linux package verification guidance.
-- [ ] Add release CI that builds on clean OS runners, installs each artifact, runs the sample workflow, and uninstalls cleanly.
+- [x] Add release CI that builds on clean OS runners, installs each artifact, runs the sample workflow, and uninstalls cleanly.
 - [ ] Attach SHA-256 checksums, an SBOM, build provenance, supported-OS notes, and known limitations.
 - [ ] Publish a real GitHub Release with binary assets and edited, human-readable release notes.
 - [ ] Put “Download for your OS” above source/PyPI/Docker instructions in the README and Pages site.
@@ -173,6 +173,8 @@ Time ranges are planning estimates for a small maintainer team, not release prom
 - [ ] Add a startup health panel that shows: local API status, installed capabilities, storage use, network policy, and cleanup action.
 
 #### Exit gate
+
+**Installer matrix evidence:** [Windows x64, macOS Apple Silicon/Intel, and Linux x64 clean-install smokes](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/32669341605) passed on 2026-08-24.
 
 - At least 8 of 10 fresh-machine testers install the correct artifact and finish `open sample → redact → verify → export → reopen` in under five minutes without maintainer help.
 - All release assets pass signature/checksum verification and clean-machine smoke tests.
