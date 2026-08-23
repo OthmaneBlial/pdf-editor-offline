@@ -9,7 +9,7 @@
 - Office-to-PDF requires LibreOffice. Relevant PDF/A, repair, and compression operations may require Ghostscript.
 - Conversion to editable Office formats is best effort and may change layout, fonts, tables, and reading order.
 - Resize changes page geometry and does not reflow arbitrary page content.
-- The Redact & Prove verifier is available through the Python API, but its guarded end-user workflow and the cross-engine fidelity corpus are still under active implementation.
+- Redact & Prove requires local Tesseract for OCR proof. Without it, the workflow correctly stops as `incomplete`; the broader cross-engine fidelity corpus is still under active implementation.
 - Docker is self-hosted processing, not necessarily same-device processing.
 - Upload preflight rejects obvious structural and declared-size abuse, but cannot prove every parser-level denial-of-service technique impossible. Keep OS resource limits around untrusted bulk processing.
 

@@ -68,6 +68,7 @@ from api.models import (
     StampAnnotationRequest,
     TextAnnotation,
     TextReplaceRequest,
+    TextSearchRequest,
     TextboxWithBorderRequest,
     TOCItem,
     UpdateBookmarkRequest,
@@ -1479,9 +1480,7 @@ async def get_text_properties(doc_id: str, page_num: int):
     return APIResponse(success=True, data={"blocks": text_props})
 
 
-@router.get("/{doc_id}/pages/{page_num}/text/search", response_model=APIResponse)
-async def search_text(doc_id: str, page_num: int, text: str):
-    """Search text occurrences on a page and return geometric match info."""
+def _search_text_response(doc_id: str, page_num: int, text: str):
     query = text.strip()
     if not query:
         raise HTTPException(status_code=400, detail="Query text cannot be empty")
@@ -1494,8 +1493,24 @@ async def search_text(doc_id: str, page_num: int, text: str):
     matches = text_processor.search_text_with_quads(page_num, query)
     return APIResponse(
         success=True,
-        data={"query": query, "count": len(matches), "matches": matches},
+        data={"count": len(matches), "matches": matches},
     )
+
+
+@router.get("/{doc_id}/pages/{page_num}/text/search", response_model=APIResponse)
+async def search_text_legacy(doc_id: str, page_num: int, text: str):
+    """Compatibility search; local UIs use POST so target text stays out of URLs."""
+    return _search_text_response(doc_id, page_num, text)
+
+
+@router.post("/{doc_id}/pages/{page_num}/text/search", response_model=APIResponse)
+async def search_text_private(
+    doc_id: str,
+    page_num: int,
+    request: TextSearchRequest,
+):
+    """Search without exposing sensitive query text in access-log URLs."""
+    return _search_text_response(doc_id, page_num, request.text)
 
 
 # --- Navigation / TOC Endpoints ---

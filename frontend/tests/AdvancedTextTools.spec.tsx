@@ -30,7 +30,13 @@ describe('AdvancedTextTools', () => {
       reportToolResult: vi.fn(),
     });
 
-    mockedAxios.get.mockImplementation((url: string) => {
+    mockedAxios.get.mockResolvedValue({
+      data: {
+        success: true,
+        data: { total_fonts: 0, fonts: [] },
+      },
+    });
+    mockedAxios.post.mockImplementation((url: string) => {
       if (url.includes('/text/search')) {
         return Promise.resolve({
           data: {
@@ -50,12 +56,10 @@ describe('AdvancedTextTools', () => {
       }
       return Promise.resolve({
         data: {
-          success: true,
-          data: { total_fonts: 0, fonts: [] },
+          success: true, data: {},
         },
       });
     });
-    mockedAxios.post.mockResolvedValue({ data: { success: true, data: {} } });
   });
 
   it('calls the text search endpoint and renders search results', async () => {
@@ -67,11 +71,9 @@ describe('AdvancedTextTools', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Search$/i }));
 
     await waitFor(() => {
-      expect(mockedAxios.get).toHaveBeenCalledWith(
+      expect(mockedAxios.post).toHaveBeenCalledWith(
         expect.stringContaining('/api/documents/doc-1/pages/0/text/search'),
-        expect.objectContaining({
-          params: { text: 'Page' },
-        })
+        { text: 'Page' },
       );
     });
 
@@ -99,22 +101,8 @@ describe('AdvancedTextTools', () => {
     });
   });
 
-  it('can send permanent redaction coordinates', async () => {
+  it('does not expose the legacy unverified area-redaction action', async () => {
     render(<AdvancedTextTools />);
-
-    fireEvent.click(screen.getByRole('button', { name: /Redact Area/i }));
-
-    await waitFor(() => {
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        expect.stringContaining('/api/documents/doc-1/pages/0/redact'),
-        expect.objectContaining({
-          x: 72,
-          y: 72,
-          width: 160,
-          height: 24,
-          fill_color: [0, 0, 0],
-        })
-      );
-    });
+    expect(screen.queryByRole('button', { name: /Redact Area/i })).not.toBeInTheDocument();
   });
 });

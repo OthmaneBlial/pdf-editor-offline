@@ -17,8 +17,11 @@ Do not add analytics, crash uploads, remote fonts, CDNs, AI APIs, update pings, 
 | Recent-file record | Convenience | Until removed | Remove one or clear all |
 | Desktop signature asset | Not persisted by the current image-upload flow | Current operation | Do not upload a sensitive certificate; this is visual signing only |
 | UI preferences | Theme and local username | Browser/app storage | Clear application storage |
+| Content-free redaction report | Audit evidence: fixed check names, counts, version, size, and output hash | Lifetime of the verified-copy session | Delete the verified-copy session / clean stale local data |
 
 The runtime health panel reports app-owned storage use. Diagnostics must scrub absolute paths and document-derived values.
+
+The Redact & Prove UI submits target text in a local POST body, not a URL query, so it does not appear in the HTTP access-log URL. Review summaries and exported reports omit targets, filenames, paths, extracted text, OCR text, parser errors, and document metadata values.
 
 ## Network behavior
 

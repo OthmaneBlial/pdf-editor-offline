@@ -19,16 +19,18 @@ import AdvancedTextTools from './components/tools/AdvancedTextTools';
 import NavigationTools from './components/tools/NavigationTools';
 import AnnotationTools from './components/tools/AnnotationTools';
 import ImageTools from './components/tools/ImageTools';
+import RedactProveWorkflow from './components/workflows/RedactProveWorkflow';
 import './App.css';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useEditor } from './contexts/EditorContext';
 
-export type ViewMode = 'editor' | 'manipulation' | 'conversion' | 'security' | 'advanced' | 'batch' | 'text' | 'navigation' | 'annotations' | 'images';
+export type ViewMode = 'editor' | 'redact' | 'manipulation' | 'conversion' | 'security' | 'advanced' | 'batch' | 'text' | 'navigation' | 'annotations' | 'images';
 
 // Advanced Editing tools that need tabbed interface
 const ADVANCED_EDITING_TOOLS: ViewMode[] = ['text', 'navigation', 'annotations', 'images'];
 const VIEW_LABELS: Record<ViewMode, string> = {
   editor: 'Editor',
+  redact: 'Redact & Prove',
   manipulation: 'Manipulation',
   conversion: 'Conversion',
   security: 'Security',
@@ -120,6 +122,8 @@ function AppContent() {
               </div>
             </div>
           );
+        case 'redact':
+          return <RedactProveWorkflow />;
         case 'manipulation':
           return <ManipulationTools />;
         case 'conversion':

@@ -69,3 +69,5 @@ The local API exposes an atomic copy-first workflow:
 6. The verified copy and its JSON and Markdown reports have separate download URLs. Downloading is read-only, so the reported SHA-256 remains the hash of the bytes the user receives.
 
 Report sidecars are deleted with their local document session. Review tokens expire automatically when the local API process exits and contain no target or document text.
+
+The sidebar's **Redact & Prove** workflow is the supported end-user path. It turns exact text-search matches into bounded marks, hides target values from the review summary, disables apply until the destructive-action acknowledgement is checked, and exposes downloads only after a `verified` response. The legacy single-area API remains available for compatibility but is intentionally absent from the primary UI because it does not produce proof.

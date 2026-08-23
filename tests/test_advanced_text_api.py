@@ -20,9 +20,9 @@ class TestAdvancedTextApi:
     def test_search_text_endpoint_returns_matches(self, api_client, sample_pdf: str):
         doc_id = upload_pdf(api_client, sample_pdf)
 
-        response = api_client.get(
+        response = api_client.post(
             f"/api/documents/{doc_id}/pages/0/text/search",
-            params={"text": "Page"},
+            json={"text": "Page"},
         )
 
         assert response.status_code == 200
@@ -30,13 +30,14 @@ class TestAdvancedTextApi:
         assert payload["success"] is True
         assert payload["data"]["count"] >= 1
         assert len(payload["data"]["matches"]) >= 1
+        assert "query" not in payload["data"]
 
     def test_search_text_endpoint_rejects_empty_query(self, api_client, sample_pdf: str):
         doc_id = upload_pdf(api_client, sample_pdf)
 
-        response = api_client.get(
+        response = api_client.post(
             f"/api/documents/{doc_id}/pages/0/text/search",
-            params={"text": "   "},
+            json={"text": "   "},
         )
 
         assert response.status_code == 400
@@ -45,9 +46,9 @@ class TestAdvancedTextApi:
     def test_search_text_endpoint_rejects_invalid_page(self, api_client, sample_pdf: str):
         doc_id = upload_pdf(api_client, sample_pdf)
 
-        response = api_client.get(
+        response = api_client.post(
             f"/api/documents/{doc_id}/pages/1/text/search",
-            params={"text": "Page"},
+            json={"text": "Page"},
         )
 
         assert response.status_code == 400

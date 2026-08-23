@@ -143,6 +143,10 @@ class TextReplaceRequest(BaseModel):
     new_text: str
 
 
+class TextSearchRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=512)
+
+
 class FontInfo(BaseModel):
     name: str
     size: float

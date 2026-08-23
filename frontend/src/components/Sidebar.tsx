@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  FileText, Scissors, RefreshCw, Shield, Zap, Wrench, History,
+  FileText, Scissors, RefreshCw, Shield, ShieldCheck, Zap, Wrench, History,
   MessageSquare, Keyboard, ChevronRight, Layers, Sparkles,
   Type, Bookmark, PenTool, ImageIcon, X
 } from 'lucide-react';
@@ -23,6 +23,7 @@ interface NavItem {
 // Basic tools
 const basicNavItems: NavItem[] = [
   { id: 'editor', label: 'Editor', icon: FileText },
+  { id: 'redact', label: 'Redact & Prove', icon: ShieldCheck },
   { id: 'manipulation', label: 'Manipulation', icon: Scissors },
   { id: 'conversion', label: 'Conversion', icon: RefreshCw },
   { id: 'security', label: 'Security', icon: Shield },

@@ -37,7 +37,10 @@ Python package. Capability status is deliberately explicit:
 - Convert PDF to Word, PowerPoint, Excel, JPG, Markdown, TXT, EPUB, SVG, and PDF/A
 - Convert Word, PowerPoint, Excel, Markdown, TXT, CSV, JSON, HTML, and images to PDF
 - Clean metadata, remove hidden data, redact page areas, and clear app temp files
+- Create a copy-first **Redact & Prove** result with independent extraction, rendering, OCR checks, and content-free JSON/Markdown evidence
 - Run OCR and batch jobs locally
+
+The primary privacy workflow is **Redact & Prove** in the sidebar: search exact text, add every match to a guarded plan, review the destructive actions, and explicitly approve them. The app preserves the source and only offers a downloadable copy when all required local checks establish removal. A missing OCR engine or an uncertain result fails closed.
 
 Read the [capability matrix](docs/CAPABILITIES.md) before relying on a workflow:
 it distinguishes stable, beta, experimental, external-dependency, and
