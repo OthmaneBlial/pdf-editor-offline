@@ -172,7 +172,7 @@ manipulator.merge_pdfs(["file1.pdf", "file2.pdf"], "merged.pdf")
 
 ```bash
 pip install -e ".[dev]"
-pytest
+python -m pytest
 ```
 
 Frontend:
@@ -192,7 +192,7 @@ Full local check:
 Release checklist:
 
 ```bash
-pytest
+python -m pytest
 cd frontend && npm test && npm run build
 docker build -t pdf-editor-offline .
 python -m build

@@ -20,12 +20,12 @@ desktop/ (Tauri)
 
 | Area | Responsibility | Smallest validation |
 | --- | --- | --- |
-| `pdf_editor_offline/core/` | PDF transformations and inspection | `pytest pdf_editor_offline/tests` |
-| `api/` | HTTP models, sessions, validation, safe errors | `pytest tests/test_api_smoke.py tests/test_security.py` |
+| `pdf_editor_offline/core/` | PDF transformations and inspection | `python -m pytest pdf_editor_offline/tests` |
+| `api/` | HTTP models, sessions, validation, safe errors | `python -m pytest tests/test_api_smoke.py tests/test_security.py` |
 | `frontend/src/` | Task workflows and local editor UI | `cd frontend && npm test` |
 | `desktop/src-tauri/` | Local sidecar lifecycle and native filesystem UX | `cargo check --manifest-path desktop/src-tauri/Cargo.toml` |
 | `tests/e2e/` | Browser-level workflow evidence | `RUN_E2E_SMOKE=1 ./run_ci.sh` |
-| `examples/sample_pdfs/` | Synthetic public fixtures | `pytest tests/test_sample_pdfs.py` |
+| `examples/sample_pdfs/` | Synthetic public fixtures | `python -m pytest tests/test_sample_pdfs.py` |
 | `.github/workflows/` | Clean-runner quality and release gates | Pull request checks |
 
 ## Invariants
