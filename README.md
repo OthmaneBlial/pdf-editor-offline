@@ -45,6 +45,12 @@ unsupported behavior. In particular, a visual signature is not certificate
 signing, local comments are not collaboration, and complex conversions can lose
 fidelity.
 
+## 60-second local proof
+
+![A real local workflow loading the synthetic redaction PDF, finding two SECRET_TOKEN occurrences, permanently redacting them, and verifying zero remaining matches](https://raw.githubusercontent.com/OthmaneBlial/pdf-editor-offline/main/site/assets/product-demo.gif)
+
+This is a real capture of the local app using [`demo-redaction.pdf`](examples/sample_pdfs/demo-redaction.pdf), not a product mockup. It shows the on-device trust console, upload, text search, two permanent redactions, a zero-match verification, and the rendered result. Follow the bounded [five-minute redaction workflow](docs/FIVE_MINUTE_REDACTION_WORKFLOW.md) to reproduce it; it explains what this check proves and what it does not.
+
 ## Screenshots
 
 Captured from the local web app with the sample PDFs in `examples/sample_pdfs/`.

@@ -1,5 +1,19 @@
 const copyButtons = document.querySelectorAll("[data-copy-target]");
 
+const productDemo = document.querySelector("[data-product-demo]");
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+if (productDemo && !reducedMotion.matches) {
+  productDemo.play().catch(() => {
+    // Browser autoplay policy may require the user to press Play.
+  });
+}
+reducedMotion.addEventListener("change", (event) => {
+  if (!productDemo) return;
+  if (event.matches) {
+    productDemo.pause();
+  }
+});
+
 copyButtons.forEach((button) => {
   button.addEventListener("click", async () => {
     const target = document.getElementById(button.dataset.copyTarget);

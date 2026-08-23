@@ -169,7 +169,7 @@ Time ranges are planning estimates for a small maintainer team, not release prom
 - [ ] Attach SHA-256 checksums, an SBOM, build provenance, supported-OS notes, and known limitations.
 - [ ] Publish a real GitHub Release with binary assets and edited, human-readable release notes.
 - [ ] Put “Download for your OS” above source/PyPI/Docker instructions in the README and Pages site.
-- [ ] Add a 60-second real product video/GIF and a five-minute sample workflow using synthetic PDFs.
+- [x] Add a 60-second real product video/GIF and a five-minute sample workflow using synthetic PDFs. Evidence: [real captured demo](site/assets/product-demo.gif) and [bounded five-minute workflow](docs/FIVE_MINUTE_REDACTION_WORKFLOW.md).
 - [x] Add a startup health panel that shows: local API status, installed capabilities, storage use, network policy, and cleanup action. Evidence: [runtime trust console](frontend/src/components/RuntimeHealthPanel.tsx) and [interaction tests](frontend/tests/RuntimeHealthPanel.spec.tsx).
 
 #### Exit gate

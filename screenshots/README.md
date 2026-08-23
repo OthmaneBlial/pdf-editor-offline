@@ -2,6 +2,8 @@
 
 These screenshots were captured from the local web app after loading the sample PDFs in `examples/sample_pdfs/`. The browser automation waited for the matching API response before saving each proof image.
 
+The 60-second animation in `site/assets/product-demo.gif` and its controlled MP4 equivalent are assembled from a fresh browser run of `demo-redaction.pdf`: local trust console, upload, two search matches, permanent redaction, zero-match verification, and final render. The exact bounded exercise is documented in `docs/FIVE_MINUTE_REDACTION_WORKFLOW.md`.
+
 | File | Operation shown |
 | --- | --- |
 | `01-editor-workspace.png` | Uploaded `demo-basic.pdf` and rendered it in the editor |

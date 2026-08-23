@@ -392,6 +392,116 @@ pre,
   gap: 18px;
 }
 
+.demo-section {
+  padding-top: 38px;
+}
+
+.demo-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(290px, 0.75fr);
+  overflow: hidden;
+  color: #f8fafc;
+  background: #0b1220;
+  border: 1px solid #263244;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.demo-screen {
+  min-width: 0;
+  padding: clamp(12px, 2vw, 22px);
+  background:
+    radial-gradient(circle at 10% 0%, rgba(16, 167, 184, 0.24), transparent 38%),
+    #080e19;
+}
+
+.demo-screen video {
+  width: 100%;
+  aspect-ratio: 240 / 107;
+  object-fit: contain;
+  background: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+}
+
+.demo-caption {
+  max-width: 760px;
+  margin: 14px 0 0;
+  color: #9fb0c5;
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.demo-guide {
+  padding: clamp(24px, 4vw, 40px);
+  border-left: 1px solid #263244;
+}
+
+.demo-kicker {
+  margin: 0 0 22px;
+  color: #5eead4;
+  font-family: "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.demo-guide ol {
+  display: grid;
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: demo-step;
+}
+
+.demo-guide li {
+  position: relative;
+  padding-left: 42px;
+  counter-increment: demo-step;
+}
+
+.demo-guide li::before {
+  content: counter(demo-step, decimal-leading-zero);
+  position: absolute;
+  left: 0;
+  top: 1px;
+  color: #5eead4;
+  font-family: "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+.demo-guide strong,
+.demo-guide span {
+  display: block;
+}
+
+.demo-guide span {
+  margin-top: 4px;
+  color: #9fb0c5;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.demo-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.demo-actions .button.primary {
+  color: #08111d;
+  background: #5eead4;
+  border-color: #5eead4;
+}
+
+.demo-actions .button.secondary {
+  color: #f8fafc;
+  background: transparent;
+  border-color: #40506a;
+}
+
 .proof-grid figure {
   margin: 0;
 }
@@ -736,6 +846,7 @@ pre {
   .site-header,
   .hero,
   .workflow,
+  .demo-shell,
   .split-section,
   .docs-cta,
   .docs-layout {
@@ -751,6 +862,11 @@ pre {
   .workflow-list,
   .docs-content {
     margin-top: 28px;
+  }
+
+  .demo-guide {
+    border-top: 1px solid #263244;
+    border-left: 0;
   }
 
   .metrics,

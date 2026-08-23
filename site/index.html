@@ -16,6 +16,7 @@
       </a>
       <nav class="site-nav" aria-label="Primary navigation">
         <a href="#features">Features</a>
+        <a href="#demo">Demo</a>
         <a href="#proof">Proof</a>
         <a href="#install">Run</a>
         <a href="docs.html">Docs</a>
@@ -130,6 +131,50 @@
             <span>Save the edited PDF or download converted outputs from the browser, CLI, or API.</span>
           </li>
         </ol>
+      </section>
+
+      <section id="demo" class="section demo-section">
+        <div class="section-heading">
+          <p class="eyebrow">60-second product proof</p>
+          <h2>Watch the sensitive text disappear.</h2>
+          <p>
+            A real capture of the local app with the repository's synthetic redaction PDF. No staged dashboard, no production document, no cloud service.
+          </p>
+        </div>
+        <div class="demo-shell">
+          <div class="demo-screen">
+            <video
+              controls
+              loop
+              muted
+              playsinline
+              preload="metadata"
+              poster="assets/product-demo-poster.webp"
+              aria-describedby="demo-description"
+              data-product-demo
+            >
+              <source src="assets/product-demo.mp4" type="video/mp4">
+              <a href="assets/product-demo.gif">Open the animated product demo</a>
+            </video>
+            <p id="demo-description" class="demo-caption">
+              Silent 60-second sequence: verify the local runtime, load the synthetic sample, find two SECRET_TOKEN matches, redact both, verify zero matches, and inspect the result.
+            </p>
+          </div>
+          <div class="demo-guide">
+            <p class="demo-kicker">Reproduce in under five minutes</p>
+            <ol>
+              <li><strong>Confirm local.</strong><span>Loopback API, token required, telemetry off.</span></li>
+              <li><strong>Load the fixture.</strong><span>Use the public synthetic redaction sample.</span></li>
+              <li><strong>Find before editing.</strong><span>Expect exactly two target matches.</span></li>
+              <li><strong>Redact and verify.</strong><span>Apply both areas, then expect zero matches.</span></li>
+              <li><strong>Export and reopen.</strong><span>Repeat the search on the saved copy.</span></li>
+            </ol>
+            <div class="demo-actions">
+              <a class="button primary" href="assets/samples/demo-redaction.pdf">Get the safe sample</a>
+              <a class="button secondary" href="https://github.com/OthmaneBlial/pdf-editor-offline/blob/main/docs/FIVE_MINUTE_REDACTION_WORKFLOW.md">Read exact steps</a>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section id="proof" class="section">
