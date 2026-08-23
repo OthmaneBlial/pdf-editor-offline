@@ -9,7 +9,6 @@ import PageNavigation from './components/PageNavigation';
 import ZoomControls from './components/ZoomControls';
 import Sidebar from './components/Sidebar';
 import ToolToast from './components/ToolToast';
-import ManipulationTools from './components/tools/ManipulationTools';
 import ConversionTools from './components/tools/ConversionTools';
 import SecurityTools from './components/tools/SecurityTools';
 import AdvancedTools from './components/tools/AdvancedTools';
@@ -21,6 +20,7 @@ import AnnotationTools from './components/tools/AnnotationTools';
 import ImageTools from './components/tools/ImageTools';
 import RedactProveWorkflow from './components/workflows/RedactProveWorkflow';
 import SanitizeShareWorkflow from './components/workflows/SanitizeShareWorkflow';
+import OrganizePagesWorkflow from './components/workflows/OrganizePagesWorkflow';
 import './App.css';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useEditor } from './contexts/EditorContext';
@@ -33,7 +33,7 @@ const VIEW_LABELS: Record<ViewMode, string> = {
   editor: 'Editor',
   redact: 'Redact & Prove',
   sanitize: 'Sanitize & Share',
-  manipulation: 'Manipulation',
+  manipulation: 'Organize Pages',
   conversion: 'Conversion',
   security: 'Security',
   advanced: 'Advanced',
@@ -139,7 +139,7 @@ function AppContent() {
         case 'sanitize':
           return <SanitizeShareWorkflow />;
         case 'manipulation':
-          return <ManipulationTools />;
+          return <OrganizePagesWorkflow />;
         case 'conversion':
           return <ConversionTools />;
         case 'security':

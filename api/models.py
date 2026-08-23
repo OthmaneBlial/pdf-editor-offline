@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Literal, Optional, Tuple
 
 from pydantic import BaseModel, Field
 
@@ -136,6 +136,15 @@ class CropPageRequest(BaseModel):
     top: float
     right: float
     bottom: float
+
+
+class OrganizePagesRequest(BaseModel):
+    action: Literal["rotate_left", "rotate_right", "delete", "duplicate", "crop"]
+    pages: List[int] = Field(min_length=1, max_length=1000)
+    crop_left: float = Field(default=0, ge=0, le=10_000)
+    crop_top: float = Field(default=0, ge=0, le=10_000)
+    crop_right: float = Field(default=0, ge=0, le=10_000)
+    crop_bottom: float = Field(default=0, ge=0, le=10_000)
 
 
 # ============================================

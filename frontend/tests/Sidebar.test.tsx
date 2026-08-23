@@ -55,7 +55,7 @@ describe('Sidebar Component', () => {
     const props = createProps();
     render(<Sidebar {...props} />);
 
-    fireEvent.click(screen.getByRole('button', { name: /Manipulation/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Organize Pages/i }));
 
     expect(props.onViewChange).toHaveBeenCalledWith('manipulation');
   });

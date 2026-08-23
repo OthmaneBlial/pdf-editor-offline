@@ -66,6 +66,8 @@ APP_TEMP_PREFIXES = (
     "p2p_",
     "p2t_",
     "p2w_",
+    "page_redo_",
+    "page_undo_",
     "pdfa_",
     "privacy_",
     "privacy_clean_",
@@ -165,6 +167,8 @@ def build_session_data(
         "page_count": page_count,
         "page_reorder_undo": [],
         "page_reorder_redo": [],
+        "page_operation_undo": [],
+        "page_operation_redo": [],
     }
     bind_session_document_services(session_data, doc)
 
@@ -229,6 +233,12 @@ def create_session(file_path: str, filename: str) -> str:
 def delete_session(session_id: str):
     if session_id in sessions:
         session = sessions.pop(session_id)
+        for history_name in ("page_operation_undo", "page_operation_redo"):
+            for snapshot in session.get(history_name, []):
+                try:
+                    os.remove(snapshot["path"])
+                except OSError:
+                    pass
         doc_manager = session.get("document_manager")
         if doc_manager:
             doc_manager.close_document()
@@ -240,6 +250,115 @@ def delete_session(session_id: str):
         if record:
             _remove_session_files(record.storage_path)
     session_store.delete(session_id)
+
+
+def _new_page_snapshot(session: Dict[str, Any], label: str, prefix: str) -> dict:
+    path = os.path.join(TEMP_DIR, f"{prefix}_{uuid.uuid4().hex}.pdf")
+    shutil.copy2(session["storage_path"], path)
+    return {"path": path, "label": label}
+
+
+def capture_page_operation_snapshot(session_id: str, label: str) -> None:
+    """Push a complete local snapshot so every organizer mutation is undoable."""
+    session = get_session(session_id)
+    snapshot = _new_page_snapshot(session, label, "page_undo")
+    undo = session["page_operation_undo"]
+    undo.append(snapshot)
+    while len(undo) > 20:
+        expired = undo.pop(0)
+        try:
+            os.remove(expired["path"])
+        except OSError:
+            pass
+    for stale in session["page_operation_redo"]:
+        try:
+            os.remove(stale["path"])
+        except OSError:
+            pass
+    session["page_operation_redo"].clear()
+
+
+def discard_page_operation_snapshot(session_id: str) -> None:
+    session = get_session(session_id)
+    if not session["page_operation_undo"]:
+        return
+    snapshot = session["page_operation_undo"].pop()
+    try:
+        os.remove(snapshot["path"])
+    except OSError:
+        pass
+
+
+def rollback_page_operation_snapshot(session_id: str) -> None:
+    """Restore and remove the newest undo snapshot after a failed mutation."""
+    session = get_session(session_id)
+    if not session["page_operation_undo"]:
+        return
+    snapshot = session["page_operation_undo"].pop()
+    try:
+        _replace_session_from_snapshot(session_id, snapshot["path"], "page_rollback")
+    finally:
+        try:
+            os.remove(snapshot["path"])
+        except OSError:
+            pass
+
+
+def _replace_session_from_snapshot(session_id: str, snapshot_path: str, stage: str) -> None:
+    session = get_session(session_id)
+    manager = session["document_manager"]
+    storage_path = session["storage_path"]
+    replacement = f"{storage_path}.page-history.tmp"
+    shutil.copy2(snapshot_path, replacement)
+    manager.close_document()
+    os.replace(replacement, storage_path)
+    manager.load_pdf(storage_path)
+    bind_session_document_services(session, manager.get_document())
+    now = datetime.now()
+    session["last_modified"] = now
+    session["recovery_stage"] = stage
+    session["autosave_sequence"] = session.get("autosave_sequence", 0) + 1
+    session_store.update_recovery_state(
+        session_id,
+        timestamp=now,
+        stage=stage,
+        is_dirty=True,
+        bump_sequence=True,
+    )
+
+
+def restore_page_operation_snapshot(session_id: str, direction: str) -> Dict[str, Any]:
+    if direction not in {"undo", "redo"}:
+        raise ValueError("direction must be undo or redo")
+    session = get_session(session_id)
+    source = session[f"page_operation_{direction}"]
+    destination_name = "redo" if direction == "undo" else "undo"
+    destination = session[f"page_operation_{destination_name}"]
+    if not source:
+        raise HTTPException(status_code=409, detail=f"No page operation to {direction}")
+    target = source.pop()
+    current = _new_page_snapshot(session, target["label"], f"page_{destination_name}")
+    destination.append(current)
+    try:
+        _replace_session_from_snapshot(session_id, target["path"], f"page_{direction}")
+    except Exception:
+        destination.pop()
+        source.append(target)
+        try:
+            os.remove(current["path"])
+        except OSError:
+            pass
+        raise
+    try:
+        os.remove(target["path"])
+    except OSError:
+        pass
+    return {
+        "page_count": session["page_count"],
+        "operation": target["label"],
+        "can_undo": bool(session["page_operation_undo"]),
+        "can_redo": bool(session["page_operation_redo"]),
+    }
 
 
 def list_recovery_drafts() -> list[Dict[str, Any]]:

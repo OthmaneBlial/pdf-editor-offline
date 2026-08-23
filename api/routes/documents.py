@@ -28,6 +28,7 @@ from api.deps import (
     TEMP_DIR,
     cleanup_sessions_older_than,
     cleanup_temp_files,
+    capture_page_operation_snapshot,
     create_session,
     delete_session,
     get_session,
@@ -40,6 +41,8 @@ from api.deps import (
     render_recovery_preview,
     redaction_report_paths,
     restore_recovery_draft,
+    restore_page_operation_snapshot,
+    rollback_page_operation_snapshot,
     sessions,
 )
 from api.models import (
@@ -64,6 +67,7 @@ from api.models import (
     MaintenanceCleanupRequest,
     MetadataUpdate,
     MultiFontTextRequest,
+    OrganizePagesRequest,
     PopupNoteRequest,
     PolygonAnnotationRequest,
     PolylineAnnotationRequest,
@@ -82,6 +86,7 @@ from api.models import (
     UpdateBookmarkRequest,
 )
 from pdf_editor_offline.core.privacy_cleaner import PDFPrivacyCleaner
+from pdf_editor_offline.core.change_review import inspect_document as inspect_change_inventory
 from pdf_editor_offline.core.redaction_verifier import RedactionVerifier
 from pdf_editor_offline.utils.canvas_helpers import (
     convert_to_pymupdf_annotation,
@@ -798,14 +803,130 @@ def _apply_page_order(doc_id: str, page_order: List[int]) -> dict:
     return {"page_order": page_order, "page_count": session["page_count"]}
 
 
+def _organizer_preservation_warnings(document, action: str) -> list[str]:
+    inventory = inspect_change_inventory(document)
+    warnings = []
+    if inventory.signature_structures:
+        warnings.append("existing_signatures_will_be_invalidated")
+    if action in {"delete", "duplicate", "reorder", "insert"}:
+        warnings.append("document_reading_order_changes")
+    if action == "crop":
+        warnings.append("crop_hides_content_without_removing_it")
+    if inventory.bookmarks and action in {"delete", "duplicate", "reorder", "insert"}:
+        warnings.append("bookmarks_may_require_review")
+    if inventory.form_fields and action in {"delete", "duplicate", "insert"}:
+        warnings.append("form_field_identity_may_change")
+    if inventory.layers and action in {"delete", "duplicate", "insert"}:
+        warnings.append("optional_content_layers_may_require_review")
+    link_count = sum(len(page.get_links()) for page in document)
+    if link_count and action in {"delete", "duplicate", "reorder", "insert"}:
+        warnings.append("internal_links_may_require_review")
+    try:
+        if document.get_page_labels() and action in {"delete", "duplicate", "reorder", "insert"}:
+            warnings.append("page_labels_may_require_review")
+    except Exception:
+        pass
+    return warnings
+
+
+@router.post("/{doc_id}/pages/organize", response_model=APIResponse)
+async def organize_selected_pages(doc_id: str, request: OrganizePagesRequest):
+    """Apply one atomic, undoable operation to a validated page selection."""
+    session = get_session(doc_id)
+    document = session["document_manager"].get_document()
+    pages = sorted(set(request.pages))
+    if any(page < 0 or page >= len(document) for page in pages):
+        raise HTTPException(status_code=400, detail="Page selection is outside the document")
+    if request.action == "delete" and len(pages) == len(document):
+        raise HTTPException(status_code=400, detail="A PDF must retain at least one page")
+    if request.action == "crop":
+        for page_number in pages:
+            rect = document[page_number].rect
+            if request.crop_left + request.crop_right >= rect.width or request.crop_top + request.crop_bottom >= rect.height:
+                raise HTTPException(status_code=400, detail="Crop margins exceed a selected page")
+
+    warnings = _organizer_preservation_warnings(document, request.action)
+    capture_page_operation_snapshot(doc_id, request.action)
+    try:
+        if request.action in {"rotate_left", "rotate_right"}:
+            delta = -90 if request.action == "rotate_left" else 90
+            for page_number in pages:
+                page = document[page_number]
+                page.set_rotation((page.rotation + delta) % 360)
+        elif request.action == "delete":
+            for page_number in reversed(pages):
+                document.delete_page(page_number)
+        elif request.action == "duplicate":
+            for page_number in reversed(pages):
+                copy = fitz.open()
+                copy.insert_pdf(document, from_page=page_number, to_page=page_number)
+                document.insert_pdf(copy, start_at=page_number + 1)
+                copy.close()
+        elif request.action == "crop":
+            for page_number in pages:
+                page = document[page_number]
+                rect = page.rect
+                page.set_cropbox(
+                    fitz.Rect(
+                        rect.x0 + request.crop_left,
+                        rect.y0 + request.crop_top,
+                        rect.x1 - request.crop_right,
+                        rect.y1 - request.crop_bottom,
+                    )
+                )
+        persist_session_document(doc_id, recovery_stage="organize_pages")
+    except Exception:
+        rollback_page_operation_snapshot(doc_id)
+        raise
+
+    return APIResponse(
+        success=True,
+        message=f"{request.action.replace('_', ' ').title()} completed",
+        data={
+            "action": request.action,
+            "affected_pages": len(pages),
+            "page_count": session["page_count"],
+            "warnings": warnings,
+            "can_undo": True,
+            "can_redo": False,
+        },
+    )
+
+
+@router.post("/{doc_id}/pages/organize/undo", response_model=APIResponse)
+async def undo_page_operation(doc_id: str):
+    return APIResponse(
+        success=True,
+        message="Page operation undone",
+        data=restore_page_operation_snapshot(doc_id, "undo"),
+    )
+
+
+@router.post("/{doc_id}/pages/organize/redo", response_model=APIResponse)
+async def redo_page_operation(doc_id: str):
+    return APIResponse(
+        success=True,
+        message="Page operation redone",
+        data=restore_page_operation_snapshot(doc_id, "redo"),
+    )
+
+
 @router.put("/{doc_id}/pages/reorder", response_model=APIResponse)
 async def reorder_pages(doc_id: str, request: ReorderPagesRequest):
     """Persist a complete page permutation and make it undoable."""
     session = get_session(doc_id)
+    warnings = _organizer_preservation_warnings(
+        session["document_manager"].get_document(), "reorder"
+    )
+    capture_page_operation_snapshot(doc_id, "reorder")
     try:
         result = _apply_page_order(doc_id, request.page_order)
     except InvalidOperationError as exc:
+        rollback_page_operation_snapshot(doc_id)
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception:
+        rollback_page_operation_snapshot(doc_id)
+        raise
 
     session["page_reorder_undo"].append(
         {
@@ -818,7 +939,12 @@ async def reorder_pages(doc_id: str, request: ReorderPagesRequest):
     return APIResponse(
         success=True,
         message="Pages reordered successfully",
-        data={**result, "can_undo": True, "can_redo": False},
+        data={
+            **result,
+            "warnings": warnings,
+            "can_undo": True,
+            "can_redo": False,
+        },
     )
 
 
@@ -1059,10 +1185,21 @@ async def insert_pages_from_file(
 
     temp_path, safe_filename = await _store_pdf_upload_temporarily(file, "insert")
     insert_doc = None
+    snapshot_captured = False
     try:
         insert_doc = fitz.open(temp_path)
         pages_to_insert = len(insert_doc)
+        warnings = _organizer_preservation_warnings(doc, "insert")
+        inserted_inventory = inspect_change_inventory(insert_doc)
+        if inserted_inventory.bookmarks:
+            warnings.append("inserted_bookmarks_are_not_imported")
+        if inserted_inventory.signature_structures:
+            warnings.append("inserted_signatures_will_not_remain_valid")
+        if inserted_inventory.form_fields:
+            warnings.append("inserted_form_fields_may_require_review")
 
+        capture_page_operation_snapshot(doc_id, "insert")
+        snapshot_captured = True
         doc.insert_pdf(insert_doc, start_at=position)
 
         # Update session
@@ -1079,9 +1216,17 @@ async def insert_pages_from_file(
         return APIResponse(
             success=True,
             message=f"{pages_to_insert} page(s) inserted successfully",
-            data={"new_page_count": new_page_count, "inserted_at": position},
+            data={
+                "new_page_count": new_page_count,
+                "inserted_at": position,
+                "warnings": warnings,
+                "can_undo": True,
+                "can_redo": False,
+            },
         )
     except Exception as e:
+        if snapshot_captured:
+            rollback_page_operation_snapshot(doc_id)
         logger.error("Failed to insert pages: %s", e)
         raise HTTPException(status_code=400, detail="Failed to insert pages")
     finally:

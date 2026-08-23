@@ -631,3 +631,35 @@ h6 {
   background: var(--accent-primary);
   color: var(--neutral-950);
 }
+
+.organize-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid rgb(226 232 240);
+  border-radius: 0.75rem;
+  background: white;
+  padding: 0.625rem 0.75rem;
+  color: rgb(51 65 85);
+  font-size: 0.75rem;
+  font-weight: 700;
+  transition: border-color 150ms ease, color 150ms ease, opacity 150ms ease;
+}
+
+.organize-action:hover:not(:disabled) {
+  border-color: rgb(125 211 252);
+  color: rgb(7 89 133);
+}
+
+.organize-action--primary,
+.organize-action--primary:hover:not(:disabled) {
+  border-color: rgb(15 23 42);
+  background: rgb(15 23 42);
+  color: white;
+}
+
+.organize-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
