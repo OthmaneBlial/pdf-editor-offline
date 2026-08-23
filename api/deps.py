@@ -66,6 +66,7 @@ APP_TEMP_PREFIXES = (
     "privacy_",
     "privacy_clean_",
     "pro_",
+    "redact_prove_",
     "rep_",
     "rot_",
     "scan_",
@@ -82,6 +83,20 @@ APP_TEMP_PREFIXES = (
 
 # In-memory session storage
 sessions = {}
+
+
+def session_sidecar_paths(storage_path: str) -> tuple[str, ...]:
+    """Return app-owned, content-free report files associated with a PDF."""
+    return (
+        f"{storage_path}.redaction-report.json",
+        f"{storage_path}.redaction-report.md",
+    )
+
+
+def _remove_session_files(storage_path: str) -> None:
+    for path in (storage_path, *session_sidecar_paths(storage_path)):
+        if path and os.path.exists(path):
+            os.remove(path)
 
 
 def bind_session_document_services(session: Dict[str, Any], document) -> None:
@@ -193,8 +208,12 @@ def delete_session(session_id: str):
         if doc_manager:
             doc_manager.close_document()
         storage_path = session.get("storage_path")
-        if storage_path and os.path.exists(storage_path):
-            os.remove(storage_path)
+        if storage_path:
+            _remove_session_files(storage_path)
+    else:
+        record = session_store.get(session_id)
+        if record:
+            _remove_session_files(record.storage_path)
     session_store.delete(session_id)
 
 
@@ -226,8 +245,7 @@ def cleanup_sessions_older_than(
             continue
 
         try:
-            if os.path.exists(record.storage_path):
-                os.remove(record.storage_path)
+            _remove_session_files(record.storage_path)
             session_store.delete(record.session_id)
             removed += 1
         except Exception as exc:

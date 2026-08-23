@@ -1,11 +1,16 @@
+import hashlib
+import hmac
+import json
 import logging
 import os
+import secrets
 import uuid
+from pathlib import Path
 from typing import List, Optional, Tuple
 
 import fitz
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 from pdf_editor_offline.core.exceptions import InvalidOperationError, PDFLoadError
 
@@ -26,6 +31,7 @@ from api.deps import (
     delete_session,
     get_session,
     persist_session_document,
+    session_sidecar_paths,
     sessions,
 )
 from api.models import (
@@ -38,6 +44,7 @@ from api.models import (
     FillFormRequest,
     FontUsageResponse,
     FreehandHighlightRequest,
+    GuardedRedactionRequest,
     HiddenDataCleanupRequest,
     ImageAnnotation,
     ImageExtractRequest,
@@ -66,6 +73,7 @@ from api.models import (
     UpdateBookmarkRequest,
 )
 from pdf_editor_offline.core.privacy_cleaner import PDFPrivacyCleaner
+from pdf_editor_offline.core.redaction_verifier import RedactionVerifier
 from pdf_editor_offline.utils.canvas_helpers import (
     convert_to_pymupdf_annotation,
     decode_canvas_overlay,
@@ -80,6 +88,75 @@ router = APIRouter(prefix="/api/documents", tags=["documents"])
 ALLOWED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"}
 ALLOWED_AUDIO_EXTENSIONS = {".mp3", ".mpeg", ".mp4", ".m4a", ".wav", ".aac", ".ogg"}
 MAX_TEMP_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024
+REDACTION_REVIEW_KEY = secrets.token_bytes(32)
+
+
+def _validated_guarded_marks(session, request: GuardedRedactionRequest):
+    document = session["document_manager"].get_document()
+    validated = []
+    for mark in request.marks:
+        if mark.page_num >= len(document):
+            raise HTTPException(status_code=400, detail="A marked page is invalid")
+        if any(component < 0 or component > 1 for component in mark.fill_color):
+            raise HTTPException(
+                status_code=400,
+                detail="Redaction fill components must be between 0 and 1",
+            )
+        rectangle = fitz.Rect(
+            mark.x,
+            mark.y,
+            mark.x + mark.width,
+            mark.y + mark.height,
+        )
+        page = document[mark.page_num]
+        if not page.rect.intersects(rectangle):
+            raise HTTPException(
+                status_code=400,
+                detail="Every redaction mark must overlap its page",
+            )
+        validated.append(
+            (mark.page_num, rectangle & page.rect, tuple(mark.fill_color))
+        )
+    return validated
+
+
+def _redaction_review_token(session, request: GuardedRedactionRequest) -> str:
+    """Bind a review acknowledgement to the exact plan and source bytes."""
+    plan = {
+        "source_sha256": hashlib.sha256(
+            Path(session["storage_path"]).read_bytes()
+        ).hexdigest(),
+        "marks": [mark.model_dump(mode="json") for mark in request.marks],
+        "targets": request.targets,
+    }
+    encoded = json.dumps(
+        plan,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return hmac.new(REDACTION_REVIEW_KEY, encoded, hashlib.sha256).hexdigest()
+
+
+def _report_sidecar(session, report_format: str) -> str:
+    report_paths = session_sidecar_paths(session["storage_path"])
+    if report_format == "json":
+        return report_paths[0]
+    if report_format == "markdown":
+        return report_paths[1]
+    raise HTTPException(status_code=404, detail="Report format not found")
+
+
+def _write_redaction_reports(session, report) -> None:
+    contents = (report.to_json(), report.to_markdown())
+    for path, content in zip(session_sidecar_paths(session["storage_path"]), contents):
+        temp_path = f"{path}.tmp"
+        try:
+            Path(temp_path).write_text(content, encoding="utf-8")
+            os.replace(temp_path, path)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
 
 
 def _parse_rect_csv(rect_value: str) -> Tuple[float, float, float, float]:
@@ -270,7 +347,9 @@ async def delete_document(doc_id: str):
 
 @router.get("/{doc_id}/download")
 async def download_document(doc_id: str):
-    session = persist_session_document(doc_id)
+    # Editing routes persist atomically when they mutate a document. A download
+    # must be read-only so checksums and signed audit reports remain stable.
+    session = get_session(doc_id)
     return FileResponse(
         path=session["storage_path"],
         filename=session["filename"],
@@ -369,6 +448,190 @@ async def redact_page_area(doc_id: str, page_num: int, request: RedactionRequest
             "redactions_applied": bool(applied),
         },
     )
+
+
+@router.post("/{doc_id}/redaction/review", response_model=APIResponse)
+async def review_guarded_redaction(
+    doc_id: str,
+    request: GuardedRedactionRequest,
+):
+    """Validate a redaction plan without modifying or persisting the document."""
+    if any(not target.strip() or len(target) > 512 for target in request.targets):
+        raise HTTPException(
+            status_code=400,
+            detail="Every verification target must be bounded and non-empty",
+        )
+    session = get_session(doc_id)
+    validated = _validated_guarded_marks(session, request)
+    return APIResponse(
+        success=True,
+        message="Redaction plan ready for review",
+        data={
+            "stage": "review",
+            "mark_count": len(validated),
+            "target_count": len({target.casefold() for target in request.targets}),
+            "pages_affected": sorted({page_num for page_num, _, _ in validated}),
+            "actions": [
+                "permanently_remove_marked_content",
+                "remove_hidden_data_and_previous_revisions",
+                "reopen_with_independent_engines",
+                "save_as_a_new_verified_copy",
+            ],
+            "source_will_be_preserved": True,
+            "review_required": True,
+            "review_token": _redaction_review_token(session, request),
+        },
+    )
+
+
+@router.post("/{doc_id}/redaction/apply", response_model=APIResponse)
+async def apply_guarded_redaction(
+    doc_id: str,
+    request: GuardedRedactionRequest,
+):
+    """Apply, sanitize, verify, and save a separate copy as one guarded flow."""
+    if not request.review_acknowledged:
+        raise HTTPException(
+            status_code=409,
+            detail="Review must be acknowledged before applying redactions",
+        )
+    if any(not target.strip() or len(target) > 512 for target in request.targets):
+        raise HTTPException(
+            status_code=400,
+            detail="Every verification target must be bounded and non-empty",
+        )
+
+    session = get_session(doc_id)
+    validated = _validated_guarded_marks(session, request)
+    expected_review_token = _redaction_review_token(session, request)
+    if not request.review_token or not hmac.compare_digest(
+        request.review_token,
+        expected_review_token,
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail="The exact redaction plan must be reviewed again before applying",
+        )
+    output_path = os.path.join(TEMP_DIR, f"redact_prove_{uuid.uuid4().hex}.pdf")
+    detached_document = None
+    try:
+        source_payload = Path(session["storage_path"]).read_bytes()
+        detached_document = fitz.open(stream=source_payload, filetype="pdf")
+        pages_to_apply = set()
+        for page_num, rectangle, fill_color in validated:
+            detached_document[page_num].add_redact_annot(
+                rectangle,
+                fill=fill_color,
+            )
+            pages_to_apply.add(page_num)
+        for page_num in pages_to_apply:
+            detached_document[page_num].apply_redactions(
+                images=fitz.PDF_REDACT_IMAGE_PIXELS,
+                graphics=fitz.PDF_REDACT_LINE_ART_REMOVE_IF_TOUCHED,
+                text=fitz.PDF_REDACT_TEXT_REMOVE,
+            )
+
+        PDFPrivacyCleaner(detached_document).cleanup_hidden_data(
+            remove_metadata=True,
+            remove_embedded_files=True,
+            remove_hidden_text=True,
+            remove_javascript=True,
+            remove_links=True,
+            remove_annotations=True,
+            remove_thumbnails=True,
+            reset_form_fields=True,
+            apply_redactions=True,
+            clean_pages=True,
+        )
+        detached_document.save(
+            output_path,
+            garbage=4,
+            clean=True,
+            deflate=True,
+            preserve_metadata=False,
+        )
+        detached_document.close()
+        detached_document = None
+
+        report = RedactionVerifier().verify(output_path, request.targets)
+        if not report.verified:
+            os.remove(output_path)
+            return JSONResponse(
+                status_code=422,
+                content=APIResponse(
+                    success=False,
+                    error="Redaction verification did not establish removal",
+                    message="No verified copy was saved; the source remains unchanged",
+                    data={"stage": "verify", "verification": report.to_dict()},
+                ).model_dump(),
+            )
+
+        source_stem = Path(session["filename"]).stem
+        copy_filename = sanitize_download_filename(
+            f"{source_stem}-redacted-verified.pdf",
+            default="redacted-verified.pdf",
+            allowed_extensions=(".pdf",),
+        )
+        copy_id = create_session(output_path, copy_filename)
+        copy_session = get_session(copy_id)
+        try:
+            _write_redaction_reports(copy_session, report)
+        except Exception:
+            delete_session(copy_id)
+            raise
+
+        return APIResponse(
+            success=True,
+            message="Redactions verified and saved as a separate copy",
+            data={
+                "stage": "save_copy",
+                "status": "verified",
+                "source_preserved": True,
+                "copy": {
+                    "id": copy_id,
+                    "filename": copy_session["filename"],
+                    "download_url": f"/api/documents/{copy_id}/download",
+                },
+                "verification": report.to_dict(),
+                "reports": {
+                    "json": f"/api/documents/{copy_id}/redaction-report/json",
+                    "markdown": (
+                        f"/api/documents/{copy_id}/redaction-report/markdown"
+                    ),
+                },
+            },
+        )
+    except HTTPException:
+        raise
+    except Exception:
+        if os.path.exists(output_path):
+            os.remove(output_path)
+        logger.exception("Guarded redaction failed for session %s", doc_id)
+        raise HTTPException(
+            status_code=500,
+            detail="Guarded redaction could not be completed",
+        )
+    finally:
+        if detached_document is not None:
+            detached_document.close()
+        if os.path.exists(output_path):
+            os.remove(output_path)
+
+
+@router.get("/{doc_id}/redaction-report/{report_format}")
+async def download_redaction_report(doc_id: str, report_format: str):
+    session = get_session(doc_id)
+    path = _report_sidecar(session, report_format)
+    if not os.path.isfile(path):
+        raise HTTPException(status_code=404, detail="Redaction report not found")
+    extension = ".json" if report_format == "json" else ".md"
+    media_type = "application/json" if report_format == "json" else "text/markdown"
+    filename = sanitize_download_filename(
+        f"{Path(session['filename']).stem}-redaction-report{extension}",
+        default=f"redaction-report{extension}",
+        allowed_extensions=(extension,),
+    )
+    return FileResponse(path=path, filename=filename, media_type=media_type)
 
 
 @router.post("/{doc_id}/pages/{page_num}/canvas", response_model=APIResponse)

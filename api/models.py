@@ -71,6 +71,22 @@ class RedactionRequest(BaseModel):
     fill_color: Tuple[float, float, float] = (0, 0, 0)
 
 
+class GuardedRedactionMark(BaseModel):
+    page_num: int = Field(ge=0)
+    x: float
+    y: float
+    width: float = Field(gt=0, le=20_000)
+    height: float = Field(gt=0, le=20_000)
+    fill_color: Tuple[float, float, float] = (0, 0, 0)
+
+
+class GuardedRedactionRequest(BaseModel):
+    marks: List[GuardedRedactionMark] = Field(min_length=1, max_length=100)
+    targets: List[str] = Field(min_length=1, max_length=100)
+    review_acknowledged: bool = False
+    review_token: Optional[str] = Field(default=None, min_length=64, max_length=64)
+
+
 class MaintenanceCleanupRequest(BaseModel):
     temp_max_age_minutes: int = Field(default=60, ge=0, le=24 * 60)
     session_max_age_hours: int = Field(default=24, ge=1, le=7 * 24)

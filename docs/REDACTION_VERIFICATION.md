@@ -56,3 +56,16 @@ print(report.to_markdown())
 ```
 
 Target strings are accepted only as transient inputs. Callers must not log or persist them outside the guarded local workflow.
+
+## Guarded local API flow
+
+The local API exposes an atomic copy-first workflow:
+
+1. `POST /api/documents/{id}/redaction/review` validates the marks and returns a content-free review summary plus a process-local HMAC token.
+2. The user reviews the destructive actions and explicitly acknowledges them.
+3. `POST /api/documents/{id}/redaction/apply` accepts only the exact reviewed plan. Changing a rectangle, target, or source PDF invalidates the token.
+4. The API edits a detached copy, applies every mark, removes hidden data and previous revisions, and runs all required verification checks.
+5. Only `verified` output becomes a new document session. `failed` or `incomplete` returns HTTP 422, deletes the candidate, and leaves the source unchanged.
+6. The verified copy and its JSON and Markdown reports have separate download URLs. Downloading is read-only, so the reported SHA-256 remains the hash of the bytes the user receives.
+
+Report sidecars are deleted with their local document session. Review tokens expire automatically when the local API process exits and contain no target or document text.

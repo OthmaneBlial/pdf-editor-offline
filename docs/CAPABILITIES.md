@@ -30,7 +30,7 @@ This matrix is the public contract for PDF Editor Offline 2.1.0. A feature is no
 | Certificate signing/validation | Unsupported | Planned only as a separate, security-reviewed workflow. |
 | Metadata cleanup | Stable | Removes standard and XML metadata through the documented cleanup path. |
 | Hidden-data cleanup | Beta | Review the selected profile; removing forms, links, annotations, or attachments is destructive. |
-| Area redaction | Beta | The content-free fail-closed verification engine is available through the Python API; the guarded end-user workflow remains a 3.1 milestone. |
+| Area redaction | Beta | The content-free fail-closed verifier and guarded copy-first local API are tested; the end-user review interface remains a 3.1 milestone. |
 | OCR | Beta, external dependency | Requires Tesseract and installed language data. Progress/cancel and correction UI remain planned. |
 | Office-to-PDF | External dependency | Requires LibreOffice. Complex layout fidelity is best effort. |
 | PDF/A, repair, advanced compression | External dependency | Requires Ghostscript for relevant operations. |
