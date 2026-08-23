@@ -74,15 +74,20 @@ fn wait_for_backend(port: u16) -> Result<(), String> {
     Err("Timed out waiting for the PDF Editor Offline API sidecar".to_string())
 }
 
+fn stop_sidecar(child: &mut Child) {
+    let _ = child.kill();
+    let _ = child.wait();
+}
+
 fn start_sidecar(app: &tauri::App, port: u16, api_token: &str) -> Result<Child, String> {
     let app_data_dir = app
         .path()
         .app_data_dir()
-        .map_err(|error| error.to_string())?;
+        .map_err(|error| format!("Could not resolve application data directory: {error}"))?;
     let app_cache_dir = app
         .path()
         .app_cache_dir()
-        .map_err(|error| error.to_string())?;
+        .map_err(|error| format!("Could not resolve application cache directory: {error}"))?;
     let storage_dir = app_data_dir.join("storage");
     let temp_dir = app_cache_dir.join("temp");
 
@@ -97,7 +102,7 @@ fn start_sidecar(app: &tauri::App, port: u16, api_token: &str) -> Result<Child, 
     let executable = app
         .path()
         .resource_dir()
-        .map_err(|error| error.to_string())?
+        .map_err(|error| format!("Could not resolve bundled resource directory: {error}"))?
         .join("resources")
         .join("sidecar")
         .join(executable_name);
@@ -221,13 +226,15 @@ pub fn run() {
             let api_base_url = api_base_url.clone();
             let api_token = api_token.clone();
             move |app| {
-                let child = start_sidecar(app, port, &api_token)?;
-                wait_for_backend(port)?;
+                let mut child = start_sidecar(app, port, &api_token)?;
+                if let Err(error) = wait_for_backend(port) {
+                    stop_sidecar(&mut child);
+                    return Err(error.into());
+                }
 
-                let app_data_dir = app
-                    .path()
-                    .app_data_dir()
-                    .map_err(|error| error.to_string())?;
+                let app_data_dir = app.path().app_data_dir().map_err(|error| {
+                    format!("Could not resolve recent-files data directory: {error}")
+                })?;
                 fs::create_dir_all(&app_data_dir).map_err(|error| error.to_string())?;
                 app.manage(DesktopState {
                     api_base_url,
@@ -252,12 +259,11 @@ pub fn run() {
         .expect("error while building Tauri application");
 
     app.run(|app_handle, event| {
-        if let RunEvent::ExitRequested { .. } = event {
+        if matches!(event, RunEvent::ExitRequested { .. } | RunEvent::Exit) {
             if let Some(state) = app_handle.try_state::<DesktopState>() {
                 if let Some(mut child) = state.sidecar.lock().expect("sidecar lock poisoned").take()
                 {
-                    let _ = child.kill();
-                    let _ = child.wait();
+                    stop_sidecar(&mut child);
                 }
             }
         }

@@ -1,0 +1,154 @@
+name: Desktop installers
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/desktop-build.yml"
+      - "api/**"
+      - "desktop/**"
+      - "examples/sample_pdfs/**"
+      - "frontend/**"
+      - "pdf_editor_offline/**"
+      - "pyproject.toml"
+      - "tests/test_desktop_release_assets.py"
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/desktop-build.yml"
+      - "api/**"
+      - "desktop/**"
+      - "examples/sample_pdfs/**"
+      - "frontend/**"
+      - "pdf_editor_offline/**"
+      - "pyproject.toml"
+      - "tests/test_desktop_release_assets.py"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.platform }} clean install smoke
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-x64
+            runner: windows-2025
+            target: x86_64-pc-windows-msvc
+            bundles: nsis
+            sidecar: desktop/src-tauri/resources/sidecar/pdf-editor-offline-api.exe
+            signing_identity: ""
+          - platform: macos-arm64
+            runner: macos-15
+            target: aarch64-apple-darwin
+            bundles: dmg
+            sidecar: desktop/src-tauri/resources/sidecar/pdf-editor-offline-api
+            signing_identity: "-"
+          - platform: macos-x64
+            runner: macos-15-intel
+            target: x86_64-apple-darwin
+            bundles: dmg
+            sidecar: desktop/src-tauri/resources/sidecar/pdf-editor-offline-api
+            signing_identity: "-"
+          - platform: linux-x64
+            runner: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            bundles: deb,appimage
+            sidecar: desktop/src-tauri/resources/sidecar/pdf-editor-offline-api
+            signing_identity: ""
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+      APPLE_SIGNING_IDENTITY: ${{ matrix.signing_identity }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22.22.0"
+          cache: npm
+          cache-dependency-path: |
+            desktop/package-lock.json
+            frontend/package-lock.json
+      - name: Install native Linux packaging dependencies
+        if: matrix.platform == 'linux-x64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            libayatana-appindicator3-dev libfuse2 libgtk-3-dev librsvg2-dev \
+            libwebkit2gtk-4.1-dev patchelf xdg-utils xvfb
+      - name: Install Rust stable
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustup target add "${{ matrix.target }}"
+      - name: Install locked JavaScript dependencies
+        run: |
+          npm --prefix frontend ci
+          npm --prefix desktop ci
+      - name: Build native frozen sidecar
+        run: npm --prefix desktop run build:sidecar -- --target "${{ matrix.target }}"
+      - name: Smoke frozen sidecar
+        run: >-
+          npm --prefix desktop run smoke:sidecar --
+          --sidecar "${{ matrix.sidecar }}"
+          --sample examples/sample_pdfs/demo-redaction.pdf
+      - name: Build native Tauri bundles
+        run: >-
+          npm --prefix desktop run build --
+          --target "${{ matrix.target }}"
+          --bundles "${{ matrix.bundles }}"
+      - name: Collect stable release assets
+        run: >-
+          python desktop/scripts/release_assets.py collect
+          --bundle-root "desktop/src-tauri/target/${{ matrix.target }}/release/bundle"
+          --output "desktop/dist/release/${{ matrix.platform }}"
+          --platform "${{ matrix.platform }}"
+      - name: Smoke installed macOS application
+        if: startsWith(matrix.platform, 'macos-')
+        run: >-
+          bash desktop/scripts/smoke-installed-macos.sh
+          "desktop/src-tauri/target/${{ matrix.target }}/release/bundle"
+      - name: Smoke installed Linux packages
+        if: matrix.platform == 'linux-x64'
+        run: >-
+          bash desktop/scripts/smoke-installed-linux.sh
+          "desktop/dist/release/${{ matrix.platform }}"
+      - name: Smoke installed Windows application
+        if: matrix.platform == 'windows-x64'
+        shell: pwsh
+        run: >-
+          ./desktop/scripts/smoke-installed-windows.ps1
+          -AssetDirectory "desktop/dist/release/${{ matrix.platform }}"
+      - name: Generate CycloneDX SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          path: desktop/src-tauri/resources/sidecar
+          format: cyclonedx-json
+          output-file: desktop/dist/release/${{ matrix.platform }}/sbom-${{ matrix.platform }}.cdx.json
+          upload-artifact: false
+      - name: Upload verified installer evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: desktop-${{ matrix.platform }}
+          path: desktop/dist/release/${{ matrix.platform }}
+          if-no-files-found: error
+          retention-days: 14

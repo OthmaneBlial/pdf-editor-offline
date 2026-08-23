@@ -1,0 +1,5 @@
+self-hosted-runner:
+  # GitHub introduced this standard Intel label after actionlint v1.7.7.
+  # Keep it explicit until the project lint runner upgrades to a newer Go toolchain.
+  labels:
+    - macos-15-intel
