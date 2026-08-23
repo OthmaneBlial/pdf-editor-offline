@@ -1,12 +1,19 @@
 param(
     [Parameter(Mandatory = $true)]
-    [string]$AssetDirectory
+    [string]$AssetDirectory,
+    [switch]$RequireTrustedSignature
 )
 
 $ErrorActionPreference = "Stop"
 $installer = Get-ChildItem -Path $AssetDirectory -Filter "*.exe" | Select-Object -First 1
 if (-not $installer) {
     throw "No NSIS installer found in $AssetDirectory"
+}
+if ($RequireTrustedSignature) {
+    $installerSignature = Get-AuthenticodeSignature -FilePath $installer.FullName
+    if ($installerSignature.Status -ne "Valid" -or -not $installerSignature.TimeStamperCertificate) {
+        throw "NSIS installer does not have a valid trusted and timestamped signature"
+    }
 }
 
 $install = Start-Process -FilePath $installer.FullName -ArgumentList "/S" -Wait -PassThru
@@ -18,6 +25,12 @@ $app = Get-ChildItem -Path $env:LOCALAPPDATA -Filter "pdf-editor-offline-desktop
     Select-Object -First 1
 if (-not $app) {
     throw "Installed desktop executable was not found"
+}
+if ($RequireTrustedSignature) {
+    $appSignature = Get-AuthenticodeSignature -FilePath $app.FullName
+    if ($appSignature.Status -ne "Valid" -or -not $appSignature.TimeStamperCertificate) {
+        throw "Installed application does not have a valid trusted and timestamped signature"
+    }
 }
 
 $process = Start-Process -FilePath $app.FullName -PassThru

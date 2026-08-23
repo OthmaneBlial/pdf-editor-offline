@@ -29,6 +29,11 @@ PLATFORM_SPECS: dict[str, tuple[AssetSpec, ...]] = {
     ),
 }
 
+EVIDENCE_SPECS = {
+    "sbom": "sbom-{platform}.cdx.json",
+    "provenance": "provenance-{platform}.sigstore.json",
+}
+
 SEMVER = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$")
 
 
@@ -44,6 +49,16 @@ def read_version(package_json: Path) -> str:
     version = str(json.loads(package_json.read_text(encoding="utf-8"))["version"])
     if not SEMVER.fullmatch(version):
         raise ValueError(f"Invalid desktop release version: {version}")
+    return version
+
+
+def verify_tag(tag: str, package_json: Path) -> str:
+    version = read_version(package_json)
+    expected_tag = f"v{version}"
+    if tag != expected_tag:
+        raise ValueError(
+            f"release tag {tag!r} does not match desktop version {expected_tag!r}"
+        )
     return version
 
 
@@ -81,6 +96,7 @@ def collect(
         assets.append(
             {
                 "name": destination.name,
+                "kind": "installer",
                 "platform": platform,
                 "bytes": destination.stat().st_size,
                 "sha256": sha256(destination),
@@ -112,8 +128,19 @@ def verify_release_set(root: Path, expected_version: str) -> dict:
             raise ValueError(f"Version mismatch in {path.name}")
         if manifest.get("platform") != platform:
             raise ValueError(f"Platform mismatch in {path.name}")
-        if len(manifest.get("assets", [])) != len(PLATFORM_SPECS[platform]):
+        expected_names = {
+            f"PDF-Editor-Offline-{expected_version}-{spec.release_suffix}"
+            for spec in PLATFORM_SPECS[platform]
+        }
+        assets = manifest.get("assets", [])
+        actual_names = {asset.get("name") for asset in assets}
+        if actual_names != expected_names or len(assets) != len(expected_names):
             raise ValueError(f"Incomplete asset set in {path.name}")
+        if any(
+            asset.get("kind") != "installer" or asset.get("platform") != platform
+            for asset in assets
+        ):
+            raise ValueError(f"Invalid asset identity in {path.name}")
         manifests.append(manifest)
 
     assets = []
@@ -128,6 +155,29 @@ def verify_release_set(root: Path, expected_version: str) -> dict:
             if actual_digest != asset["sha256"]:
                 raise ValueError(f"SHA-256 mismatch for {asset['name']}")
             assets.append(asset)
+
+    for platform in sorted(PLATFORM_SPECS):
+        for kind, pattern in EVIDENCE_SPECS.items():
+            name = pattern.format(platform=platform)
+            path = root / name
+            if not path.is_file():
+                raise FileNotFoundError(f"Missing release evidence: {name}")
+            parsed = json.loads(path.read_text(encoding="utf-8"))
+            if kind == "sbom" and parsed.get("bomFormat") != "CycloneDX":
+                raise ValueError(f"Invalid CycloneDX SBOM: {name}")
+            if kind == "provenance" and parsed.get("mediaType") != (
+                "application/vnd.dev.sigstore.bundle.v0.3+json"
+            ):
+                raise ValueError(f"Invalid Sigstore provenance bundle: {name}")
+            assets.append(
+                {
+                    "name": name,
+                    "kind": kind,
+                    "platform": platform,
+                    "bytes": path.stat().st_size,
+                    "sha256": sha256(path),
+                }
+            )
 
     assets.sort(key=lambda item: item["name"])
     checksums = "".join(f"{asset['sha256']}  {asset['name']}\n" for asset in assets)
@@ -163,6 +213,14 @@ def main() -> int:
     verify_parser.add_argument("--root", required=True, type=Path)
     verify_parser.add_argument("--version", required=True)
 
+    tag_parser = subparsers.add_parser("verify-tag")
+    tag_parser.add_argument("--tag", required=True)
+    tag_parser.add_argument(
+        "--package-json",
+        type=Path,
+        default=Path("desktop/package.json"),
+    )
+
     args = parser.parse_args()
     if args.command == "collect":
         version = read_version(args.package_json)
@@ -173,11 +231,17 @@ def main() -> int:
             version=version,
         )
         print(json.dumps(manifest, indent=2, sort_keys=True))
-    else:
+    elif args.command == "verify-set":
         if not SEMVER.fullmatch(args.version):
             parser.error("--version must be semantic version text")
         combined = verify_release_set(args.root, args.version)
         print(json.dumps(combined, indent=2, sort_keys=True))
+    else:
+        try:
+            version = verify_tag(args.tag, args.package_json)
+        except ValueError as error:
+            parser.error(str(error))
+        print(version)
     return 0
 
 

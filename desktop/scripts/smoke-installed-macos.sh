@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -ne 1 ]]; then
-  echo "Usage: $0 <bundle-root>" >&2
+if [[ $# -lt 1 || $# -gt 2 || ( $# -eq 2 && "$2" != "--require-notarized" ) ]]; then
+  echo "Usage: $0 <bundle-root> [--require-notarized]" >&2
   exit 2
 fi
 
 BUNDLE_ROOT="$1"
+REQUIRE_NOTARIZED=0
+if [[ "${2:-}" == "--require-notarized" ]]; then
+  REQUIRE_NOTARIZED=1
+fi
 DMG="$(find "$BUNDLE_ROOT/dmg" -maxdepth 1 -type f -name '*.dmg' -print -quit)"
 if [[ -z "$DMG" ]]; then
   echo "No DMG found under $BUNDLE_ROOT/dmg" >&2
@@ -45,6 +49,15 @@ ditto "$SOURCE_APP" "$INSTALL_DIR"
 hdiutil detach "$MOUNT_DIR" -quiet
 
 codesign --verify --deep --strict --verbose=2 "$INSTALL_DIR"
+if [[ "$REQUIRE_NOTARIZED" -eq 1 ]]; then
+  SIGNATURE_DETAILS="$(codesign --display --verbose=4 "$INSTALL_DIR" 2>&1)"
+  if ! grep -q '^Authority=Developer ID Application:' <<<"$SIGNATURE_DETAILS"; then
+    echo "macOS release is not signed with a Developer ID Application certificate" >&2
+    exit 1
+  fi
+  spctl --assess --type execute --verbose=4 "$INSTALL_DIR"
+  xcrun stapler validate "$INSTALL_DIR"
+fi
 "$INSTALL_DIR/Contents/MacOS/pdf-editor-offline-desktop" >"$LOG_FILE" 2>&1 &
 APP_PID=$!
 

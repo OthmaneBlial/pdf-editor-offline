@@ -93,3 +93,68 @@ Every platform build must provide all of the following before release upload:
 
 No secret value, absolute user path, document content, or document-derived
 metadata may appear in these reports.
+
+## CI and release workflow
+
+`.github/workflows/desktop-build.yml` is the unsigned reproducibility gate. On
+every relevant pull request and `main` push it builds natively on Windows x64,
+macOS Apple Silicon, macOS Intel, and Ubuntu x64. Each clean runner executes the
+frozen-sidecar redaction smoke, builds the platform installer, installs and
+launches it, verifies exact-child cleanup, removes it, generates a CycloneDX
+SBOM, and uploads short-lived evidence. These artifacts are never presented as
+trusted public releases.
+
+`.github/workflows/desktop-release.yml` is the production gate. It only accepts
+an existing `v<desktop-version>` tag, refuses to mutate an existing release,
+and fails before building if any production credential is absent. It then:
+
+1. imports the Windows certificate or an ephemeral macOS keychain;
+2. signs Windows binaries and timestamps the NSIS installer;
+3. signs with Developer ID, notarizes, and staples each macOS application;
+4. repeats the clean-install product smoke on every platform;
+5. creates per-platform CycloneDX SBOMs and Sigstore/GitHub provenance;
+6. verifies the complete five-installer set and every evidence file;
+7. publishes stable asset names, `SHA256SUMS`, the combined release manifest,
+   SBOMs, offline provenance bundles, and human-authored notes.
+
+Production release secrets are intentionally fail-closed. Their names and
+formats are listed in **Production signing** above. A missing or expired
+certificate, a non-HTTPS Windows timestamp endpoint, a version mismatch, a
+failed notarization, an incomplete artifact set, or an existing release all
+stop publication.
+
+## Verify a downloaded release
+
+Download the installer for the current OS together with `SHA256SUMS`. From the
+download directory, first verify the bytes:
+
+```bash
+shasum -a 256 --check SHA256SUMS
+```
+
+On Linux, `sha256sum --check SHA256SUMS` is equivalent. `SHA256SUMS` also covers
+the SBOM and offline Sigstore bundles. Verify GitHub-hosted build provenance for
+an individual installer with:
+
+```bash
+gh attestation verify PDF-Editor-Offline-3.0.0-linux-x64.AppImage \
+  --repo OthmaneBlial/pdf-editor-offline
+```
+
+Platform trust can be inspected independently:
+
+```powershell
+Get-AuthenticodeSignature .\PDF-Editor-Offline-3.0.0-windows-x64-setup.exe |
+  Format-List Status,SignerCertificate,TimeStamperCertificate
+```
+
+```bash
+# After copying the app from the DMG:
+codesign --verify --deep --strict --verbose=2 "PDF Editor Offline.app"
+spctl --assess --type execute --verbose=4 "PDF Editor Offline.app"
+xcrun stapler validate "PDF Editor Offline.app"
+```
+
+Linux packages use the release checksum plus Sigstore/GitHub provenance rather
+than a project-maintained long-lived GPG key. This keeps verification tied to
+the exact public workflow and commit that produced the bytes.
