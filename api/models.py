@@ -63,6 +63,12 @@ class HiddenDataCleanupRequest(BaseModel):
     clean_pages: bool = True
 
 
+class SanitizationRequest(BaseModel):
+    profile: str = Field(min_length=1, max_length=64)
+    review_acknowledged: bool = False
+    preview_token: Optional[str] = Field(default=None, min_length=64, max_length=64)
+
+
 class RedactionRequest(BaseModel):
     x: float
     y: float

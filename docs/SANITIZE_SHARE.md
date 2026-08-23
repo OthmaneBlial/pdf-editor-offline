@@ -29,3 +29,12 @@ The preview also lists fixed damage-warning codes. It never includes metadata va
 After saving and reopening the output, the machine and human reports include before/after counts, removed counts, the selected profile, fixed damage warnings, application version, and output SHA-256. Reports are safe to retain as an audit trail because they contain no document-derived values.
 
 The Python entry points are `preview_sanitization()` and `sanitize_pdf()` in `pdf_editor_offline.core.sanitization`.
+
+## Guarded local API
+
+- `GET /api/sanitization/profiles` lists the three fixed profiles and their damage contracts.
+- `POST /api/documents/{id}/sanitize/preview` inventories the current saved source and returns a process-local preview token bound to the exact source hash and profile.
+- `POST /api/documents/{id}/sanitize/apply` requires that token plus explicit acknowledgement. A changed source or profile must be previewed again.
+- A successful apply creates a separate document session and returns PDF, JSON report, and Markdown report URLs.
+
+The report hash matches the bytes served by the read-only download endpoint. Privacy-report sidecars are removed with their local document session.

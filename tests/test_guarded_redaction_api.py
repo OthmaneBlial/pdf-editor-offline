@@ -4,7 +4,7 @@ import os
 
 import fitz
 
-from api.deps import get_session, session_sidecar_paths
+from api.deps import get_session, redaction_report_paths
 from api.routes import documents as document_routes
 from pdf_editor_offline.core.redaction_verifier import RedactionVerifier
 
@@ -185,7 +185,7 @@ def test_verified_flow_saves_new_copy_and_exportable_reports(
     assert TARGET.encode() not in markdown_report.content
     assert json_report.json()["output_sha256"] == hashlib.sha256(copied).hexdigest()
 
-    sidecars = session_sidecar_paths(get_session(copy_id)["storage_path"])
+    sidecars = redaction_report_paths(get_session(copy_id)["storage_path"])
     assert all(os.path.isfile(sidecar) for sidecar in sidecars)
     assert api_client.delete(f"/api/documents/{copy_id}").status_code == 200
     assert all(not os.path.exists(sidecar) for sidecar in sidecars)

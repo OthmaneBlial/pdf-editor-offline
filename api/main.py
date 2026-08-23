@@ -117,10 +117,11 @@ app.add_middleware(
 )
 
 # Import routes after app is created to avoid circular imports
-from api.routes import documents, tools
+from api.routes import documents, sanitization, tools
 
 # Register routes
 app.include_router(documents.router)
+app.include_router(sanitization.router)
 app.include_router(tools.router)
 
 

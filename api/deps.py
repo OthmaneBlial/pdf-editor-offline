@@ -85,12 +85,23 @@ APP_TEMP_PREFIXES = (
 sessions = {}
 
 
-def session_sidecar_paths(storage_path: str) -> tuple[str, ...]:
-    """Return app-owned, content-free report files associated with a PDF."""
+def redaction_report_paths(storage_path: str) -> tuple[str, str]:
     return (
         f"{storage_path}.redaction-report.json",
         f"{storage_path}.redaction-report.md",
     )
+
+
+def privacy_report_paths(storage_path: str) -> tuple[str, str]:
+    return (
+        f"{storage_path}.privacy-report.json",
+        f"{storage_path}.privacy-report.md",
+    )
+
+
+def session_sidecar_paths(storage_path: str) -> tuple[str, ...]:
+    """Return every app-owned, content-free report associated with a PDF."""
+    return (*redaction_report_paths(storage_path), *privacy_report_paths(storage_path))
 
 
 def _remove_session_files(storage_path: str) -> None:

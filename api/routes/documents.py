@@ -31,7 +31,7 @@ from api.deps import (
     delete_session,
     get_session,
     persist_session_document,
-    session_sidecar_paths,
+    redaction_report_paths,
     sessions,
 )
 from api.models import (
@@ -140,7 +140,7 @@ def _redaction_review_token(session, request: GuardedRedactionRequest) -> str:
 
 
 def _report_sidecar(session, report_format: str) -> str:
-    report_paths = session_sidecar_paths(session["storage_path"])
+    report_paths = redaction_report_paths(session["storage_path"])
     if report_format == "json":
         return report_paths[0]
     if report_format == "markdown":
@@ -150,7 +150,7 @@ def _report_sidecar(session, report_format: str) -> str:
 
 def _write_redaction_reports(session, report) -> None:
     contents = (report.to_json(), report.to_markdown())
-    for path, content in zip(session_sidecar_paths(session["storage_path"]), contents):
+    for path, content in zip(redaction_report_paths(session["storage_path"]), contents):
         temp_path = f"{path}.tmp"
         try:
             Path(temp_path).write_text(content, encoding="utf-8")
