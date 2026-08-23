@@ -46,6 +46,7 @@ describe('EditorContext', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -84,6 +85,66 @@ describe('EditorContext', () => {
     expect(mockedAxios.post).toHaveBeenCalled();
     const [[, payload]] = mockedAxios.post.mock.calls;
     expect(payload.overlay_image).toContain('data:image/png;base64,');
+  });
+
+  it('binds a recovered local PDF to its restored backend session without re-upload', () => {
+    render(
+      <EditorProvider>
+        <Tracker />
+      </EditorProvider>
+    );
+    const recovered = new File(['pdf'], 'Recovered local draft.pdf', {
+      type: 'application/pdf',
+    });
+
+    act(() => {
+      ensureContext().restoreRecoveredDocument(recovered, 'restored-session', 4);
+    });
+
+    const context = ensureContext();
+    expect(context.document).toBe(recovered);
+    expect(context.sessionId).toBe('restored-session');
+    expect(context.pageCount).toBe(4);
+    expect(context.uploadedDocumentVersion).toBe(context.documentUploadVersion);
+  });
+
+  it('autosaves a dirty canvas after five seconds', async () => {
+    vi.useFakeTimers();
+    let modified: (() => void) | undefined;
+    const canvasStub = {
+      getObjects: vi.fn().mockReturnValue([{ toObject: () => ({ stroke: '#000' }) }]),
+      getZoom: vi.fn().mockReturnValue(1),
+      toDataURL: vi.fn().mockReturnValue('data:image/png;base64,AUTO'),
+      requestRenderAll: vi.fn(),
+      backgroundImage: null,
+      toJSON: vi.fn(() => ({ objects: [] })),
+      on: vi.fn((event: string, callback: () => void) => {
+        if (event === 'object:modified') modified = callback;
+      }),
+      off: vi.fn(),
+    };
+    render(
+      <EditorProvider>
+        <Tracker />
+      </EditorProvider>
+    );
+
+    act(() => {
+      const context = ensureContext();
+      context.setSessionId('autosave-session');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      context.setCanvas(canvasStub as any);
+    });
+    act(() => modified?.());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+
+    expect(mockedAxios.post).toHaveBeenCalledWith(
+      expect.stringContaining('/autosave-session/'),
+      expect.objectContaining({ overlay_image: expect.stringContaining('AUTO') }),
+    );
+    vi.useRealTimers();
   });
 
   it('exports PDF after forcing save', async () => {

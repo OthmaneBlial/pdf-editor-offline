@@ -215,7 +215,7 @@ Time ranges are planning estimates for a small maintainer team, not release prom
 - [x] Build a synthetic compatibility corpus covering forms, mixed fonts, scans, layers, transparency, rotation, bookmarks, attachments, signed PDFs, and malformed inputs. Evidence: [versioned public corpus](trust_lab/corpus/v1), [byte-reproducible generator](pdf_editor_offline/trust_lab/corpus.py), and [structural/signature tests](tests/test_trust_lab_corpus.py).
 - [x] Add render-level before/after visual diff for untouched regions and semantic diff for text/structure. Evidence: [content-free change-review engine](pdf_editor_offline/core/change_review.py), [documented tolerance](docs/TRUST_LAB_CORPUS.md), and [unchanged-page regression](tests/test_change_review.py).
 - [x] Warn on font substitution, flattening, rasterization, tag loss, or existing-signature invalidation. Evidence: [loss classifier](pdf_editor_offline/core/change_review.py) and [rasterization/signature regression tests](tests/test_change_review.py).
-- [ ] Add local autosave, crash recovery, recovery preview, and explicit draft deletion.
+- [x] Add local autosave, crash recovery, recovery preview, and explicit draft deletion. Evidence: [recovery contract](docs/RECOVERY.md), [durable session journal and atomic persistence](api/storage.py), [copy-first recovery API](api/deps.py), [preview/restore UI](frontend/src/components/RecoveryCenter.tsx), and [forced-interruption backend](tests/test_recovery.py)/[frontend autosave](frontend/tests/editor-context.spec.tsx) tests.
 
 #### Exit gate
 

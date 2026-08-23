@@ -51,6 +51,8 @@ const inventoryResponse = {
       session_bytes: 1024,
       report_files: 2,
       report_bytes: 512,
+      recovery_files: 1,
+      recovery_bytes: 384,
       draft_files: 1,
       draft_bytes: 256,
       temporary_files: 3,

@@ -2,6 +2,7 @@ import { useEditor } from '../contexts/EditorContext';
 import { Download, Save, Loader2, PanelLeft, X } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import RuntimeHealthPanel from './RuntimeHealthPanel';
+import RecoveryCenter from './RecoveryCenter';
 
 interface HeaderProps {
     onToggleSidebar?: () => void;
@@ -47,6 +48,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, isSidebarOpen = false,
             {/* Actions */}
             <div className="flex items-center gap-2 sm:gap-3">
                 <RuntimeHealthPanel />
+                <RecoveryCenter />
                 <ThemeToggle />
 
                 {/* Export Button */}

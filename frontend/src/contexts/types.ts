@@ -115,6 +115,7 @@ export interface EditorContextType extends EditorState, CanvasState, HistoryStat
   setPageCount: (count: number) => void;
   setZoom: (zoom: number) => void;
   setIsUploading: (uploading: boolean) => void;
+  restoreRecoveredDocument: (file: File, sessionId: string, pageCount: number) => void;
   undo: () => void;
   redo: () => void;
   saveChanges: (force?: boolean) => Promise<void>;

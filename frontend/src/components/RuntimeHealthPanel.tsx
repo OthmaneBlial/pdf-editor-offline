@@ -44,6 +44,8 @@ interface StorageInventory {
   session_bytes: number;
   report_files: number;
   report_bytes: number;
+  recovery_files: number;
+  recovery_bytes: number;
   draft_files: number;
   draft_bytes: number;
   temporary_files: number;
@@ -150,6 +152,8 @@ export default function RuntimeHealthPanel() {
         session_bytes: 0,
         report_files: 0,
         report_bytes: 0,
+        recovery_files: 0,
+        recovery_bytes: 0,
         draft_files: 0,
         draft_bytes: 0,
         temporary_files: 0,
@@ -240,6 +244,7 @@ export default function RuntimeHealthPanel() {
                       <dl className="mt-4 space-y-2 border-t border-white/8 pt-3 text-[11px]">
                         <div className="flex justify-between gap-3"><dt className="text-slate-500">Session PDFs</dt><dd>{inventory.session_files} · {formatBytes(inventory.session_bytes)}</dd></div>
                         <div className="flex justify-between gap-3"><dt className="text-slate-500">Audit reports</dt><dd>{inventory.report_files} · {formatBytes(inventory.report_bytes)}</dd></div>
+                        <div className="flex justify-between gap-3"><dt className="text-slate-500">Recovery copies</dt><dd>{inventory.recovery_files} · {formatBytes(inventory.recovery_bytes)}</dd></div>
                         <div className="flex justify-between gap-3"><dt className="text-slate-500">Drafts / recovery</dt><dd>{inventory.draft_files} · {formatBytes(inventory.draft_bytes)}</dd></div>
                         <div className="flex justify-between gap-3"><dt className="text-slate-500">Temporary outputs</dt><dd>{inventory.temporary_files} · {formatBytes(inventory.temporary_bytes)}</dd></div>
                         <div className="flex justify-between gap-3"><dt className="text-slate-500">Recent references</dt><dd>{recentReferences}</dd></div>

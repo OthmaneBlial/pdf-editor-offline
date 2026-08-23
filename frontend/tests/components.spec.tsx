@@ -16,6 +16,10 @@ vi.mock('../src/components/RuntimeHealthPanel', () => ({
   default: () => <button type="button">Runtime status</button>,
 }));
 
+vi.mock('../src/components/RecoveryCenter', () => ({
+  default: () => <button type="button">Recovery drafts</button>,
+}));
+
 describe('FileUpload', () => {
   beforeEach(() => {
     useEditorMock.mockReturnValue({

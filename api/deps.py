@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
 from fastapi import HTTPException
+import fitz
 
 from api.security import sanitize_filename as sanitize_pdf_filename
 from api.storage import STORAGE_DIR, SessionRecord, session_store
@@ -33,6 +34,7 @@ TEMP_DIR = os.getenv(
 os.makedirs(TEMP_DIR, exist_ok=True)
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "50"))
 SESSION_TTL_HOURS = int(os.getenv("SESSION_TTL_HOURS", "24"))
+RECOVERY_TTL_HOURS = int(os.getenv("RECOVERY_TTL_HOURS", str(7 * 24)))
 APP_TEMP_PREFIXES = (
     "annotation_audio_",
     "annotation_file_",
@@ -143,6 +145,8 @@ def build_session_data(
     storage_path: str,
     created_at: datetime,
     last_modified: datetime,
+    recovery_stage: str = "open",
+    autosave_sequence: int = 0,
 ) -> Dict[str, Any]:
     doc_manager = DocumentManager()
     doc_manager.load_pdf(storage_path)
@@ -156,6 +160,8 @@ def build_session_data(
         "document_manager": doc_manager,
         "created_at": created_at,
         "last_modified": last_modified,
+        "recovery_stage": recovery_stage,
+        "autosave_sequence": autosave_sequence,
         "page_count": page_count,
         "page_reorder_undo": [],
         "page_reorder_redo": [],
@@ -176,6 +182,8 @@ def get_session(session_id: str):
             storage_path=record.storage_path,
             created_at=record.created_at,
             last_modified=record.last_modified,
+            recovery_stage=record.recovery_stage,
+            autosave_sequence=record.autosave_sequence,
         )
         sessions[session_id] = session
     return sessions[session_id]
@@ -202,6 +210,9 @@ def create_session(file_path: str, filename: str) -> str:
             storage_path=storage_path,
             created_at=now,
             last_modified=now,
+            is_dirty=True,
+            recovery_stage="open",
+            autosave_sequence=0,
         )
         session_store.save(record)
         sessions[session_id] = session
@@ -231,14 +242,106 @@ def delete_session(session_id: str):
     session_store.delete(session_id)
 
 
+def list_recovery_drafts() -> list[Dict[str, Any]]:
+    """List recoverable copies using counts and timestamps, never filenames."""
+    drafts = []
+    for record in session_store.list_all():
+        if not record.is_dirty or record.session_id in sessions:
+            continue
+        try:
+            size = os.path.getsize(record.storage_path)
+            with fitz.open(record.storage_path) as document:
+                page_count = len(document)
+        except Exception as exc:
+            logger.warning("Ignoring unreadable recovery draft %s: %s", record.session_id, exc)
+            continue
+        drafts.append(
+            {
+                "recovery_id": record.session_id,
+                "page_count": page_count,
+                "bytes": size,
+                "last_modified": record.last_modified.isoformat(),
+                "stage": record.recovery_stage,
+                "autosave_sequence": record.autosave_sequence,
+            }
+        )
+    return sorted(drafts, key=lambda item: item["last_modified"], reverse=True)
+
+
+def get_recovery_record(recovery_id: str) -> SessionRecord:
+    record = session_store.get(recovery_id)
+    if not record or not record.is_dirty or not os.path.isfile(record.storage_path):
+        raise HTTPException(status_code=404, detail="Recovery draft not found")
+    return record
+
+
+def render_recovery_preview(recovery_id: str, page_num: int = 0) -> bytes:
+    record = get_recovery_record(recovery_id)
+    try:
+        with fitz.open(record.storage_path) as document:
+            if page_num < 0 or page_num >= len(document):
+                raise HTTPException(status_code=400, detail="Invalid recovery page")
+            pixmap = document[page_num].get_pixmap(
+                matrix=fitz.Matrix(0.8, 0.8), alpha=False
+            )
+            return pixmap.tobytes("png")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail="Recovery preview unavailable") from exc
+
+
+def restore_recovery_draft(recovery_id: str) -> Dict[str, Any]:
+    """Restore into a new session, then remove the superseded recovery copy."""
+    record = get_recovery_record(recovery_id)
+    temporary_copy = os.path.join(TEMP_DIR, f"recovery_{uuid.uuid4().hex}.pdf")
+    shutil.copy(record.storage_path, temporary_copy)
+    new_session_id = create_session(temporary_copy, record.filename)
+    restored = sessions[new_session_id]
+    now = datetime.now()
+    session_store.update_recovery_state(
+        new_session_id,
+        timestamp=now,
+        stage="restored",
+        is_dirty=True,
+        bump_sequence=False,
+    )
+    restored["recovery_stage"] = "restored"
+    delete_session(recovery_id)
+    return {
+        "id": new_session_id,
+        "page_count": restored["page_count"],
+        "last_modified": now.isoformat(),
+    }
+
+
+def mark_session_recovery_stage(session_id: str, stage: str) -> None:
+    """Record a content-free operation checkpoint for crash diagnostics."""
+    session = get_session(session_id)
+    now = datetime.now()
+    session["last_modified"] = now
+    session["recovery_stage"] = stage
+    session_store.update_recovery_state(
+        session_id,
+        timestamp=now,
+        stage=stage,
+        is_dirty=True,
+        bump_sequence=False,
+    )
+
+
 def cleanup_sessions_older_than(
-    max_age_hours: int = SESSION_TTL_HOURS, include_active: bool = False
+    max_age_hours: int = SESSION_TTL_HOURS,
+    include_active: bool = False,
+    include_recovery: bool = True,
 ) -> Dict[str, int]:
     cutoff = datetime.now() - timedelta(hours=max_age_hours)
     removed = 0
     skipped_active = 0
     failed = 0
     for record in session_store.list_all():
+        if record.is_dirty and not include_recovery:
+            continue
         if record.last_modified >= cutoff:
             continue
 
@@ -312,9 +415,15 @@ def get_local_storage_inventory() -> Dict[str, int]:
     session_bytes = 0
     report_files = 0
     report_bytes = 0
+    recovery_files = 0
+    recovery_bytes = 0
     for record in records:
         try:
-            session_bytes += os.path.getsize(record.storage_path)
+            size = os.path.getsize(record.storage_path)
+            session_bytes += size
+            if getattr(record, "is_dirty", False) and record.session_id not in sessions:
+                recovery_files += 1
+                recovery_bytes += size
         except OSError:
             pass
         for sidecar in session_sidecar_paths(record.storage_path):
@@ -353,6 +462,8 @@ def get_local_storage_inventory() -> Dict[str, int]:
         "session_bytes": session_bytes,
         "report_files": report_files,
         "report_bytes": report_bytes,
+        "recovery_files": recovery_files,
+        "recovery_bytes": recovery_bytes,
         "draft_files": draft_files,
         "draft_bytes": draft_bytes,
         "temporary_files": temporary_files,
@@ -382,35 +493,73 @@ def delete_all_local_data() -> Dict[str, int]:
 
 
 def cleanup_stale_sessions():
-    stats = cleanup_sessions_older_than(SESSION_TTL_HOURS, include_active=False)
+    stats = cleanup_sessions_older_than(
+        SESSION_TTL_HOURS,
+        include_active=False,
+        include_recovery=False,
+    )
+    recovery_stats = cleanup_sessions_older_than(
+        RECOVERY_TTL_HOURS,
+        include_active=False,
+        include_recovery=True,
+    )
     if stats["sessions_removed"]:
         logger.info(
             "Cleaned up %s stale session(s) older than %s hours",
             stats["sessions_removed"],
             SESSION_TTL_HOURS,
         )
+    if recovery_stats["sessions_removed"]:
+        logger.info(
+            "Cleaned up %s recovery draft(s) older than %s hours",
+            recovery_stats["sessions_removed"],
+            RECOVERY_TTL_HOURS,
+        )
 
 
 def cleanup_all_sessions():
-    """Clean up all sessions on server shutdown."""
+    """Close documents but preserve dirty app copies for next-launch recovery."""
     removed = 0
+    preserved = 0
     for session_id in list(sessions.keys()):
         try:
-            delete_session(session_id)
-            removed += 1
+            record = session_store.get(session_id)
+            if record and record.is_dirty:
+                session = sessions.pop(session_id)
+                manager = session.get("document_manager")
+                if manager:
+                    manager.close_document()
+                preserved += 1
+            else:
+                delete_session(session_id)
+                removed += 1
         except Exception as exc:
             logger.warning(
                 "Failed to cleanup session %s during shutdown: %s", session_id, exc
             )
     if removed:
         logger.info("Cleaned up %s active session(s) on shutdown", removed)
+    if preserved:
+        logger.info("Preserved %s local recovery draft(s) on shutdown", preserved)
 
 
-def persist_session_document(session_id: str, **save_options) -> Dict[str, Any]:
+def persist_session_document(
+    session_id: str,
+    recovery_stage: str = "edit",
+    **save_options,
+) -> Dict[str, Any]:
     session = get_session(session_id)
     storage_path = session["storage_path"]
     doc_manager = session["document_manager"]
     temp_path = f"{storage_path}.tmp"
+    started_at = datetime.now()
+    session_store.update_recovery_state(
+        session_id,
+        timestamp=started_at,
+        stage=f"{recovery_stage}_in_progress",
+        is_dirty=True,
+        bump_sequence=False,
+    )
     try:
         doc_manager.save_pdf(temp_path, **save_options)
         # Windows does not allow replacing an open file. Close the source PDF
@@ -433,8 +582,23 @@ def persist_session_document(session_id: str, **save_options) -> Dict[str, Any]:
                     session_id,
                     recovery_error,
                 )
+        session_store.update_recovery_state(
+            session_id,
+            timestamp=datetime.now(),
+            stage=f"{recovery_stage}_interrupted",
+            is_dirty=True,
+            bump_sequence=False,
+        )
         raise
     now = datetime.now()
     session["last_modified"] = now
-    session_store.update_last_modified(session_id, now)
+    session["recovery_stage"] = recovery_stage
+    session["autosave_sequence"] = session.get("autosave_sequence", 0) + 1
+    session_store.update_recovery_state(
+        session_id,
+        timestamp=now,
+        stage=recovery_stage,
+        is_dirty=True,
+        bump_sequence=True,
+    )
     return session

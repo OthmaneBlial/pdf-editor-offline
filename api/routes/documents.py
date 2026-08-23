@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 import fitz
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 
 from pdf_editor_offline.core.exceptions import InvalidOperationError, PDFLoadError
@@ -24,16 +24,22 @@ from api.security import (
 )
 from api.deps import (
     MAX_UPLOAD_MB,
+    RECOVERY_TTL_HOURS,
     TEMP_DIR,
     cleanup_sessions_older_than,
     cleanup_temp_files,
     create_session,
     delete_session,
     get_session,
+    get_recovery_record,
     get_local_storage_inventory,
     delete_all_local_data,
+    list_recovery_drafts,
+    mark_session_recovery_stage,
     persist_session_document,
+    render_recovery_preview,
     redaction_report_paths,
+    restore_recovery_draft,
     sessions,
 )
 from api.models import (
@@ -340,6 +346,41 @@ async def inspect_local_storage():
     return APIResponse(success=True, data=get_local_storage_inventory())
 
 
+@router.get("/recovery", response_model=APIResponse)
+async def list_recovery_copies():
+    drafts = list_recovery_drafts()
+    return APIResponse(
+        success=True,
+        data={"drafts": drafts, "retention_hours": RECOVERY_TTL_HOURS},
+    )
+
+
+@router.get("/recovery/{recovery_id}/preview")
+async def preview_recovery_copy(recovery_id: str, page: int = 0):
+    return Response(
+        content=render_recovery_preview(recovery_id, page),
+        media_type="image/png",
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@router.post("/recovery/{recovery_id}/restore", response_model=APIResponse)
+async def restore_recovery_copy(recovery_id: str):
+    return APIResponse(
+        success=True,
+        data=restore_recovery_draft(recovery_id),
+        message="Recovery copy restored into a new local session",
+    )
+
+
+@router.delete("/recovery/{recovery_id}", response_model=APIResponse)
+async def delete_recovery_copy(recovery_id: str):
+    # Resolve first so DELETE remains explicit and returns 404 for stale IDs.
+    get_recovery_record(recovery_id)
+    delete_session(recovery_id)
+    return APIResponse(success=True, message="Recovery copy deleted")
+
+
 @router.get("/{doc_id}", response_model=APIResponse)
 async def get_document_info(doc_id: str):
     session = get_session(doc_id)
@@ -364,6 +405,7 @@ async def download_document(doc_id: str):
     # Editing routes persist atomically when they mutate a document. A download
     # must be read-only so checksums and signed audit reports remain stable.
     session = get_session(doc_id)
+    mark_session_recovery_stage(doc_id, "export")
     return FileResponse(
         path=session["storage_path"],
         filename=session["filename"],
@@ -669,7 +711,7 @@ async def commit_canvas(doc_id: str, page_num: int, canvas_data: CanvasData):
     if overlay_bytes:
         page.insert_image(page_rect, stream=overlay_bytes)
 
-    persist_session_document(doc_id)
+    persist_session_document(doc_id, recovery_stage="autosave")
     return APIResponse(success=True, message="Canvas committed to PDF")
 
 

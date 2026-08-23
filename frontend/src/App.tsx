@@ -87,6 +87,16 @@ function AppContent() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
+  useEffect(() => {
+    const showRecoveredDocument = () => {
+      setActiveView('editor');
+      setActiveTab('editor');
+      setRefreshKey(previous => previous + 1);
+    };
+    window.addEventListener('pdf-recovery-restored', showRecoveredDocument);
+    return () => window.removeEventListener('pdf-recovery-restored', showRecoveredDocument);
+  }, []);
+
   // When switching to editor tab from tool tab, refresh the PDF
   const handleTabSwitch = (tab: 'editor' | 'tool') => {
     if (tab === 'editor' && activeTab === 'tool') {

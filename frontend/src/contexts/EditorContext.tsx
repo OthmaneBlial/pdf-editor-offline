@@ -1,5 +1,4 @@
 /* eslint-disable react-refresh/only-export-components */
-/* eslint-disable react-hooks/immutability */
 import React, { createContext, useContext, useState, useRef, useCallback, useMemo, type ReactNode, useEffect } from 'react';
 import * as fabric from 'fabric';
 import axios from 'axios';
@@ -61,6 +60,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const [canUndoPageReorder, setCanUndoPageReorder] = useState(false);
   const [canRedoPageReorder, setCanRedoPageReorder] = useState(false);
   const toastTimeoutRef = useRef<number | null>(null);
+  const saveInFlightRef = useRef<Promise<void> | null>(null);
 
   const setDocument = useCallback((doc: File | null) => {
     setDocumentState(doc);
@@ -73,6 +73,21 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     if (!doc) {
       setPageCount(1);
     }
+  }, []);
+
+  const restoreRecoveredDocument = useCallback((file: File, recoveredSessionId: string, recoveredPageCount: number) => {
+    setDocumentState(file);
+    setDocumentUploadVersion(previous => {
+      const next = previous + 1;
+      setUploadedDocumentVersion(next);
+      return next;
+    });
+    setSessionId(recoveredSessionId);
+    setPageCount(recoveredPageCount);
+    setCurrentPage(0);
+    setHasUnsavedChanges(false);
+    setCanUndoPageReorder(false);
+    setCanRedoPageReorder(false);
   }, []);
 
   useEffect(() => {
@@ -158,10 +173,13 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
 
   // Memoized save changes function
   const saveChanges = useCallback(async (force = false) => {
+    if (saveInFlightRef.current) {
+      await saveInFlightRef.current;
+    }
     if (!sessionId || !canvas) return;
     if (!force && !hasUnsavedChanges) return;
 
-    try {
+    const saveTask = (async () => {
       const objects = canvas.getObjects().map(obj => obj.toObject());
       const canvasData = {
         objects: objects,
@@ -186,14 +204,39 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         overlay_image: overlayImage
       });
       setHasUnsavedChanges(false);
+    })();
+    saveInFlightRef.current = saveTask;
+    try {
+      await saveTask;
     } catch (error) {
       // Use proper error handling instead of alert
       if (error instanceof Error) {
         // Could use a toast notification system here
         console.error('Failed to save changes:', error.message);
       }
+    } finally {
+      if (saveInFlightRef.current === saveTask) {
+        saveInFlightRef.current = null;
+      }
     }
   }, [sessionId, canvas, currentPage, hasUnsavedChanges]);
+
+  useEffect(() => {
+    if (!sessionId || !canvas || !hasUnsavedChanges) return;
+    const autosave = window.setTimeout(() => {
+      void saveChanges();
+    }, 5000);
+    const saveWhenHidden = () => {
+      if (window.document.visibilityState === 'hidden') {
+        void saveChanges();
+      }
+    };
+    window.document.addEventListener('visibilitychange', saveWhenHidden);
+    return () => {
+      window.clearTimeout(autosave);
+      window.document.removeEventListener('visibilitychange', saveWhenHidden);
+    };
+  }, [sessionId, canvas, hasUnsavedChanges, saveChanges]);
 
   // Memoized export function
   const exportPDF = useCallback(async () => {
@@ -407,6 +450,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     setPageCount,
     setZoom,
     setIsUploading,
+    restoreRecoveredDocument,
     // Actions
     undo,
     redo,
@@ -454,6 +498,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     documentUploadVersion,
     uploadedDocumentVersion,
     setDocument,
+    restoreRecoveredDocument,
     hasUnsavedChanges,
     pageCount,
     zoom,
