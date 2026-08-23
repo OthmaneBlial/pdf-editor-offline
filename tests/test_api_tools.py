@@ -60,6 +60,23 @@ def _assert_pdf_response(response):
     doc.close()
 
 
+def _assert_ghostscript_response(response):
+    if shutil.which("gs") is not None:
+        _assert_pdf_response(response)
+        return
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "detail": (
+            "Ghostscript is required for this operation but "
+            "'gs' was not found on PATH."
+        ),
+        "code": "missing_local_dependency",
+        "dependency": "Ghostscript",
+        "command": "gs",
+    }
+
+
 def test_merge_documents(api_client, sample_pdf, multi_page_pdf):
     files, handles = _prepare_files(
         [
@@ -350,7 +367,19 @@ def test_pdf_to_pdfa(api_client, sample_pdf):
     files, handles = _prepare_files([("file", sample_pdf, "application/pdf")])
     try:
         response = api_client.post("/api/tools/pdf-to-pdfa", files=files)
-        _assert_pdf_response(response)
+        _assert_ghostscript_response(response)
+    finally:
+        _close_handles(handles)
+
+
+def test_pdf_to_pdfa_reports_missing_ghostscript(
+    api_client, sample_pdf, monkeypatch
+):
+    monkeypatch.setattr(shutil, "which", lambda _command: None)
+    files, handles = _prepare_files([("file", sample_pdf, "application/pdf")])
+    try:
+        response = api_client.post("/api/tools/pdf-to-pdfa", files=files)
+        _assert_ghostscript_response(response)
     finally:
         _close_handles(handles)
 
@@ -394,7 +423,7 @@ def test_repair_pdf(api_client, sample_pdf):
     files, handles = _prepare_files([("file", sample_pdf, "application/pdf")])
     try:
         response = api_client.post("/api/tools/repair", files=files)
-        _assert_pdf_response(response)
+        _assert_ghostscript_response(response)
     finally:
         _close_handles(handles)
 
