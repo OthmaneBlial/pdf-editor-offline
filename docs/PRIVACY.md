@@ -23,6 +23,7 @@ The runtime health panel reports app-owned storage use. Diagnostics must scrub a
 ## Network behavior
 
 - Desktop and `./start.sh` communicate only with a token-protected API on `127.0.0.1`.
+- Tailwind styles and the Syne, JetBrains Mono, and Instrument Serif fonts are bundled with the frontend; the workspace does not load a CDN or remote font service.
 - Core processing does not require an internet connection after dependencies and the application are installed.
 - The application does not silently fall back to a remote service when LibreOffice, Tesseract, Ghostscript, or a language pack is missing.
 - Docker/self-hosted browser use sends documents to the configured host. The operator owns that privacy boundary.

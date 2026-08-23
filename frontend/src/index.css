@@ -1,11 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* ============================================
    PDF EDITOR OFFLINE - DESIGN SYSTEM
    Aesthetic: Neo-Brutalist Editorial
    Bold, confident, memorable with sharp contrasts
    ============================================ */
-
-/* Google Fonts - Distinctive Typography */
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@400;500;600;700;800&display=swap');
 
 :root {
   /* ========== TYPOGRAPHY ========== */
