@@ -117,36 +117,38 @@ Time ranges are planning estimates for a small maintainer team, not release prom
 
 #### Product truth
 
-- [ ] Replace the “62/62 complete” document with a capability matrix: stable, beta, experimental, external dependency, unsupported.
-- [ ] Persist page reordering through the backend with undo/redo, or remove the claim and disable the interaction until complete.
-- [ ] Rename “Collaborative Annotations” to “Local Comments” until comments persist in standard PDF annotations or a documented sidecar format.
-- [ ] Rename the current signature flow to “Visual Signature.” Add a plain-language explanation of certificate-backed digital signatures as a separate future capability.
-- [ ] Implement real form flattening or label the current behavior “Make fields read-only.”
-- [ ] Detect LibreOffice, Tesseract, Ghostscript, and optional language data at startup; expose a capability screen instead of failing mid-task.
-- [ ] Replace the template `frontend/README.md` with project-specific architecture, setup, and validation instructions.
-- [ ] Make version numbers consistent across Python, frontend, Tauri, UI, tags, Docker, and release metadata.
+- [x] Replace the “62/62 complete” document with a capability matrix: stable, beta, experimental, external dependency, unsupported.
+- [x] Persist page reordering through the backend with undo/redo, or remove the claim and disable the interaction until complete.
+- [x] Rename “Collaborative Annotations” to “Local Comments” until comments persist in standard PDF annotations or a documented sidecar format.
+- [x] Rename the current signature flow to “Visual Signature.” Add a plain-language explanation of certificate-backed digital signatures as a separate future capability.
+- [x] Implement real form flattening or label the current behavior “Make fields read-only.”
+- [x] Detect LibreOffice, Tesseract, Ghostscript, and optional language data at startup; expose a capability screen instead of failing mid-task.
+- [x] Replace the template `frontend/README.md` with project-specific architecture, setup, and validation instructions.
+- [x] Make version numbers consistent across Python, frontend, Tauri, UI, tags, Docker, and release metadata.
 
 #### Security and privacy baseline
 
-- [ ] Bind source-mode local services to `127.0.0.1` by default; require an explicit flag for LAN exposure.
-- [ ] Add a per-launch local API token and a randomly selected port for desktop/source mode.
-- [ ] Replace the null desktop CSP with the smallest tested policy.
-- [ ] Make `start.sh` stop only the child PIDs it started; never broad-kill unrelated processes or fixed port ranges.
-- [ ] Upgrade or replace vulnerable dependencies; document every remaining advisory with reachability and mitigation.
-- [ ] Add `SECURITY.md`, private vulnerability reporting, a malicious-PDF threat model, and a privacy/data-flow contract.
-- [ ] Document temp/storage locations, cleanup timing, subprocesses, external binaries, update checks, and every possible outbound request.
-- [ ] Add adversarial fixtures for malformed files, decompression bombs, path traversal, oversized objects, embedded scripts, and unsafe attachments.
+- [x] Bind source-mode local services to `127.0.0.1` by default; require an explicit flag for LAN exposure.
+- [x] Add a per-launch local API token and a randomly selected port for desktop/source mode.
+- [x] Replace the null desktop CSP with the smallest tested policy.
+- [x] Make `start.sh` stop only the child PIDs it started; never broad-kill unrelated processes or fixed port ranges.
+- [x] Upgrade or replace vulnerable dependencies; document every remaining advisory with reachability and mitigation.
+- [x] Add `SECURITY.md`, private vulnerability reporting, a malicious-PDF threat model, and a privacy/data-flow contract.
+- [x] Document temp/storage locations, cleanup timing, subprocesses, external binaries, update checks, and every possible outbound request.
+- [x] Add adversarial fixtures for malformed files, decompression bombs, path traversal, oversized objects, embedded scripts, and unsafe attachments.
 
 #### CI that represents the real product
 
-- [ ] Gate Python 3.10–3.12 tests with and without optional system dependencies.
-- [ ] Gate frontend unit tests, lint, type-check, and production build on a pinned Node version.
-- [ ] Gate Tauri/Rust formatting, lint, tests, and source builds.
-- [ ] Run the sample upload/edit/export/reopen E2E flow on every pull request.
-- [ ] Add dependency review, Dependabot, CodeQL, secret scanning, least-privilege workflow permissions, and pinned action revisions.
-- [ ] Publish coverage by subsystem instead of one misleading aggregate.
+- [x] Gate Python 3.10–3.12 tests with and without optional system dependencies.
+- [x] Gate frontend unit tests, lint, type-check, and production build on a pinned Node version.
+- [x] Gate Tauri/Rust formatting, lint, tests, and source builds.
+- [x] Run the sample upload/edit/export/reopen E2E flow on every pull request.
+- [x] Add dependency review, Dependabot, CodeQL, secret scanning, least-privilege workflow permissions, and pinned action revisions.
+- [x] Publish coverage by subsystem instead of one misleading aggregate.
 
 #### Exit gate
+
+**Shipped:** 2026-08-23 in [v2.1.0](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v2.1.0). Evidence: [clean CI](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/32665594785) and [CodeQL](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/32665594793).
 
 - All advertised stable capabilities map to an automated test and user-facing documentation.
 - Python, frontend, desktop, lint, build, and primary E2E gates are green on clean runners.
