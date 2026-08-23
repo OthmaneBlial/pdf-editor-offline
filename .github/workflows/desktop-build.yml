@@ -43,25 +43,25 @@ jobs:
             runner: windows-2025
             target: x86_64-pc-windows-msvc
             bundles: nsis
-            sidecar: desktop/src-tauri/resources/sidecar/pdf-editor-offline-api.exe
+            sidecar: src-tauri/resources/sidecar/pdf-editor-offline-api.exe
             signing_identity: ""
           - platform: macos-arm64
             runner: macos-15
             target: aarch64-apple-darwin
             bundles: dmg
-            sidecar: desktop/src-tauri/resources/sidecar/pdf-editor-offline-api
+            sidecar: src-tauri/resources/sidecar/pdf-editor-offline-api
             signing_identity: "-"
           - platform: macos-x64
             runner: macos-15-intel
             target: x86_64-apple-darwin
             bundles: dmg
-            sidecar: desktop/src-tauri/resources/sidecar/pdf-editor-offline-api
+            sidecar: src-tauri/resources/sidecar/pdf-editor-offline-api
             signing_identity: "-"
           - platform: linux-x64
             runner: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             bundles: deb,appimage
-            sidecar: desktop/src-tauri/resources/sidecar/pdf-editor-offline-api
+            sidecar: src-tauri/resources/sidecar/pdf-editor-offline-api
             signing_identity: ""
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
@@ -110,7 +110,7 @@ jobs:
         run: >-
           npm --prefix desktop run smoke:sidecar --
           --sidecar "${{ matrix.sidecar }}"
-          --sample examples/sample_pdfs/demo-redaction.pdf
+          --sample ../examples/sample_pdfs/demo-redaction.pdf
       - name: Build native Tauri bundles
         run: >-
           npm --prefix desktop run build --
