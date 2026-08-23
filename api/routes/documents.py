@@ -606,7 +606,8 @@ async def duplicate_page(doc_id: str, page_num: int, insert_at: Optional[int] = 
     temp_doc.close()
 
     # Update session page count
-    session["page_count"] = len(doc)
+    new_page_count = len(doc)
+    session["page_count"] = new_page_count
     persist_session_document(doc_id)
 
     logger.info(
@@ -615,7 +616,7 @@ async def duplicate_page(doc_id: str, page_num: int, insert_at: Optional[int] = 
     return APIResponse(
         success=True,
         message=f"Page {page_num + 1} duplicated successfully",
-        data={"new_page_count": len(doc), "inserted_at": target_position},
+        data={"new_page_count": new_page_count, "inserted_at": target_position},
     )
 
 
@@ -746,7 +747,8 @@ async def insert_pages_from_file(
         doc.insert_pdf(insert_doc, start_at=position)
 
         # Update session
-        session["page_count"] = len(doc)
+        new_page_count = len(doc)
+        session["page_count"] = new_page_count
         persist_session_document(doc_id)
 
         logger.info(
@@ -758,7 +760,7 @@ async def insert_pages_from_file(
         return APIResponse(
             success=True,
             message=f"{pages_to_insert} page(s) inserted successfully",
-            data={"new_page_count": len(doc), "inserted_at": position},
+            data={"new_page_count": new_page_count, "inserted_at": position},
         )
     except Exception as e:
         logger.error("Failed to insert pages: %s", e)
@@ -883,14 +885,15 @@ async def remove_blank_pages(doc_id: str, threshold: float = 0.01):
         doc.delete_page(page_num)
 
     # Update session
-    session["page_count"] = len(doc)
+    new_page_count = len(doc)
+    session["page_count"] = new_page_count
     persist_session_document(doc_id)
 
     logger.info(f"Removed {len(blank_pages)} blank pages from session {doc_id}")
     return APIResponse(
         success=True,
         message=f"Removed {len(blank_pages)} blank page(s)",
-        data={"removed_pages": blank_pages, "new_page_count": len(doc)},
+        data={"removed_pages": blank_pages, "new_page_count": new_page_count},
     )
 
 
@@ -961,13 +964,14 @@ async def add_custom_numbering(
         # Insert text
         page.insert_text((x, y), text, fontsize=font_size, color=(0, 0, 0))
 
+    page_total = len(doc)
     persist_session_document(doc_id)
 
     logger.info(f"Added custom numbering ({format}) to session {doc_id}")
     return APIResponse(
         success=True,
-        message=f"Added {format} numbering to {len(doc)} pages",
-        data={"pages_numbered": len(doc), "format": format},
+        message=f"Added {format} numbering to {page_total} pages",
+        data={"pages_numbered": page_total, "format": format},
     )
 
 
@@ -1023,13 +1027,14 @@ async def add_header_footer(
                 (x, page_rect.height - 15), text, fontsize=font_size, color=(0, 0, 0)
             )
 
+    page_total = len(doc)
     persist_session_document(doc_id)
 
     logger.info(f"Added header/footer to session {doc_id}")
     return APIResponse(
         success=True,
-        message=f"Added header/footer to {len(doc)} pages",
-        data={"pages_updated": len(doc)},
+        message=f"Added header/footer to {page_total} pages",
+        data={"pages_updated": page_total},
     )
 
 
