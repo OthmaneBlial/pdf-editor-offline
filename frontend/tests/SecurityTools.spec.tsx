@@ -32,7 +32,7 @@ describe('SecurityTools', () => {
         // So we should just check if all exist.
         expect(screen.getAllByText('Protect PDF').length).toBeGreaterThan(0);
         expect(screen.getAllByText('Unlock PDF').length).toBeGreaterThan(0);
-        expect(screen.getAllByText('Sign PDF').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('Visual Signature').length).toBeGreaterThan(0);
         expect(screen.getAllByText('Watermark PDF').length).toBeGreaterThan(0);
         expect(screen.getAllByText('Clean Metadata').length).toBeGreaterThan(0);
         expect(screen.getAllByText('Clean Hidden Data').length).toBeGreaterThan(0);

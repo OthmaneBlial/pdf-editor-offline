@@ -4,6 +4,7 @@ Middleware components for PDF Editor Offline API.
 Provides rate limiting, request logging, and security middleware.
 """
 
+import hmac
 import logging
 import os
 import time
@@ -11,6 +12,7 @@ from collections import defaultdict
 from typing import Callable, Dict, Tuple
 
 from fastapi import Request, Response
+from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from api.security import get_security_headers
@@ -22,6 +24,23 @@ RATE_LIMIT_REQUESTS = int(
     os.getenv("RATE_LIMIT_REQUESTS", "100")
 )  # requests per window
 RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", "60"))  # window in seconds
+
+
+class LocalAPITokenMiddleware(BaseHTTPMiddleware):
+    """Require a per-launch token when the local API token is configured."""
+
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        required_token = os.getenv("PDF_EDITOR_OFFLINE_API_TOKEN", "")
+        if not required_token or request.url.path == "/api/health":
+            return await call_next(request)
+
+        supplied_token = request.headers.get("X-PDF-Editor-Token", "")
+        if not hmac.compare_digest(supplied_token, required_token):
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "A valid local API token is required"},
+            )
+        return await call_next(request)
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):

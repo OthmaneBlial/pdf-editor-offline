@@ -48,7 +48,7 @@
             This static page was generated from the repository itself. It documents the web app, API, CLI, core Python modules, examples, sample PDFs, screenshots, roadmap, and release checks currently present in the codebase.
           </p>
           <dl class="fact-list">
-            <div><dt>Package</dt><dd><code>pdf-editor-offline</code> version <code>2.0.0</code></dd></div>
+            <div><dt>Package</dt><dd><code>pdf-editor-offline</code> version <code>2.1.0</code></dd></div>
             <div><dt>Backend</dt><dd>FastAPI with PyMuPDF-powered core modules</dd></div>
             <div><dt>Frontend</dt><dd>React, TypeScript, Vite, Tailwind-style utility classes, Fabric.js, pdf.js</dd></div>
             <div><dt>CLI</dt><dd>Typer command app exposed as <code>pdf-editor-offline</code></dd></div>
@@ -104,10 +104,10 @@
           </div>
           <div class="code-card">
             <div class="code-card-head">
-              <span>Manual backend startup</span>
+              <span>Secure source-mode startup</span>
               <button class="copy-code" type="button" data-copy-target="code-api-start">Copy</button>
             </div>
-            <pre id="code-api-start"><code>PYTHONPATH=. python -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload</code></pre>
+            <pre id="code-api-start"><code>./start.sh</code></pre>
           </div>
         </section>
 
@@ -180,8 +180,8 @@ git diff --check</code></pre>
         </section>
 
         <section id="copied-docs" class="doc-section">
-          <h2>Copied source docs</h2>
-          <p>These files are copied into <code>site/assets/docs/</code> so the generated folder remains portable.</p>
+          <h2>Canonical project docs</h2>
+          <p>Portable pointers in <code>site/assets/docs/</code> link to the canonical, tested contracts in the repository so security and capability claims cannot silently drift.</p>
           <ul class="doc-link-list">
             <li><a href="assets/docs/project-readme.md">Project README</a></li>
             <li><a href="assets/docs/features-roadmap.md">Features roadmap</a></li>

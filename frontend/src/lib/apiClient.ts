@@ -3,6 +3,7 @@ import axios from 'axios';
 declare global {
   interface Window {
     __PDF_EDITOR_OFFLINE_API_BASE_URL__?: string;
+    __PDF_EDITOR_OFFLINE_API_TOKEN__?: string;
   }
 }
 
@@ -11,6 +12,16 @@ export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ??
   'http://localhost:8000';
 
+export const API_TOKEN =
+  window.__PDF_EDITOR_OFFLINE_API_TOKEN__ ??
+  import.meta.env.VITE_API_TOKEN ??
+  '';
+
+if (API_TOKEN) {
+  axios.defaults.headers.common['X-PDF-Editor-Token'] = API_TOKEN;
+}
+
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
+  headers: API_TOKEN ? { 'X-PDF-Editor-Token': API_TOKEN } : undefined,
 });

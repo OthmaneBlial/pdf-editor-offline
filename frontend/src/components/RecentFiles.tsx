@@ -40,9 +40,14 @@ const RecentFiles: React.FC<RecentFilesProps> = ({ onFileSelect }) => {
       void loadFiles();
     };
 
-    void loadFiles();
+    // Desktop history is asynchronous. Defer the first refresh so the effect
+    // only subscribes synchronously and cannot trigger a cascading render.
+    const initialRefresh = window.setTimeout(() => {
+      void loadFiles();
+    }, 0);
     window.addEventListener('pdf-opened', handleFileOpened);
     return () => {
+      window.clearTimeout(initialRefresh);
       window.removeEventListener('pdf-opened', handleFileOpened);
     };
   }, []);

@@ -89,6 +89,23 @@ class PDFPrivacyCleaner:
             xml_metadata=False,
         )
 
+        # PyMuPDF clears JavaScript source but can leave an inert OpenAction
+        # reference in the catalog. Remove JavaScript launch points entirely so
+        # independent inspection does not report an active document action.
+        if remove_javascript:
+            catalog_xref = doc.pdf_catalog()
+            action_type, action_value = doc.xref_get_key(
+                catalog_xref, "OpenAction"
+            )
+            if action_type == "xref":
+                try:
+                    action_xref = int(action_value.split()[0])
+                    if "/JavaScript" in doc.xref_object(action_xref):
+                        doc.xref_set_key(catalog_xref, "OpenAction", "null")
+                except (TypeError, ValueError, RuntimeError):
+                    pass
+            doc.xref_set_key(catalog_xref, "AA", "null")
+
         return {
             **metadata_stats,
             "annotations_removed": annotations_removed,

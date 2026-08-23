@@ -119,7 +119,11 @@ export interface EditorContextType extends EditorState, CanvasState, HistoryStat
   redo: () => void;
   saveChanges: (force?: boolean) => Promise<void>;
   exportPDF: () => Promise<void>;
-  reorderPages: (fromIndex: number, toIndex: number) => void;
+  reorderPages: (fromIndex: number, toIndex: number) => Promise<void>;
+  undoPageReorder: () => Promise<void>;
+  redoPageReorder: () => Promise<void>;
+  canUndoPageReorder: boolean;
+  canRedoPageReorder: boolean;
   clearHistory: () => void;
   // Advanced Editing additions
   toc: TOCItem[];

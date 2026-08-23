@@ -1,13 +1,22 @@
 import React, { useState, useCallback } from 'react';
 import { useEditor } from '../contexts/EditorContext';
-import { Grid, GripVertical, LayoutGrid } from 'lucide-react';
+import { Grid, GripVertical, LayoutGrid, RotateCcw, RotateCw } from 'lucide-react';
 
 interface PageThumbnailsProps {
     isOpen?: boolean;
 }
 
 const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isOpen = false }) => {
-    const { pageCount, currentPage, setCurrentPage, reorderPages } = useEditor();
+    const {
+        pageCount,
+        currentPage,
+        setCurrentPage,
+        reorderPages,
+        undoPageReorder,
+        redoPageReorder,
+        canUndoPageReorder,
+        canRedoPageReorder,
+    } = useEditor();
     const [isExpanded, setIsExpanded] = useState(isOpen);
     const [draggedPage, setDraggedPage] = useState<number | null>(null);
     const [dragOverPage, setDragOverPage] = useState<number | null>(null);
@@ -43,7 +52,7 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isOpen = false }) => {
     const handleDrop = useCallback((e: React.DragEvent, targetIndex: number) => {
         e.preventDefault();
         if (draggedPage !== null && draggedPage !== targetIndex && reorderPages) {
-            reorderPages(draggedPage, targetIndex);
+            void reorderPages(draggedPage, targetIndex);
         }
         setDraggedPage(null);
         setDragOverPage(null);
@@ -65,9 +74,13 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isOpen = false }) => {
                             Close
                         </button>
                     </div>
-                    <p className="text-[10px] text-center text-[var(--text-secondary)] py-2 border-b border-[var(--border-color)]/50 bg-[var(--bg-primary)]/50">
-                        Drag pages to reorder
-                    </p>
+                    <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-[var(--border-color)]/50 bg-[var(--bg-primary)]/50">
+                        <p className="text-[10px] text-[var(--text-secondary)]">Drag pages to reorder</p>
+                        <div className="flex gap-1" aria-label="Page reorder history">
+                            <button type="button" onClick={() => void undoPageReorder()} disabled={!canUndoPageReorder} className="p-1.5 rounded-md text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] disabled:opacity-30" aria-label="Undo page reorder"><RotateCcw className="w-3.5 h-3.5" /></button>
+                            <button type="button" onClick={() => void redoPageReorder()} disabled={!canRedoPageReorder} className="p-1.5 rounded-md text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] disabled:opacity-30" aria-label="Redo page reorder"><RotateCw className="w-3.5 h-3.5" /></button>
+                        </div>
+                    </div>
                     <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                         {Array.from({ length: pageCount }).map((_, index) => (
                             <div

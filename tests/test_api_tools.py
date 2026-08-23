@@ -1,5 +1,6 @@
 import io
 import os
+import shutil
 import zipfile
 from typing import Iterable, Tuple
 
@@ -27,7 +28,12 @@ skip_if_no_pdfplumber = pytest.mark.skipif(
     not has_pdfplumber, reason="pdfplumber not installed"
 )
 skip_if_no_pytesseract = pytest.mark.skipif(
-    not has_pytesseract, reason="pytesseract not installed"
+    not has_pytesseract or shutil.which("tesseract") is None,
+    reason="Tesseract is not installed",
+)
+skip_if_no_libreoffice = pytest.mark.skipif(
+    shutil.which("libreoffice") is None and shutil.which("soffice") is None,
+    reason="LibreOffice is not installed",
 )
 
 
@@ -95,6 +101,7 @@ def test_compress_pdf(api_client, sample_pdf):
         _close_handles(handles)
 
 
+@skip_if_no_libreoffice
 def test_pdf_to_word_and_back(api_client, sample_pdf, sample_docx):
     files, handles = _prepare_files([("file", sample_pdf, "application/pdf")])
     try:
@@ -348,6 +355,7 @@ def test_pdf_to_pdfa(api_client, sample_pdf):
         _close_handles(handles)
 
 
+@skip_if_no_libreoffice
 def test_office_to_pdf(api_client, sample_excel, sample_pptx):
     # Excel to PDF
     files, handles = _prepare_files(

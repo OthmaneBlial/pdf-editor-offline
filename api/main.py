@@ -8,9 +8,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from api.deps import cleanup_all_sessions, cleanup_stale_sessions
+from api.capabilities import get_runtime_capabilities
 from api.security import sanitize_error_detail
 from pdf_editor_offline import __version__ as package_version
-from pdf_editor_offline.core.exceptions import InvalidOperationError
+from pdf_editor_offline.core.exceptions import InvalidOperationError, MissingDependencyError
 
 # Setup logging
 logging.basicConfig(
@@ -44,7 +45,13 @@ async def health_check():
         "status": "ok",
         "name": "PDF Editor Offline API",
         "version": package_version,
+        "auth_required": bool(os.getenv("PDF_EDITOR_OFFLINE_API_TOKEN")),
     }
+
+
+@app.get("/api/capabilities", tags=["health"])
+async def runtime_capabilities():
+    return get_runtime_capabilities()
 
 
 @app.exception_handler(InvalidOperationError)
@@ -54,6 +61,21 @@ async def handle_invalid_operation(
     """Return consistent 400 responses for user-triggered invalid operations."""
     return JSONResponse(
         status_code=400, content={"detail": sanitize_error_detail(str(exc))}
+    )
+
+
+@app.exception_handler(MissingDependencyError)
+async def handle_missing_dependency(
+    request: Request, exc: MissingDependencyError
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=503,
+        content={
+            "detail": sanitize_error_detail(str(exc)),
+            "code": "missing_local_dependency",
+            "dependency": exc.friendly_name,
+            "command": exc.command,
+        },
     )
 
 
@@ -73,6 +95,7 @@ else:
 
 # Add security and logging middleware
 from api.middleware import (
+    LocalAPITokenMiddleware,
     RateLimitMiddleware,
     RequestLoggingMiddleware,
     SecurityHeadersMiddleware,
@@ -81,6 +104,7 @@ from api.middleware import (
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(RateLimitMiddleware)
+app.add_middleware(LocalAPITokenMiddleware)
 # Keep CORS as the outermost middleware so headers are present on all responses.
 app.add_middleware(
     CORSMiddleware,
@@ -101,4 +125,9 @@ app.include_router(tools.router)
 
 
 if __name__ == "__main__":
-    uvicorn.run("api.main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(
+        "api.main:app",
+        host=os.getenv("PDF_EDITOR_OFFLINE_API_HOST", "127.0.0.1"),
+        port=int(os.getenv("PDF_EDITOR_OFFLINE_API_PORT", "8000")),
+        reload=os.getenv("PDF_EDITOR_OFFLINE_RELOAD", "0") == "1",
+    )

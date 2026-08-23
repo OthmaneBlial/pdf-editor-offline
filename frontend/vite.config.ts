@@ -1,5 +1,5 @@
 /// <reference types="vitest" />
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
@@ -7,23 +7,20 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 3000,
-    host: true,
+    host: '127.0.0.1',
   },
   build: {
     // Chunk splitting for better caching and smaller initial bundle
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Vendor chunk for React
-          'react-vendor': ['react', 'react-dom'],
-          // Fabric.js canvas library (large dependency)
-          'fabric': ['fabric'],
-          // PDF.js library (large dependency)
-          'pdfjs': ['pdfjs-dist'],
-          // Axios for API calls
-          'api': ['axios'],
-          // Icon library
-          'icons': ['lucide-react'],
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined;
+          if (id.includes('/react/') || id.includes('/react-dom/')) return 'react-vendor';
+          if (id.includes('/fabric/')) return 'fabric';
+          if (id.includes('/pdfjs-dist/')) return 'pdfjs';
+          if (id.includes('/axios/')) return 'api';
+          if (id.includes('/lucide-react/')) return 'icons';
+          return undefined;
         },
       },
     },

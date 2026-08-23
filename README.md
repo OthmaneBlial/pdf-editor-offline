@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  A free PDF editor that runs on your machine. No account, no upload step, no cloud storage.
+  Private PDF work you can inspect: edit, organize, redact, and sanitize locally—with no account or document telemetry.
 </p>
 
 <p align="center">
@@ -29,14 +29,21 @@ Open the live project site: [PDF Editor Offline Project Site](https://othmanebli
 
 The self-contained local copy lives at [`site/index.html`](site/index.html). It includes product docs, screenshots, sample PDFs, API/CLI notes, and release checks.
 
-PDF Editor Offline gives you a web app, API server, CLI, and Python package for common PDF work:
+PDF Editor Offline provides a desktop shell, local web workspace, API, CLI, and
+Python package. Capability status is deliberately explicit:
 
-- Edit pages, annotations, images, metadata, watermarks, and signatures
+- Edit pages, annotations, images, metadata, watermarks, and visual signatures
 - Merge, split, rotate, crop, resize, compress, repair, protect, and unlock PDFs
 - Convert PDF to Word, PowerPoint, Excel, JPG, Markdown, TXT, EPUB, SVG, and PDF/A
 - Convert Word, PowerPoint, Excel, Markdown, TXT, CSV, JSON, HTML, and images to PDF
 - Clean metadata, remove hidden data, redact page areas, and clear app temp files
 - Run OCR and batch jobs locally
+
+Read the [capability matrix](docs/CAPABILITIES.md) before relying on a workflow:
+it distinguishes stable, beta, experimental, external-dependency, and
+unsupported behavior. In particular, a visual signature is not certificate
+signing, local comments are not collaboration, and complex conversions can lose
+fidelity.
 
 ## Screenshots
 
@@ -81,7 +88,10 @@ Docker:
 
 ```bash
 docker pull othmaneblial/pdf-editor-offline
-docker run -p 8000:8000 othmaneblial/pdf-editor-offline
+docker run --rm \
+  -p 127.0.0.1:8000:8000 \
+  -e PDF_EDITOR_OFFLINE_API_TOKEN="choose-a-long-random-token" \
+  othmaneblial/pdf-editor-offline
 ```
 
 ## Run The App
@@ -92,18 +102,23 @@ Start the backend and frontend together:
 ./start.sh
 ```
 
-Open `http://localhost:3000`.
+The script prints the random loopback URL it selected. It also stores local logs
+under `.runtime/` and stops only the API/frontend processes it started.
 
 Manual startup:
 
 ```bash
-PYTHONPATH=. python -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+export PDF_EDITOR_OFFLINE_API_TOKEN="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
+PDF_EDITOR_OFFLINE_API_HOST=127.0.0.1 \
+PYTHONPATH=. .venv/bin/python -m uvicorn api.main:app --host 127.0.0.1 --port 8000
 ```
 
 ```bash
 cd frontend
-npm install
-VITE_API_BASE_URL="http://localhost:8000" npm run dev -- --port 3000
+npm ci
+VITE_API_BASE_URL="http://127.0.0.1:8000" \
+VITE_API_TOKEN="$PDF_EDITOR_OFFLINE_API_TOKEN" \
+npm run dev -- --host 127.0.0.1 --port 3000
 ```
 
 ## Desktop App
@@ -112,9 +127,9 @@ The desktop shell lives in [`desktop/`](desktop/). It uses Tauri with the existi
 
 ```bash
 cd frontend
-npm install
+npm ci
 cd ../desktop
-npm install
+npm ci
 npm run build:sidecar
 npm run dev
 ```
@@ -127,7 +142,7 @@ npm run build:sidecar
 npm run build
 ```
 
-Installers and code signing are tracked as a later milestone.
+Signed installers are not published yet; the desktop app remains a source-buildable beta.
 
 ## CLI
 
@@ -164,7 +179,7 @@ Frontend:
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm test
 ```
 
@@ -186,6 +201,15 @@ python -m build
 ## Release Notes
 
 See [CHANGELOG.md](CHANGELOG.md) for public release history.
+
+## Trust and support
+
+- [Security policy and private reporting](SECURITY.md)
+- [Privacy and data-flow contract](docs/PRIVACY.md)
+- [Malicious-PDF threat model](docs/THREAT_MODEL.md)
+- [Known limitations](docs/KNOWN_LIMITATIONS.md)
+- [Stable capability test map](docs/CAPABILITY_TEST_MAP.md)
+- [Support policy](SUPPORT.md)
 
 ## Sample PDFs
 

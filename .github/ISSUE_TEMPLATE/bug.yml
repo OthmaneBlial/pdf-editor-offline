@@ -1,0 +1,57 @@
+name: Bug report
+description: Report a reproducible product defect without sharing a sensitive document.
+title: "[Bug]: "
+labels: [bug, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Do not upload private PDFs. Reproduce with a synthetic or publicly
+        shareable file and review the diagnostic bundle before attaching it.
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Product mode
+      options:
+        - Desktop
+        - Local source web app
+        - Docker or self-hosted
+        - CLI
+        - Python API
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version and operating system
+      placeholder: 2.1.0 on macOS 15.6 arm64
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Minimal reproduction
+      description: Include exact actions or commands and a safe synthetic fixture.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      options:
+        - label: I removed document content, filenames, paths, extracted text, and personal data from this report.
+          required: true
+        - label: I checked the capability matrix and known limitations.
+          required: true

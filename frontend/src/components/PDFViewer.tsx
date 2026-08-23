@@ -419,7 +419,7 @@ const PDFViewer: React.FC<{ forceRefresh?: number }> = ({ forceRefresh }) => {
           return;
         }
 
-        const pointer = canvas.getPointer(evt);
+        const pointer = canvas.getScenePoint(evt);
 
         if (drawingMode === 'text') {
           const text = new fabric.IText('Enter text', {

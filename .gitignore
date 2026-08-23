@@ -1,4 +1,5 @@
 .venv/
+.runtime/
 __pycache__/
 api.log
 storage/

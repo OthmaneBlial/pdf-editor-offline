@@ -87,7 +87,7 @@ const CollaborativeAnnotations: React.FC = () => {
                                 <MessageSquare className="w-4 h-4 text-white" />
                             </div>
                             <div>
-                                <span className="text-sm font-bold text-white">Comments</span>
+                                <span className="text-sm font-bold text-white">Local comments</span>
                                 <span className="ml-2 px-2 py-0.5 bg-white/20 text-white text-xs rounded-full">
                                     {pageComments.length}
                                 </span>
@@ -198,7 +198,7 @@ const CollaborativeAnnotations: React.FC = () => {
                             <MessageSquare className="w-8 h-8 text-amber-400" />
                         </div>
                         <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">
-                            No comments yet
+                            No local comments yet
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
                             Click + to add the first comment!

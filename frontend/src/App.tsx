@@ -206,7 +206,10 @@ function AppContent() {
   };
 
   return (
-    <div className="flex h-[100dvh] w-full bg-[var(--bg-app)] overflow-hidden relative">
+    <div
+      className="flex h-[100dvh] w-full bg-[var(--bg-app)] overflow-hidden relative"
+      data-app-ready="true"
+    >
       <KeyboardShortcutsHandler onShowHelp={() => setShowShortcuts(true)} />
       <ShortcutsModal isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
       <ToolToast />

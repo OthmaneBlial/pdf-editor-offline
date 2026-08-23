@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 from typing import Callable
 
+import fitz
 from playwright.sync_api import Page, sync_playwright
 
 
@@ -78,7 +79,7 @@ def run_smoke(
 
         page.on("console", on_console)
         page.goto(base_url, wait_until="domcontentloaded", timeout=60000)
-        page.wait_for_load_state("networkidle", timeout=60000)
+        page.locator("[data-app-ready='true']").wait_for(timeout=60000)
 
         # Upload PDF and wait for first render.
         pdf_input = page.locator("input[type='file'][accept='application/pdf']").first
@@ -205,6 +206,31 @@ def run_smoke(
         # Refresh verification: switch to editor tab and ensure canvas is rendered.
         page.get_by_role("button", name="Editor View").click()
         page.wait_for_selector("canvas", timeout=30000)
+
+        # Exercise the actual user boundary: export a PDF, inspect it with the
+        # backend engine, then upload that exported copy and render it again.
+        exported_path = pdf_path.parent / "exported-reopen.pdf"
+        with page.expect_download(timeout=60000) as download_info:
+            page.get_by_role("button", name="Export", exact=True).click()
+        download_info.value.save_as(exported_path)
+
+        exported = fitz.open(exported_path)
+        try:
+            if exported.page_count < 1:
+                raise RuntimeError("Exported PDF contains no pages")
+        finally:
+            exported.close()
+
+        reopen_input = page.locator(
+            "input[type='file'][accept='application/pdf']"
+        ).first
+        _trigger_and_wait_for_response(
+            page,
+            url_fragment="/api/documents/upload",
+            method="POST",
+            action=lambda: reopen_input.set_input_files(str(exported_path)),
+        )
+        page.locator("canvas").first.wait_for(state="visible", timeout=60000)
 
         fatal_errors = [
             err

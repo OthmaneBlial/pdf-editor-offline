@@ -7,7 +7,7 @@ import fitz
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
-from pdf_editor_offline.core.exceptions import PDFLoadError
+from pdf_editor_offline.core.exceptions import InvalidOperationError, PDFLoadError
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +35,7 @@ from api.models import (
     DocumentSession,
     ExtractPagesRequest,
     FileAttachmentRequest,
+    FillFormRequest,
     FontUsageResponse,
     FreehandHighlightRequest,
     HiddenDataCleanupRequest,
@@ -53,6 +54,7 @@ from api.models import (
     PolylineAnnotationRequest,
     ReflowTextRequest,
     RedactionRequest,
+    ReorderPagesRequest,
     RichTextInsertRequest,
     SetTOCRequest,
     SoundAnnotationRequest,
@@ -463,6 +465,82 @@ PAGE_SIZES = {
 }
 
 
+def _inverse_page_order(page_order: List[int]) -> List[int]:
+    inverse = [0] * len(page_order)
+    for current_index, original_index in enumerate(page_order):
+        inverse[original_index] = current_index
+    return inverse
+
+
+def _apply_page_order(doc_id: str, page_order: List[int]) -> dict:
+    session = get_session(doc_id)
+    session["page_manipulator"].reorder_pages(page_order)
+    persist_session_document(doc_id)
+    return {"page_order": page_order, "page_count": session["page_count"]}
+
+
+@router.put("/{doc_id}/pages/reorder", response_model=APIResponse)
+async def reorder_pages(doc_id: str, request: ReorderPagesRequest):
+    """Persist a complete page permutation and make it undoable."""
+    session = get_session(doc_id)
+    try:
+        result = _apply_page_order(doc_id, request.page_order)
+    except InvalidOperationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    session["page_reorder_undo"].append(
+        {
+            "undo": _inverse_page_order(request.page_order),
+            "redo": list(request.page_order),
+        }
+    )
+    session["page_reorder_undo"] = session["page_reorder_undo"][-50:]
+    session["page_reorder_redo"].clear()
+    return APIResponse(
+        success=True,
+        message="Pages reordered successfully",
+        data={**result, "can_undo": True, "can_redo": False},
+    )
+
+
+@router.post("/{doc_id}/pages/reorder/undo", response_model=APIResponse)
+async def undo_page_reorder(doc_id: str):
+    session = get_session(doc_id)
+    if not session["page_reorder_undo"]:
+        raise HTTPException(status_code=409, detail="No page reorder to undo")
+    operation = session["page_reorder_undo"].pop()
+    result = _apply_page_order(doc_id, operation["undo"])
+    session["page_reorder_redo"].append(operation)
+    return APIResponse(
+        success=True,
+        message="Page reorder undone",
+        data={
+            **result,
+            "can_undo": bool(session["page_reorder_undo"]),
+            "can_redo": True,
+        },
+    )
+
+
+@router.post("/{doc_id}/pages/reorder/redo", response_model=APIResponse)
+async def redo_page_reorder(doc_id: str):
+    session = get_session(doc_id)
+    if not session["page_reorder_redo"]:
+        raise HTTPException(status_code=409, detail="No page reorder to redo")
+    operation = session["page_reorder_redo"].pop()
+    result = _apply_page_order(doc_id, operation["redo"])
+    session["page_reorder_undo"].append(operation)
+    return APIResponse(
+        success=True,
+        message="Page reorder redone",
+        data={
+            **result,
+            "can_undo": True,
+            "can_redo": bool(session["page_reorder_redo"]),
+        },
+    )
+
+
 @router.post("/{doc_id}/pages/extract", response_model=APIResponse)
 async def extract_pages(doc_id: str, request: ExtractPagesRequest):
     """Extract selected pages to a new PDF and return it."""
@@ -690,6 +768,56 @@ async def insert_pages_from_file(
             insert_doc.close()
         if os.path.exists(temp_path):
             os.remove(temp_path)
+
+
+@router.get("/{doc_id}/forms", response_model=APIResponse)
+async def list_form_fields(doc_id: str):
+    session = get_session(doc_id)
+    handler = session["form_handler"]
+    fields = handler.list_form_fields()
+    has_xfa = handler.has_xfa()
+    return APIResponse(
+        success=True,
+        data={
+            "fields": fields,
+            "field_count": len(fields),
+            "has_xfa": has_xfa,
+            "warnings": (
+                ["XFA forms are detected but are not edited by this application"]
+                if has_xfa
+                else []
+            ),
+        },
+    )
+
+
+@router.put("/{doc_id}/forms", response_model=APIResponse)
+async def fill_form_fields(doc_id: str, request: FillFormRequest):
+    session = get_session(doc_id)
+    handler = session["form_handler"]
+    try:
+        for field in request.fields:
+            handler.fill_form_field(field.name, field.value)
+    except InvalidOperationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    persist_session_document(doc_id)
+    return APIResponse(
+        success=True,
+        message=f"Updated {len(request.fields)} form field(s)",
+        data={"updated": [field.name for field in request.fields]},
+    )
+
+
+@router.post("/{doc_id}/forms/flatten", response_model=APIResponse)
+async def flatten_form_fields(doc_id: str):
+    session = get_session(doc_id)
+    flattened = session["form_handler"].flatten_form()
+    persist_session_document(doc_id, garbage=4, clean=True, deflate=True)
+    return APIResponse(
+        success=True,
+        message=f"Flattened {flattened} form field(s) into page content",
+        data={"fields_flattened": flattened},
+    )
 
 
 # ============================================

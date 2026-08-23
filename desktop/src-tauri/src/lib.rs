@@ -16,8 +16,16 @@ const SIDECAR_NAME: &str = "pdf-editor-offline-api";
 
 struct DesktopState {
     api_base_url: String,
+    api_token: String,
     recent_files_path: PathBuf,
     sidecar: Mutex<Option<CommandChild>>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopApiConnection {
+    base_url: String,
+    token: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -68,9 +76,15 @@ fn wait_for_backend(port: u16) -> Result<(), String> {
     Err("Timed out waiting for the PDF Editor Offline API sidecar".to_string())
 }
 
-fn start_sidecar(app: &tauri::App, port: u16) -> Result<CommandChild, String> {
-    let app_data_dir = app.path().app_data_dir().map_err(|error| error.to_string())?;
-    let app_cache_dir = app.path().app_cache_dir().map_err(|error| error.to_string())?;
+fn start_sidecar(app: &tauri::App, port: u16, api_token: &str) -> Result<CommandChild, String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|error| error.to_string())?;
+    let app_cache_dir = app
+        .path()
+        .app_cache_dir()
+        .map_err(|error| error.to_string())?;
     let storage_dir = app_data_dir.join("storage");
     let temp_dir = app_cache_dir.join("temp");
 
@@ -83,6 +97,7 @@ fn start_sidecar(app: &tauri::App, port: u16) -> Result<CommandChild, String> {
         .map_err(|error| error.to_string())?
         .env("PDF_EDITOR_OFFLINE_API_HOST", "127.0.0.1")
         .env("PDF_EDITOR_OFFLINE_API_PORT", port.to_string())
+        .env("PDF_EDITOR_OFFLINE_API_TOKEN", api_token)
         .env("PDF_EDITOR_OFFLINE_STORAGE_DIR", storage_dir)
         .env("PDF_EDITOR_OFFLINE_TEMP_DIR", temp_dir)
         .env(
@@ -95,10 +110,16 @@ fn start_sidecar(app: &tauri::App, port: u16) -> Result<CommandChild, String> {
         while let Some(event) = receiver.recv().await {
             match event {
                 CommandEvent::Stdout(line) => {
-                    println!("[pdf-editor-offline-api] {}", String::from_utf8_lossy(&line));
+                    println!(
+                        "[pdf-editor-offline-api] {}",
+                        String::from_utf8_lossy(&line)
+                    );
                 }
                 CommandEvent::Stderr(line) => {
-                    eprintln!("[pdf-editor-offline-api] {}", String::from_utf8_lossy(&line));
+                    eprintln!(
+                        "[pdf-editor-offline-api] {}",
+                        String::from_utf8_lossy(&line)
+                    );
                 }
                 _ => {}
             }
@@ -109,8 +130,11 @@ fn start_sidecar(app: &tauri::App, port: u16) -> Result<CommandChild, String> {
 }
 
 #[tauri::command]
-fn get_api_base_url(state: State<'_, DesktopState>) -> String {
-    state.api_base_url.clone()
+fn get_api_connection(state: State<'_, DesktopState>) -> DesktopApiConnection {
+    DesktopApiConnection {
+        base_url: state.api_base_url.clone(),
+        token: state.api_token.clone(),
+    }
 }
 
 #[tauri::command]
@@ -178,19 +202,25 @@ fn recent_files_clear(state: State<'_, DesktopState>) -> Result<(), String> {
 pub fn run() {
     let port = portpicker::pick_unused_port().expect("No available localhost port");
     let api_base_url = format!("http://127.0.0.1:{port}");
+    let api_token = uuid::Uuid::new_v4().simple().to_string();
 
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .setup({
             let api_base_url = api_base_url.clone();
+            let api_token = api_token.clone();
             move |app| {
-                let child = start_sidecar(app, port)?;
+                let child = start_sidecar(app, port, &api_token)?;
                 wait_for_backend(port)?;
 
-                let app_data_dir = app.path().app_data_dir().map_err(|error| error.to_string())?;
+                let app_data_dir = app
+                    .path()
+                    .app_data_dir()
+                    .map_err(|error| error.to_string())?;
                 fs::create_dir_all(&app_data_dir).map_err(|error| error.to_string())?;
                 app.manage(DesktopState {
                     api_base_url,
+                    api_token,
                     recent_files_path: app_data_dir.join("recent-files.json"),
                     sidecar: Mutex::new(Some(child)),
                 });
@@ -199,7 +229,7 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
-            get_api_base_url,
+            get_api_connection,
             open_pdf_file,
             save_file,
             recent_files_get,
@@ -219,4 +249,47 @@ pub fn run() {
             }
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{read_recent_files, write_recent_files, RecentFile};
+    use std::fs;
+
+    fn temp_recent_files_path() -> std::path::PathBuf {
+        std::env::temp_dir().join(format!(
+            "pdf-editor-offline-recent-{}.json",
+            uuid::Uuid::new_v4().simple()
+        ))
+    }
+
+    #[test]
+    fn recent_files_round_trip_without_document_bytes() {
+        let path = temp_recent_files_path();
+        let entries = vec![RecentFile {
+            name: "synthetic.pdf".to_string(),
+            size: 42,
+            path: None,
+            last_opened: "2026-08-23T20:00:00Z".to_string(),
+        }];
+
+        write_recent_files(&path, &entries).expect("write recent files");
+        let reloaded = read_recent_files(&path);
+        fs::remove_file(&path).expect("remove test recent file");
+
+        assert_eq!(reloaded.len(), 1);
+        assert_eq!(reloaded[0].name, "synthetic.pdf");
+        assert_eq!(reloaded[0].size, 42);
+        assert!(reloaded[0].path.is_none());
+    }
+
+    #[test]
+    fn malformed_recent_file_state_fails_closed_to_empty() {
+        let path = temp_recent_files_path();
+        fs::write(&path, b"not-json").expect("write malformed state");
+        let reloaded = read_recent_files(&path);
+        fs::remove_file(&path).expect("remove malformed state");
+
+        assert!(reloaded.is_empty());
+    }
 }

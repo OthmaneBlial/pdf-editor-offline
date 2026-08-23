@@ -82,6 +82,19 @@ class ExtractPagesRequest(BaseModel):
     pages: List[int]  # 0-indexed page numbers
 
 
+class ReorderPagesRequest(BaseModel):
+    page_order: List[int]  # Complete zero-indexed permutation
+
+
+class FormFieldUpdate(BaseModel):
+    name: str
+    value: str
+
+
+class FillFormRequest(BaseModel):
+    fields: List[FormFieldUpdate]
+
+
 class DuplicatePageRequest(BaseModel):
     page_num: int  # 0-indexed page to duplicate
     insert_at: Optional[int] = None  # Position to insert (default: after original)

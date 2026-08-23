@@ -7,6 +7,7 @@ Tests file validation, path traversal prevention, and input sanitization.
 import io
 import os
 
+import fitz
 import pytest
 from fastapi import HTTPException
 
@@ -130,7 +131,10 @@ class TestPDFValidation:
 
     def test_valid_pdf_passes(self):
         """Test that valid PDF passes all validations."""
-        valid_pdf = b"%PDF-1.4\n" + b"x" * 1000
+        document = fitz.open()
+        document.new_page().insert_text((72, 72), "Synthetic valid PDF")
+        valid_pdf = document.tobytes()
+        document.close()
         validate_pdf_file(valid_pdf, "test.pdf", max_size_bytes=10 * 1024 * 1024)
         # No exception raised
 

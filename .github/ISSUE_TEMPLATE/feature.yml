@@ -1,0 +1,44 @@
+name: Feature request
+description: Propose a concrete local-first workflow or product improvement.
+title: "[Feature]: "
+labels: [enhancement, needs-triage]
+body:
+  - type: textarea
+    id: job
+    attributes:
+      label: User job
+      description: What are you trying to finish, and for whom?
+      placeholder: I need to sanitize a PDF before sending it to...
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: Current workaround
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Successful outcome
+      description: Describe observable behavior rather than an implementation choice.
+    validations:
+      required: true
+  - type: dropdown
+    id: boundary
+    attributes:
+      label: Required processing boundary
+      options:
+        - Entirely on the user's device
+        - Self-hosted server is acceptable
+        - CLI or Python automation only
+        - No preference
+    validations:
+      required: true
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      options:
+        - label: This does not require mandatory cloud storage or document telemetry.
+          required: true

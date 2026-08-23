@@ -13,10 +13,16 @@ export interface DesktopRecentFile {
   lastOpened: string;
 }
 
+interface DesktopAPIConnection {
+  baseUrl: string;
+  token: string;
+}
+
 declare global {
   interface Window {
     __TAURI_INTERNALS__?: unknown;
     __PDF_EDITOR_OFFLINE_API_BASE_URL__?: string;
+    __PDF_EDITOR_OFFLINE_API_TOKEN__?: string;
   }
 }
 
@@ -39,7 +45,9 @@ export const initializeDesktopRuntime = async () => {
     return;
   }
 
-  window.__PDF_EDITOR_OFFLINE_API_BASE_URL__ = await invoke<string>('get_api_base_url');
+  const connection = await invoke<DesktopAPIConnection>('get_api_connection');
+  window.__PDF_EDITOR_OFFLINE_API_BASE_URL__ = connection.baseUrl;
+  window.__PDF_EDITOR_OFFLINE_API_TOKEN__ = connection.token;
 };
 
 export const openPdfWithDesktopDialog = async (): Promise<File | null> => {

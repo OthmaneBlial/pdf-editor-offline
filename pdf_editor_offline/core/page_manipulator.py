@@ -28,3 +28,12 @@ class PageManipulator:
             raise InvalidOperationError("Rotation must be a multiple of 90 degrees")
         page = self.document[page_num]
         page.set_rotation(rotation)
+
+    def reorder_pages(self, page_order: list[int]) -> None:
+        """Reorder every page using a complete zero-based permutation."""
+        expected = list(range(len(self.document)))
+        if len(page_order) != len(expected) or sorted(page_order) != expected:
+            raise InvalidOperationError(
+                "Page order must contain every page index exactly once"
+            )
+        self.document.select(page_order)

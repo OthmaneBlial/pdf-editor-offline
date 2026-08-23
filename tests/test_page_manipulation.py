@@ -103,6 +103,50 @@ class TestPageDuplication:
         assert response.json()["data"]["inserted_at"] == 2
 
 
+class TestPageReordering:
+    def test_reorder_persists_and_supports_undo_redo(self, api_client, multi_page_pdf):
+        doc_id = upload_pdf(api_client, multi_page_pdf)
+
+        response = api_client.put(
+            f"/api/documents/{doc_id}/pages/reorder",
+            json={"page_order": [2, 0, 1]},
+        )
+        assert response.status_code == 200
+
+        download = api_client.get(f"/api/documents/{doc_id}/download")
+        reordered = fitz.open(stream=download.content, filetype="pdf")
+        assert [page.get_text().strip() for page in reordered] == [
+            "Page 3",
+            "Page 1",
+            "Page 2",
+        ]
+        reordered.close()
+
+        assert api_client.post(
+            f"/api/documents/{doc_id}/pages/reorder/undo"
+        ).status_code == 200
+        download = api_client.get(f"/api/documents/{doc_id}/download")
+        restored = fitz.open(stream=download.content, filetype="pdf")
+        assert [page.get_text().strip() for page in restored] == [
+            "Page 1",
+            "Page 2",
+            "Page 3",
+        ]
+        restored.close()
+
+        assert api_client.post(
+            f"/api/documents/{doc_id}/pages/reorder/redo"
+        ).status_code == 200
+
+    def test_reorder_rejects_incomplete_permutation(self, api_client, multi_page_pdf):
+        doc_id = upload_pdf(api_client, multi_page_pdf)
+        response = api_client.put(
+            f"/api/documents/{doc_id}/pages/reorder",
+            json={"page_order": [0, 0, 1]},
+        )
+        assert response.status_code == 400
+
+
 class TestPageResize:
     """Tests for page resize endpoint."""
 

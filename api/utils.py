@@ -6,7 +6,11 @@ from typing import Set
 from fastapi import HTTPException, UploadFile
 
 from api.deps import MAX_UPLOAD_MB, TEMP_DIR
-from api.security import validate_content_type, validate_pdf_file
+from api.security import (
+    validate_content_type,
+    validate_office_archive,
+    validate_pdf_file,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +60,13 @@ async def persist_upload_file(
         raise HTTPException(status_code=400, detail="Uploaded file is empty.")
     if "application/pdf" in allowed_types:
         validate_pdf_file(content, safe_filename, MAX_UPLOAD_MB * 1024 * 1024)
+    if any(
+        content_type.endswith("officedocument.wordprocessingml.document")
+        or content_type.endswith("officedocument.presentationml.presentation")
+        or content_type.endswith("officedocument.spreadsheetml.sheet")
+        for content_type in allowed_types
+    ):
+        validate_office_archive(content, safe_filename)
 
     with open(storage_path, "wb") as f:
         f.write(content)

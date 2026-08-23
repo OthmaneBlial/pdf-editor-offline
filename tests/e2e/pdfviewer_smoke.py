@@ -23,13 +23,13 @@ def run_smoke(base_url: str, pdf_path: Path) -> int:
 
         page.on("console", on_console)
         page.goto(base_url, wait_until="domcontentloaded", timeout=60000)
-        page.wait_for_load_state("networkidle", timeout=60000)
+        page.locator("[data-app-ready='true']").wait_for(timeout=60000)
 
         file_input = page.locator("input[type='file']").first
         file_input.set_input_files(str(pdf_path))
 
-        # Wait for upload + first page render.
-        page.wait_for_timeout(3000)
+        # Wait for upload + first page render using observable UI state.
+        page.locator("canvas").first.wait_for(state="visible", timeout=60000)
 
         # Trigger resize path to exercise ResizeObserver + rAF code.
         page.set_viewport_size({"width": 900, "height": 700})

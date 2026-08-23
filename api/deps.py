@@ -21,11 +21,15 @@ from pdf_editor_offline.core.rich_text_editor import RichTextEditor
 from pdf_editor_offline.core.navigation_manager import NavigationManager
 from pdf_editor_offline.core.annotation_enhancer import AnnotationEnhancer
 from pdf_editor_offline.core.image_processor import ImageProcessor
+from pdf_editor_offline.core.form_handler import FormHandler
 
 logger = logging.getLogger(__name__)
 
 # Constants
-TEMP_DIR = os.getenv("PDF_EDITOR_OFFLINE_TEMP_DIR", tempfile.gettempdir())
+TEMP_DIR = os.getenv(
+    "PDF_EDITOR_OFFLINE_TEMP_DIR",
+    os.path.join(tempfile.gettempdir(), "pdf-editor-offline"),
+)
 os.makedirs(TEMP_DIR, exist_ok=True)
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "50"))
 SESSION_TTL_HOURS = int(os.getenv("SESSION_TTL_HOURS", "24"))
@@ -113,6 +117,9 @@ def build_session_data(
         "navigation_manager": NavigationManager(doc) if page_count > 0 else None,
         "annotation_enhancer": AnnotationEnhancer(doc) if page_count > 0 else None,
         "image_processor": ImageProcessor(doc) if page_count > 0 else None,
+        "form_handler": FormHandler(doc) if page_count > 0 else None,
+        "page_reorder_undo": [],
+        "page_reorder_redo": [],
     }
 
     return session_data

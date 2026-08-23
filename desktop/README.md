@@ -6,7 +6,7 @@ This folder contains the Tauri desktop shell for PDF Editor Offline.
 
 - Tauri hosts the existing React frontend from `../frontend`.
 - The Python FastAPI backend runs as a local sidecar on `127.0.0.1`.
-- The Tauri shell chooses the backend port, starts the sidecar, and passes the API URL to React before the app mounts.
+- The Tauri shell chooses the backend port, generates a per-launch API token, starts the sidecar, and passes the authenticated connection to React before the app mounts.
 - Desktop-specific file open, save, and recent-file behavior is provided by Tauri commands.
 
 ## Development
@@ -15,9 +15,9 @@ Install frontend and desktop dependencies:
 
 ```bash
 cd ../frontend
-npm install
+npm ci
 cd ../desktop
-npm install
+npm ci
 ```
 
 Build the Python sidecar:

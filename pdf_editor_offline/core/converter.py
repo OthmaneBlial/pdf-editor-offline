@@ -4,13 +4,13 @@ from typing import List
 
 from pdf2docx import Converter
 
+from .exceptions import MissingDependencyError
+
 
 def _require_dependency(command: str, friendly_name: str):
     """Ensure an external binary exists before running a conversion."""
     if not shutil.which(command):
-        raise RuntimeError(
-            f"{friendly_name} is required for this operation but '{command}' was not found on PATH."
-        )
+        raise MissingDependencyError(command, friendly_name)
 
 
 class PDFConverter:

@@ -4,8 +4,10 @@ Security utilities for PDF Editor Offline API.
 Provides file validation, sanitization, and security headers.
 """
 
-import re
 import logging
+import io
+import re
+import zipfile
 from pathlib import Path
 from typing import Optional, Sequence, Set
 
@@ -15,6 +17,14 @@ logger = logging.getLogger(__name__)
 
 # PDF file signature (magic bytes)
 PDF_SIGNATURE = b"%PDF-"
+
+MAX_PDF_PAGES = 10_000
+MAX_PDF_OBJECTS = 500_000
+MAX_PDF_OBJECT_BYTES = 2 * 1024 * 1024
+MAX_PDF_DECLARED_STREAM_BYTES = 256 * 1024 * 1024
+MAX_ARCHIVE_ENTRIES = 10_000
+MAX_ARCHIVE_UNCOMPRESSED_BYTES = 512 * 1024 * 1024
+MAX_ARCHIVE_COMPRESSION_RATIO = 500
 
 # Maximum filename length
 MAX_FILENAME_LENGTH = 255
@@ -218,6 +228,99 @@ def validate_pdf_file(file_content: bytes, filename: str, max_size_bytes: int) -
             status_code=400,
             detail="Invalid PDF file. File does not have a valid PDF signature.",
         )
+
+    # Parse the object table without rendering pages or decoding arbitrary
+    # streams. This rejects corrupt files and obviously abusive declarations
+    # before a long-lived editing session is created.
+    try:
+        import fitz
+
+        document = fitz.open(stream=file_content, filetype="pdf")
+        try:
+            if document.is_repaired:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Invalid or corrupted PDF structure.",
+                )
+            if document.page_count > MAX_PDF_PAGES:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"PDF has too many pages (max {MAX_PDF_PAGES}).",
+                )
+            if document.xref_length() > MAX_PDF_OBJECTS:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"PDF has too many objects (max {MAX_PDF_OBJECTS}).",
+                )
+
+            for xref in range(1, document.xref_length()):
+                definition = document.xref_object(xref, compressed=False)
+                if len(definition.encode("utf-8", errors="ignore")) > MAX_PDF_OBJECT_BYTES:
+                    raise HTTPException(
+                        status_code=413,
+                        detail="PDF contains an oversized object definition.",
+                    )
+                declared_lengths = re.findall(r"/DL\s+(\d+)", definition)
+                if any(
+                    int(length) > MAX_PDF_DECLARED_STREAM_BYTES
+                    for length in declared_lengths
+                ):
+                    raise HTTPException(
+                        status_code=413,
+                        detail="PDF declares an unsafe decoded stream size.",
+                    )
+        finally:
+            document.close()
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.warning("Corrupt PDF structure rejected for %s: %s", filename, exc)
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid or corrupted PDF structure.",
+        ) from exc
+
+
+def validate_office_archive(file_content: bytes, filename: str) -> None:
+    """Reject unsafe OOXML archives before passing them to LibreOffice."""
+    try:
+        with zipfile.ZipFile(io.BytesIO(file_content)) as archive:
+            entries = archive.infolist()
+            if len(entries) > MAX_ARCHIVE_ENTRIES:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"Office archive has too many entries (max {MAX_ARCHIVE_ENTRIES}).",
+                )
+
+            total_uncompressed = 0
+            for entry in entries:
+                member = Path(entry.filename)
+                if member.is_absolute() or ".." in member.parts or "\\" in entry.filename:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Office archive contains an unsafe member path.",
+                    )
+                total_uncompressed += entry.file_size
+                compressed_size = max(entry.compress_size, 1)
+                if entry.file_size / compressed_size > MAX_ARCHIVE_COMPRESSION_RATIO:
+                    raise HTTPException(
+                        status_code=413,
+                        detail="Office archive contains a suspicious compression ratio.",
+                    )
+
+            if total_uncompressed > MAX_ARCHIVE_UNCOMPRESSED_BYTES:
+                raise HTTPException(
+                    status_code=413,
+                    detail="Office archive expands beyond the safe processing limit.",
+                )
+    except HTTPException:
+        raise
+    except (zipfile.BadZipFile, OSError) as exc:
+        logger.warning("Invalid Office archive rejected for %s: %s", filename, exc)
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid or corrupted Office document.",
+        ) from exc
 
 
 def sanitize_user_input(text: str, max_length: int = 1000) -> str:

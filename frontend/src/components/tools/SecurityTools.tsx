@@ -237,13 +237,16 @@ const SecurityTools: React.FC = () => {
                     </form>
                 </div>
 
-                {/* Sign PDF */}
+                {/* Visual signature */}
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                     <div className="flex items-center gap-3 mb-4">
                         <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
                             <PenTool className="w-6 h-6" />
                         </div>
-                        <h3 className="font-semibold text-lg">Sign PDF</h3>
+                        <div>
+                            <h3 className="font-semibold text-lg">Visual Signature</h3>
+                            <p className="mt-1 text-xs text-gray-500">Places a signature image. This is not a certificate-backed digital signature.</p>
+                        </div>
                     </div>
                     <form onSubmit={handleSign} className="space-y-4">
                         <div>
@@ -273,7 +276,7 @@ const SecurityTools: React.FC = () => {
                             </div>
                         </div>
                         <button type="submit" disabled={!!loading} className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-                            {loading === 'sign' ? <><RefreshCw className="w-4 h-4 animate-spin" /> Processing...</> : <><PenTool className="w-4 h-4" /> Sign PDF</>}
+                            {loading === 'sign' ? <><RefreshCw className="w-4 h-4 animate-spin" /> Processing...</> : <><PenTool className="w-4 h-4" /> Add Visual Signature</>}
                         </button>
                     </form>
                 </div>

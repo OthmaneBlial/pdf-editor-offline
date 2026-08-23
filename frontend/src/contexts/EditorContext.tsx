@@ -58,6 +58,8 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const [showTOC, setShowTOC] = useState<boolean>(false);
   const [documentMutationVersion, setDocumentMutationVersion] = useState<number>(0);
   const [toolToast, setToolToast] = useState<ToolToast | null>(null);
+  const [canUndoPageReorder, setCanUndoPageReorder] = useState(false);
+  const [canRedoPageReorder, setCanRedoPageReorder] = useState(false);
   const toastTimeoutRef = useRef<number | null>(null);
 
   const setDocument = useCallback((doc: File | null) => {
@@ -66,6 +68,8 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     setUploadedDocumentVersion(0);
     setSessionId('');
     setCurrentPage(0);
+    setCanUndoPageReorder(false);
+    setCanRedoPageReorder(false);
     if (!doc) {
       setPageCount(1);
     }
@@ -205,41 +209,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     }
   }, [sessionId, saveChanges]);
 
-  // Memoized reorder pages function
-  const reorderPages = useCallback((fromIndex: number, toIndex: number) => {
-    if (fromIndex === toIndex || !sessionId) return;
-
-    const pages = Array.from({ length: pageCount }, (_, i) => i);
-    const [movedPage] = pages.splice(fromIndex, 1);
-    pages.splice(toIndex, 0, movedPage);
-
-    // TODO: Call API to persist reorder when backend supports it
-    if (currentPage === fromIndex) {
-      setCurrentPage(toIndex);
-    } else if (fromIndex < currentPage && currentPage <= toIndex) {
-      setCurrentPage(currentPage - 1);
-    } else if (toIndex <= currentPage && currentPage < fromIndex) {
-      setCurrentPage(currentPage + 1);
-    }
-  }, [sessionId, pageCount, currentPage]);
-
-  // Memoized clear history function
-  const clearHistory = useCallback(() => {
-    if (canvas) {
-      const json = JSON.stringify(canvas.toJSON());
-      setHistory([json]);
-      setHistoryStep(0);
-    }
-  }, [canvas]);
-
-  const clearToolToast = useCallback(() => {
-    if (toastTimeoutRef.current) {
-      window.clearTimeout(toastTimeoutRef.current);
-      toastTimeoutRef.current = null;
-    }
-    setToolToast(null);
-  }, []);
-
   const reportToolResult = useCallback((
     type: 'success' | 'error',
     text: string,
@@ -256,6 +225,76 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       setToolToast(null);
       toastTimeoutRef.current = null;
     }, 5000);
+  }, []);
+
+  // Memoized reorder pages function
+  const reorderPages = useCallback(async (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex || !sessionId) return;
+
+    const pages = Array.from({ length: pageCount }, (_, i) => i);
+    const [movedPage] = pages.splice(fromIndex, 1);
+    pages.splice(toIndex, 0, movedPage);
+
+    try {
+      const response = await axios.put(
+        `${API_BASE_URL}/api/documents/${sessionId}/pages/reorder`,
+        { page_order: pages },
+      );
+      const data = getApiData<{ can_undo?: boolean; can_redo?: boolean }>(response.data);
+      setCanUndoPageReorder(Boolean(data?.can_undo));
+      setCanRedoPageReorder(Boolean(data?.can_redo));
+      if (currentPage === fromIndex) {
+        setCurrentPage(toIndex);
+      } else if (fromIndex < currentPage && currentPage <= toIndex) {
+        setCurrentPage(currentPage - 1);
+      } else if (toIndex <= currentPage && currentPage < fromIndex) {
+        setCurrentPage(currentPage + 1);
+      }
+      setDocumentMutationVersion(prev => prev + 1);
+      reportToolResult('success', 'Page order saved');
+    } catch (error) {
+      reportToolResult('error', 'Page order could not be saved');
+      throw error;
+    }
+  }, [sessionId, pageCount, currentPage, reportToolResult]);
+
+  const runPageReorderHistory = useCallback(async (direction: 'undo' | 'redo') => {
+    if (!sessionId) return;
+    const response = await axios.post(
+      `${API_BASE_URL}/api/documents/${sessionId}/pages/reorder/${direction}`,
+    );
+    const data = getApiData<{ can_undo?: boolean; can_redo?: boolean }>(response.data);
+    setCanUndoPageReorder(Boolean(data?.can_undo));
+    setCanRedoPageReorder(Boolean(data?.can_redo));
+    setCurrentPage(0);
+    setDocumentMutationVersion(prev => prev + 1);
+    reportToolResult('success', direction === 'undo' ? 'Page reorder undone' : 'Page reorder restored');
+  }, [sessionId, reportToolResult]);
+
+  const undoPageReorder = useCallback(
+    () => runPageReorderHistory('undo'),
+    [runPageReorderHistory],
+  );
+  const redoPageReorder = useCallback(
+    () => runPageReorderHistory('redo'),
+    [runPageReorderHistory],
+  );
+
+  // Memoized clear history function
+  const clearHistory = useCallback(() => {
+    if (canvas) {
+      const json = JSON.stringify(canvas.toJSON());
+      setHistory([json]);
+      setHistoryStep(0);
+    }
+  }, [canvas]);
+
+  const clearToolToast = useCallback(() => {
+    if (toastTimeoutRef.current) {
+      window.clearTimeout(toastTimeoutRef.current);
+      toastTimeoutRef.current = null;
+    }
+    setToolToast(null);
   }, []);
 
   // Advanced Editing actions
@@ -368,6 +407,10 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     saveChanges,
     exportPDF,
     reorderPages,
+    undoPageReorder,
+    redoPageReorder,
+    canUndoPageReorder,
+    canRedoPageReorder,
     clearHistory,
     // Advanced Editing
     toc,
@@ -416,6 +459,10 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     saveChanges,
     exportPDF,
     reorderPages,
+    undoPageReorder,
+    redoPageReorder,
+    canUndoPageReorder,
+    canRedoPageReorder,
     clearHistory,
     toc,
     fonts,

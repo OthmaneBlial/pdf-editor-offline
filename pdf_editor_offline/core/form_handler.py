@@ -23,6 +23,10 @@ class FormHandler:
                         "name": widget.field_name,
                         "value": widget.field_value,
                         "type": widget.field_type_string,
+                        "flags": widget.field_flags,
+                        "read_only": bool(
+                            widget.field_flags & fitz.PDF_FIELD_IS_READ_ONLY
+                        ),
                         "rect": [
                             widget.rect.x0,
                             widget.rect.y0,
@@ -32,6 +36,19 @@ class FormHandler:
                     }
                 )
         return fields
+
+    def has_xfa(self) -> bool:
+        """Return whether the PDF declares an XFA form packet."""
+        try:
+            catalog = self.document.pdf_catalog()
+            kind, value = self.document.xref_get_key(catalog, "AcroForm")
+            if kind != "xref":
+                return False
+            form_xref = int(value.split()[0])
+            xfa_kind, _ = self.document.xref_get_key(form_xref, "XFA")
+            return xfa_kind != "null"
+        except (AttributeError, TypeError, ValueError, RuntimeError):
+            return False
 
     def fill_form_field(self, field_name: str, value: str):
         """
@@ -48,16 +65,23 @@ class FormHandler:
         if not found:
             raise InvalidOperationError(f"Field '{field_name}' not found")
 
-    def flatten_form(self):
+    def flatten_form(self) -> int:
         """
         Flatten all form fields, making them part of the page content.
         """
+        flattened = 0
         for page in self.document:
-            for widget in page.widgets():
-                # This is a simplification; PyMuPDF doesn't have a direct "flatten" for widgets
-                # in the same way some other libs do, but we can try to make them read-only or
-                # just leave them as is if 'flatten' implies making them non-editable.
-                # A true flatten often involves drawing the appearance stream to the page and removing the widget.
-                # For now, let's just make them read-only.
-                widget.field_flags |= fitz.pdf.PDF_FIELD_IS_READ_ONLY
+            widgets = list(page.widgets() or [])
+            for widget in widgets:
                 widget.update()
+                rect = fitz.Rect(widget.rect)
+                pixmap = page.get_pixmap(
+                    matrix=fitz.Matrix(2, 2),
+                    clip=rect,
+                    annots=True,
+                    alpha=False,
+                )
+                page.delete_widget(widget)
+                page.insert_image(rect, pixmap=pixmap, overlay=True)
+                flattened += 1
+        return flattened

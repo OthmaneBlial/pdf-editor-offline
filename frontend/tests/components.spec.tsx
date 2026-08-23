@@ -12,6 +12,10 @@ vi.mock('../src/contexts/EditorContext', () => ({
   useEditor: () => useEditorMock(),
 }));
 
+vi.mock('../src/components/RuntimeHealthPanel', () => ({
+  default: () => <button type="button">Runtime status</button>,
+}));
+
 describe('FileUpload', () => {
   beforeEach(() => {
     useEditorMock.mockReturnValue({

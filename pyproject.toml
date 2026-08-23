@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pdf-editor-offline"
-version = "2.0.1"
+version = "2.1.0"
 description = "Offline PDF editing, conversion, privacy cleanup, and CLI automation"
 readme = "README.md"
 license = "MIT"
@@ -65,6 +65,9 @@ dev = [
     "pytest",
     "pytest-cov",
     "httpx",
+]
+e2e = [
+    "playwright>=1.52,<2",
 ]
 
 [project.urls]

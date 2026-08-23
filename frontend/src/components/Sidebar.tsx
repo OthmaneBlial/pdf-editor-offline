@@ -113,7 +113,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           </div>
           <div>
             <h1 className="text-lg font-bold text-white tracking-tight">PDF Editor Offline</h1>
-            <p className="text-[10px] text-slate-400 font-medium">v2.0.0</p>
+            <p className="text-[10px] text-slate-400 font-medium">v2.1.0</p>
           </div>
           <button
             onClick={onMobileClose}
@@ -226,7 +226,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         )}
       </div>
 
-      {/* Comments Section */}
+      {/* Local comments section */}
       <div className="border-b border-slate-700/50">
         <button
           onClick={() => toggleSection('comments')}
@@ -238,7 +238,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         >
           <div className="flex items-center gap-2">
             <MessageSquare className="w-4 h-4" />
-            <span>Comments</span>
+            <span>Local comments</span>
           </div>
           <ChevronRight className={`w-4 h-4 transition-transform ${expandedSection === 'comments' ? 'rotate-90' : ''}`} />
         </button>
