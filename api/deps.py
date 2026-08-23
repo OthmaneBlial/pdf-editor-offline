@@ -84,6 +84,26 @@ APP_TEMP_PREFIXES = (
 sessions = {}
 
 
+def bind_session_document_services(session: Dict[str, Any], document) -> None:
+    """Rebind every document-backed service after an atomic file replacement."""
+    page_count = len(document)
+    session.update(
+        {
+            "page_count": page_count,
+            "editor": Editor(document) if page_count > 0 else None,
+            "page_manipulator": PageManipulator(document) if page_count > 0 else None,
+            "metadata_editor": MetadataEditor(document) if page_count > 0 else None,
+            "object_inspector": ObjectInspector(document) if page_count > 0 else None,
+            "text_processor": TextProcessor(document) if page_count > 0 else None,
+            "rich_text_editor": RichTextEditor(document) if page_count > 0 else None,
+            "navigation_manager": NavigationManager(document) if page_count > 0 else None,
+            "annotation_enhancer": AnnotationEnhancer(document) if page_count > 0 else None,
+            "image_processor": ImageProcessor(document) if page_count > 0 else None,
+            "form_handler": FormHandler(document) if page_count > 0 else None,
+        }
+    )
+
+
 def sanitize_filename(filename: str) -> str:
     return sanitize_pdf_filename(filename)
 
@@ -108,19 +128,10 @@ def build_session_data(
         "created_at": created_at,
         "last_modified": last_modified,
         "page_count": page_count,
-        "editor": Editor(doc) if page_count > 0 else None,
-        "page_manipulator": PageManipulator(doc) if page_count > 0 else None,
-        "metadata_editor": MetadataEditor(doc) if page_count > 0 else None,
-        "object_inspector": ObjectInspector(doc) if page_count > 0 else None,
-        "text_processor": TextProcessor(doc) if page_count > 0 else None,
-        "rich_text_editor": RichTextEditor(doc) if page_count > 0 else None,
-        "navigation_manager": NavigationManager(doc) if page_count > 0 else None,
-        "annotation_enhancer": AnnotationEnhancer(doc) if page_count > 0 else None,
-        "image_processor": ImageProcessor(doc) if page_count > 0 else None,
-        "form_handler": FormHandler(doc) if page_count > 0 else None,
         "page_reorder_undo": [],
         "page_reorder_redo": [],
     }
+    bind_session_document_services(session_data, doc)
 
     return session_data
 
@@ -295,13 +306,28 @@ def persist_session_document(session_id: str, **save_options) -> Dict[str, Any]:
     temp_path = f"{storage_path}.tmp"
     try:
         doc_manager.save_pdf(temp_path, **save_options)
+        # Windows does not allow replacing an open file. Close the source PDF
+        # after the complete temp copy exists, then atomically replace and
+        # rebind every service to the newly opened document.
+        doc_manager.close_document()
         os.replace(temp_path, storage_path)
+        doc_manager.load_pdf(storage_path)
+        bind_session_document_services(session, doc_manager.get_document())
     except Exception:
         if os.path.exists(temp_path):
             os.remove(temp_path)
+        if doc_manager.get_document() is None and os.path.exists(storage_path):
+            try:
+                doc_manager.load_pdf(storage_path)
+                bind_session_document_services(session, doc_manager.get_document())
+            except Exception as recovery_error:
+                logger.error(
+                    "Failed to recover session %s after persistence error: %s",
+                    session_id,
+                    recovery_error,
+                )
         raise
     now = datetime.now()
     session["last_modified"] = now
-    session["page_count"] = len(doc_manager.get_document())
     session_store.update_last_modified(session_id, now)
     return session
