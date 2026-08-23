@@ -205,7 +205,7 @@ Time ranges are planning estimates for a small maintainer team, not release prom
 #### Local-only proof
 
 - [ ] Add a visible “Processed on this device” indicator linked to the data-flow explanation.
-- [ ] Add automated no-egress tests that run the full workflow with external networking blocked.
+- [x] Add automated no-egress tests that run the full workflow with external networking blocked. Evidence: [backend DNS/socket guard](tests/test_no_egress_workflow.py), [real browser request blocker](tests/e2e/no_egress_smoke.py), and [reproducible CI launcher](tests/run_frontend_smoke.sh).
 - [ ] Add a local storage inspector with one-click deletion of drafts, recent-file references, temp files, and sessions.
 - [ ] Publish a reproducible network-inspection recipe for advanced users.
 - [ ] Keep application telemetry off by default; use GitHub/release aggregates and opt-in research instead.

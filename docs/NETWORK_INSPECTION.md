@@ -11,4 +11,10 @@ This check validates application behavior; it is not a substitute for reviewing 
 
 Expected result: the workflow succeeds without DNS or non-loopback HTTP requests. Fonts and compiled styles load from the application bundle. Missing optional tools are reported locally; the application does not contact a remote fallback.
 
-`tests/test_frontend_offline_assets.py` prevents remote font and Tailwind bootstrap URLs from returning. Automated no-egress tests should run the same primary workflow in an isolated CI network namespace where supported.
+Automated evidence covers both sides of the local boundary:
+
+- `tests/test_no_egress_workflow.py` blocks non-loopback socket connections and external DNS inside the backend process while Redact & Prove and Sanitize & Share complete, including report downloads.
+- `tests/e2e/no_egress_smoke.py` aborts every browser request whose hostname is not loopback while the real Sanitize & Share UI uploads, previews, applies, reopens, and exposes its output.
+- `tests/test_frontend_offline_assets.py` rejects remote font, stylesheet, and Tailwind bootstrap URLs in the built frontend.
+
+CI runs the browser proof through `tests/run_frontend_smoke.sh`. The manual firewall recipe above remains useful as an independent operating-system-level check because an in-process test cannot prove the behavior of every future native dependency.
