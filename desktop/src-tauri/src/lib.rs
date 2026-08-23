@@ -1,16 +1,14 @@
 use serde::{Deserialize, Serialize};
 use std::{
     fs,
+    io::{BufRead, BufReader},
     net::{SocketAddr, TcpStream},
     path::{Path, PathBuf},
+    process::{Child, Command, Stdio},
     sync::Mutex,
     time::{Duration, Instant},
 };
 use tauri::{Manager, RunEvent, State};
-use tauri_plugin_shell::{
-    process::{CommandChild, CommandEvent},
-    ShellExt,
-};
 
 const SIDECAR_NAME: &str = "pdf-editor-offline-api";
 
@@ -18,7 +16,7 @@ struct DesktopState {
     api_base_url: String,
     api_token: String,
     recent_files_path: PathBuf,
-    sidecar: Mutex<Option<CommandChild>>,
+    sidecar: Mutex<Option<Child>>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -76,7 +74,7 @@ fn wait_for_backend(port: u16) -> Result<(), String> {
     Err("Timed out waiting for the PDF Editor Offline API sidecar".to_string())
 }
 
-fn start_sidecar(app: &tauri::App, port: u16, api_token: &str) -> Result<CommandChild, String> {
+fn start_sidecar(app: &tauri::App, port: u16, api_token: &str) -> Result<Child, String> {
     let app_data_dir = app
         .path()
         .app_data_dir()
@@ -91,10 +89,26 @@ fn start_sidecar(app: &tauri::App, port: u16, api_token: &str) -> Result<Command
     fs::create_dir_all(&storage_dir).map_err(|error| error.to_string())?;
     fs::create_dir_all(&temp_dir).map_err(|error| error.to_string())?;
 
-    let command = app
-        .shell()
-        .sidecar(SIDECAR_NAME)
+    let executable_name = if cfg!(target_os = "windows") {
+        format!("{SIDECAR_NAME}.exe")
+    } else {
+        SIDECAR_NAME.to_string()
+    };
+    let executable = app
+        .path()
+        .resource_dir()
         .map_err(|error| error.to_string())?
+        .join("resources")
+        .join("sidecar")
+        .join(executable_name);
+    if !executable.is_file() {
+        return Err(format!(
+            "Bundled local API sidecar is missing: {}",
+            executable.display()
+        ));
+    }
+
+    let mut child = Command::new(executable)
         .env("PDF_EDITOR_OFFLINE_API_HOST", "127.0.0.1")
         .env("PDF_EDITOR_OFFLINE_API_PORT", port.to_string())
         .env("PDF_EDITOR_OFFLINE_API_TOKEN", api_token)
@@ -103,28 +117,26 @@ fn start_sidecar(app: &tauri::App, port: u16, api_token: &str) -> Result<Command
         .env(
             "CORS_ORIGINS",
             "http://localhost,http://127.0.0.1,http://localhost:3000,http://127.0.0.1:3000,tauri://localhost,http://tauri.localhost",
-        );
+        )
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|error| error.to_string())?;
 
-    let (mut receiver, child) = command.spawn().map_err(|error| error.to_string())?;
-    tauri::async_runtime::spawn(async move {
-        while let Some(event) = receiver.recv().await {
-            match event {
-                CommandEvent::Stdout(line) => {
-                    println!(
-                        "[pdf-editor-offline-api] {}",
-                        String::from_utf8_lossy(&line)
-                    );
-                }
-                CommandEvent::Stderr(line) => {
-                    eprintln!(
-                        "[pdf-editor-offline-api] {}",
-                        String::from_utf8_lossy(&line)
-                    );
-                }
-                _ => {}
+    if let Some(stdout) = child.stdout.take() {
+        std::thread::spawn(move || {
+            for line in BufReader::new(stdout).lines().map_while(Result::ok) {
+                println!("[pdf-editor-offline-api] {line}");
             }
-        }
-    });
+        });
+    }
+    if let Some(stderr) = child.stderr.take() {
+        std::thread::spawn(move || {
+            for line in BufReader::new(stderr).lines().map_while(Result::ok) {
+                eprintln!("[pdf-editor-offline-api] {line}");
+            }
+        });
+    }
 
     Ok(child)
 }
@@ -205,7 +217,6 @@ pub fn run() {
     let api_token = uuid::Uuid::new_v4().simple().to_string();
 
     let app = tauri::Builder::default()
-        .plugin(tauri_plugin_shell::init())
         .setup({
             let api_base_url = api_base_url.clone();
             let api_token = api_token.clone();
@@ -243,8 +254,10 @@ pub fn run() {
     app.run(|app_handle, event| {
         if let RunEvent::ExitRequested { .. } = event {
             if let Some(state) = app_handle.try_state::<DesktopState>() {
-                if let Some(child) = state.sidecar.lock().expect("sidecar lock poisoned").take() {
+                if let Some(mut child) = state.sidecar.lock().expect("sidecar lock poisoned").take()
+                {
                     let _ = child.kill();
+                    let _ = child.wait();
                 }
             }
         }

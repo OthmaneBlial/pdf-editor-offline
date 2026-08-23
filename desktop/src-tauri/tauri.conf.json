@@ -24,10 +24,32 @@
     }
   },
   "bundle": {
-    "active": false,
+    "active": true,
     "targets": "all",
-    "externalBin": [
-      "bin/pdf-editor-offline-api"
-    ]
+    "category": "Productivity",
+    "shortDescription": "Private PDF editing that stays on your device.",
+    "longDescription": "Edit, organize, redact, fill, sign, and sanitize PDFs with a local authenticated processing engine and no document telemetry.",
+    "copyright": "Copyright © 2026 Othmane BLIAL",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": [
+      "resources/sidecar/**/*"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "11.0"
+    },
+    "windows": {
+      "webviewInstallMode": {
+        "type": "offlineInstaller"
+      },
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    }
   }
 }

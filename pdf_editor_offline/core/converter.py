@@ -2,8 +2,6 @@ import os
 import shutil
 from typing import List
 
-from pdf2docx import Converter
-
 from .exceptions import MissingDependencyError
 
 
@@ -21,6 +19,11 @@ class PDFConverter:
         """
         Convert PDF to Word (DOCX).
         """
+        # pdf2docx imports OpenCV and its native media stack. Keep it lazy so
+        # opening the desktop editor does not pay that cost unless this
+        # conversion is actually requested.
+        from pdf2docx import Converter
+
         cv = Converter(pdf_path)
         cv.convert(output_path, start=0, end=None)
         cv.close()

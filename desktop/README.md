@@ -39,17 +39,46 @@ npm run build:sidecar
 npm run build
 ```
 
-Create a portable Ubuntu x86_64 test archive:
+The sidecar build creates a native PyInstaller directory under
+`src-tauri/resources/sidecar/`. Tauri embeds that directory in the installed
+application so users do not need Python. The build is deliberately native: run
+it once on each target OS/architecture rather than cross-compiling a Python
+runtime.
+
+Exercise the frozen sidecar before packaging:
 
 ```bash
-bash scripts/package-ubuntu.sh
+npm run smoke:sidecar -- \
+  --sidecar src-tauri/resources/sidecar/pdf-editor-offline-api \
+  --sample ../examples/sample_pdfs/demo-redaction.pdf
 ```
 
-Installers and code signing are intentionally deferred. This milestone creates a complete source-buildable desktop app for Windows, macOS, and Linux.
+The smoke test starts the standalone executable with a loopback token, uploads
+the synthetic redaction fixture, removes every `SECRET_TOKEN`, exports, reopens,
+and proves that the token is no longer extractable.
+
+Build one installer family explicitly:
+
+```bash
+# macOS
+APPLE_SIGNING_IDENTITY=- npm run build -- --bundles dmg
+
+# Linux
+npm run build -- --bundles deb,appimage
+
+# Windows
+npm run build -- --bundles nsis
+```
+
+Production macOS and Windows releases require the signing credentials described
+in [`../docs/DESKTOP_DISTRIBUTION.md`](../docs/DESKTOP_DISTRIBUTION.md). CI test
+artifacts use ad hoc signing on macOS and are never presented as notarized
+downloads.
 
 ## Notes
 
-- The sidecar build creates `desktop/.venv-sidecar` and installs the project plus PyInstaller there.
+- The sidecar build creates `desktop/.venv-sidecar` and installs the project plus a pinned PyInstaller there.
+- Heavy PDF-to-Word/OpenCV modules load only when that conversion is requested, keeping startup responsive.
 - Desktop session files are stored in the OS app data directory.
 - Desktop temp files are stored in the OS app cache directory.
 - The web app remains available through the existing root/frontend workflows.

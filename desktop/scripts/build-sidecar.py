@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import argparse
 import shutil
 import subprocess
 import sys
@@ -14,9 +15,10 @@ DESKTOP_DIR = Path(__file__).resolve().parents[1]
 REPO_ROOT = DESKTOP_DIR.parent
 ENTRYPOINT = DESKTOP_DIR / "src-python" / "backend_sidecar.py"
 BUILD_ROOT = DESKTOP_DIR / "build" / "sidecar"
-BIN_DIR = DESKTOP_DIR / "src-tauri" / "bin"
 BASE_NAME = "pdf-editor-offline-api"
 VENV_DIR = DESKTOP_DIR / ".venv-sidecar"
+PYINSTALLER_VERSION = "6.22.2"
+RESOURCE_DIR = DESKTOP_DIR / "src-tauri" / "resources" / "sidecar"
 
 
 def venv_python() -> Path:
@@ -51,7 +53,16 @@ def ensure_build_environment() -> Path:
         ]
     )
     subprocess.check_call(
-        [str(python), "-m", "pip", "install", "-e", str(REPO_ROOT), "pyinstaller"]
+        [
+            str(python),
+            "-m",
+            "pip",
+            "install",
+            "--disable-pip-version-check",
+            "-e",
+            str(REPO_ROOT),
+            f"pyinstaller=={PYINSTALLER_VERSION}",
+        ]
     )
     return python
 
@@ -68,7 +79,9 @@ def run_pyinstaller() -> Path:
             "PyInstaller",
             "--noconfirm",
             "--clean",
-            "--onefile",
+            "--onedir",
+            "--contents-directory",
+            "_internal",
             "--name",
             BASE_NAME,
             "--collect-submodules",
@@ -96,22 +109,41 @@ def run_pyinstaller() -> Path:
     )
 
     suffix = ".exe" if os.name == "nt" else ""
-    artifact = BUILD_ROOT / "dist" / f"{BASE_NAME}{suffix}"
-    if not artifact.exists():
-        raise FileNotFoundError(f"PyInstaller did not create {artifact}")
-    return artifact
+    artifact_dir = BUILD_ROOT / "dist" / BASE_NAME
+    executable = artifact_dir / f"{BASE_NAME}{suffix}"
+    if not executable.exists():
+        raise FileNotFoundError(f"PyInstaller did not create {executable}")
+    return artifact_dir
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Build the current-platform Python API sidecar for Tauri"
+    )
+    parser.add_argument(
+        "--target",
+        help="Rust target triple. Defaults to the host triple reported by rustc.",
+    )
+    return parser.parse_args()
 
 
 def main() -> None:
-    target = rust_host_triple()
-    artifact = run_pyinstaller()
-    BIN_DIR.mkdir(parents=True, exist_ok=True)
-
+    args = parse_args()
+    target = args.target or rust_host_triple()
+    host = rust_host_triple()
+    if target != host:
+        raise RuntimeError(
+            "PyInstaller sidecars must be built natively: "
+            f"requested {target}, current host is {host}"
+        )
+    artifact_dir = run_pyinstaller()
     suffix = ".exe" if os.name == "nt" else ""
-    destination = BIN_DIR / f"{BASE_NAME}-{target}{suffix}"
-    shutil.copy2(artifact, destination)
-    destination.chmod(destination.stat().st_mode | 0o111)
-    print(f"Built sidecar: {destination}")
+    if RESOURCE_DIR.exists():
+        shutil.rmtree(RESOURCE_DIR)
+    shutil.copytree(artifact_dir, RESOURCE_DIR)
+    executable = RESOURCE_DIR / f"{BASE_NAME}{suffix}"
+    executable.chmod(executable.stat().st_mode | 0o111)
+    print(f"Built native sidecar for {target}: {executable}")
 
 
 if __name__ == "__main__":

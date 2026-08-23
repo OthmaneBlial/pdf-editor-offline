@@ -8,9 +8,10 @@
     "dev": "tauri dev",
     "build": "tauri build",
     "build:frontend": "npm --prefix ../frontend run build",
-    "build:sidecar": "python scripts/build-sidecar.py"
+    "build:sidecar": "node scripts/run-python.mjs scripts/build-sidecar.py",
+    "smoke:sidecar": "node scripts/run-python.mjs scripts/smoke-sidecar.py"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.11.1"
+    "@tauri-apps/cli": "^2.11.4"
   }
 }

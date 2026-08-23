@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">PDF Editor Offline</title>
+  <desc id="desc">A private document with a local verification shield.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#071a16"/>
+      <stop offset="1" stop-color="#0d3028"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f8fffc"/>
+      <stop offset="1" stop-color="#ccefe2"/>
+    </linearGradient>
+    <linearGradient id="shield" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6ee7b7"/>
+      <stop offset="1" stop-color="#14b8a6"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="34" stdDeviation="32" flood-color="#020b09" flood-opacity=".45"/>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" rx="224" fill="url(#background)"/>
+  <circle cx="806" cy="192" r="210" fill="#34d399" opacity=".08"/>
+  <circle cx="208" cy="862" r="250" fill="#22d3ee" opacity=".06"/>
+  <g filter="url(#shadow)">
+    <path d="M268 174h324l164 164v444c0 55-45 100-100 100H268c-55 0-100-45-100-100V274c0-55 45-100 100-100Z" fill="url(#paper)"/>
+    <path d="M592 174v112c0 29 23 52 52 52h112Z" fill="#9ddfca"/>
+  </g>
+  <rect x="280" y="396" width="342" height="42" rx="21" fill="#123d34" opacity=".9"/>
+  <rect x="280" y="485" width="276" height="30" rx="15" fill="#2d6a5b" opacity=".62"/>
+  <rect x="280" y="548" width="230" height="30" rx="15" fill="#2d6a5b" opacity=".45"/>
+  <path d="M699 518c76 0 132 31 132 31v113c0 101-64 158-132 188-68-30-132-87-132-188V549s56-31 132-31Z" fill="url(#shield)" stroke="#e6fff6" stroke-width="20"/>
+  <path d="m647 679 34 34 74-82" fill="none" stroke="#06221b" stroke-linecap="round" stroke-linejoin="round" stroke-width="34"/>
+</svg>

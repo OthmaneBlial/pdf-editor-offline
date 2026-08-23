@@ -2,6 +2,8 @@ import json
 import re
 from pathlib import Path
 
+from PIL import Image
+
 from pdf_editor_offline import __version__
 
 
@@ -45,3 +47,42 @@ def test_desktop_source_mode_has_a_restrictive_content_security_policy():
     assert "object-src 'none'" in csp
     assert "frame-ancestors 'none'" in csp
     assert "https:" not in csp
+
+
+def test_desktop_bundles_the_native_sidecar_and_platform_icons():
+    config = json.loads(
+        (ROOT / "desktop/src-tauri/tauri.conf.json").read_text(encoding="utf-8")
+    )
+    bundle = config["bundle"]
+
+    assert bundle["active"] is True
+    assert bundle["resources"] == ["resources/sidecar/**/*"]
+    assert "externalBin" not in bundle
+    assert bundle["windows"]["nsis"]["installMode"] == "currentUser"
+    assert bundle["windows"]["webviewInstallMode"]["type"] == "offlineInstaller"
+    assert bundle["macOS"]["minimumSystemVersion"] == "11.0"
+
+    for icon_path in bundle["icon"]:
+        path = ROOT / "desktop/src-tauri" / icon_path
+        assert path.is_file(), f"Missing installer icon: {icon_path}"
+
+    with Image.open(ROOT / "desktop/src-tauri/icons/icon.png") as icon:
+        assert icon.width == icon.height
+        assert icon.width >= 512
+
+
+def test_sidecar_build_is_native_pinned_and_uses_installed_resources():
+    build_script = (ROOT / "desktop/scripts/build-sidecar.py").read_text(
+        encoding="utf-8"
+    )
+    rust_launcher = (ROOT / "desktop/src-tauri/src/lib.rs").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'PYINSTALLER_VERSION = "6.22.2"' in build_script
+    assert '"--onedir"' in build_script
+    assert '"--contents-directory"' in build_script
+    assert "requested {target}, current host is {host}" in build_script
+    assert '.join("resources")' in rust_launcher
+    assert '.join("sidecar")' in rust_launcher
+    assert "Command::new(executable)" in rust_launcher
