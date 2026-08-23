@@ -30,6 +30,8 @@ from api.deps import (
     create_session,
     delete_session,
     get_session,
+    get_local_storage_inventory,
+    delete_all_local_data,
     persist_session_document,
     redaction_report_paths,
     sessions,
@@ -315,6 +317,12 @@ async def upload_document(file: UploadFile = File(...)):
 
 @router.post("/maintenance/cleanup", response_model=APIResponse)
 async def cleanup_maintenance(request: MaintenanceCleanupRequest):
+    if request.delete_all_app_data:
+        return APIResponse(
+            success=True,
+            message="All app-owned local workspace data deleted",
+            data=delete_all_local_data(),
+        )
     temp_stats = cleanup_temp_files(request.temp_max_age_minutes)
     session_stats = cleanup_sessions_older_than(
         request.session_max_age_hours,
@@ -325,6 +333,11 @@ async def cleanup_maintenance(request: MaintenanceCleanupRequest):
         message="Maintenance cleanup completed",
         data={**temp_stats, **session_stats},
     )
+
+
+@router.get("/maintenance/storage", response_model=APIResponse)
+async def inspect_local_storage():
+    return APIResponse(success=True, data=get_local_storage_inventory())
 
 
 @router.get("/{doc_id}", response_model=APIResponse)

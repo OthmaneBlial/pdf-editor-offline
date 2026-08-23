@@ -75,6 +75,12 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     }
   }, []);
 
+  useEffect(() => {
+    const clearCurrentDocument = () => setDocument(null);
+    window.addEventListener('pdf-local-data-cleared', clearCurrentDocument);
+    return () => window.removeEventListener('pdf-local-data-cleared', clearCurrentDocument);
+  }, [setDocument]);
+
   // Limit history size to prevent memory issues
   useEffect(() => {
     if (history.length > MAX_HISTORY_SIZE) {

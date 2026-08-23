@@ -10,6 +10,7 @@ import {
   X,
 } from 'lucide-react';
 import { API_BASE_URL } from '../lib/apiClient';
+import { clearRecentFiles, loadRecentFiles } from '../services/recentFiles';
 
 interface ToolCapability {
   available: boolean;
@@ -33,9 +34,20 @@ interface RuntimeCapabilities {
   storage: {
     session_bytes: number;
     temporary_bytes: number;
-    session_location: string;
-    temporary_location: string;
+    scope: string;
   };
+}
+
+interface StorageInventory {
+  session_files: number;
+  active_sessions: number;
+  session_bytes: number;
+  report_files: number;
+  report_bytes: number;
+  draft_files: number;
+  draft_bytes: number;
+  temporary_files: number;
+  temporary_bytes: number;
 }
 
 const formatBytes = (bytes: number) => {
@@ -55,6 +67,11 @@ export default function RuntimeHealthPanel() {
   const [capabilities, setCapabilities] = useState<RuntimeCapabilities | null>(null);
   const [error, setError] = useState(false);
   const [cleaning, setCleaning] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteConfirmed, setDeleteConfirmed] = useState(false);
+  const [inventory, setInventory] = useState<StorageInventory | null>(null);
+  const [recentReferences, setRecentReferences] = useState(0);
+  const [storageMessage, setStorageMessage] = useState('');
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
 
@@ -85,6 +102,23 @@ export default function RuntimeHealthPanel() {
     return () => window.removeEventListener('keydown', closeOnEscape);
   }, [open]);
 
+  const loadStorageInventory = async () => {
+    try {
+      const [response, recentFiles] = await Promise.all([
+        axios.get(`${API_BASE_URL}/api/documents/maintenance/storage`),
+        loadRecentFiles(),
+      ]);
+      setInventory(response.data?.data ?? null);
+      setRecentReferences(recentFiles.length);
+    } catch {
+      setStorageMessage('Local storage inventory could not be refreshed.');
+    }
+  };
+
+  useEffect(() => {
+    if (open) void loadStorageInventory();
+  }, [open]);
+
   const cleanup = async () => {
     setCleaning(true);
     try {
@@ -93,9 +127,42 @@ export default function RuntimeHealthPanel() {
         session_max_age_hours: 24,
         include_active_sessions: false,
       });
-      await loadCapabilities();
+      await Promise.all([loadCapabilities(), loadStorageInventory()]);
+      setStorageMessage('Stale app-owned files were cleaned.');
     } finally {
       setCleaning(false);
+    }
+  };
+
+  const deleteAllLocalData = async () => {
+    if (!deleteConfirmed) return;
+    setDeleting(true);
+    setStorageMessage('');
+    try {
+      await axios.post(`${API_BASE_URL}/api/documents/maintenance/cleanup`, {
+        delete_all_app_data: true,
+      });
+      await clearRecentFiles();
+      window.dispatchEvent(new CustomEvent('pdf-local-data-cleared'));
+      setInventory({
+        session_files: 0,
+        active_sessions: 0,
+        session_bytes: 0,
+        report_files: 0,
+        report_bytes: 0,
+        draft_files: 0,
+        draft_bytes: 0,
+        temporary_files: 0,
+        temporary_bytes: 0,
+      });
+      setRecentReferences(0);
+      setDeleteConfirmed(false);
+      setStorageMessage('All app-owned documents, reports, drafts, temporary files, and recent references were deleted.');
+      await loadCapabilities();
+    } catch {
+      setStorageMessage('Some local data could not be deleted. Review the inventory and retry.');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -119,7 +186,7 @@ export default function RuntimeHealthPanel() {
             aria-modal="true"
             aria-labelledby="runtime-title"
             onMouseDown={(event) => event.stopPropagation()}
-            className="w-full max-w-2xl overflow-hidden rounded-[1.75rem] border border-emerald-400/15 bg-[#091510] text-slate-100 shadow-[0_30px_100px_rgba(0,0,0,.55)]"
+            className="max-h-[90dvh] w-full max-w-2xl overflow-y-auto rounded-[1.75rem] border border-emerald-400/15 bg-[#091510] text-slate-100 shadow-[0_30px_100px_rgba(0,0,0,.55)]"
           >
             <header className="relative overflow-hidden border-b border-white/10 px-6 py-6">
               <div className="absolute inset-0 opacity-40 [background-image:radial-gradient(circle_at_80%_0%,rgba(52,211,153,.35),transparent_45%)]" />
@@ -163,12 +230,25 @@ export default function RuntimeHealthPanel() {
                       <div className="flex justify-between gap-4"><dt className="text-slate-500">API token</dt><dd>{capabilities.network.api_auth_required ? 'Required' : 'Development mode'}</dd></div>
                       <div className="flex justify-between gap-4"><dt className="text-slate-500">Telemetry</dt><dd>{capabilities.network.telemetry ? 'Enabled' : 'Off'}</dd></div>
                     </dl>
+                    <p className="mt-4 rounded-xl border border-emerald-300/10 bg-emerald-300/5 px-3 py-2 font-mono text-[10px] leading-5 text-emerald-100/70">Workspace → token-protected loopback → local API → app-owned storage</p>
                   </div>
 
                   <div className="rounded-2xl border border-white/8 bg-black/20 p-4">
                     <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[.16em] text-cyan-300"><HardDrive className="h-4 w-4" /> Local storage</div>
-                    <p className="mt-3 text-sm text-slate-300">{formatBytes(capabilities.storage.session_bytes + capabilities.storage.temporary_bytes)} in app-owned sessions and temporary files.</p>
+                    <p className="mt-3 text-sm text-slate-300">{formatBytes(capabilities.storage.session_bytes + capabilities.storage.temporary_bytes)} in app-owned local storage.</p>
+                    {inventory && (
+                      <dl className="mt-4 space-y-2 border-t border-white/8 pt-3 text-[11px]">
+                        <div className="flex justify-between gap-3"><dt className="text-slate-500">Session PDFs</dt><dd>{inventory.session_files} · {formatBytes(inventory.session_bytes)}</dd></div>
+                        <div className="flex justify-between gap-3"><dt className="text-slate-500">Audit reports</dt><dd>{inventory.report_files} · {formatBytes(inventory.report_bytes)}</dd></div>
+                        <div className="flex justify-between gap-3"><dt className="text-slate-500">Drafts / recovery</dt><dd>{inventory.draft_files} · {formatBytes(inventory.draft_bytes)}</dd></div>
+                        <div className="flex justify-between gap-3"><dt className="text-slate-500">Temporary outputs</dt><dd>{inventory.temporary_files} · {formatBytes(inventory.temporary_bytes)}</dd></div>
+                        <div className="flex justify-between gap-3"><dt className="text-slate-500">Recent references</dt><dd>{recentReferences}</dd></div>
+                      </dl>
+                    )}
                     <button type="button" onClick={() => void cleanup()} disabled={cleaning} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs font-semibold transition hover:bg-white/10 disabled:opacity-50"><Trash2 className="h-4 w-4" /> {cleaning ? 'Cleaning…' : 'Clean stale local data'}</button>
+                    <label className="mt-3 flex items-start gap-2 rounded-xl border border-rose-300/10 bg-rose-300/5 p-3 text-[10px] leading-4 text-rose-100/70"><input type="checkbox" checked={deleteConfirmed} onChange={(event) => setDeleteConfirmed(event.target.checked)} className="mt-0.5 accent-rose-400" /><span>Close current documents and delete all app-owned sessions, reports, drafts, temporary files, and recent references.</span></label>
+                    <button type="button" onClick={() => void deleteAllLocalData()} disabled={!deleteConfirmed || deleting} className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-rose-400/25 bg-rose-400/10 px-3 py-2.5 text-xs font-semibold text-rose-200 transition hover:bg-rose-400/20 disabled:cursor-not-allowed disabled:opacity-35"><Trash2 className="h-4 w-4" /> {deleting ? 'Deleting all local data…' : 'Delete all local workspace data'}</button>
+                    {storageMessage && <p className="mt-3 text-[10px] leading-4 text-slate-400" role="status" aria-live="polite">{storageMessage}</p>}
                   </div>
 
                   <p className="text-[11px] leading-5 text-slate-600">Version {capabilities.version} · Python {capabilities.runtime.python} · {capabilities.runtime.platform}/{capabilities.runtime.architecture}</p>

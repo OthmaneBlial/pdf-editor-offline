@@ -103,8 +103,7 @@ def get_runtime_capabilities() -> dict[str, Any]:
         "storage": {
             "session_bytes": directory_size(storage_dir),
             "temporary_bytes": directory_size(temp_dir),
-            "session_location": str(storage_dir),
-            "temporary_location": str(temp_dir),
+            "scope": "app-owned-local-storage",
         },
         "ready": True,
         "all_optional_tools_available": all(

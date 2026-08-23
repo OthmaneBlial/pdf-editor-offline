@@ -97,6 +97,7 @@ class MaintenanceCleanupRequest(BaseModel):
     temp_max_age_minutes: int = Field(default=60, ge=0, le=24 * 60)
     session_max_age_hours: int = Field(default=24, ge=1, le=7 * 24)
     include_active_sessions: bool = False
+    delete_all_app_data: bool = False
 
 
 # Page Manipulation Models

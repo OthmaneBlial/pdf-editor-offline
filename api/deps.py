@@ -36,6 +36,7 @@ SESSION_TTL_HOURS = int(os.getenv("SESSION_TTL_HOURS", "24"))
 APP_TEMP_PREFIXES = (
     "annotation_audio_",
     "annotation_file_",
+    "autosave_",
     "auto_merge_",
     "batch_",
     "cmp_",
@@ -43,6 +44,7 @@ APP_TEMP_PREFIXES = (
     "cmp2_",
     "compressed_",
     "conv_",
+    "draft_",
     "e2p_",
     "extracted_",
     "h2p_",
@@ -67,6 +69,7 @@ APP_TEMP_PREFIXES = (
     "privacy_clean_",
     "pro_",
     "redact_prove_",
+    "recovery_",
     "rep_",
     "rot_",
     "scan_",
@@ -300,6 +303,81 @@ def cleanup_temp_files(max_age_minutes: int = 60) -> Dict[str, int]:
         "temp_files_removed": removed,
         "temp_bytes_removed": bytes_removed,
         "temp_cleanup_failures": failed,
+    }
+
+
+def get_local_storage_inventory() -> Dict[str, int]:
+    """Return counts and byte totals only; never expose filenames or paths."""
+    records = session_store.list_all()
+    session_bytes = 0
+    report_files = 0
+    report_bytes = 0
+    for record in records:
+        try:
+            session_bytes += os.path.getsize(record.storage_path)
+        except OSError:
+            pass
+        for sidecar in session_sidecar_paths(record.storage_path):
+            try:
+                report_bytes += os.path.getsize(sidecar)
+                report_files += 1
+            except OSError:
+                pass
+
+    temporary_files = 0
+    temporary_bytes = 0
+    draft_files = 0
+    draft_bytes = 0
+    draft_prefixes = ("autosave_", "draft_", "recovery_")
+    try:
+        entries = list(os.scandir(TEMP_DIR))
+    except OSError:
+        entries = []
+    for entry in entries:
+        if not entry.is_file() or not entry.name.startswith(APP_TEMP_PREFIXES):
+            continue
+        try:
+            size = entry.stat().st_size
+        except OSError:
+            continue
+        if entry.name.startswith(draft_prefixes):
+            draft_files += 1
+            draft_bytes += size
+        else:
+            temporary_files += 1
+            temporary_bytes += size
+
+    return {
+        "session_files": len(records),
+        "active_sessions": len(sessions),
+        "session_bytes": session_bytes,
+        "report_files": report_files,
+        "report_bytes": report_bytes,
+        "draft_files": draft_files,
+        "draft_bytes": draft_bytes,
+        "temporary_files": temporary_files,
+        "temporary_bytes": temporary_bytes,
+    }
+
+
+def delete_all_local_data() -> Dict[str, int]:
+    """Delete every app-owned session, report, draft, and temporary output."""
+    session_ids = {record.session_id for record in session_store.list_all()}
+    session_ids.update(sessions)
+    sessions_removed = 0
+    failures = 0
+    for session_id in session_ids:
+        try:
+            delete_session(session_id)
+            sessions_removed += 1
+        except Exception as exc:
+            failures += 1
+            logger.warning("Failed to delete app session %s: %s", session_id, exc)
+    temp_stats = cleanup_temp_files(max_age_minutes=0)
+    return {
+        "sessions_removed": sessions_removed,
+        "session_cleanup_failures": failures,
+        **temp_stats,
     }
 
 

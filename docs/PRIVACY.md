@@ -12,14 +12,16 @@ Do not add analytics, crash uploads, remote fonts, CDNs, AI APIs, update pings, 
 
 | Data | Purpose | Lifetime | User control |
 | --- | --- | --- | --- |
-| Session PDF copy | Non-destructive editing | Session TTL or app cleanup | Delete session / clean stale local data |
+| Session PDF copy | Non-destructive editing | Session TTL or app cleanup | Delete session, clean stale data, or use **Delete all local workspace data** |
 | Temporary inputs/outputs | Conversion and export | Operation cleanup or stale-file cleanup | Runtime health panel cleanup; source mode defaults to the app-owned `pdf-editor-offline` OS temp subdirectory |
-| Recent-file record | Convenience | Until removed | Remove one or clear all |
+| Recent-file record | Convenience | Until removed | Remove one, clear all, or use **Delete all local workspace data** |
 | Desktop signature asset | Not persisted by the current image-upload flow | Current operation | Do not upload a sensitive certificate; this is visual signing only |
 | UI preferences | Theme and local username | Browser/app storage | Clear application storage |
 | Content-free redaction report | Audit evidence: fixed check names, counts, version, size, and output hash | Lifetime of the verified-copy session | Delete the verified-copy session / clean stale local data |
 
-The runtime health panel reports app-owned storage use. Diagnostics must scrub absolute paths and document-derived values.
+The runtime health panel reports only content-free counts and byte totals for session PDFs, audit reports, drafts/recovery files, temporary outputs, and recent-file references. It never exposes filenames or absolute paths. **Delete all local workspace data** requires an explicit checkbox, closes the current document, and removes every app-owned session, report, draft/recovery file, temporary output, and browser/desktop recent-file reference. Unrelated files in the operating-system temp directory are outside its scope and are preserved.
+
+The visible **Processed on this device** control opens this inspector and explains the data flow: workspace → token-protected loopback → local API → app-owned storage. Diagnostics must scrub absolute paths and document-derived values.
 
 The Redact & Prove UI submits target text in a local POST body, not a URL query, so it does not appear in the HTTP access-log URL. Review summaries and exported reports omit targets, filenames, paths, extracted text, OCR text, parser errors, and document metadata values.
 
@@ -38,4 +40,4 @@ Depending on the selected operation, the API may invoke LibreOffice, Tesseract, 
 
 ## Verification
 
-Follow [network inspection](NETWORK_INSPECTION.md) to reproduce the no-egress claim. See the [threat model](THREAT_MODEL.md) for adversarial assumptions.
+Follow the reproducible [network-inspection recipe](NETWORK_INSPECTION.md) to verify the no-egress claim manually and in CI. See the [threat model](THREAT_MODEL.md) for adversarial assumptions.

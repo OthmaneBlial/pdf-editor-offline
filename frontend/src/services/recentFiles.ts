@@ -75,10 +75,7 @@ export const removeRecentFile = async (fileName: string) => {
 };
 
 export const clearRecentFiles = async () => {
-    if (await clearDesktopRecentFiles()) {
-        return;
-    }
-
+    await clearDesktopRecentFiles();
     localStorage.removeItem(STORAGE_KEY);
 };
 

@@ -37,15 +37,33 @@ const capabilityResponse = {
     storage: {
       session_bytes: 1024,
       temporary_bytes: 512,
-      session_location: '/local/storage',
-      temporary_location: '/local/temp',
+      scope: 'app-owned-local-storage',
+    },
+  },
+};
+
+const inventoryResponse = {
+  data: {
+    success: true,
+    data: {
+      session_files: 2,
+      active_sessions: 1,
+      session_bytes: 1024,
+      report_files: 2,
+      report_bytes: 512,
+      draft_files: 1,
+      draft_bytes: 256,
+      temporary_files: 3,
+      temporary_bytes: 768,
     },
   },
 };
 
 describe('RuntimeHealthPanel', () => {
   beforeEach(() => {
-    getMock.mockReset().mockResolvedValue(capabilityResponse);
+    getMock.mockReset().mockImplementation((url: string) =>
+      Promise.resolve(url.includes('/maintenance/storage') ? inventoryResponse : capabilityResponse)
+    );
     postMock.mockReset().mockResolvedValue({ data: { success: true } });
   });
 
@@ -80,9 +98,33 @@ describe('RuntimeHealthPanel', () => {
     render(<RuntimeHealthPanel />);
     await waitFor(() => expect(getMock).toHaveBeenCalledTimes(1));
     fireEvent.click(screen.getByRole('button', { name: 'Open local runtime status' }));
+    await waitFor(() => expect(getMock).toHaveBeenCalledTimes(2));
     fireEvent.click(screen.getByRole('button', { name: 'Clean stale local data' }));
 
     await waitFor(() => expect(postMock).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(getMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(getMock).toHaveBeenCalledTimes(4));
+  });
+
+  it('inspects and deletes all app-owned local data after explicit confirmation', async () => {
+    const cleared = vi.fn();
+    window.addEventListener('pdf-local-data-cleared', cleared);
+    render(<RuntimeHealthPanel />);
+    await waitFor(() => expect(getMock).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('button', { name: 'Open local runtime status' }));
+
+    expect(await screen.findByText('Session PDFs')).toBeInTheDocument();
+    expect(screen.getByText('Drafts / recovery')).toBeInTheDocument();
+    const deleteButton = screen.getByRole('button', { name: 'Delete all local workspace data' });
+    expect(deleteButton).toBeDisabled();
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(deleteButton);
+
+    await waitFor(() => expect(postMock).toHaveBeenCalledWith(
+      expect.stringContaining('/maintenance/cleanup'),
+      { delete_all_app_data: true },
+    ));
+    await waitFor(() => expect(cleared).toHaveBeenCalledTimes(1));
+    expect(screen.getByText(/All app-owned documents/i)).toBeInTheDocument();
+    window.removeEventListener('pdf-local-data-cleared', cleared);
   });
 });
