@@ -15,6 +15,7 @@ from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_PATH = ROOT / "launch/schemas/activation-cohort.schema.json"
+REQUIRED_PLATFORMS = ("linux-x64", "macos-arm64", "macos-x64", "windows-x64")
 
 
 def summarize(payload: dict[str, Any]) -> dict[str, Any]:
@@ -56,10 +57,14 @@ def summarize(payload: dict[str, Any]) -> dict[str, Any]:
     )
     platform_counts = Counter(participant["platform"] for participant in eligible)
     success_rate = len(successes) / len(eligible) if eligible else 0.0
+    platform_coverage_passed = all(
+        platform_counts.get(platform, 0) >= 1 for platform in REQUIRED_PLATFORMS
+    )
     ready = (
         len(eligible) >= 10
         and success_rate >= 0.8
         and severity_counts.get("P0", 0) == 0
+        and platform_coverage_passed
     )
     return {
         "schema": "pdf-editor-offline.activation-cohort-summary",
@@ -84,6 +89,8 @@ def summarize(payload: dict[str, Any]) -> dict[str, Any]:
             "minimum_testers": 10,
             "minimum_success_rate": 0.8,
             "zero_p0_blockers": True,
+            "required_platforms": list(REQUIRED_PLATFORMS),
+            "platform_coverage_passed": platform_coverage_passed,
             "passed": ready,
         },
         "content_included": False,

@@ -95,7 +95,8 @@ The release also includes a deterministic sample pack containing only the three
 synthetic repository PDFs, the five-minute workflow, known limitations, and this
 verification guide. The final `SHA256SUMS` covers every installer, SBOM,
 provenance bundle, Trust Lab result/dashboard/schema archive, sample pack, and
-combined release manifest that GitHub receives.
+combined release manifest that GitHub receives. After the moderated cohort, it
+also covers the content-free activation summary that authorizes publication.
 
 No secret value, absolute user path, document content, or document-derived
 metadata may appear in these reports.
@@ -120,14 +121,21 @@ and fails before building if any production credential is absent. It then:
 4. repeats the clean-install product smoke on every platform;
 5. creates per-platform CycloneDX SBOMs and Sigstore/GitHub provenance;
 6. verifies the complete five-installer set and every evidence file;
-7. publishes stable asset names, `SHA256SUMS`, the combined release manifest,
-   SBOMs, offline provenance bundles, and human-authored notes.
+7. uploads the exact 30-day signed candidate used by the moderated cohort;
+8. waits at the protected `production-release` environment;
+9. fetches the reviewed content-free summary from
+   `launch/activation/<version>.json` on `main` and requires 10 fresh-machine
+   participants, at least 80% unassisted five-minute success, zero P0 blockers,
+   and every supported platform;
+10. adds that summary to the final manifest and checksums, reverifies installer
+    provenance, and publishes the unchanged candidate binaries with stable
+    names, SBOMs, offline provenance, and human-authored notes.
 
 Production release secrets are intentionally fail-closed. Their names and
 formats are listed in **Production signing** above. A missing or expired
 certificate, a non-HTTPS Windows timestamp endpoint, a version mismatch, a
-failed notarization, an incomplete artifact set, or an existing release all
-stop publication.
+failed notarization, an incomplete artifact set, missing environment approval,
+failed activation evidence, or an existing release all stop publication.
 
 ## Verify a downloaded release
 

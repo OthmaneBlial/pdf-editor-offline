@@ -10,6 +10,11 @@ cohort gates pass.
 
 ### Added
 
+- Added a protected two-stage production release: the workflow retains the
+  exact signed candidate for a moderated four-platform cohort, waits for
+  environment approval, validates a content-free 10-person/80%/zero-P0 summary
+  from `main`, and only then attaches that evidence and publishes the same
+  installer bytes.
 - Added a byte-reproducible synthetic 3.0 sample pack and a final release checksum gate covering every uploaded installer, SBOM, provenance bundle, Trust Lab artifact, schema archive, sample asset, and manifest.
 - Added a privacy-safe moderated activation-cohort schema/analyzer, channel-specific launch drafts, a release discussion, and a repeatable 24-hour/7-day/30-day retrospective format with explicit no-fabrication gates.
 - Added a weekly aggregate GitHub/release metrics archive with bounded `null` values when traffic permission is unavailable and no application or document telemetry.

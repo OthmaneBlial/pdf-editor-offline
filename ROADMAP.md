@@ -185,6 +185,14 @@ on 2026-08-24. The unsigned installer matrix is reproducibility evidence, not
 a substitute for the three deliberately unchecked production-signing and
 release-attachment gates above.
 
+**Human activation gate:** the [production release workflow](.github/workflows/desktop-release.yml)
+now retains the exact signed candidate for 30 days and waits at the protected
+`production-release` environment. Publication uses those same bytes only after
+the [cohort analyzer](scripts/summarize_activation_cohort.py) and final manifest
+gate accept a reviewed `launch/activation/3.0.0.json` summary with at least 10
+fresh-machine testers, 80% unassisted five-minute success, zero P0 blockers, and
+coverage of all four supported platform targets.
+
 - At least 8 of 10 fresh-machine testers install the correct artifact and finish `open sample → redact → verify → export → reopen` in under five minutes without maintainer help.
 - All release assets pass signature/checksum verification and clean-machine smoke tests.
 - No terminal is required for the primary desktop path.

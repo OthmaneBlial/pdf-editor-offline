@@ -61,6 +61,10 @@ def test_ten_person_cohort_passes_at_exact_eighty_percent_without_p0() -> None:
         "contains_document_data": False,
         "contains_free_text": False,
     }
+    summary_schema = json.loads(
+        (ROOT / "launch/schemas/activation-cohort-summary.schema.json").read_text()
+    )
+    Draft202012Validator(summary_schema).validate(summary)
 
 
 def test_cohort_stays_blocked_below_ten_eligible_testers() -> None:
@@ -87,6 +91,24 @@ def test_duplicate_anonymous_tester_ids_are_rejected() -> None:
         _module().summarize(payload)
 
 
+def test_cohort_requires_every_supported_release_platform() -> None:
+    participants = [_participant(index) for index in range(1, 11)]
+    for participant in participants:
+        participant["platform"] = "windows-x64"
+    payload = {
+        "schema": "pdf-editor-offline.activation-cohort",
+        "schema_version": "1.0.0",
+        "cohort_id": "single-platform",
+        "release_version": "3.0.0",
+        "participants": participants,
+    }
+
+    summary = _module().summarize(payload)
+
+    assert summary["broad_launch_gate"]["platform_coverage_passed"] is False
+    assert summary["broad_launch_gate"]["passed"] is False
+
+
 def test_template_and_schema_are_valid_but_do_not_invent_testers() -> None:
     schema = json.loads(
         (ROOT / "launch/schemas/activation-cohort.schema.json").read_text()
@@ -95,3 +117,18 @@ def test_template_and_schema_are_valid_but_do_not_invent_testers() -> None:
     template = json.loads((ROOT / "launch/activation-cohort.template.json").read_text())
     Draft202012Validator(schema).validate(template)
     assert template["participants"] == []
+
+    summary_schema = json.loads(
+        (ROOT / "launch/schemas/activation-cohort-summary.schema.json").read_text()
+    )
+    Draft202012Validator.check_schema(summary_schema)
+
+
+def test_production_release_waits_for_same_candidate_cohort_approval() -> None:
+    workflow = (ROOT / ".github/workflows/desktop-release.yml").read_text()
+
+    assert "name: signed-release-candidate" in workflow
+    assert "name: production-release" in workflow
+    assert "launch/activation/$RELEASE_VERSION.json?ref=main" in workflow
+    assert "release_assets.py attach-activation" in workflow
+    assert '"release/activation-cohort-summary-$RELEASE_VERSION.json"' in workflow

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://othmaneblial.github.io/pdf-editor-offline/launch/schemas/activation-cohort.schema.json",
+  "$id": "https://raw.githubusercontent.com/OthmaneBlial/pdf-editor-offline/main/launch/schemas/activation-cohort.schema.json",
   "title": "PDF Editor Offline moderated activation cohort",
   "type": "object",
   "required": ["schema", "schema_version", "cohort_id", "release_version", "participants"],

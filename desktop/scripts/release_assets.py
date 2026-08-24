@@ -46,6 +46,49 @@ SAMPLE_PACK_FILES = (
     ("docs/DESKTOP_DISTRIBUTION.md", "VERIFY_DOWNLOAD.md"),
 )
 
+REQUIRED_COHORT_PLATFORMS = frozenset(PLATFORM_SPECS)
+ACTIVATION_SUMMARY_KEYS = frozenset(
+    {
+        "schema",
+        "schema_version",
+        "cohort_id",
+        "release_version",
+        "privacy",
+        "eligible_fresh_machine_testers",
+        "successful_five_minute_workflows",
+        "success_rate",
+        "median_workflow_seconds",
+        "platform_counts",
+        "blocker_categories",
+        "blocker_severity",
+        "broad_launch_gate",
+        "content_included",
+    }
+)
+ACTIVATION_GATE_KEYS = frozenset(
+    {
+        "minimum_testers",
+        "minimum_success_rate",
+        "zero_p0_blockers",
+        "required_platforms",
+        "platform_coverage_passed",
+        "passed",
+    }
+)
+ACTIVATION_BLOCKER_CATEGORIES = frozenset(
+    {
+        "wrong_asset",
+        "signature",
+        "permissions",
+        "startup",
+        "discoverability",
+        "fidelity",
+        "performance",
+        "crash",
+        "other",
+    }
+)
+
 
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
@@ -242,6 +285,169 @@ def build_sample_pack(repository_root: Path, release_root: Path, version: str) -
     return destination
 
 
+def write_public_manifest(root: Path, manifest: dict) -> None:
+    """Persist a public manifest and checksums for every listed asset."""
+    manifest_path = root / "release-manifest.json"
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    public_paths = [root / asset["name"] for asset in manifest["assets"]]
+    public_paths.append(manifest_path)
+    checksums = "".join(
+        f"{sha256(path)}  {path.name}\n"
+        for path in sorted(public_paths, key=lambda item: item.name)
+    )
+    (root / "SHA256SUMS").write_text(checksums, encoding="utf-8")
+
+
+def verify_public_release(root: Path, expected_version: str) -> dict:
+    """Verify every manifest and checksum entry in an assembled candidate."""
+    manifest_path = root / "release-manifest.json"
+    checksums_path = root / "SHA256SUMS"
+    if not manifest_path.is_file() or not checksums_path.is_file():
+        raise FileNotFoundError("Missing public release manifest or SHA256SUMS")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if manifest.get("version") != expected_version:
+        raise ValueError("Public release manifest version mismatch")
+    assets = manifest.get("assets")
+    if not isinstance(assets, list) or not assets:
+        raise ValueError("Public release manifest has no assets")
+    names = [asset.get("name") for asset in assets]
+    if any(not isinstance(name, str) or not name for name in names):
+        raise ValueError("Public release manifest has an invalid asset name")
+    if any(Path(name).name != name or "\\" in name for name in names):
+        raise ValueError("Public release manifest asset names must be file basenames")
+    if len(names) != len(set(names)):
+        raise ValueError("Public release manifest has duplicate assets")
+
+    expected_paths = {name: root / name for name in names}
+    expected_paths[manifest_path.name] = manifest_path
+    for asset in assets:
+        path = root / asset["name"]
+        if not path.is_file():
+            raise FileNotFoundError(f"Missing public release asset: {asset['name']}")
+        if path.stat().st_size != asset.get("bytes"):
+            raise ValueError(f"Size mismatch for {asset['name']}")
+        if sha256(path) != asset.get("sha256"):
+            raise ValueError(f"SHA-256 mismatch for {asset['name']}")
+
+    checksum_entries: dict[str, str] = {}
+    for line in checksums_path.read_text(encoding="utf-8").splitlines():
+        digest, separator, name = line.partition("  ")
+        if not separator or name in checksum_entries:
+            raise ValueError("SHA256SUMS contains an invalid or duplicate entry")
+        checksum_entries[name] = digest
+    if set(checksum_entries) != set(expected_paths):
+        raise ValueError("SHA256SUMS does not exactly cover the public manifest")
+    for name, path in expected_paths.items():
+        if checksum_entries[name] != sha256(path):
+            raise ValueError(f"SHA256SUMS mismatch for {name}")
+    return manifest
+
+
+def validate_activation_summary(payload: dict, expected_version: str) -> None:
+    """Refuse invented, identifying, incomplete, or failed cohort evidence."""
+    if not isinstance(payload, dict):
+        raise ValueError("Activation cohort summary must be a JSON object")
+    privacy = payload.get("privacy", {})
+    gate = payload.get("broad_launch_gate", {})
+    platform_counts = payload.get("platform_counts", {})
+    blocker_severity = payload.get("blocker_severity", {})
+    blocker_categories = payload.get("blocker_categories", {})
+    eligible = payload.get("eligible_fresh_machine_testers")
+    successes = payload.get("successful_five_minute_workflows")
+    success_rate = payload.get("success_rate")
+    median_seconds = payload.get("median_workflow_seconds")
+    def valid_int(value: object) -> bool:
+        return isinstance(value, int) and not isinstance(value, bool)
+
+    def valid_count_map(values: object) -> bool:
+        return isinstance(values, dict) and all(
+            valid_int(value) and 1 <= value <= 20 for value in values.values()
+        )
+
+    if (
+        set(payload) != ACTIVATION_SUMMARY_KEYS
+        or payload.get("schema") != "pdf-editor-offline.activation-cohort-summary"
+        or payload.get("schema_version") != "1.0.0"
+        or payload.get("release_version") != expected_version
+        or not isinstance(payload.get("cohort_id"), str)
+        or not re.fullmatch(r"[a-z0-9][a-z0-9-]{2,63}", payload["cohort_id"])
+        or payload.get("content_included") is not False
+        or privacy
+        != {
+            "contains_tester_ids": False,
+            "contains_document_data": False,
+            "contains_free_text": False,
+        }
+        or not valid_int(eligible)
+        or not 10 <= eligible <= 20
+        or not valid_int(successes)
+        or successes < 0
+        or successes > eligible
+        or not isinstance(success_rate, (int, float))
+        or isinstance(success_rate, bool)
+        or success_rate < 0.8
+        or success_rate > 1
+        or round(successes / eligible, 4) != success_rate
+        or not (
+            median_seconds is None
+            or (
+                isinstance(median_seconds, (int, float))
+                and not isinstance(median_seconds, bool)
+                and 0 <= median_seconds <= 3600
+            )
+        )
+        or not valid_count_map(blocker_categories)
+        or not set(blocker_categories).issubset(ACTIVATION_BLOCKER_CATEGORIES)
+        or not valid_count_map(blocker_severity)
+        or not set(blocker_severity).issubset({"P0", "P1", "P2"})
+        or sum(blocker_categories.values()) != sum(blocker_severity.values())
+        or sum(blocker_categories.values()) > eligible
+        or blocker_severity.get("P0", 0) != 0
+        or not isinstance(platform_counts, dict)
+        or set(platform_counts) != REQUIRED_COHORT_PLATFORMS
+        or any(not valid_int(count) or count < 1 for count in platform_counts.values())
+        or sum(platform_counts.values()) != eligible
+        or not isinstance(gate, dict)
+        or set(gate) != ACTIVATION_GATE_KEYS
+        or gate.get("minimum_testers") != 10
+        or gate.get("minimum_success_rate") != 0.8
+        or gate.get("zero_p0_blockers") is not True
+        or gate.get("required_platforms") != sorted(REQUIRED_COHORT_PLATFORMS)
+        or gate.get("platform_coverage_passed") is not True
+        or gate.get("passed") is not True
+    ):
+        raise ValueError("Activation cohort summary did not pass its public contract")
+
+
+def attach_activation_summary(
+    root: Path, summary_path: Path, expected_version: str
+) -> dict:
+    """Attach approved cohort evidence to the exact assembled candidate."""
+    manifest = verify_public_release(root, expected_version)
+    payload = json.loads(summary_path.read_text(encoding="utf-8"))
+    validate_activation_summary(payload, expected_version)
+    name = f"activation-cohort-summary-{expected_version}.json"
+    destination = root / name
+    shutil.copy2(summary_path, destination)
+    assets = [
+        asset for asset in manifest["assets"] if asset.get("kind") != "activation_cohort"
+    ]
+    assets.append(
+        {
+            "name": name,
+            "kind": "activation_cohort",
+            "platform": "all",
+            "bytes": destination.stat().st_size,
+            "sha256": sha256(destination),
+        }
+    )
+    manifest["assets"] = sorted(assets, key=lambda item: item["name"])
+    write_public_manifest(root, manifest)
+    return manifest
+
+
 def finalize_public_release(root: Path, expected_version: str) -> dict:
     """Verify public extras and checksum exactly the assets uploaded to GitHub."""
     manifest_path = root / "release-manifest.json"
@@ -292,17 +498,7 @@ def finalize_public_release(root: Path, expected_version: str) -> dict:
         if asset.get("kind") in core_kinds
     ]
     manifest["assets"] = sorted(core_assets + extra_assets, key=lambda item: item["name"])
-    manifest_path.write_text(
-        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
-
-    public_paths = [root / asset["name"] for asset in manifest["assets"]]
-    public_paths.append(manifest_path)
-    checksums = "".join(
-        f"{sha256(path)}  {path.name}\n"
-        for path in sorted(public_paths, key=lambda item: item.name)
-    )
-    (root / "SHA256SUMS").write_text(checksums, encoding="utf-8")
+    write_public_manifest(root, manifest)
     return manifest
 
 
@@ -332,6 +528,15 @@ def main() -> int:
     finalize_parser = subparsers.add_parser("finalize")
     finalize_parser.add_argument("--root", required=True, type=Path)
     finalize_parser.add_argument("--version", required=True)
+
+    verify_public_parser = subparsers.add_parser("verify-public")
+    verify_public_parser.add_argument("--root", required=True, type=Path)
+    verify_public_parser.add_argument("--version", required=True)
+
+    activation_parser = subparsers.add_parser("attach-activation")
+    activation_parser.add_argument("--root", required=True, type=Path)
+    activation_parser.add_argument("--summary", required=True, type=Path)
+    activation_parser.add_argument("--version", required=True)
 
     tag_parser = subparsers.add_parser("verify-tag")
     tag_parser.add_argument("--tag", required=True)
@@ -363,6 +568,18 @@ def main() -> int:
         if not SEMVER.fullmatch(args.version):
             parser.error("--version must be semantic version text")
         manifest = finalize_public_release(args.root, args.version)
+        print(json.dumps(manifest, indent=2, sort_keys=True))
+    elif args.command == "verify-public":
+        if not SEMVER.fullmatch(args.version):
+            parser.error("--version must be semantic version text")
+        manifest = verify_public_release(args.root, args.version)
+        print(json.dumps(manifest, indent=2, sort_keys=True))
+    elif args.command == "attach-activation":
+        if not SEMVER.fullmatch(args.version):
+            parser.error("--version must be semantic version text")
+        manifest = attach_activation_summary(
+            args.root, args.summary, args.version
+        )
         print(json.dumps(manifest, indent=2, sort_keys=True))
     else:
         try:
