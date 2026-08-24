@@ -57,6 +57,7 @@ async def warn_before_editing_tagged_documents(request: Request, call_next):
             "images/extract",
         }
         or document_route.endswith("/text/search")
+        or document_route.endswith("/text/replace/preflight")
     )
     mutating_document = (
         request.method in {"POST", "PUT", "PATCH", "DELETE"}

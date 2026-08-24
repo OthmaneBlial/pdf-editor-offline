@@ -44,6 +44,8 @@ The hosted copies use permanent versioned URLs:
 
 - `trust-lab/schemas/v1/redaction-verification.schema.json`
 - `trust-lab/schemas/v1/privacy-inspection.schema.json`
+- `trust-lab/schemas/v1/accessibility-inspection.schema.json`
+- `trust-lab/schemas/v1/experimental-content-edit.schema.json`
 - `trust-lab/schemas/v1/change-review.schema.json`
 - `trust-lab/schemas/v1/capabilities.schema.json`
 - `trust-lab/schemas/v1/corpus-manifest.schema.json`

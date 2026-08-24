@@ -267,7 +267,7 @@ def _new_page_snapshot(session: Dict[str, Any], label: str, prefix: str) -> dict
     return {"path": path, "label": label}
 
 
-def capture_page_operation_snapshot(session_id: str, label: str) -> None:
+def capture_page_operation_snapshot(session_id: str, label: str) -> str:
     """Push a complete local snapshot so every organizer mutation is undoable."""
     session = get_session(session_id)
     snapshot = _new_page_snapshot(session, label, "page_undo")
@@ -285,6 +285,7 @@ def capture_page_operation_snapshot(session_id: str, label: str) -> None:
         except OSError:
             pass
     session["page_operation_redo"].clear()
+    return snapshot["path"]
 
 
 def discard_page_operation_snapshot(session_id: str) -> None:

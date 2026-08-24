@@ -11,6 +11,7 @@ tested where possible, but their status acknowledges a wider fidelity surface.
 | Rotate, extract, duplicate, insert | `tests/test_page_manipulation.py`, `tests/test_phase2_insert_pages.py` | Capability matrix; known limitations |
 | Persistent page reorder and undo/redo | `tests/test_page_manipulation.py::TestPageReordering` | Capability matrix |
 | Text, image, and drawing overlays | `frontend/tests/editor-context.spec.tsx`, `frontend/tests/PDFViewer.lifecycle.spec.tsx`, browser E2E | Capability matrix; overlay limitation |
+| Experimental bounded existing-text replacement | `tests/test_experimental_content_editing.py`, `tests/test_advanced_text_api.py`, `frontend/tests/AdvancedTextTools.spec.tsx` | Redaction-plus-redraw disclosure; versioned supported/refused corpus; preflight; visual/semantic fidelity thresholds; atomic rollback |
 | Visual signature image | `tests/test_forms_workflow.py::test_visual_signature_is_bounded_explicit_and_undoable`, `frontend/tests/FillSignWorkflow.spec.tsx`, `frontend/tests/signatureAssets.spec.ts` | Fill & Sign contract; privacy contract; visible non-digital warning |
 | Certificate signing and offline validation (Beta) | `tests/test_digital_signatures.py`, `frontend/tests/FillSignWorkflow.spec.tsx` | Digital-signature contract; explicit-root trust model; request-only key lifecycle |
 | OCR & Search (Beta) | `tests/test_ocr_workflow.py`, `frontend/tests/OCRSearchWorkflow.spec.tsx`, `scripts/benchmark_ocr.py` | OCR & Search contract; source-preserving/removable layer; local language-pack and scale budgets |

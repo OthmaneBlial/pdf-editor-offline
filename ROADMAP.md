@@ -294,10 +294,10 @@ Time ranges are planning estimates for a small maintainer team, not release prom
 
 #### True content editing—only with evidence
 
-- [ ] Define a bounded specification for existing-text replacement, font substitution, object transforms, and line reflow.
-- [ ] Gate each supported PDF structure with corpus tests and visual/semantic diff.
-- [ ] Report unsupported content honestly; never market overlays or DOCX round-trips as native editing.
-- [ ] Keep this experimental until complex real-world documents meet published fidelity thresholds.
+- [x] Define a bounded specification for existing-text replacement, font substitution, object transforms, and line reflow. Evidence: [Experimental Content Editing specification](docs/EXPERIMENTAL_CONTENT_EDITING.md) and machine-readable scope in [the evidence engine](pdf_editor_offline/core/content_editing.py).
+- [x] Gate each supported PDF structure with corpus tests and visual/semantic diff. Evidence: [versioned eligible/refused manifest](content_editing/corpus/v1/manifest.json), [executable corpus and atomic-promotion tests](tests/test_experimental_content_editing.py), and reuse of Trust Lab form/layer/signature fixtures.
+- [x] Report unsupported content honestly; never market overlays or DOCX round-trips as native editing. Evidence: two-step [Experimental Replace + Verify UI](frontend/src/components/tools/AdvancedTextTools.tsx), content-free rejection reasons, capability matrix, and known-limitations language.
+- [x] Keep this experimental until complex real-world documents meet published fidelity thresholds. Evidence: stable [experimental evidence schema](trust_lab/schemas/v1/experimental-content-edit.schema.json), published 8% target/0.01% non-target render thresholds, and explicit no-promotion rule in the specification.
 
 #### Architecture experiments
 

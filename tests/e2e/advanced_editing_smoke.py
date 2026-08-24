@@ -97,7 +97,7 @@ def run_smoke(
         _open_advanced_tool(page, "Text Tools")
         page.get_by_role("heading", name="Advanced Text Tools").wait_for(timeout=30000)
         page.get_by_placeholder("Text to find...").fill("Page")
-        page.get_by_placeholder("New text...").fill("Section")
+        page.get_by_placeholder("New text...").fill("Part")
         _trigger_and_wait_for_response(
             page,
             url_fragment="/text/replace",

@@ -44,6 +44,7 @@ from api.deps import (
     get_recovery_record,
     get_local_storage_inventory,
     delete_all_local_data,
+    discard_page_operation_snapshot,
     list_recovery_drafts,
     mark_session_recovery_stage,
     persist_session_document,
@@ -100,6 +101,10 @@ from pdf_editor_offline.core.change_review import inspect_document as inspect_ch
 from pdf_editor_offline.core.accessibility_inspector import (
     accessibility_preservation_warnings,
     inspect_accessibility,
+)
+from pdf_editor_offline.core.content_editing import (
+    assess_text_replacement,
+    verify_replacement_fidelity,
 )
 from pdf_editor_offline.core.redaction_verifier import RedactionVerifier
 from pdf_editor_offline.utils.canvas_helpers import (
@@ -1957,9 +1962,36 @@ async def add_header_footer(
 # --- Text Processing Endpoints ---
 
 
+@router.post(
+    "/{doc_id}/pages/{page_num}/text/replace/preflight",
+    response_model=APIResponse,
+)
+async def preflight_text_replacement(
+    doc_id: str, page_num: int, request: TextReplaceRequest
+):
+    """Check the experimental replacement scope without mutating the session."""
+    session = get_session(doc_id)
+    if request.page_num != page_num:
+        raise HTTPException(
+            status_code=400,
+            detail="Path page_num does not match request.page_num",
+        )
+    report = assess_text_replacement(
+        session["document_manager"].get_document(),
+        page_num,
+        request.search_text,
+        request.new_text,
+    )
+    return APIResponse(
+        success=True,
+        data=report,
+        message="Experimental content edit preflight completed locally",
+    )
+
+
 @router.post("/{doc_id}/pages/{page_num}/text/replace", response_model=APIResponse)
 async def replace_text(doc_id: str, page_num: int, request: TextReplaceRequest):
-    """Smart text replacement with font preservation."""
+    """Apply one experimental redaction-plus-redraw replacement after gates."""
     session = get_session(doc_id)
     text_processor = session.get("text_processor")
     if not text_processor:
@@ -1971,12 +2003,66 @@ async def replace_text(doc_id: str, page_num: int, request: TextReplaceRequest):
             detail="Path page_num does not match request.page_num",
         )
 
-    result = text_processor.replace_text_preserve_font(
-        page_num, request.search_text, request.new_text
+    assessment = assess_text_replacement(
+        session["document_manager"].get_document(),
+        page_num,
+        request.search_text,
+        request.new_text,
     )
-    persist_session_document(doc_id)
+    if assessment["status"] != "eligible":
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "unsupported_experimental_content_edit",
+                "report": assessment,
+            },
+        )
 
-    return APIResponse(success=True, data=result)
+    before_path = capture_page_operation_snapshot(doc_id, "experimental_text_replace")
+    snapshot_active = True
+    try:
+        result = text_processor.replace_text_preserve_font(
+            page_num, request.search_text, request.new_text
+        )
+        if result["count"] != 1:
+            raise InvalidOperationError("Experimental replacement count was not one")
+        persist_session_document(doc_id, recovery_stage="experimental_text_replace")
+        evidence = verify_replacement_fidelity(
+            before_path,
+            session["storage_path"],
+            page_num=page_num,
+            search_text=request.search_text,
+            new_text=request.new_text,
+        )
+        if evidence["status"] != "passed":
+            rollback_page_operation_snapshot(doc_id)
+            snapshot_active = False
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "experimental_content_edit_fidelity_gate_failed",
+                    "report": evidence,
+                },
+            )
+        discard_page_operation_snapshot(doc_id)
+        snapshot_active = False
+        return APIResponse(
+            success=True,
+            data={
+                **result,
+                "experimental": True,
+                "native_in_place_edit": False,
+                "implementation": "redaction_plus_new_content_stream",
+                "evidence": evidence,
+            },
+            message="Experimental replacement passed its fidelity gate",
+        )
+    except HTTPException:
+        raise
+    except Exception:
+        if snapshot_active:
+            rollback_page_operation_snapshot(doc_id)
+        raise
 
 
 @router.post("/{doc_id}/pages/{page_num}/text/rich", response_model=APIResponse)

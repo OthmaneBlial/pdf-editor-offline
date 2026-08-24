@@ -37,6 +37,35 @@ describe('AdvancedTextTools', () => {
       },
     });
     mockedAxios.post.mockImplementation((url: string) => {
+      if (url.includes('/text/replace/preflight')) {
+        return Promise.resolve({
+          data: {
+            success: true,
+            data: {
+              status: 'eligible',
+              maturity: 'experimental',
+              native_in_place_edit: false,
+              implementation: 'redaction_plus_new_content_stream',
+              rejection_reasons: [],
+              thresholds: {
+                maximum_matches: 1,
+                maximum_replacement_width_ratio: 1,
+                maximum_target_render_change_ratio: 0.08,
+                maximum_unchanged_page_render_ratio: 0.0001,
+              },
+              geometry: { replacement_width_ratio: 0.8 },
+            },
+          },
+        });
+      }
+      if (url.endsWith('/text/replace')) {
+        return Promise.resolve({
+          data: {
+            success: true,
+            data: { evidence: { status: 'passed' } },
+          },
+        });
+      }
       if (url.includes('/text/search')) {
         return Promise.resolve({
           data: {
@@ -78,6 +107,30 @@ describe('AdvancedTextTools', () => {
     });
 
     expect(await screen.findByText(/Match #1/i)).toBeInTheDocument();
+  });
+
+  it('preflights and labels replacement as experimental before applying it', async () => {
+    render(<AdvancedTextTools />);
+    fireEvent.change(screen.getByPlaceholderText('Text to find...'), {
+      target: { value: 'Page' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('New text...'), {
+      target: { value: 'Part' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Check experimental support/i }));
+    expect(await screen.findByText('Bounded input is eligible')).toBeInTheDocument();
+    const apply = screen.getByRole('button', { name: /Apply \+ run fidelity gates/i });
+    expect(apply).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /I understand this is experimental/i }));
+    fireEvent.click(apply);
+
+    await waitFor(() => expect(mockedAxios.post).toHaveBeenCalledWith(
+      expect.stringMatching(/\/text\/replace$/),
+      { page_num: 0, search_text: 'Page', new_text: 'Part' },
+    ));
+    expect(await screen.findByText(/passed extraction, visual, semantic/i)).toBeInTheDocument();
   });
 
   it('can send rich text through the reflow endpoint', async () => {

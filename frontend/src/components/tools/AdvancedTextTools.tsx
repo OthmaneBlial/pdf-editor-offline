@@ -9,6 +9,9 @@ import {
   Loader2,
   Save,
   Download,
+  AlertTriangle,
+  FlaskConical,
+  ShieldCheck,
 } from 'lucide-react';
 import { useEditor } from '../../contexts/EditorContext';
 import { API_BASE_URL } from '../../lib/apiClient';
@@ -29,8 +32,25 @@ interface SearchMatch {
 }
 
 interface Message {
-  type: 'success' | 'error';
+  type: 'success' | 'warning' | 'error';
   text: string;
+}
+
+interface ReplacementAssessment {
+  status: 'eligible' | 'rejected';
+  maturity: 'experimental';
+  native_in_place_edit: false;
+  implementation: 'redaction_plus_new_content_stream';
+  rejection_reasons: string[];
+  thresholds: {
+    maximum_matches: number;
+    maximum_replacement_width_ratio: number;
+    maximum_target_render_change_ratio: number;
+    maximum_unchanged_page_render_ratio: number;
+  };
+  geometry: {
+    replacement_width_ratio: number | null;
+  };
 }
 
 type RichInsertMode = 'html' | 'reflow' | 'textbox' | 'multifont';
@@ -43,6 +63,11 @@ const AdvancedTextTools: React.FC = () => {
   // Text replacement state
   const [searchText, setSearchText] = useState('');
   const [replaceText, setReplaceText] = useState('');
+  const [replacementAssessment, setReplacementAssessment] = useState<{
+    fingerprint: string;
+    report: ReplacementAssessment;
+  } | null>(null);
+  const [replacementAcknowledged, setReplacementAcknowledged] = useState(false);
 
   // Rich text state
   const [richText, setRichText] = useState('');
@@ -58,7 +83,7 @@ const AdvancedTextTools: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchMatches, setSearchMatches] = useState<SearchMatch[]>([]);
 
-  const showMessage = (type: 'success' | 'error', text: string, refreshDocument = false) => {
+  const showMessage = (type: 'success' | 'warning' | 'error', text: string, refreshDocument = false) => {
     setMessage({ type, text });
     reportToolResult(type, text, refreshDocument);
     setTimeout(() => setMessage(null), 5000);
@@ -73,8 +98,32 @@ const AdvancedTextTools: React.FC = () => {
 
     setLoading('replace');
     setMessage(null);
+    const fingerprint = JSON.stringify([currentPage, searchText, replaceText]);
 
     try {
+      if (replacementAssessment?.fingerprint !== fingerprint) {
+        const preflight = await axios.post(
+          `${API_BASE_URL}/api/documents/${sessionId}/pages/${currentPage}/text/replace/preflight`,
+          {
+            page_num: currentPage,
+            search_text: searchText,
+            new_text: replaceText,
+          },
+        );
+        const report = preflight.data.data as ReplacementAssessment;
+        setReplacementAssessment({ fingerprint, report });
+        setReplacementAcknowledged(false);
+        if (report.status === 'eligible') {
+          showMessage('warning', 'The bounded preflight passed. Review the implementation and thresholds, then explicitly acknowledge before applying.');
+        } else {
+          showMessage('error', `Unsupported content edit: ${report.rejection_reasons.map(reason => reason.replaceAll('_', ' ')).join('; ')}.`);
+        }
+        return;
+      }
+      if (replacementAssessment.report.status !== 'eligible' || !replacementAcknowledged) {
+        showMessage('error', 'Review and acknowledge the experimental replacement contract first.');
+        return;
+      }
       const response = await axios.post(
         `${API_BASE_URL}/api/documents/${sessionId}/pages/${currentPage}/text/replace`,
         {
@@ -85,10 +134,14 @@ const AdvancedTextTools: React.FC = () => {
       );
 
       if (response.data.success) {
-        showMessage('success', response.data.data.message || 'Text replaced successfully', true);
+        setReplacementAssessment(null);
+        setReplacementAcknowledged(false);
+        showMessage('success', 'Experimental replacement passed extraction, visual, semantic, and structural fidelity gates.', true);
       }
     } catch (error) {
-      showMessage('error', 'Failed to replace text');
+      const detail = axios.isAxiosError(error) ? error.response?.data?.detail : undefined;
+      const reasons = detail?.report?.rejection_reasons;
+      showMessage('error', Array.isArray(reasons) ? `Replacement refused: ${reasons.join(', ').replaceAll('_', ' ')}.` : 'The experimental replacement was refused and the previous PDF was restored.');
       console.error(error);
     } finally {
       setLoading(null);
@@ -314,8 +367,8 @@ const AdvancedTextTools: React.FC = () => {
             </button>
           </div>
         </div>
-        <p className="text-sm text-[var(--text-secondary)] font-body">
-          Smart text replacement with font preservation, rich HTML text insertion, and font analysis
+          <p className="text-sm text-[var(--text-secondary)] font-body">
+          Experimental redaction-plus-redraw replacement, explicit text insertion, and font analysis
         </p>
       </div>
 
@@ -333,7 +386,13 @@ const AdvancedTextTools: React.FC = () => {
             <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
               <Replace className="w-6 h-6" />
             </div>
-            <h3 className="font-semibold text-lg text-[var(--text-primary)]">Smart Text Replacement</h3>
+            <div>
+              <h3 className="font-semibold text-lg text-[var(--text-primary)]">Experimental Replace + Verify</h3>
+              <p className="mt-0.5 font-mono text-[9px] font-black uppercase tracking-wider text-amber-700">Not native in-place editing</p>
+            </div>
+          </div>
+          <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs leading-5 text-amber-950">
+            <div className="flex gap-2"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" /><p>The original text is redacted and a new Base-14 text stream is drawn. Only one horizontal, isolated match that fits its source box can proceed.</p></div>
           </div>
           <form onSubmit={handleTextReplace} className="space-y-4">
             <div>
@@ -343,7 +402,7 @@ const AdvancedTextTools: React.FC = () => {
               <input
                 type="text"
                 value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
+                onChange={(e) => { setSearchText(e.target.value); setReplacementAssessment(null); setReplacementAcknowledged(false); }}
                 placeholder="Text to find..."
                 className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)]"
                 required
@@ -356,16 +415,33 @@ const AdvancedTextTools: React.FC = () => {
               <input
                 type="text"
                 value={replaceText}
-                onChange={(e) => setReplaceText(e.target.value)}
+                onChange={(e) => { setReplaceText(e.target.value); setReplacementAssessment(null); setReplacementAcknowledged(false); }}
                 placeholder="New text..."
                 className="w-full p-2 border border-[var(--border-color)] rounded-lg bg-[var(--input-bg)] text-[var(--text-primary)]"
                 required
               />
             </div>
+            {replacementAssessment && (
+              <div className={`rounded-xl border p-3 text-xs ${replacementAssessment.report.status === 'eligible' ? 'border-emerald-300 bg-emerald-50 text-emerald-950' : 'border-rose-300 bg-rose-50 text-rose-950'}`}>
+                <div className="flex items-center gap-2 font-black">
+                  {replacementAssessment.report.status === 'eligible' ? <ShieldCheck className="h-4 w-4" aria-hidden="true" /> : <AlertTriangle className="h-4 w-4" aria-hidden="true" />}
+                  {replacementAssessment.report.status === 'eligible' ? 'Bounded input is eligible' : 'Unsupported structure or geometry'}
+                </div>
+                {replacementAssessment.report.status === 'eligible' ? (
+                  <>
+                    <p className="mt-2 leading-5">Post-edit gates require only this page and its extracted text to change, no structural-loss warning, and at most {(replacementAssessment.report.thresholds.maximum_target_render_change_ratio * 100).toFixed(0)}% changed target pixels.</p>
+                    <label className="mt-3 flex min-h-11 items-center gap-3 rounded-lg border border-emerald-300 bg-white px-3 py-2 font-bold">
+                      <input type="checkbox" checked={replacementAcknowledged} onChange={event => setReplacementAcknowledged(event.target.checked)} className="h-5 w-5" />
+                      I understand this is experimental redaction plus redraw, not native text editing.
+                    </label>
+                  </>
+                ) : <p className="mt-2 leading-5">{replacementAssessment.report.rejection_reasons.map(reason => reason.replaceAll('_', ' ')).join(' · ')}</p>}
+              </div>
+            )}
             <button
               type="submit"
-              disabled={!!loading}
-              className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              disabled={!!loading || (replacementAssessment?.report.status === 'eligible' && !replacementAcknowledged)}
+              className="min-h-11 w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {loading === 'replace' ? (
                 <>
@@ -373,13 +449,14 @@ const AdvancedTextTools: React.FC = () => {
                 </>
               ) : (
                 <>
-                  <Replace className="w-4 h-4" /> Replace Text
+                  {replacementAssessment?.report.status === 'eligible' ? <ShieldCheck className="h-4 w-4" /> : <FlaskConical className="h-4 w-4" />}
+                  {replacementAssessment?.report.status === 'eligible' ? 'Apply + run fidelity gates' : 'Check experimental support'}
                 </>
               )}
             </button>
           </form>
           <p className="text-xs text-[var(--text-secondary)] mt-3">
-            Replaces text while attempting to preserve font appearance
+            Font substitution, rotated/skewed text, overlapping objects, tags, forms, signatures, layers, overflow, object transforms, and existing-paragraph reflow are refused.
           </p>
         </div>
 

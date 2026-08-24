@@ -23,7 +23,7 @@ def _schema(name: str) -> dict:
 def test_every_published_schema_is_valid_draft_2020_12():
     catalog = json.loads((SCHEMAS / "index.json").read_text(encoding="utf-8"))
 
-    assert len(catalog["schemas"]) == 7
+    assert len(catalog["schemas"]) == 8
     for filename in catalog["schemas"]:
         Draft202012Validator.check_schema(_schema(filename))
 

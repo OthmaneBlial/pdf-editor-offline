@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://othmaneblial.github.io/pdf-editor-offline/trust-lab/schemas/v1/experimental-content-edit.schema.json",
+  "title": "PDF Editor Offline experimental content edit evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "schema_version", "content_included", "maturity", "native_in_place_edit", "implementation", "target_page", "supported_operation", "unsupported_operations", "thresholds", "status", "audit_sha256"],
+  "properties": {
+    "schema": {"const": "pdf-editor-offline.experimental-content-edit"},
+    "schema_version": {"const": "1.0.0"},
+    "content_included": {"const": false},
+    "maturity": {"const": "experimental"},
+    "native_in_place_edit": {"const": false},
+    "implementation": {"const": "redaction_plus_new_content_stream"},
+    "target_page": {"type": "integer", "minimum": 1},
+    "supported_operation": {"const": "single_horizontal_base14_text_replacement"},
+    "unsupported_operations": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "thresholds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maximum_matches", "maximum_replacement_width_ratio", "maximum_target_render_change_ratio", "maximum_unchanged_page_render_ratio"],
+      "properties": {
+        "maximum_matches": {"const": 1},
+        "maximum_replacement_width_ratio": {"const": 1.0},
+        "maximum_target_render_change_ratio": {"const": 0.08},
+        "maximum_unchanged_page_render_ratio": {"const": 0.0001}
+      }
+    },
+    "status": {"enum": ["eligible", "passed", "rejected"]},
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "status", "reason"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "status": {"enum": ["passed", "failed"]},
+          "reason": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "match_count": {"type": "integer", "minimum": 0},
+    "font": {"type": "object", "additionalProperties": {"type": "boolean"}},
+    "geometry": {"type": "object", "additionalProperties": {"type": ["number", "null"]}},
+    "document_structures": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
+    "rejection_reasons": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "runtime_reason": {"type": "string"},
+    "fidelity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["passed", "checks", "changed_render_pages", "changed_text_pages", "target_render_change_ratio", "old_match_count_after", "replacement_match_count_after"],
+      "properties": {
+        "passed": {"type": "boolean"},
+        "checks": {"type": "object", "minProperties": 1, "additionalProperties": {"type": "boolean"}},
+        "changed_render_pages": {"type": "array", "items": {"type": "integer", "minimum": 1}},
+        "changed_text_pages": {"type": "array", "items": {"type": "integer", "minimum": 1}},
+        "target_render_change_ratio": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "old_match_count_after": {"type": "integer", "minimum": 0},
+        "replacement_match_count_after": {"type": "integer", "minimum": 0}
+      }
+    },
+    "files": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["before_sha256", "after_sha256"],
+      "properties": {
+        "before_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "after_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "change_review_audit_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "audit_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

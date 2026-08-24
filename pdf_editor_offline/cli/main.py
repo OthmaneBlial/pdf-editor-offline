@@ -18,6 +18,11 @@ from ..core.change_review import (
     write_change_report,
 )
 from ..core.accessibility_inspector import inspect_accessibility
+from ..core.content_editing import (
+    UnsupportedContentEditError,
+    assess_text_replacement,
+    create_experimental_replacement_copy,
+)
 from ..core.redaction_verifier import RedactionVerifier
 from ..trust_lab import (
     discover_runtime_capabilities,
@@ -127,6 +132,66 @@ def inspect_accessibility_command(
         typer.echo(f"Accessibility inspection failed safely: {error}", err=True)
         raise typer.Exit(2) from error
     _write_or_echo_json(payload, output)
+
+
+@app.command("content-edit-check")
+def content_edit_check(
+    file: Path = typer.Argument(..., exists=True, dir_okay=False, readable=True),
+    page: int = typer.Option(..., "--page", min=1, help="One-based target page."),
+    search: str = typer.Option(..., "--search", help="Exact source text; never included in the report."),
+    replacement: str = typer.Option(..., "--replacement", help="Replacement text; never included in the report."),
+    output: Path | None = typer.Option(None, "--output", "-o"),
+) -> None:
+    """Check the narrow experimental replacement scope without editing."""
+    try:
+        with fitz.open(file) as document:
+            payload = assess_text_replacement(document, page - 1, search, replacement)
+    except (OSError, ValueError, RuntimeError, fitz.FileDataError) as error:
+        typer.echo(f"Content edit check failed safely: {error}", err=True)
+        raise typer.Exit(2) from error
+    _write_or_echo_json(payload, output)
+    if payload["status"] != "eligible":
+        raise typer.Exit(2)
+
+
+@app.command("experimental-replace")
+def experimental_replace(
+    source: Path = typer.Argument(..., exists=True, dir_okay=False, readable=True),
+    output_pdf: Path = typer.Argument(..., dir_okay=False),
+    page: int = typer.Option(..., "--page", min=1, help="One-based target page."),
+    search: str = typer.Option(..., "--search", help="Exact source text; never included in the report."),
+    replacement: str = typer.Option(..., "--replacement", help="Replacement text; never included in the report."),
+    acknowledge_experimental: bool = typer.Option(
+        False,
+        "--acknowledge-experimental",
+        help="Acknowledge redaction-plus-redraw implementation and review thresholds.",
+    ),
+    report: Path | None = typer.Option(None, "--report"),
+) -> None:
+    """Create a separately verified experimental replacement copy."""
+    if not acknowledge_experimental:
+        typer.echo(
+            "Refused: pass --acknowledge-experimental after reviewing the bounded specification.",
+            err=True,
+        )
+        raise typer.Exit(2)
+    try:
+        payload = create_experimental_replacement_copy(
+            source,
+            output_pdf,
+            page_num=page - 1,
+            search_text=search,
+            new_text=replacement,
+        )
+    except UnsupportedContentEditError as error:
+        _write_or_echo_json(error.report, report)
+        typer.echo("Experimental replacement refused by the evidence gate.", err=True)
+        raise typer.Exit(2) from error
+    except (OSError, ValueError, RuntimeError, fitz.FileDataError) as error:
+        typer.echo(f"Experimental replacement failed safely: {error}", err=True)
+        raise typer.Exit(2) from error
+    _write_or_echo_json(payload, report)
+    typer.echo(f"Verified experimental copy written to {output_pdf}", err=True)
 
 
 @app.command("compare")

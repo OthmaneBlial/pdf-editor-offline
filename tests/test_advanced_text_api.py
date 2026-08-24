@@ -97,7 +97,7 @@ class TestAdvancedTextApi:
 
         response = api_client.post(
             f"/api/documents/{doc_id}/pages/0/text/replace",
-            json={"page_num": 0, "search_text": "Page", "new_text": "Section"},
+            json={"page_num": 0, "search_text": "Page", "new_text": "Part"},
         )
 
         assert response.status_code == 200
@@ -108,8 +108,37 @@ class TestAdvancedTextApi:
 
         doc = fitz.open(stream=download.content, filetype="pdf")
         page_text = doc[0].get_text().replace("ﬂ", "fl")
-        assert "Section" in page_text
+        assert "Part" in page_text
         doc.close()
+
+        evidence = response.json()["data"]["evidence"]
+        assert evidence["status"] == "passed"
+        assert evidence["native_in_place_edit"] is False
+
+    def test_replace_preflight_refuses_overflow_without_mutation(self, api_client, sample_pdf: str):
+        doc_id = upload_pdf(api_client, sample_pdf)
+        payload = {
+            "page_num": 0,
+            "search_text": "Page",
+            "new_text": "A replacement that cannot fit the original box",
+        }
+
+        preflight = api_client.post(
+            f"/api/documents/{doc_id}/pages/0/text/replace/preflight",
+            json=payload,
+        )
+        refused = api_client.post(
+            f"/api/documents/{doc_id}/pages/0/text/replace",
+            json=payload,
+        )
+
+        assert preflight.status_code == 200
+        assert preflight.json()["data"]["status"] == "rejected"
+        assert "replacement_would_overflow_source_box" in preflight.json()["data"]["rejection_reasons"]
+        assert refused.status_code == 409
+        download = api_client.get(f"/api/documents/{doc_id}/download")
+        with fitz.open(stream=download.content, filetype="pdf") as document:
+            assert "Page" in document[0].get_text()
 
     def test_replace_text_endpoint_rejects_page_num_mismatch(self, api_client, sample_pdf: str):
         doc_id = upload_pdf(api_client, sample_pdf)

@@ -1,0 +1,25 @@
+{
+  "schema": "pdf-editor-offline.experimental-content-edit-corpus",
+  "schema_version": "1.0.0",
+  "maturity": "experimental",
+  "supported_operation": "single_horizontal_base14_text_replacement",
+  "thresholds": {
+    "maximum_matches": 1,
+    "maximum_replacement_width_ratio": 1.0,
+    "maximum_target_render_change_ratio": 0.08,
+    "maximum_unchanged_page_render_ratio": 0.0001
+  },
+  "cases": [
+    {"id": "horizontal-base14-single-span", "fixture": "generated:test", "expected": "eligible_and_fidelity_pass"},
+    {"id": "replacement-overflow", "fixture": "generated:test", "expected": "replacement_would_overflow_source_box"},
+    {"id": "rotated-text", "fixture": "generated:test", "expected": "rotated_or_skewed_text_not_supported"},
+    {"id": "overlapping-vector", "fixture": "generated:test", "expected": "overlapping_non_text_object_detected"},
+    {"id": "tagged-document", "fixture": "generated:test", "expected": "unsupported_document_structure_present"},
+    {"id": "acroform-document", "fixture": "trust_lab/corpus/v1/forms.pdf", "expected": "unsupported_document_structure_present"},
+    {"id": "optional-content-layer", "fixture": "trust_lab/corpus/v1/layers-transparency.pdf", "expected": "unsupported_document_structure_present"},
+    {"id": "signed-document", "fixture": "trust_lab/corpus/v1/signed.pdf", "expected": "unsupported_document_structure_present"},
+    {"id": "unrelated-page-change", "fixture": "generated:test", "expected": "post_edit_fidelity_rejection"},
+    {"id": "object-transform", "fixture": "spec-only", "expected": "unsupported"},
+    {"id": "existing-paragraph-reflow", "fixture": "spec-only", "expected": "unsupported"}
+  ]
+}

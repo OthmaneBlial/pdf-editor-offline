@@ -630,7 +630,7 @@ class TestAdvancedEditingSmoke:
 
         replace_response = api_client.post(
             f"/api/documents/{doc_id}/pages/0/text/replace",
-            json={"page_num": 0, "search_text": "Page", "new_text": "Section"},
+            json={"page_num": 0, "search_text": "Page", "new_text": "Part"},
         )
         assert replace_response.status_code == 200
         assert replace_response.json()["success"] is True

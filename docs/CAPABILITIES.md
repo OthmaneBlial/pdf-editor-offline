@@ -21,7 +21,7 @@ This matrix is the public contract for PDF Editor Offline 2.1.0. A feature is no
 | Organize Pages with undo/redo | Stable | Unified thumbnail workspace with bounded full-document history; exact duplicate detection uses bounded local renders. Complex structures are preserved or warned. |
 | Crop and resize | Beta | Resize changes the media box and does not reflow arbitrary content. |
 | Text/image/drawing overlays | Stable | These add content; they do not rewrite every existing PDF content stream. |
-| Existing-text replacement | Beta | Uses redaction plus overlay. Font substitution and reflow can differ from the source. |
+| Existing-text replacement | Experimental | Not native in-place editing. Only one horizontal, isolated Base-14 span that fits its source box can pass; the implementation is redaction plus a new content stream and a visual/semantic fidelity gate. Everything else is refused. |
 | Local comments panel | Experimental | Comments currently live in the UI session and are not collaborative or embedded on export. |
 | PDF annotations and attachments | Beta | Support varies by annotation type and PyMuPDF build. |
 | AcroForm list/fill | Beta | Text, date, checkbox, radio, dropdown, and list fields use deterministic visual tab order. XFA is rejected; JavaScript and calculations are reported but never executed. |

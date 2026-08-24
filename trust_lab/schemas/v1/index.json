@@ -6,6 +6,7 @@
     "capabilities.schema.json",
     "change-review.schema.json",
     "corpus-manifest.schema.json",
+    "experimental-content-edit.schema.json",
     "privacy-inspection.schema.json",
     "redaction-verification.schema.json",
     "trust-lab-results.schema.json"

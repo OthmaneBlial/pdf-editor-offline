@@ -1,7 +1,8 @@
 # Known limitations
 
 - Signed desktop installers are not published yet. The current Tauri application is a source-buildable beta.
-- Existing-text replacement uses redaction plus overlay and cannot guarantee original font/reflow fidelity for every PDF.
+- Existing-text replacement is Experimental and is not native in-place editing. It uses redaction plus a new content stream, supports only one isolated horizontal Base-14 span within its original width, and refuses font substitution, overlapping objects, rotated/skewed text, tags, forms, signatures, layers, and existing-paragraph reflow.
+- Object transforms and reflow of existing PDF paragraphs are unsupported. Rich-text/Story rectangles insert new content; PDF-to-Office round-trips are conversions, not native editing.
 - XFA forms are detected but unsupported. Standard AcroForms are the supported form target.
 - AcroForm JavaScript and automatic calculations are detected but never executed; calculated values require manual review.
 - Visual signatures are locally stored images, not certificate-backed digital signatures or identity proof.
