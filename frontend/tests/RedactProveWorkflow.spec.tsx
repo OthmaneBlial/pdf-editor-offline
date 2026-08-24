@@ -51,7 +51,7 @@ const verifiedResponse = {
       },
       verification: {
         status: 'verified',
-        app_version: '2.1.0',
+        app_version: '3.0.0',
         output_sha256: 'b'.repeat(64),
         output_bytes: 4096,
         page_count: 1,

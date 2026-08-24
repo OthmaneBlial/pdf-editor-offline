@@ -19,7 +19,7 @@ import RuntimeHealthPanel from '../src/components/RuntimeHealthPanel';
 
 const capabilityResponse = {
   data: {
-    version: '2.1.0',
+    version: '3.0.0',
     ready: true,
     all_optional_tools_available: false,
     runtime: { python: '3.12.0', platform: 'darwin', architecture: 'arm64' },

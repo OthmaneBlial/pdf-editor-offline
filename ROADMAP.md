@@ -1,6 +1,6 @@
 # PDF Editor Offline — Roadmap to a Star-Worthy Local-First PDF Editor
 
-**Roadmap date:** 2026-08-23 | **Current development version:** 2.1.0 | **Status:** active delivery plan
+**Roadmap date:** 2026-08-24 | **Current development version:** 3.0.0 | **Status:** release candidate; production signing credentials and external activation evidence still required
 
 > GitHub stars cannot be guaranteed. They are a lagging signal of a product that is useful, easy to try, trustworthy, maintained, and worth sharing. This roadmap optimizes those causes—not the counter itself.
 

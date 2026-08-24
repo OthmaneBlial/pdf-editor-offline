@@ -34,6 +34,12 @@ def test_release_version_is_consistent_across_runtime_surfaces():
     assert f"version <code>{expected}</code>" in (
         ROOT / "site/docs.html"
     ).read_text(encoding="utf-8")
+    dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+    assert f"ARG APP_VERSION={expected}" in dockerfile
+    assert 'org.opencontainers.image.version="$APP_VERSION"' in dockerfile
+    assert f"Current development version:** {expected}" in (
+        ROOT / "ROADMAP.md"
+    ).read_text(encoding="utf-8")
 
 
 def test_desktop_source_mode_has_a_restrictive_content_security_policy():

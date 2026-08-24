@@ -90,7 +90,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <div className="min-w-0 flex-1">
               <h1 className="truncate text-base font-black tracking-tight">PDF Editor Offline</h1>
-              <p className="mt-0.5 font-mono text-[9px] uppercase tracking-[.18em] text-slate-400">Private workbench · v2.1.0</p>
+              <p className="mt-0.5 font-mono text-[9px] uppercase tracking-[.18em] text-slate-400">Private workbench · v3.0.0</p>
             </div>
             <button
               type="button"

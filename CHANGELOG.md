@@ -4,6 +4,10 @@ All notable changes to PDF Editor Offline are documented here.
 
 ## Unreleased
 
+Release candidate version: **3.0.0**. Public release remains blocked until the
+production signing, notarization, complete-asset, clean-runner, and activation
+cohort gates pass.
+
 ### Added
 
 - Added a privacy-safe moderated activation-cohort schema/analyzer, channel-specific launch drafts, a release discussion, and a repeatable 24-hour/7-day/30-day retrospective format with explicit no-fabrication gates.

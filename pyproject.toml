@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pdf-editor-offline"
-version = "2.1.0"
+version = "3.0.0"
 description = "Offline PDF editing, conversion, privacy cleanup, and CLI automation"
 readme = "README.md"
 license = "MIT"

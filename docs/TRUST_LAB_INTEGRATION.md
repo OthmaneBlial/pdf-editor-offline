@@ -61,7 +61,7 @@ checks every schema with the official Draft 2020-12 validator.
 Run the checked-in corpus through PyMuPDF, pdfplumber, and PDFium:
 
 ```bash
-python scripts/run_trust_lab.py --release 2.1.0
+python scripts/run_trust_lab.py --release 3.0.0
 ```
 
 The run gates valid fixtures on page-count consensus and safe engine opening.

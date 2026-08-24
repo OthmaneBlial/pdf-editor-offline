@@ -1,6 +1,6 @@
 # Capability matrix
 
-This matrix is the public contract for PDF Editor Offline 2.1.0. A feature is not called stable merely because a button or endpoint exists.
+This matrix is the public contract for PDF Editor Offline 3.0.0. A feature is not called stable merely because a button or endpoint exists.
 
 ## Status definitions
 

@@ -113,7 +113,7 @@ const applyResponse = {
         status: 'completed',
         profile: 'collaboration_cleanup',
         profile_label: 'Collaboration cleanup',
-        app_version: '2.1.0',
+        app_version: '3.0.0',
         output_sha256: 'd'.repeat(64),
         before: inventory,
         after: afterInventory,
