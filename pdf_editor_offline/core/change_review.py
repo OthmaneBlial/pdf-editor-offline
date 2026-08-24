@@ -9,7 +9,7 @@ from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Iterable, Mapping, Sequence
 
-import fitz
+import pymupdf as fitz
 from PIL import Image, ImageChops, ImageDraw, ImageStat
 
 from pdf_editor_offline import __version__

@@ -1,6 +1,6 @@
 from typing import Tuple
 
-import fitz
+import pymupdf as fitz
 
 
 def get_pdf_version(file_path: str) -> str:

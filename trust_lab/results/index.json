@@ -1,0 +1,14 @@
+{
+  "releases": [
+    {
+      "app_version": "2.1.0",
+      "corpus_version": "1.0.0",
+      "file": "2.1.0.json",
+      "generated_at": "2026-08-24T04:00:00+00:00",
+      "release_version": "2.1.0",
+      "status": "passed"
+    }
+  ],
+  "schema": "pdf-editor-offline.trust-lab-history",
+  "schema_version": "1.0.0"
+}

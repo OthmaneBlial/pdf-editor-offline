@@ -27,6 +27,8 @@
 
 Open the live project site: [PDF Editor Offline Project Site](https://othmaneblial.github.io/pdf-editor-offline/index.html).
 
+Inspect the versioned, machine-readable compatibility evidence in the [PDF Trust Lab dashboard](https://othmaneblial.github.io/pdf-editor-offline/trust-lab.html). Its nine synthetic fixtures run across PyMuPDF, pdfplumber, and PDFium; the v1 JSON schemas and release histories are public and content-free.
+
 The self-contained local copy lives at [`site/index.html`](site/index.html). It includes product docs, screenshots, sample PDFs, API/CLI notes, and release checks.
 
 PDF Editor Offline provides a desktop shell, local web workspace, API, CLI, and
@@ -48,6 +50,17 @@ it distinguishes stable, beta, experimental, external-dependency, and
 unsupported behavior. In particular, a visual signature is not certificate
 signing; the separate certificate workflow does not infer revocation or legal authority, local comments are not collaboration, and complex conversions can lose
 fidelity.
+
+## Trust Lab CLI
+
+```bash
+pdf-editor-offline verify-redaction redacted.pdf --target "removed text"
+pdf-editor-offline inspect-privacy input.pdf
+pdf-editor-offline compare before.pdf after.pdf --output change-review.json
+pdf-editor-offline capabilities --json
+```
+
+These reports contain counts, hashes, fixed check identifiers, and engine facts—not document text, metadata values, filenames, or paths. See the [stable schemas, exit codes, reuse policy, and minimized-fixture guide](docs/TRUST_LAB_INTEGRATION.md).
 
 ## 60-second local proof
 

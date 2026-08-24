@@ -1,4 +1,4 @@
-import fitz
+import pymupdf as fitz
 
 from .exceptions import InvalidOperationError
 

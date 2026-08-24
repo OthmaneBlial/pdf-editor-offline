@@ -3,7 +3,7 @@ import io
 import json
 from typing import Any, Dict, List, Optional, Tuple
 
-import fitz
+import pymupdf as fitz
 from PIL import Image
 
 from .pdf_types import Point, Rectangle

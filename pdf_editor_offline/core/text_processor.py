@@ -6,7 +6,7 @@ including font-aware text replacement, font extraction, and text property analys
 """
 
 from typing import Any, Dict, List, Optional, Tuple
-import fitz
+import pymupdf as fitz
 from .exceptions import InvalidOperationError
 
 

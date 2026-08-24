@@ -1,6 +1,6 @@
 from typing import Any
 
-import fitz
+import pymupdf as fitz
 
 from ..utils.canvas_helpers import (
     convert_to_pymupdf_annotation,

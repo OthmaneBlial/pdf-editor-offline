@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://othmaneblial.github.io/pdf-editor-offline/trust-lab/schemas/v1/change-review.schema.json",
+  "title": "PDF Editor Offline change review",
+  "type": "object",
+  "required": ["schema", "schema_version", "app_version", "verdict", "parameters", "files", "visual", "semantic", "warnings", "content_included"],
+  "properties": {
+    "schema": { "const": "pdf-editor-offline.change-review" },
+    "schema_version": { "const": "1.0.0" },
+    "app_version": { "type": "string" },
+    "verdict": { "enum": ["unchanged", "unexpected_changes", "expected_changes_only", "changes_detected", "binary_only_change"] },
+    "parameters": {
+      "type": "object",
+      "required": ["dpi", "pixel_threshold", "tolerance", "expected_region_pages"],
+      "properties": {
+        "dpi": { "type": "integer", "minimum": 72, "maximum": 300 },
+        "pixel_threshold": { "type": "integer", "minimum": 0, "maximum": 255 },
+        "tolerance": { "type": "number", "minimum": 0, "maximum": 1 },
+        "expected_region_pages": { "type": "array", "items": { "type": "integer", "minimum": 1 } }
+      },
+      "additionalProperties": false
+    },
+    "files": {
+      "type": "object",
+      "required": ["before_sha256", "after_sha256"],
+      "properties": {
+        "before_sha256": { "$ref": "#/$defs/sha256" },
+        "after_sha256": { "$ref": "#/$defs/sha256" }
+      },
+      "additionalProperties": false
+    },
+    "visual": {
+      "type": "object",
+      "required": ["pages", "unexpected_pages"],
+      "properties": {
+        "pages": { "type": "array", "items": { "type": "object" } },
+        "unexpected_pages": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "semantic": { "type": "object" },
+    "warnings": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "content_included": { "const": false }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  },
+  "additionalProperties": false
+}

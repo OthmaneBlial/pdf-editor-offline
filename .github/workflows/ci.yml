@@ -57,6 +57,21 @@ jobs:
         run: python -m pip install --disable-pip-version-check -e '.[dev]'
       - name: Run full suite with coverage
         run: python -m pytest -q --cov=api --cov=pdf_editor_offline --cov-report=term-missing --cov-report=xml:coverage.xml
+      - name: Run cross-engine PDF Trust Lab
+        run: >-
+          python scripts/run_trust_lab.py
+          --release "ci-${GITHUB_SHA}"
+          --results "$RUNNER_TEMP/trust-lab-results"
+          --dashboard "$RUNNER_TEMP/trust-lab.html"
+      - name: Upload Trust Lab regression evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: trust-lab-results
+          path: |
+            ${{ runner.temp }}/trust-lab-results
+            ${{ runner.temp }}/trust-lab.html
+            ${{ runner.temp }}/trust-lab
+          if-no-files-found: error
       - name: Report coverage by subsystem
         run: |
           coverage report --include='pdf_editor_offline/core/*' --format=markdown >> "$GITHUB_STEP_SUMMARY"

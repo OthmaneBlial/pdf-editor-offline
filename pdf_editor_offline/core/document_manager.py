@@ -1,4 +1,4 @@
-import fitz
+import pymupdf as fitz
 
 from ..utils.pdf_helpers import check_pdf_compatibility
 from .exceptions import InvalidOperationError, PDFLoadError, PDFSaveError

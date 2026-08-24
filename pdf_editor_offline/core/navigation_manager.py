@@ -6,7 +6,7 @@ and hyperlink management capabilities using PyMuPDF.
 """
 
 from typing import Any, Dict, List, Optional, Tuple
-import fitz
+import pymupdf as fitz
 from .exceptions import InvalidOperationError
 
 

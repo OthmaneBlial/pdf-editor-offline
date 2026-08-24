@@ -1,4 +1,7 @@
-import fitz
+import json
+from pathlib import Path
+
+import pymupdf as fitz
 import typer
 
 from .._version import __version__
@@ -8,8 +11,25 @@ from ..core.exceptions import InvalidOperationError, PDFLoadError, PDFSaveError
 from ..core.metadata_editor import MetadataEditor
 from ..core.object_inspector import ObjectInspector
 from ..core.page_manipulator import PageManipulator
+from ..core.change_review import compare_pdf_files, write_change_report
+from ..core.redaction_verifier import RedactionVerifier
+from ..trust_lab import (
+    discover_runtime_capabilities,
+    inspect_privacy_report,
+    public_capabilities_report,
+)
 
 app = typer.Typer(help="Offline PDF editing and automation tools.")
+
+
+def _write_or_echo_json(payload: dict, output: Path | None) -> None:
+    rendered = json.dumps(payload, indent=2, sort_keys=True) + "\n"
+    if output is None:
+        typer.echo(rendered, nl=False)
+        return
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(rendered, encoding="utf-8")
+    typer.echo(f"Content-free JSON report written to {output}", err=True)
 
 
 def version_callback(value: bool):
@@ -29,6 +49,110 @@ def main(
     ),
 ):
     """Run PDF Editor Offline commands."""
+
+
+@app.command("verify-redaction")
+def verify_redaction(
+    file: Path = typer.Argument(..., exists=True, dir_okay=False, readable=True),
+    target: list[str] = typer.Option(
+        ...,
+        "--target",
+        "-t",
+        help="Expected-removed text. Repeat for multiple targets.",
+    ),
+    output: Path | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Write the content-free JSON report to this path.",
+    ),
+    require_ocr: bool = typer.Option(
+        True,
+        "--require-ocr/--skip-ocr",
+        help="Fail closed when the independent local OCR check is unavailable.",
+    ),
+) -> None:
+    """Verify that target text is absent from a redacted PDF copy."""
+    try:
+        report = RedactionVerifier(require_ocr=require_ocr).verify(file, target)
+    except (OSError, ValueError, RuntimeError, fitz.FileDataError) as error:
+        typer.echo(f"Verification failed safely: {error}", err=True)
+        raise typer.Exit(2) from error
+    payload = {
+        "schema": "pdf-editor-offline.redaction-verification",
+        **report.to_dict(),
+        "content_included": False,
+    }
+    _write_or_echo_json(payload, output)
+    if not report.verified:
+        raise typer.Exit(2)
+
+
+@app.command("inspect-privacy")
+def inspect_privacy(
+    file: Path = typer.Argument(..., exists=True, dir_okay=False, readable=True),
+    output: Path | None = typer.Option(None, "--output", "-o"),
+) -> None:
+    """Inventory privacy-relevant PDF structures without outputting values."""
+    try:
+        payload = inspect_privacy_report(file)
+    except (OSError, RuntimeError, fitz.FileDataError) as error:
+        typer.echo(f"Inspection failed safely: {error}", err=True)
+        raise typer.Exit(2) from error
+    _write_or_echo_json(payload, output)
+
+
+@app.command("compare")
+def compare_documents(
+    before: Path = typer.Argument(..., exists=True, dir_okay=False, readable=True),
+    after: Path = typer.Argument(..., exists=True, dir_okay=False, readable=True),
+    output: Path | None = typer.Option(None, "--output", "-o"),
+    artifact_dir: Path | None = typer.Option(
+        None, help="Optional directory for content-bearing visual overlays."
+    ),
+    tolerance: float = typer.Option(0.001, min=0.0, max=1.0),
+    pixel_threshold: int = typer.Option(12, min=0, max=255),
+    dpi: int = typer.Option(144, min=72, max=300),
+) -> None:
+    """Compare render, text, metadata, and structure without reporting content."""
+    try:
+        payload = compare_pdf_files(
+            before,
+            after,
+            tolerance=tolerance,
+            pixel_threshold=pixel_threshold,
+            dpi=dpi,
+            artifact_dir=artifact_dir,
+        )
+    except (OSError, ValueError, RuntimeError, fitz.FileDataError) as error:
+        typer.echo(f"Comparison failed safely: {error}", err=True)
+        raise typer.Exit(2) from error
+    if output:
+        write_change_report(payload, output)
+        typer.echo(f"Content-free JSON report written to {output}", err=True)
+    else:
+        _write_or_echo_json(payload, None)
+    if payload["verdict"] == "unexpected_changes":
+        raise typer.Exit(2)
+
+
+@app.command("capabilities")
+def capabilities(
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Emit the stable content-free JSON capability schema.",
+    ),
+) -> None:
+    """Show local runtime and optional-tool capabilities."""
+    payload = public_capabilities_report(discover_runtime_capabilities())
+    if json_output:
+        _write_or_echo_json(payload, None)
+        return
+    typer.echo(f"PDF Editor Offline {payload['app_version']}")
+    for name, details in payload["external_tools"].items():
+        state = "available" if details["available"] else "not installed"
+        typer.echo(f"- {name}: {state}")
 
 # Extract subcommands
 extract_app = typer.Typer()

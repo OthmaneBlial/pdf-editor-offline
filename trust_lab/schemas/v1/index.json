@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0.0",
+  "draft": "https://json-schema.org/draft/2020-12/schema",
+  "schemas": [
+    "capabilities.schema.json",
+    "change-review.schema.json",
+    "corpus-manifest.schema.json",
+    "privacy-inspection.schema.json",
+    "redaction-verification.schema.json",
+    "trust-lab-results.schema.json"
+  ]
+}

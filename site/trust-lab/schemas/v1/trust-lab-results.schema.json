@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://othmaneblial.github.io/pdf-editor-offline/trust-lab/schemas/v1/trust-lab-results.schema.json",
+  "title": "PDF Editor Offline Trust Lab release results",
+  "type": "object",
+  "required": ["schema", "schema_version", "release_version", "app_version", "corpus_version", "generated_at", "privacy", "engines", "summary", "cases", "content_included"],
+  "properties": {
+    "schema": { "const": "pdf-editor-offline.trust-lab-results" },
+    "schema_version": { "const": "1.0.0" },
+    "release_version": { "type": "string" },
+    "app_version": { "type": "string" },
+    "corpus_version": { "type": "string" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "privacy": { "const": "synthetic-counts-and-hashes-only" },
+    "engines": {
+      "type": "object",
+      "required": ["pymupdf", "pdfplumber", "pdfium"],
+      "additionalProperties": { "type": "string" }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["cases", "passed", "failed", "status"],
+      "properties": {
+        "cases": { "type": "integer", "minimum": 1 },
+        "passed": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "status": { "enum": ["passed", "failed"] }
+      },
+      "additionalProperties": false
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "features", "expected_behavior", "status"],
+        "properties": {
+          "id": { "type": "string" },
+          "features": { "type": "array", "items": { "type": "string" } },
+          "expected_behavior": { "type": "string" },
+          "status": { "enum": ["passed", "failed"] }
+        },
+        "additionalProperties": true
+      }
+    },
+    "content_included": { "const": false }
+  },
+  "additionalProperties": false
+}

@@ -6,6 +6,9 @@ All notable changes to PDF Editor Offline are documented here.
 
 ### Added
 
+- Published PDF Trust Lab v1 with nine synthetic fixtures, a 9/9 cross-engine PyMuPDF/pdfplumber/PDFium baseline, release history, and a static results dashboard.
+- Added content-free `verify-redaction`, `inspect-privacy`, `compare`, and `capabilities --json` CLI commands with six stable Draft 2020-12 JSON schemas.
+- Added Trust Lab CI/release evidence, an external integration guide, and a privacy-gated minimized-fixture proposal form.
 - Added task-first navigation with five primary workflows, a searchable `Ctrl/Command+K` command palette, and a progressively disclosed All tools catalogue.
 - Added shared expert disclosures and operation feedback semantics across all 14 workspaces, including explicit progress, warning, error, output, and verification language.
 - Added WCAG 2.2 AA shell regressions for keyboard/focus behavior, screen-reader roles, reduced motion, forced colors, 44px targets, computed contrast, and 320px reflow.

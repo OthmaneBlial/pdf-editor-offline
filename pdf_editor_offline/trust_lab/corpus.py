@@ -13,7 +13,7 @@ from io import BytesIO
 from pathlib import Path
 from typing import Callable
 
-import fitz
+import pymupdf as fitz
 from PIL import Image, ImageDraw
 
 

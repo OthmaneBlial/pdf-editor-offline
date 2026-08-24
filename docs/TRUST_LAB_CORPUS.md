@@ -39,3 +39,17 @@ The report contains no extracted text, metadata values, filenames, or paths. It 
 - input/output SHA-256 hashes and fixed overlay artifact names.
 
 Expected regions are expressed in PDF points and are used only as a mask. A completely untouched page must remain at a zero changed-pixel ratio in regression tests.
+
+## Public release evidence
+
+[`scripts/run_trust_lab.py`](../scripts/run_trust_lab.py) executes every valid
+fixture through PyMuPDF, pdfplumber, and PDFium, then records page-count
+consensus, content-free extraction counts, first-page render hashes, dimensions,
+and pixel deltas. The malformed fixture records safe rejection or bounded repair
+without requiring every engine to use the same parser policy.
+
+Checked-in results and the release index live in
+[`trust_lab/results`](../trust_lab/results). The generated
+[Trust Lab dashboard](../site/trust-lab.html), stable schemas, CLI integration,
+and external contribution rules are documented in the
+[integration guide](TRUST_LAB_INTEGRATION.md).

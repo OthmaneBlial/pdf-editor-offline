@@ -7,7 +7,7 @@ metadata extraction, smart replacement, and document optimization.
 
 import os
 from typing import Any, Dict, List, Optional, Tuple
-import fitz
+import pymupdf as fitz
 from .exceptions import InvalidOperationError
 
 

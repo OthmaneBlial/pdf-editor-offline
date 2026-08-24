@@ -1,0 +1,319 @@
+{
+  "app_version": "2.1.0",
+  "cases": [
+    {
+      "engine_errors": {},
+      "expected_behavior": "preserve_or_warn",
+      "extraction": {
+        "pdfplumber_text_characters": 23,
+        "pymupdf_text_characters": 60
+      },
+      "features": [
+        "forms",
+        "text",
+        "checkbox",
+        "dropdown"
+      ],
+      "first_page_render": {
+        "changed_ratio_over_12": 0.00903706,
+        "pdfium_png_sha256": "84d28a5cc1780d392a787d6280ac86634acf8318084002773d6783ad5c1e9ce8",
+        "pdfium_size": [
+          794,
+          1123
+        ],
+        "pymupdf_png_sha256": "16eff86cfd81a7178cac863f8ca0b4ab31aee7b2a9beea0650ab8b7f632a5888",
+        "pymupdf_size": [
+          794,
+          1123
+        ],
+        "size_match": true
+      },
+      "id": "forms",
+      "page_count_consensus": true,
+      "page_counts": {
+        "pdfium": 1,
+        "pdfplumber": 1,
+        "pymupdf": 1
+      },
+      "status": "passed"
+    },
+    {
+      "engine_errors": {},
+      "expected_behavior": "preserve_or_warn",
+      "extraction": {
+        "pdfplumber_text_characters": 66,
+        "pymupdf_text_characters": 67
+      },
+      "features": [
+        "mixed_fonts",
+        "text"
+      ],
+      "first_page_render": {
+        "changed_ratio_over_12": 0.00352712,
+        "pdfium_png_sha256": "da67e2f59565c578c2359541b5f94c508f3bc9bdb09e7e3ccde4787cd2132a65",
+        "pdfium_size": [
+          794,
+          1123
+        ],
+        "pymupdf_png_sha256": "71e93b6af78bf89ac9915da124829d204a575b2df4d9cafa46a5e0e0244dfe06",
+        "pymupdf_size": [
+          794,
+          1123
+        ],
+        "size_match": true
+      },
+      "id": "mixed-fonts",
+      "page_count_consensus": true,
+      "page_counts": {
+        "pdfium": 1,
+        "pdfplumber": 1,
+        "pymupdf": 1
+      },
+      "status": "passed"
+    },
+    {
+      "engine_errors": {},
+      "expected_behavior": "render_and_ocr_optional",
+      "extraction": {
+        "pdfplumber_text_characters": 0,
+        "pymupdf_text_characters": 0
+      },
+      "features": [
+        "scan",
+        "image_only"
+      ],
+      "first_page_render": {
+        "changed_ratio_over_12": 0.0,
+        "pdfium_png_sha256": "0c970fe509a9cfca3bcb4e6175dbce359d8c45afff494c76af5d46c40f33a4f0",
+        "pdfium_size": [
+          667,
+          934
+        ],
+        "pymupdf_png_sha256": "6a74f3f6ec139697666fa75b0c41a2120a4d045bafeaa5476db5071521cac92a",
+        "pymupdf_size": [
+          667,
+          934
+        ],
+        "size_match": true
+      },
+      "id": "image-scan",
+      "page_count_consensus": true,
+      "page_counts": {
+        "pdfium": 1,
+        "pdfplumber": 1,
+        "pymupdf": 1
+      },
+      "status": "passed"
+    },
+    {
+      "engine_errors": {},
+      "expected_behavior": "preserve_or_warn",
+      "extraction": {
+        "pdfplumber_text_characters": 25,
+        "pymupdf_text_characters": 26
+      },
+      "features": [
+        "layers",
+        "transparency",
+        "vector"
+      ],
+      "first_page_render": {
+        "changed_ratio_over_12": 0.00229683,
+        "pdfium_png_sha256": "333117c23a4c3161ac909e908baf8337625a8a6b2cd5c1e3bcd6fd295cf39413",
+        "pdfium_size": [
+          794,
+          1123
+        ],
+        "pymupdf_png_sha256": "0186d76c153241c8557de25597110fd43506ba16951b7b657d795667f208412a",
+        "pymupdf_size": [
+          794,
+          1123
+        ],
+        "size_match": true
+      },
+      "id": "layers-transparency",
+      "page_count_consensus": true,
+      "page_counts": {
+        "pdfium": 1,
+        "pdfplumber": 1,
+        "pymupdf": 1
+      },
+      "status": "passed"
+    },
+    {
+      "engine_errors": {},
+      "expected_behavior": "preserve",
+      "extraction": {
+        "pdfplumber_text_characters": 34,
+        "pymupdf_text_characters": 35
+      },
+      "features": [
+        "rotation"
+      ],
+      "first_page_render": {
+        "changed_ratio_over_12": 0.0046667,
+        "pdfium_png_sha256": "fb3bbc4c471912c428aef5758e5c10c6f44ad8b5ca572fcb5339831328ff72b5",
+        "pdfium_size": [
+          794,
+          560
+        ],
+        "pymupdf_png_sha256": "37431d9352c97e201ad941f7204be1fd8e421e49e78a428fad05fff6ec495c43",
+        "pymupdf_size": [
+          794,
+          560
+        ],
+        "size_match": true
+      },
+      "id": "rotated-page",
+      "page_count_consensus": true,
+      "page_counts": {
+        "pdfium": 1,
+        "pdfplumber": 1,
+        "pymupdf": 1
+      },
+      "status": "passed"
+    },
+    {
+      "engine_errors": {},
+      "expected_behavior": "preserve_or_warn",
+      "extraction": {
+        "pdfplumber_text_characters": 57,
+        "pymupdf_text_characters": 60
+      },
+      "features": [
+        "bookmarks",
+        "reading_order"
+      ],
+      "first_page_render": {
+        "changed_ratio_over_12": 0.00132561,
+        "pdfium_png_sha256": "7a75113c445cc5428b7cc53a60b8f6a1e82a034e10185b3a15ce49cb4b6d89f5",
+        "pdfium_size": [
+          794,
+          1123
+        ],
+        "pymupdf_png_sha256": "40d83b474c640b76ff46fa98dac4a86bb31ba715535a212295609fe2d0e302dd",
+        "pymupdf_size": [
+          794,
+          1123
+        ],
+        "size_match": true
+      },
+      "id": "bookmarks",
+      "page_count_consensus": true,
+      "page_counts": {
+        "pdfium": 3,
+        "pdfplumber": 3,
+        "pymupdf": 3
+      },
+      "status": "passed"
+    },
+    {
+      "engine_errors": {},
+      "expected_behavior": "preserve_or_warn",
+      "extraction": {
+        "pdfplumber_text_characters": 30,
+        "pymupdf_text_characters": 31
+      },
+      "features": [
+        "attachments"
+      ],
+      "first_page_render": {
+        "changed_ratio_over_12": 0.0017944,
+        "pdfium_png_sha256": "8f32f86172ba4df73bfa1390633d6b6c705d2f4b9e426fe8fe9cc10a21614861",
+        "pdfium_size": [
+          794,
+          1123
+        ],
+        "pymupdf_png_sha256": "9086a268bb6f0a0e19c9d62d372c7f3a7be78cbdc341f11ed08aa51553678757",
+        "pymupdf_size": [
+          794,
+          1123
+        ],
+        "size_match": true
+      },
+      "id": "attachment",
+      "page_count_consensus": true,
+      "page_counts": {
+        "pdfium": 1,
+        "pdfplumber": 1,
+        "pymupdf": 1
+      },
+      "status": "passed"
+    },
+    {
+      "engine_errors": {},
+      "expected_behavior": "detect_and_warn_before_change",
+      "extraction": {
+        "pdfplumber_text_characters": 42,
+        "pymupdf_text_characters": 48
+      },
+      "features": [
+        "digital_signature",
+        "signature_field",
+        "incremental_integrity"
+      ],
+      "first_page_render": {
+        "changed_ratio_over_12": 0.0033017,
+        "pdfium_png_sha256": "9afbf8191c2ea1aa8fbf4a9c1574a3babe116b5375adb7e6bf180d7cbfca8806",
+        "pdfium_size": [
+          794,
+          1123
+        ],
+        "pymupdf_png_sha256": "d3e69271cb9e7770c659351106b21f46639952b4c4793f545cf5da0e93e1de1e",
+        "pymupdf_size": [
+          794,
+          1123
+        ],
+        "size_match": true
+      },
+      "id": "signed",
+      "page_count_consensus": true,
+      "page_counts": {
+        "pdfium": 1,
+        "pdfplumber": 1,
+        "pymupdf": 1
+      },
+      "status": "passed"
+    },
+    {
+      "expected_behavior": "reject_safely",
+      "features": [
+        "malformed_input"
+      ],
+      "id": "malformed",
+      "safe_outcomes": {
+        "pdfium": {
+          "error": "PdfiumError",
+          "status": "rejected"
+        },
+        "pdfplumber": {
+          "error": "PdfminerException",
+          "status": "rejected"
+        },
+        "pymupdf": {
+          "error": "IndexError",
+          "status": "rejected"
+        }
+      },
+      "status": "passed"
+    }
+  ],
+  "content_included": false,
+  "corpus_version": "1.0.0",
+  "engines": {
+    "pdfium": "5.13.0",
+    "pdfplumber": "0.11.10",
+    "pymupdf": "1.28.2"
+  },
+  "generated_at": "2026-08-24T04:00:00+00:00",
+  "privacy": "synthetic-counts-and-hashes-only",
+  "release_version": "2.1.0",
+  "schema": "pdf-editor-offline.trust-lab-results",
+  "schema_version": "1.0.0",
+  "summary": {
+    "cases": 9,
+    "failed": 0,
+    "passed": 9,
+    "status": "passed"
+  }
+}

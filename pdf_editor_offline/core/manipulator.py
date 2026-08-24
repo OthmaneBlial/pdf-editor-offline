@@ -2,7 +2,7 @@ import os
 import shutil
 from typing import List, Optional
 
-import fitz
+import pymupdf as fitz
 
 from .exceptions import MissingDependencyError
 
@@ -399,7 +399,7 @@ class PDFManipulator:
         """
         import io
 
-        import fitz
+        import pymupdf as fitz
         from PIL import Image, ImageChops
 
         doc1 = fitz.open(file_path1)

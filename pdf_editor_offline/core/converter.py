@@ -34,7 +34,7 @@ class PDFConverter:
         """
         import io
 
-        import fitz
+        import pymupdf as fitz
         from pptx import Presentation
         from pptx.util import Pt
 
@@ -282,7 +282,7 @@ class PDFConverter:
         Convert PDF pages to JPG images.
         Returns list of paths to created images.
         """
-        import fitz
+        import pymupdf as fitz
 
         doc = fitz.open(pdf_path)
         output_files = []
@@ -301,7 +301,7 @@ class PDFConverter:
         """
         Convert JPG/PNG images to a single PDF.
         """
-        import fitz
+        import pymupdf as fitz
 
         doc = fitz.open()
 
@@ -324,7 +324,7 @@ class PDFConverter:
         """
         Convert HTML to PDF.
         """
-        import fitz
+        import pymupdf as fitz
 
         doc = fitz.open(html_path)
         pdfbytes = doc.convert_to_pdf()
@@ -380,7 +380,7 @@ class PDFConverter:
         """
         Convert scanned images to PDF, optionally enhancing them.
         """
-        import fitz
+        import pymupdf as fitz
         from PIL import Image, ImageEnhance
 
         doc = fitz.open()
@@ -438,7 +438,7 @@ class PDFConverter:
         This compatibility entry point remains synchronous, but it no longer
         raster-replaces pages or silently falls back after recognition errors.
         """
-        import fitz
+        import pymupdf as fitz
 
         from .ocr import OCRConfig, create_searchable_ocr_copy
 
@@ -464,7 +464,7 @@ class PDFConverter:
         Convert PDF to Markdown format.
         Extracts text with formatting, headings, lists, and tables.
         """
-        import fitz
+        import pymupdf as fitz
 
         doc = fitz.open(pdf_path)
         markdown_lines = []
@@ -513,7 +513,7 @@ class PDFConverter:
         Convert PDF to plain text format.
         Simple text extraction without formatting.
         """
-        import fitz
+        import pymupdf as fitz
 
         doc = fitz.open(pdf_path)
         full_text = []
@@ -533,7 +533,7 @@ class PDFConverter:
         Convert PDF to EPUB format.
         Creates chapters from PDF pages.
         """
-        import fitz
+        import pymupdf as fitz
         from ebooklib import epub
 
         doc = fitz.open(pdf_path)
@@ -615,7 +615,7 @@ class PDFConverter:
         Convert PDF pages to SVG format.
         Returns list of paths to created SVG files.
         """
-        import fitz
+        import pymupdf as fitz
 
         doc = fitz.open(pdf_path)
         output_files = []
@@ -738,7 +738,7 @@ class PDFConverter:
         Convert plain text to PDF.
         Creates a simple PDF with the text content.
         """
-        import fitz
+        import pymupdf as fitz
 
         # Read text file
         with open(txt_path, "r", encoding="utf-8") as f:
@@ -783,7 +783,7 @@ class PDFConverter:
         """
         Convert CSV to PDF with formatted table.
         """
-        import fitz
+        import pymupdf as fitz
         import pandas as pd
 
         # Read CSV
@@ -864,7 +864,7 @@ class PDFConverter:
         Convert JSON to PDF.
         Handles arrays of objects as formatted tables.
         """
-        import fitz
+        import pymupdf as fitz
         import json
 
         # Read JSON

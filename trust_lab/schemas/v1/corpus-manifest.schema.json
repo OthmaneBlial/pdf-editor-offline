@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://othmaneblial.github.io/pdf-editor-offline/trust-lab/schemas/v1/corpus-manifest.schema.json",
+  "title": "PDF Editor Offline compatibility corpus manifest",
+  "type": "object",
+  "required": ["schema", "schema_version", "corpus_version", "privacy", "cases"],
+  "properties": {
+    "schema": { "const": "pdf-editor-offline.compatibility-corpus" },
+    "schema_version": { "const": "1.0.0" },
+    "corpus_version": { "type": "string" },
+    "privacy": { "const": "synthetic-only" },
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "filename", "features", "expected_behavior", "valid_pdf", "pages", "bytes", "sha256"],
+        "properties": {
+          "id": { "type": "string" },
+          "filename": { "type": "string", "pattern": "^[a-z0-9-]+\\.pdf$" },
+          "features": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+          "expected_behavior": { "type": "string" },
+          "valid_pdf": { "type": "boolean" },
+          "pages": { "type": ["integer", "null"], "minimum": 0 },
+          "bytes": { "type": "integer", "minimum": 1 },
+          "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

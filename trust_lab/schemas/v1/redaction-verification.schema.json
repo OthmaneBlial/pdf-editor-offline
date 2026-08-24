@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://othmaneblial.github.io/pdf-editor-offline/trust-lab/schemas/v1/redaction-verification.schema.json",
+  "title": "PDF Editor Offline redaction verification",
+  "type": "object",
+  "required": ["schema", "schema_version", "status", "app_version", "output_sha256", "output_bytes", "page_count", "target_count", "checks", "warnings", "content_included"],
+  "properties": {
+    "schema": { "const": "pdf-editor-offline.redaction-verification" },
+    "schema_version": { "const": 1 },
+    "status": { "enum": ["verified", "failed", "incomplete"] },
+    "app_version": { "type": "string" },
+    "output_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "output_bytes": { "type": "integer", "minimum": 1 },
+    "page_count": { "type": "integer", "minimum": 0 },
+    "target_count": { "type": "integer", "minimum": 1, "maximum": 100 },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "status", "items_checked", "matches"],
+        "properties": {
+          "id": { "type": "string" },
+          "label": { "type": "string" },
+          "status": { "enum": ["passed", "failed", "incomplete"] },
+          "items_checked": { "type": "integer", "minimum": 0 },
+          "matches": { "type": "integer", "minimum": 0 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "warnings": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "content_included": { "const": false }
+  },
+  "additionalProperties": false
+}

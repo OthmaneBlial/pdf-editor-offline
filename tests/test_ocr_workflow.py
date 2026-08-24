@@ -323,6 +323,11 @@ def test_cancelled_background_job_can_retry_from_fresh_snapshot(
             pass
         raise OCRCancelled("cancelled")
 
+    monkeypatch.setattr("api.routes.ocr.tesseract_command", lambda: "tesseract")
+    monkeypatch.setattr(
+        "api.routes.ocr.installed_tesseract_languages",
+        lambda _command: ("eng", "osd"),
+    )
     monkeypatch.setattr("api.ocr_jobs.create_searchable_ocr_copy", slow_ocr)
     queued = api_client.post(
         f"/api/documents/{document_id}/ocr/jobs",

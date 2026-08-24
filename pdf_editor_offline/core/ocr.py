@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable, Sequence
 
-import fitz
+import pymupdf as fitz
 import numpy as np
 from PIL import Image
 

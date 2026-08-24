@@ -274,11 +274,11 @@ Time ranges are planning estimates for a small maintainer team, not release prom
 
 #### PDF Trust Lab
 
-- [ ] Publish the synthetic compatibility corpus and a versioned results dashboard.
-- [ ] Add `pdf-editor-offline verify-redaction`, `inspect-privacy`, `compare`, and `capabilities --json` CLI commands.
-- [ ] Define stable JSON schemas for verification and diff reports.
-- [ ] Publish cross-engine render/extraction comparisons and regression histories per release.
-- [ ] Invite other PDF projects to reuse fixtures and contribute minimized, privacy-safe cases.
+- [x] Publish the synthetic compatibility corpus and a versioned results dashboard. Evidence: [corpus v1](trust_lab/corpus/v1), [9/9 release result](trust_lab/results/2.1.0.json), and the [generated dashboard](site/trust-lab.html).
+- [x] Add `pdf-editor-offline verify-redaction`, `inspect-privacy`, `compare`, and `capabilities --json` CLI commands. Evidence: [Typer command contracts](pdf_editor_offline/cli/main.py) and [schema-valid CLI regressions](tests/test_trust_lab_cli.py).
+- [x] Define stable JSON schemas for verification and diff reports. Evidence: [immutable Draft 2020-12 schema v1 catalogue](trust_lab/schemas/v1) with validator-backed tests.
+- [x] Publish cross-engine render/extraction comparisons and regression histories per release. Evidence: [PyMuPDF/pdfplumber/PDFium runner](pdf_editor_offline/trust_lab/runner.py), [release history](trust_lab/results/index.json), and CI/release artifacts.
+- [x] Invite other PDF projects to reuse fixtures and contribute minimized, privacy-safe cases. Evidence: [integration and contribution guide](docs/TRUST_LAB_INTEGRATION.md) plus the [privacy-gated fixture issue form](.github/ISSUE_TEMPLATE/trust-lab-case.yml).
 
 #### Visual and semantic change review
 

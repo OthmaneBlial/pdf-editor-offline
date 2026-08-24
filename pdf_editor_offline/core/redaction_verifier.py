@@ -11,7 +11,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Callable, Iterable, Sequence
 
-import fitz
+import pymupdf as fitz
 
 from pdf_editor_offline import __version__
 

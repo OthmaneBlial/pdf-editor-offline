@@ -8,7 +8,7 @@ multi-font text, and automatic text reflow using PyMuPDF's advanced features.
 import html as html_lib
 from typing import Any, Dict, List, Optional, Tuple
 
-import fitz
+import pymupdf as fitz
 
 from .exceptions import InvalidOperationError
 

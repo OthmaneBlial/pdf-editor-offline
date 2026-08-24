@@ -17,6 +17,7 @@
       <nav class="site-nav" aria-label="Primary navigation">
         <a href="index.html#features">Features</a>
         <a href="index.html#proof">Proof</a>
+        <a href="trust-lab.html">Trust Lab</a>
         <a href="index.html#install">Run</a>
         <a href="docs.html">Docs</a>
         <a href="https://github.com/OthmaneBlial/pdf-editor-offline">GitHub</a>
@@ -113,13 +114,17 @@
 
         <section id="cli" class="doc-section">
           <h2>CLI and Python usage</h2>
-          <p>The Typer CLI exposes extract, edit, inspect, and add command groups. The Python package exposes reusable converter and manipulator classes.</p>
+          <p>The Typer CLI exposes content-free Trust Lab reports alongside extract, edit, inspect, and add command groups. The Python package exposes reusable converter and manipulator classes.</p>
           <div class="code-card">
             <div class="code-card-head">
               <span>CLI commands</span>
               <button class="copy-code" type="button" data-copy-target="code-doc-cli">Copy</button>
             </div>
-            <pre id="code-doc-cli"><code>pdf-editor-offline extract text input.pdf
+            <pre id="code-doc-cli"><code>pdf-editor-offline verify-redaction redacted.pdf --target "removed text"
+pdf-editor-offline inspect-privacy input.pdf
+pdf-editor-offline compare before.pdf after.pdf
+pdf-editor-offline capabilities --json
+pdf-editor-offline extract text input.pdf
 pdf-editor-offline extract images input.pdf --output-dir ./images
 pdf-editor-offline edit metadata input.pdf title "Quarterly Report"
 pdf-editor-offline edit delete-page input.pdf 0 --output output.pdf

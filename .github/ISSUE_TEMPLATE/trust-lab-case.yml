@@ -1,0 +1,51 @@
+name: Trust Lab fixture proposal
+description: Propose a minimized synthetic PDF compatibility case
+title: "[Trust Lab]: "
+labels:
+  - trust-lab
+  - fixture
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Propose the smallest synthetic PDF structure that reproduces one compatibility gap. Never attach or link a customer, production, proprietary, medical, legal, or identity document.
+  - type: input
+    id: feature
+    attributes:
+      label: PDF feature
+      description: Name the one structure or behavior this case isolates.
+      placeholder: Nested optional-content group with transparent vector fill
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: State what an engine or operation must preserve, reject, or warn about.
+    validations:
+      required: true
+  - type: textarea
+    id: engines
+    attributes:
+      label: Observed engine behavior
+      description: Include engine versions and content-free counts or error classes only.
+    validations:
+      required: true
+  - type: textarea
+    id: generator
+    attributes:
+      label: Synthetic generator plan
+      description: Explain how the fixture can be generated deterministically from code.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Public-fixture safety
+      options:
+        - label: I will not attach, upload, or link any real-world source document.
+          required: true
+        - label: The proposed content and identifiers are entirely synthetic.
+          required: true
+        - label: The case contains no secret, personal data, or active exploit payload.
+          required: true

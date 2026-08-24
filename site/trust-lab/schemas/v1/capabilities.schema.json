@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://othmaneblial.github.io/pdf-editor-offline/trust-lab/schemas/v1/capabilities.schema.json",
+  "title": "PDF Editor Offline runtime capabilities",
+  "type": "object",
+  "required": ["schema", "schema_version", "app_version", "ready", "runtime", "network", "external_tools", "content_included"],
+  "properties": {
+    "schema": { "const": "pdf-editor-offline.capabilities" },
+    "schema_version": { "const": "1.0.0" },
+    "app_version": { "type": "string" },
+    "ready": { "type": "boolean" },
+    "runtime": {
+      "type": "object",
+      "required": ["python", "platform", "architecture"],
+      "properties": {
+        "python": { "type": ["string", "null"] },
+        "platform": { "type": ["string", "null"] },
+        "architecture": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "network": {
+      "type": "object",
+      "required": ["telemetry", "processing", "bind_host", "api_auth_required"],
+      "properties": {
+        "telemetry": { "const": false },
+        "processing": { "type": ["string", "null"] },
+        "bind_host": { "type": ["string", "null"] },
+        "api_auth_required": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "external_tools": { "type": "object" },
+    "content_included": { "const": false }
+  },
+  "additionalProperties": false
+}

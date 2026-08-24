@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://othmaneblial.github.io/pdf-editor-offline/trust-lab/schemas/v1/privacy-inspection.schema.json",
+  "title": "PDF Editor Offline privacy inspection",
+  "type": "object",
+  "required": ["schema", "schema_version", "app_version", "document_sha256", "inventory", "signals", "signal_count", "content_included"],
+  "properties": {
+    "schema": { "const": "pdf-editor-offline.privacy-inspection" },
+    "schema_version": { "const": "1.0.0" },
+    "app_version": { "type": "string" },
+    "document_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "inventory": { "$ref": "#/$defs/counts" },
+    "signals": { "$ref": "#/$defs/counts" },
+    "signal_count": { "type": "integer", "minimum": 0 },
+    "content_included": { "const": false }
+  },
+  "$defs": {
+    "counts": {
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    }
+  },
+  "additionalProperties": false
+}

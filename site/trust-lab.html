@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Versioned, content-free compatibility results for PDF Editor Offline across PyMuPDF, pdfplumber, and PDFium.">
+  <title>PDF Trust Lab · PDF Editor Offline</title>
+  <style>
+    :root { color-scheme: dark; --ink:#f7f7f2; --muted:#a8b3c7; --panel:#101827; --line:#2a3a52; --cyan:#67e8f9; --lime:#bef264; --coral:#fb7185; --paper:#07101e; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; background:radial-gradient(circle at 75% 0%,#183348 0,transparent 35rem),var(--paper); color:var(--ink); font:15px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace; }
+    a { color:inherit; } a:focus-visible,button:focus-visible { outline:3px solid var(--cyan); outline-offset:4px; }
+    .skip { position:absolute; left:-999px; top:1rem; } .skip:focus { left:1rem; z-index:5; background:var(--ink); color:var(--paper); padding:.8rem; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:1rem clamp(1rem,4vw,4rem); border-bottom:1px solid var(--line); background:#07101ed9; backdrop-filter:blur(18px); position:sticky; top:0; z-index:3; }
+    .brand { display:flex; align-items:center; gap:.7rem; font-weight:900; text-decoration:none; } .brand-mark { display:grid; place-items:center; width:2.5rem; height:2.5rem; border-radius:.8rem; background:var(--cyan); color:#07101e; }
+    nav { display:flex; flex-wrap:wrap; gap:1rem; font-size:.78rem; } nav a { color:var(--muted); text-decoration:none; } nav a:hover { color:var(--cyan); }
+    main { width:min(1180px,calc(100% - 2rem)); margin:auto; }
+    .hero { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(18rem,.75fr); gap:clamp(2rem,7vw,7rem); padding:clamp(4rem,9vw,8rem) 0 4rem; align-items:end; }
+    .eyebrow { color:var(--cyan); text-transform:uppercase; letter-spacing:.18em; font-size:.72rem; font-weight:900; } h1 { margin:.7rem 0 1.4rem; max-width:13ch; font:900 clamp(3.2rem,9vw,7.6rem)/.86 system-ui,sans-serif; letter-spacing:-.075em; }
+    .lede { max-width:62ch; color:var(--muted); font-size:clamp(1rem,2vw,1.25rem); } .hero-proof { background:linear-gradient(145deg,#11243a,#0c1524); border:1px solid var(--line); border-radius:2rem; padding:1.5rem; box-shadow:0 2rem 5rem #0008; }
+    .score { font:900 5rem/.9 system-ui,sans-serif; color:var(--lime); letter-spacing:-.08em; } .score-label { color:var(--muted); } .hash-note { margin-top:2rem; padding-top:1rem; border-top:1px solid var(--line); color:var(--muted); font-size:.75rem; }
+    .metrics { display:grid; grid-template-columns:repeat(4,1fr); border-block:1px solid var(--line); } .metrics div { padding:1.4rem; border-right:1px solid var(--line); } .metrics div:last-child { border:0; } .metrics strong { display:block; color:var(--cyan); font:800 1.5rem system-ui,sans-serif; } .metrics span { color:var(--muted); font-size:.72rem; }
+    section { padding:4rem 0; } .section-head { display:flex; justify-content:space-between; gap:2rem; align-items:end; margin-bottom:1.5rem; } h2 { margin:.4rem 0; font:850 clamp(2rem,5vw,4rem)/1 system-ui,sans-serif; letter-spacing:-.04em; } .section-head p { max-width:48ch; color:var(--muted); }
+    .case-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem; } .case-card { min-width:0; padding:1.25rem; border:1px solid var(--line); border-radius:1.4rem; background:linear-gradient(150deg,#111d2e,#0b1422); } .case-card h3 { margin:1.2rem 0 .4rem; font:800 1.25rem system-ui,sans-serif; } .case-card>p,.case-note { color:var(--muted); font-size:.76rem; }
+    .case-top { display:flex; justify-content:space-between; gap:1rem; align-items:center; } .status { padding:.3rem .55rem; border-radius:999px; text-transform:uppercase; font-size:.62rem; font-weight:900; } .status.passed { background:#bef26420; color:var(--lime); border:1px solid #bef26455; } .status.failed { background:#fb718520; color:var(--coral); border:1px solid #fb718555; } .case-id { color:#5f728c; font-size:.65rem; }
+    .features,.outcomes { display:flex; flex-wrap:wrap; gap:.4rem; margin:1rem 0; padding:0; list-style:none; } .features li { padding:.22rem .5rem; background:#67e8f912; color:#b9f4fc; border-radius:.45rem; font-size:.61rem; } .outcomes li { width:100%; color:var(--muted); font-size:.7rem; }
+    dl { margin:1.2rem 0 0; } dl div { padding:.65rem 0; border-top:1px solid #24344a; } dt { color:#75859c; font-size:.62rem; text-transform:uppercase; letter-spacing:.08em; } dd { margin:.25rem 0 0; color:#d9e4f4; font-size:.68rem; overflow-wrap:anywhere; }
+    .contract-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; } .contract { padding:1.5rem; border:1px solid var(--line); border-radius:1.5rem; background:#0b1422; } .contract h3 { font:800 1.2rem system-ui,sans-serif; } .contract p,.contract li { color:var(--muted); } code { color:var(--cyan); }
+    .history { list-style:none; padding:0; margin:0; } .history a { display:flex; justify-content:space-between; gap:1rem; padding:1rem; border-top:1px solid var(--line); text-decoration:none; } .history span { color:var(--muted); }
+    footer { margin-top:4rem; border-top:1px solid var(--line); padding:2rem 0 4rem; color:var(--muted); font-size:.72rem; }
+    @media(max-width:850px) { .hero { grid-template-columns:1fr; } .case-grid { grid-template-columns:1fr 1fr; } .metrics { grid-template-columns:1fr 1fr; } .metrics div:nth-child(2) { border-right:0; } .contract-grid { grid-template-columns:1fr; } }
+    @media(max-width:560px) { header { align-items:flex-start; } nav { justify-content:flex-end; } .case-grid { grid-template-columns:1fr; } .section-head { display:block; } h1 { font-size:3.6rem; } }
+    @media(prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } }
+  </style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to results</a>
+<header><a class="brand" href="index.html"><span class="brand-mark">TL</span><span>PDF Trust Lab</span></a><nav aria-label="Trust Lab navigation"><a href="#results">Results</a><a href="#schemas">Schemas</a><a href="#history">History</a><a href="https://github.com/OthmaneBlial/pdf-editor-offline/tree/main/trust_lab">GitHub</a></nav></header>
+<main id="main">
+  <section class="hero"><div><p class="eyebrow">Synthetic evidence · release v2.1.0</p><h1>PDF claims, measured.</h1><p class="lede">A public, privacy-safe compatibility corpus executed across independent rendering and extraction engines. Counts and hashes leave the lab; document content does not.</p></div><aside class="hero-proof" aria-label="Current Trust Lab verdict"><div class="score">9/9</div><div class="score-label">fixtures passed the release contract</div><div class="hash-note">Schema 1.0.0 · Corpus 1.0.0<br>Generated 2026-08-24T04:00:00+00:00</div></aside></section>
+  <div class="metrics" aria-label="Engine versions"><div><strong>1.28.2</strong><span>PyMuPDF</span></div><div><strong>0.11.10</strong><span>pdfplumber</span></div><div><strong>5.13.0</strong><span>PDFium</span></div><div><strong>0</strong><span>failed contracts</span></div></div>
+  <section id="results"><div class="section-head"><div><p class="eyebrow">Cross-engine evidence</p><h2>Corpus results</h2></div><p>Page-count consensus is gated. Extraction counts and first-page pixel differences are published so renderer drift is reviewable instead of hidden.</p></div><div class="case-grid">
+      <article class="case-card">
+        <div class="case-top"><span class="status passed">passed</span><span class="case-id">forms</span></div>
+        <h3>Forms</h3>
+        <p>preserve or warn</p>
+        <ul class="features"><li>forms</li><li>text</li><li>checkbox</li><li>dropdown</li></ul>
+
+          <dl>
+            <div><dt>Page consensus</dt><dd>yes · {&#x27;pymupdf&#x27;: 1, &#x27;pdfplumber&#x27;: 1, &#x27;pdfium&#x27;: 1}</dd></div>
+            <div><dt>Extracted chars</dt><dd>PyMuPDF 60 · pdfplumber 23</dd></div>
+            <div><dt>First-page render delta</dt><dd>0.904% above threshold 12</dd></div>
+          </dl>
+
+      </article>
+
+      <article class="case-card">
+        <div class="case-top"><span class="status passed">passed</span><span class="case-id">mixed-fonts</span></div>
+        <h3>Mixed Fonts</h3>
+        <p>preserve or warn</p>
+        <ul class="features"><li>mixed_fonts</li><li>text</li></ul>
+
+          <dl>
+            <div><dt>Page consensus</dt><dd>yes · {&#x27;pymupdf&#x27;: 1, &#x27;pdfplumber&#x27;: 1, &#x27;pdfium&#x27;: 1}</dd></div>
+            <div><dt>Extracted chars</dt><dd>PyMuPDF 67 · pdfplumber 66</dd></div>
+            <div><dt>First-page render delta</dt><dd>0.353% above threshold 12</dd></div>
+          </dl>
+
+      </article>
+
+      <article class="case-card">
+        <div class="case-top"><span class="status passed">passed</span><span class="case-id">image-scan</span></div>
+        <h3>Image Scan</h3>
+        <p>render and ocr optional</p>
+        <ul class="features"><li>scan</li><li>image_only</li></ul>
+
+          <dl>
+            <div><dt>Page consensus</dt><dd>yes · {&#x27;pymupdf&#x27;: 1, &#x27;pdfplumber&#x27;: 1, &#x27;pdfium&#x27;: 1}</dd></div>
+            <div><dt>Extracted chars</dt><dd>PyMuPDF 0 · pdfplumber 0</dd></div>
+            <div><dt>First-page render delta</dt><dd>0.000% above threshold 12</dd></div>
+          </dl>
+
+      </article>
+
+      <article class="case-card">
+        <div class="case-top"><span class="status passed">passed</span><span class="case-id">layers-transparency</span></div>
+        <h3>Layers Transparency</h3>
+        <p>preserve or warn</p>
+        <ul class="features"><li>layers</li><li>transparency</li><li>vector</li></ul>
+
+          <dl>
+            <div><dt>Page consensus</dt><dd>yes · {&#x27;pymupdf&#x27;: 1, &#x27;pdfplumber&#x27;: 1, &#x27;pdfium&#x27;: 1}</dd></div>
+            <div><dt>Extracted chars</dt><dd>PyMuPDF 26 · pdfplumber 25</dd></div>
+            <div><dt>First-page render delta</dt><dd>0.230% above threshold 12</dd></div>
+          </dl>
+
+      </article>
+
+      <article class="case-card">
+        <div class="case-top"><span class="status passed">passed</span><span class="case-id">rotated-page</span></div>
+        <h3>Rotated Page</h3>
+        <p>preserve</p>
+        <ul class="features"><li>rotation</li></ul>
+
+          <dl>
+            <div><dt>Page consensus</dt><dd>yes · {&#x27;pymupdf&#x27;: 1, &#x27;pdfplumber&#x27;: 1, &#x27;pdfium&#x27;: 1}</dd></div>
+            <div><dt>Extracted chars</dt><dd>PyMuPDF 35 · pdfplumber 34</dd></div>
+            <div><dt>First-page render delta</dt><dd>0.467% above threshold 12</dd></div>
+          </dl>
+
+      </article>
+
+      <article class="case-card">
+        <div class="case-top"><span class="status passed">passed</span><span class="case-id">bookmarks</span></div>
+        <h3>Bookmarks</h3>
+        <p>preserve or warn</p>
+        <ul class="features"><li>bookmarks</li><li>reading_order</li></ul>
+
+          <dl>
+            <div><dt>Page consensus</dt><dd>yes · {&#x27;pymupdf&#x27;: 3, &#x27;pdfplumber&#x27;: 3, &#x27;pdfium&#x27;: 3}</dd></div>
+            <div><dt>Extracted chars</dt><dd>PyMuPDF 60 · pdfplumber 57</dd></div>
+            <div><dt>First-page render delta</dt><dd>0.133% above threshold 12</dd></div>
+          </dl>
+
+      </article>
+
+      <article class="case-card">
+        <div class="case-top"><span class="status passed">passed</span><span class="case-id">attachment</span></div>
+        <h3>Attachment</h3>
+        <p>preserve or warn</p>
+        <ul class="features"><li>attachments</li></ul>
+
+          <dl>
+            <div><dt>Page consensus</dt><dd>yes · {&#x27;pymupdf&#x27;: 1, &#x27;pdfplumber&#x27;: 1, &#x27;pdfium&#x27;: 1}</dd></div>
+            <div><dt>Extracted chars</dt><dd>PyMuPDF 31 · pdfplumber 30</dd></div>
+            <div><dt>First-page render delta</dt><dd>0.179% above threshold 12</dd></div>
+          </dl>
+
+      </article>
+
+      <article class="case-card">
+        <div class="case-top"><span class="status passed">passed</span><span class="case-id">signed</span></div>
+        <h3>Signed</h3>
+        <p>detect and warn before change</p>
+        <ul class="features"><li>digital_signature</li><li>signature_field</li><li>incremental_integrity</li></ul>
+
+          <dl>
+            <div><dt>Page consensus</dt><dd>yes · {&#x27;pymupdf&#x27;: 1, &#x27;pdfplumber&#x27;: 1, &#x27;pdfium&#x27;: 1}</dd></div>
+            <div><dt>Extracted chars</dt><dd>PyMuPDF 48 · pdfplumber 42</dd></div>
+            <div><dt>First-page render delta</dt><dd>0.330% above threshold 12</dd></div>
+          </dl>
+
+      </article>
+
+      <article class="case-card">
+        <div class="case-top"><span class="status passed">passed</span><span class="case-id">malformed</span></div>
+        <h3>Malformed</h3>
+        <p>reject safely</p>
+        <ul class="features"><li>malformed_input</li></ul>
+        <p class='case-note'>Malformed-input safety outcomes</p><ul class='outcomes'><li><strong>pymupdf</strong> rejected</li><li><strong>pdfplumber</strong> rejected</li><li><strong>pdfium</strong> rejected</li></ul>
+      </article>
+    </div></section>
+  <section id="schemas"><div class="section-head"><div><p class="eyebrow">Integration contract</p><h2>Versioned JSON schemas</h2></div><p>Schema v1 remains stable within its major version. Additive or breaking changes publish a new path instead of silently changing existing consumers.</p></div><div class="contract-grid"><article class="contract"><h3>CLI reports</h3><ul><li><a href="trust-lab/schemas/v1/redaction-verification.schema.json">redaction verification</a></li><li><a href="trust-lab/schemas/v1/privacy-inspection.schema.json">privacy inspection</a></li><li><a href="trust-lab/schemas/v1/change-review.schema.json">change review</a></li><li><a href="trust-lab/schemas/v1/capabilities.schema.json">runtime capabilities</a></li></ul></article><article class="contract"><h3>Corpus and release data</h3><ul><li><a href="trust-lab/schemas/v1/corpus-manifest.schema.json">corpus manifest</a></li><li><a href="trust-lab/schemas/v1/trust-lab-results.schema.json">release results</a></li><li><a href="trust-lab/results/2.1.0.json">current machine-readable result</a></li></ul></article></div></section>
+  <section id="history"><div class="section-head"><div><p class="eyebrow">No moving baseline</p><h2>Release history</h2></div><p>Each published result names its app, corpus, schema, and three engine versions.</p></div><ol class="history"><li><a href='trust-lab/results/2.1.0.json'><strong>v2.1.0</strong><span>passed · corpus 1.0.0</span></a></li></ol></section>
+</main>
+<footer><main>MIT-licensed fixtures · synthetic only · <a href="https://github.com/OthmaneBlial/pdf-editor-offline/blob/main/docs/TRUST_LAB_INTEGRATION.md">reuse and contribute a minimized case</a></main></footer>
+</body>
+</html>

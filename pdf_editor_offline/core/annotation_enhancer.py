@@ -7,7 +7,7 @@ sound annotations, free-form polygons, and appearance customization.
 
 import os
 from typing import Any, Dict, List, Optional, Tuple
-import fitz
+import pymupdf as fitz
 from .exceptions import InvalidOperationError
 
 
