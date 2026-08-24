@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Lock, Unlock, PenTool, Stamp, RefreshCw, ShieldCheck, Eraser, Trash2 } from 'lucide-react';
 import { API_BASE_URL } from '../../lib/apiClient';
 import { saveBlob } from '../../lib/downloads';
+import WorkflowFeedback from '../WorkflowFeedback';
 
 const SecurityTools: React.FC = () => {
     const [loading, setLoading] = useState<string | null>(null);
@@ -154,9 +155,9 @@ const SecurityTools: React.FC = () => {
             <h2 className="text-2xl font-bold mb-6 text-gray-800">Security Tools</h2>
 
             {message && (
-                <div className={`p-4 mb-6 rounded-lg ${message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                <WorkflowFeedback tone={message.type} title="Security operation result" className="mb-6">
                     {message.text}
-                </div>
+                </WorkflowFeedback>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -14,6 +14,7 @@ tested where possible, but their status acknowledges a wider fidelity surface.
 | Visual signature image | `tests/test_forms_workflow.py::test_visual_signature_is_bounded_explicit_and_undoable`, `frontend/tests/FillSignWorkflow.spec.tsx`, `frontend/tests/signatureAssets.spec.ts` | Fill & Sign contract; privacy contract; visible non-digital warning |
 | Certificate signing and offline validation (Beta) | `tests/test_digital_signatures.py`, `frontend/tests/FillSignWorkflow.spec.tsx` | Digital-signature contract; explicit-root trust model; request-only key lifecycle |
 | OCR & Search (Beta) | `tests/test_ocr_workflow.py`, `frontend/tests/OCRSearchWorkflow.spec.tsx`, `scripts/benchmark_ocr.py` | OCR & Search contract; source-preserving/removable layer; local language-pack and scale budgets |
+| Task navigation and accessible operation feedback | `frontend/tests/Sidebar.test.tsx`, `frontend/tests/CommandPalette.spec.tsx`, `frontend/tests/CoherentUXAccessibility.spec.tsx`, `tests/e2e/coherent_ux_smoke.py` | Five primary jobs; searchable command palette; progressive disclosure; WCAG 2.2 AA shell contract |
 | Metadata cleanup | `tests/test_phase5_privacy.py` | Privacy contract; capability matrix |
 | Document validation and local API boundary | `tests/test_adversarial_corpus.py`, `tests/test_runtime_capabilities.py` | Threat model; security policy |
 | CLI documented commands | `tests/test_cli_contract.py`, wheel-install CI smoke | README; frontend setup guide |

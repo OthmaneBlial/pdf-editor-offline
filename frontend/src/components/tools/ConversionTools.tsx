@@ -3,6 +3,7 @@ import axios from 'axios';
 import { FileText, Image, FileSpreadsheet, Presentation, Globe, RefreshCw, Code, BookOpen, FileType } from 'lucide-react';
 import { API_BASE_URL } from '../../lib/apiClient';
 import { saveBlob } from '../../lib/downloads';
+import WorkflowFeedback from '../WorkflowFeedback';
 
 const ConversionTools: React.FC = () => {
     const [loading, setLoading] = useState<string | null>(null); // Track specific endpoint loading
@@ -38,9 +39,9 @@ const ConversionTools: React.FC = () => {
             </div>
 
             {message && (
-                <div className={`p-4 mb-6 rounded-xl shadow-lg ${message.type === 'success' ? 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border border-green-200' : 'bg-gradient-to-r from-red-50 to-pink-50 text-red-700 border border-red-200'} animate-scale-in`}>
+                <WorkflowFeedback tone={message.type} title="Conversion result" className="mb-6">
                     {message.text}
-                </div>
+                </WorkflowFeedback>
             )}
 
             {/* Tabs */}

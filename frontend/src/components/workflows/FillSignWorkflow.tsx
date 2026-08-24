@@ -21,6 +21,8 @@ import {
 import { useEditor } from '../../contexts/EditorContext';
 import { API_BASE_URL } from '../../lib/apiClient';
 import { saveBlob } from '../../lib/downloads';
+import ExpertDisclosure from '../ExpertDisclosure';
+import WorkflowFeedback from '../WorkflowFeedback';
 import {
   deleteSignatureAsset,
   loadSignatureAssets,
@@ -465,10 +467,10 @@ export default function FillSignWorkflow() {
         </header>
 
         {(status || visibleWarnings.length > 0) && (
-          <section role="status" aria-live="polite" className="mt-4 rounded-2xl border border-indigo-200 bg-white p-4 text-xs shadow-sm">
-            {status && <p className="font-bold text-slate-900">{status}</p>}
-            {visibleWarnings.length > 0 && <ul className="mt-2 space-y-1 text-amber-800">{visibleWarnings.map(warning => <li key={warning}>• {warningLabels[warning] ?? warning.replaceAll('_', ' ')}</li>)}</ul>}
-          </section>
+          <WorkflowFeedback tone={visibleWarnings.length > 0 ? 'warning' : busy ? 'progress' : 'success'} title="Fill & Sign status" className="mt-4 text-xs">
+            {status && <p className="font-bold">{status}</p>}
+            {visibleWarnings.length > 0 && <ul className="mt-2 space-y-1">{visibleWarnings.map(warning => <li key={warning}>• {warningLabels[warning] ?? warning.replaceAll('_', ' ')}</li>)}</ul>}
+          </WorkflowFeedback>
         )}
 
         <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,.95fr)]">
@@ -542,7 +544,8 @@ export default function FillSignWorkflow() {
           </section>
         </div>
 
-        <section className="mt-5 overflow-hidden rounded-3xl border border-emerald-300 bg-emerald-950 text-white shadow-xl" aria-labelledby="certificate-lab-heading">
+        <ExpertDisclosure title="Certificate lab" summary="Optional P12/PFX signing and explicit-root offline validation" tone="dark" className="mt-5 border-emerald-400/40 bg-emerald-950">
+        <section className="overflow-hidden rounded-2xl border border-emerald-700 bg-emerald-950 text-white shadow-xl" aria-labelledby="certificate-lab-heading">
           <div className="grid gap-4 border-b border-emerald-800 bg-[radial-gradient(circle_at_top_right,rgba(52,211,153,.18),transparent_42%)] p-5 sm:p-7 lg:grid-cols-[1fr_auto] lg:items-end">
             <div>
               <p className="font-mono text-[10px] font-bold uppercase tracking-[.22em] text-emerald-300">Certificate lab · separate trust boundary</p>
@@ -590,6 +593,7 @@ export default function FillSignWorkflow() {
             </div>
           </div>
         </section>
+        </ExpertDisclosure>
       </div>
     </div>
   );

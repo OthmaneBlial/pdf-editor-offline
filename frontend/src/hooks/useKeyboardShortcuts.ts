@@ -8,6 +8,7 @@ export interface Shortcut {
 }
 
 export const KEYBOARD_SHORTCUTS = [
+    { keys: ['Ctrl', 'K'], description: 'Find a workflow or tool' },
     { keys: ['Ctrl', 'S'], description: 'Save changes' },
     { keys: ['Ctrl', 'Z'], description: 'Undo' },
     { keys: ['Ctrl', 'Y'], description: 'Redo' },

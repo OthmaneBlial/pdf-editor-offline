@@ -45,18 +45,19 @@ def _wait_for_tool_toast(page: Page, timeout_ms: int = 15000) -> None:
 
 
 def _open_advanced_sidebar_section(page: Page) -> None:
-    """Ensure advanced editing navigation group is expanded."""
+    """Ensure the progressive All tools catalogue is expanded."""
     sidebar = page.locator("aside").first
-    text_tools_button = sidebar.get_by_role("button", name="Text Tools", exact=True)
+    text_tools_button = sidebar.get_by_role("button", name="Text", exact=True)
     if text_tools_button.count() == 0:
-        sidebar.get_by_role("button", name="Advanced Editing").click()
+        sidebar.get_by_role("button", name=re.compile(r"^All tools")).click()
 
 
 def _open_advanced_tool(page: Page, name: str) -> None:
     """Navigate to a specific advanced editing tool from the sidebar."""
     _open_advanced_sidebar_section(page)
     sidebar = page.locator("aside").first
-    sidebar.get_by_role("button", name=name, exact=True).click()
+    sidebar_name = {"Text Tools": "Text"}.get(name, name)
+    sidebar.get_by_role("button", name=sidebar_name, exact=True).click()
 
 
 def run_smoke(

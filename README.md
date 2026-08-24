@@ -41,7 +41,7 @@ Python package. Capability status is deliberately explicit:
 - Create certificate-backed signed copies from request-only P12/PFX identities and validate integrity, later changes, and explicit trust fully offline
 - Create a separate searchable scan copy with local OCR progress, cancel/retry, installed multilingual packs, confidence review, corrections, and a removable text layer
 
-The primary privacy workflows live directly in the sidebar. **Redact & Prove** searches exact text, binds every mark to an explicit review, and only offers a copy after independent verification. **Sanitize & Share** compares three cleanup profiles, previews exact removals and likely capability damage, then exports a reopened copy with before/after JSON and Markdown evidence. **OCR & Search** keeps the scan pixels, adds an inspectable/correctable layer, and never downloads a language pack behind the user's back. All three preserve the source; see the [OCR contract and local-data model](docs/OCR_SEARCH.md).
+Five task-first workflows live directly in the sidebar: **Redact & Prove**, **Fill & Sign**, **Organize Pages**, **Sanitize & Share**, and **OCR & Search**. Press `Ctrl/Command+K` to search every workflow and specialist tool by intent. Quick defaults appear first; optional OCR, page-assembly, and certificate controls stay behind labelled expert disclosures. The shared progress, warning, output, verification, focus, reflow, and touch-target rules are documented in the [Coherent UX contract](docs/COHERENT_UX.md). See the [OCR contract and local-data model](docs/OCR_SEARCH.md) for scan-specific boundaries.
 
 Read the [capability matrix](docs/CAPABILITIES.md) before relying on a workflow:
 it distinguishes stable, beta, experimental, external-dependency, and

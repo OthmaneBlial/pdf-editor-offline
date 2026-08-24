@@ -663,3 +663,64 @@ h6 {
   cursor: not-allowed;
   opacity: 0.35;
 }
+
+/* WCAG 2.2 interaction baseline shared by every workflow. */
+.touch-target {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+
+:where(button, [role='button'], summary, select) {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+
+:where(input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='hidden'])) {
+  min-height: 2.75rem;
+}
+
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid #22d3ee;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 2px rgb(8 15 31 / 0.9);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:focus-within {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (forced-colors: active) {
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 3px solid Highlight;
+    box-shadow: none;
+  }
+
+  button,
+  input,
+  select,
+  textarea,
+  summary {
+    border: 1px solid ButtonText;
+  }
+}
+
+@media (max-width: 20rem) {
+  body {
+    overflow-wrap: anywhere;
+  }
+
+  .touch-target {
+    max-width: 100%;
+  }
+}

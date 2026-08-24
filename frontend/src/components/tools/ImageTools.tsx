@@ -7,13 +7,12 @@ import {
   FileUp,
   Zap,
   Loader2,
-  CheckCircle,
-  AlertCircle,
   Save,
 } from 'lucide-react';
 import { useEditor } from '../../contexts/EditorContext';
 import { API_BASE_URL } from '../../lib/apiClient';
 import { saveBlob } from '../../lib/downloads';
+import WorkflowFeedback from '../WorkflowFeedback';
 
 interface ImageMetadata {
   index: number;
@@ -297,20 +296,9 @@ const ImageTools: React.FC = () => {
 
       {/* Status Message */}
       {message && (
-        <div
-          className={`p-4 mb-8 rounded-xl font-body text-sm flex items-center gap-3 animate-slide-up ${
-            message.type === 'success'
-              ? 'bg-[var(--status-success)]/10 text-[var(--status-success)] border border-[var(--status-success)]/20'
-              : 'bg-[var(--status-error)]/10 text-[var(--status-error)] border border-[var(--status-error)]/20'
-          }`}
-        >
-          {message.type === 'success' ? (
-            <CheckCircle className="w-5 h-5 flex-shrink-0" />
-          ) : (
-            <AlertCircle className="w-5 h-5 flex-shrink-0" />
-          )}
-          <span className="font-medium">{message.text}</span>
-        </div>
+        <WorkflowFeedback tone={message.type} title="Image operation result" className="mb-8">
+          {message.text}
+        </WorkflowFeedback>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

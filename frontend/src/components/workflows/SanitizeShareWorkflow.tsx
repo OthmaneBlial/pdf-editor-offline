@@ -19,6 +19,7 @@ import {
 import { useEditor } from '../../contexts/EditorContext';
 import { API_BASE_URL } from '../../lib/apiClient';
 import { saveBlob } from '../../lib/downloads';
+import WorkflowFeedback from '../WorkflowFeedback';
 
 interface SanitizationProfile {
   id: string;
@@ -241,7 +242,15 @@ const SanitizeShareWorkflow = () => {
           </div>
         </header>
 
-        {message && <div className={`my-6 rounded-2xl border px-4 py-3 text-sm ${result ? 'border-emerald-300 bg-emerald-50 text-emerald-900' : message.includes('failed') || message.includes('stopped') ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-sky-200 bg-sky-50 text-sky-800'}`} role={message.includes('failed') || message.includes('stopped') ? 'alert' : 'status'} aria-live="polite">{message}</div>}
+        {message && (
+          <WorkflowFeedback
+            tone={result ? 'success' : message.includes('failed') || message.includes('stopped') ? 'error' : loading ? 'progress' : 'info'}
+            title={result ? 'Sanitized copy ready' : 'Sanitization status'}
+            className="my-6"
+          >
+            {message}
+          </WorkflowFeedback>
+        )}
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[.8fr_1.2fr]">
           <div>

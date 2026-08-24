@@ -254,10 +254,10 @@ Time ranges are planning estimates for a small maintainer team, not release prom
 
 #### Coherent UX
 
-- [ ] Replace category-heavy navigation with the five primary workflows and a searchable command palette.
-- [ ] Use progressive disclosure: quick defaults first, expert controls on demand.
-- [ ] Standardize progress, cancel, retry, warnings, output location, and result verification across every tool.
-- [ ] Complete keyboard, screen-reader, contrast, focus, zoom/reflow, touch-target, and responsive tests against WCAG 2.2 AA.
+- [x] Replace category-heavy navigation with the five primary workflows and a searchable command palette. Evidence: [task catalogue](frontend/src/lib/workflowCatalog.ts), [accessible command palette](frontend/src/components/CommandPalette.tsx), and [real keyboard smoke](tests/e2e/coherent_ux_smoke.py).
+- [x] Use progressive disclosure: quick defaults first, expert controls on demand. Evidence: [shared native disclosure](frontend/src/components/ExpertDisclosure.tsx) used for OCR, advanced page assembly, and the separate Certificate lab.
+- [x] Standardize progress, cancel, retry, warnings, output location, and result verification across every tool. Evidence: [shared feedback primitive](frontend/src/components/WorkflowFeedback.tsx), app-wide [save contract](frontend/src/lib/downloads.ts), and the [operation-state specification](docs/COHERENT_UX.md).
+- [x] Complete keyboard, screen-reader, contrast, focus, zoom/reflow, touch-target, and responsive tests against WCAG 2.2 AA. Evidence: [axe/component regressions](frontend/tests/CoherentUXAccessibility.spec.tsx), [palette interaction tests](frontend/tests/CommandPalette.spec.tsx), and [320px/44px browser smoke](tests/e2e/coherent_ux_smoke.py).
 
 #### Exit gate
 

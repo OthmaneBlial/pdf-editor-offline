@@ -8,6 +8,7 @@ import Header from './components/Header';
 import PageNavigation from './components/PageNavigation';
 import ZoomControls from './components/ZoomControls';
 import Sidebar from './components/Sidebar';
+import CommandPalette from './components/CommandPalette';
 import ToolToast from './components/ToolToast';
 import ConversionTools from './components/tools/ConversionTools';
 import SecurityTools from './components/tools/SecurityTools';
@@ -23,31 +24,15 @@ import SanitizeShareWorkflow from './components/workflows/SanitizeShareWorkflow'
 import OrganizePagesWorkflow from './components/workflows/OrganizePagesWorkflow';
 import FillSignWorkflow from './components/workflows/FillSignWorkflow';
 import OCRSearchWorkflow from './components/workflows/OCRSearchWorkflow';
+import { VIEW_LABELS, type ViewMode } from './lib/workflowCatalog';
 import './App.css';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useEditor } from './contexts/EditorContext';
 
-export type ViewMode = 'editor' | 'redact' | 'fill-sign' | 'sanitize' | 'ocr' | 'manipulation' | 'conversion' | 'security' | 'advanced' | 'batch' | 'text' | 'navigation' | 'annotations' | 'images';
+export type { ViewMode } from './lib/workflowCatalog';
 
 // Advanced Editing tools that need tabbed interface
 const ADVANCED_EDITING_TOOLS: ViewMode[] = ['text', 'navigation', 'annotations', 'images'];
-const VIEW_LABELS: Record<ViewMode, string> = {
-  editor: 'Editor',
-  redact: 'Redact & Prove',
-  'fill-sign': 'Fill & Sign',
-  sanitize: 'Sanitize & Share',
-  ocr: 'OCR & Search',
-  manipulation: 'Organize Pages',
-  conversion: 'Conversion',
-  security: 'Security',
-  advanced: 'Advanced',
-  batch: 'Batch Process',
-  text: 'Text Tools',
-  navigation: 'Navigation',
-  annotations: 'Annotations',
-  images: 'Images',
-};
-
 // Component to handle keyboard shortcuts - must be inside EditorProvider
 function KeyboardShortcutsHandler({ onShowHelp }: { onShowHelp: () => void }) {
   useKeyboardShortcuts({
@@ -61,12 +46,25 @@ function AppContent() {
   const { documentMutationVersion } = useEditor();
   const [activeView, setActiveView] = useState<ViewMode>('editor');
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   // For Advanced Editing tools, track which tab is active: 'editor' or 'tool'
   const [activeTab, setActiveTab] = useState<'editor' | 'tool'>('editor');
   // Force refresh PDF viewer when switching from tool tab to editor tab
   const [refreshKey, setRefreshKey] = useState<number>(0);
   const isAdvancedEditingTool = ADVANCED_EDITING_TOOLS.includes(activeView);
+
+  useEffect(() => {
+    const openPalette = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLocaleLowerCase() === 'k') {
+        event.preventDefault();
+        setShowCommandPalette(true);
+        setIsMobileSidebarOpen(false);
+      }
+    };
+    window.addEventListener('keydown', openPalette);
+    return () => window.removeEventListener('keydown', openPalette);
+  }, []);
 
   // Lock body scroll while mobile drawer is open.
   useEffect(() => {
@@ -112,6 +110,7 @@ function AppContent() {
 
   const handleViewChange = (view: ViewMode) => {
     setActiveView(view);
+    setShowCommandPalette(false);
     if (ADVANCED_EDITING_TOOLS.includes(view)) {
       setActiveTab('tool');
     }
@@ -238,6 +237,12 @@ function AppContent() {
     >
       <KeyboardShortcutsHandler onShowHelp={() => setShowShortcuts(true)} />
       <ShortcutsModal isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
+      <CommandPalette
+        open={showCommandPalette}
+        activeView={activeView}
+        onClose={() => setShowCommandPalette(false)}
+        onSelect={handleViewChange}
+      />
       <ToolToast />
 
       {/* Gradient mesh background */}
@@ -251,6 +256,7 @@ function AppContent() {
         activeView={activeView}
         onViewChange={handleViewChange}
         onShowShortcuts={() => setShowShortcuts(true)}
+        onOpenCommandPalette={() => setShowCommandPalette(true)}
         isMobileOpen={isMobileSidebarOpen}
         onMobileClose={() => setIsMobileSidebarOpen(false)}
       />
@@ -261,6 +267,7 @@ function AppContent() {
           onToggleSidebar={() => setIsMobileSidebarOpen(prev => !prev)}
           isSidebarOpen={isMobileSidebarOpen}
           activeViewLabel={VIEW_LABELS[activeView]}
+          onOpenCommandPalette={() => setShowCommandPalette(true)}
         />
         <div className="flex-1 min-h-0 overflow-auto">
           {renderContent()}

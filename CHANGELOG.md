@@ -6,6 +6,9 @@ All notable changes to PDF Editor Offline are documented here.
 
 ### Added
 
+- Added task-first navigation with five primary workflows, a searchable `Ctrl/Command+K` command palette, and a progressively disclosed All tools catalogue.
+- Added shared expert disclosures and operation feedback semantics across all 14 workspaces, including explicit progress, warning, error, output, and verification language.
+- Added WCAG 2.2 AA shell regressions for keyboard/focus behavior, screen-reader roles, reduced motion, forced colors, 44px targets, computed contrast, and 320px reflow.
 - Added a primary OCR & Search workflow with page/language/DPI controls, bounded background progress, cancellation/retry, local search, confidence review, word correction, and explicit layer removal.
 - Added source-preserving Tesseract TSV ingestion, installed-pack-only multilingual selection, rotation/deskew diagnostics, session-bound OCR indexes, and real 100/500/1,000-page benchmark tooling with time/RSS budgets.
 - Added a separately bounded Certificate lab for ephemeral P12/PFX signing, source-preserving signed copies, offline signature validation, and explicit-root-only trust.

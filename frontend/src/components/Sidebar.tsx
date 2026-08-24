@@ -1,283 +1,239 @@
 import { useState } from 'react';
 import {
-  FileText, Scissors, RefreshCw, Shield, ShieldCheck, Zap, Wrench, History,
-  MessageSquare, Keyboard, ChevronRight, Layers, Sparkles, ScanSearch,
-  Type, Bookmark, PenTool, ImageIcon, X
+  ChevronDown,
+  ChevronRight,
+  Command,
+  FileText,
+  Fullscreen,
+  History,
+  Keyboard,
+  MessageSquare,
+  Search,
+  Wrench,
+  X,
 } from 'lucide-react';
+
+import type { ViewMode } from '../lib/workflowCatalog';
+import {
+  PRIMARY_WORKFLOWS,
+  SECONDARY_COMMANDS,
+} from '../lib/workflowCatalog';
+import CollaborativeAnnotations from './CollaborativeAnnotations';
 import FileUpload from './FileUpload';
+import FullscreenButton from './FullscreenButton';
+import HistoryPanel from './HistoryPanel';
+import ImageUpload from './ImageUpload';
 import RecentFiles from './RecentFiles';
 import Toolbar from './Toolbar';
-import HistoryPanel from './HistoryPanel';
-import CollaborativeAnnotations from './CollaborativeAnnotations';
-import ImageUpload from './ImageUpload';
-import FullscreenButton from './FullscreenButton';
-import type { ViewMode } from '../App';
-
-// Navigation items
-interface NavItem {
-  id: ViewMode;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-}
-
-// Basic tools
-const basicNavItems: NavItem[] = [
-  { id: 'editor', label: 'Editor', icon: FileText },
-  { id: 'redact', label: 'Redact & Prove', icon: ShieldCheck },
-  { id: 'fill-sign', label: 'Fill & Sign', icon: PenTool },
-  { id: 'sanitize', label: 'Sanitize & Share', icon: Sparkles },
-  { id: 'ocr', label: 'OCR & Search', icon: ScanSearch },
-  { id: 'manipulation', label: 'Organize Pages', icon: Scissors },
-  { id: 'conversion', label: 'Conversion', icon: RefreshCw },
-  { id: 'security', label: 'Security', icon: Shield },
-  { id: 'advanced', label: 'Advanced', icon: Zap },
-  { id: 'batch', label: 'Batch Process', icon: Layers },
-];
-
-// Advanced Editing tools
-const advancedEditingNavItems: NavItem[] = [
-  { id: 'text', label: 'Text Tools', icon: Type },
-  { id: 'navigation', label: 'Navigation', icon: Bookmark },
-  { id: 'annotations', label: 'Annotations', icon: PenTool },
-  { id: 'images', label: 'Images', icon: ImageIcon },
-];
 
 interface SidebarProps {
   activeView: ViewMode;
   onViewChange: (view: ViewMode) => void;
   onShowShortcuts: () => void;
+  onOpenCommandPalette: () => void;
   isMobileOpen?: boolean;
   onMobileClose?: () => void;
 }
+
+type UtilityPanel = 'tools' | 'history' | 'comments';
+
+const utilityItems: Array<{
+  id: UtilityPanel;
+  label: string;
+  icon: typeof Wrench;
+}> = [
+  { id: 'tools', label: 'Canvas tools', icon: Wrench },
+  { id: 'history', label: 'History', icon: History },
+  { id: 'comments', label: 'Local comments', icon: MessageSquare },
+];
 
 const Sidebar: React.FC<SidebarProps> = ({
   activeView,
   onViewChange,
   onShowShortcuts,
+  onOpenCommandPalette,
   isMobileOpen = false,
   onMobileClose,
 }) => {
-  // Track which section is expanded (only one at a time)
-  const [expandedSection, setExpandedSection] = useState<'basic' | 'advanced' | 'tools' | 'history' | 'comments' | null>('basic');
-
-  const toggleSection = (section: typeof expandedSection) => {
-    setExpandedSection(expandedSection === section ? null : section);
-  };
+  const [allToolsOpen, setAllToolsOpen] = useState(false);
+  const [utilityPanel, setUtilityPanel] = useState<UtilityPanel | null>(null);
 
   const handleViewSelection = (view: ViewMode) => {
     onViewChange(view);
-    if (onMobileClose) {
-      onMobileClose();
-    }
+    onMobileClose?.();
   };
 
-  // Helper to render navigation items
-  const renderNavItems = (items: NavItem[]) => {
-    return items.map((item) => {
-      const Icon = item.icon;
-      const isActive = activeView === item.id;
-      return (
-        <button
-          key={item.id}
-          onClick={() => handleViewSelection(item.id)}
-          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-            isActive
-              ? 'bg-gradient-to-r from-sky-500 to-cyan-500 text-white shadow-lg'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-          }`}
-        >
-          <Icon className="w-4 h-4" />
-          <span>{item.label}</span>
-          {isActive && <ChevronRight className="w-3 h-3 ml-auto" />}
-        </button>
-      );
-    });
+  const renderUtility = () => {
+    if (utilityPanel === 'tools') {
+      return <div className="space-y-4"><Toolbar /><ImageUpload /></div>;
+    }
+    if (utilityPanel === 'history') return <HistoryPanel />;
+    if (utilityPanel === 'comments') return <CollaborativeAnnotations />;
+    return null;
   };
 
   return (
     <>
       <div
-        className={`fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-30 lg:hidden transition-opacity duration-300 ${
-          isMobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        }`}
+        className={`fixed inset-0 z-30 bg-slate-950/75 backdrop-blur-sm transition-opacity duration-300 lg:hidden ${isMobileOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'}`}
         onClick={onMobileClose}
         aria-hidden="true"
       />
       <aside
-        className={`fixed inset-y-0 left-0 w-[85vw] max-w-[320px] lg:w-72 bg-slate-900 flex flex-col z-40 lg:relative lg:z-10 transform transition-transform duration-300 ${
-          isMobileOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0 overflow-y-auto`}
+        className={`fixed inset-y-0 left-0 z-40 flex w-[88vw] max-w-[320px] flex-col overflow-hidden border-r border-white/[.07] bg-[#090d18] text-white shadow-2xl transition-transform duration-300 lg:relative lg:z-10 lg:w-72 lg:translate-x-0 ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
         aria-label="Main sidebar"
       >
-      {/* Logo Section */}
-      <div className="p-5 border-b border-slate-700/50">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-sky-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg shadow-sky-500/20">
-            <FileText className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold text-white tracking-tight">PDF Editor Offline</h1>
-            <p className="text-[10px] text-slate-400 font-medium">v2.1.0</p>
-          </div>
-          <button
-            onClick={onMobileClose}
-            className="lg:hidden ml-auto p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
-            aria-label="Close sidebar menu"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* Basic Tools Section */}
-      <div className="border-b border-slate-700/50">
-        <button
-          onClick={() => toggleSection('basic')}
-          className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium transition-colors ${
-            expandedSection === 'basic'
-              ? 'text-white bg-slate-800'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <FileText className="w-4 h-4" />
-            <span>Basic Tools</span>
-          </div>
-          <ChevronRight className={`w-4 h-4 transition-transform ${expandedSection === 'basic' ? 'rotate-90' : ''}`} />
-        </button>
-
-        {expandedSection === 'basic' && (
-          <div className="px-2 pb-3 space-y-1 animate-fade-in">
-            {renderNavItems(basicNavItems)}
-          </div>
-        )}
-      </div>
-
-      {/* Advanced Editing Section */}
-      <div className="border-b border-slate-700/50">
-        <button
-          onClick={() => toggleSection('advanced')}
-          className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium transition-colors ${
-            expandedSection === 'advanced'
-              ? 'text-white bg-slate-800'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-purple-400" />
-            <span>Advanced Editing</span>
-          </div>
-          <ChevronRight className={`w-4 h-4 transition-transform ${expandedSection === 'advanced' ? 'rotate-90' : ''}`} />
-        </button>
-
-        {expandedSection === 'advanced' && (
-          <div className="px-2 pb-3 space-y-1 animate-fade-in">
-            {renderNavItems(advancedEditingNavItems)}
-          </div>
-        )}
-      </div>
-
-      {/* Tools Section */}
-      <div className="border-b border-slate-700/50">
-        <button
-          onClick={() => toggleSection('tools')}
-          className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium transition-colors ${
-            expandedSection === 'tools'
-              ? 'text-white bg-slate-800'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <Wrench className="w-4 h-4" />
-            <span>Tools</span>
-          </div>
-          <ChevronRight className={`w-4 h-4 transition-transform ${expandedSection === 'tools' ? 'rotate-90' : ''}`} />
-        </button>
-
-        {expandedSection === 'tools' && (
-          <div className="px-3 pb-4 animate-fade-in">
-            <div className="mb-4">
-              <Toolbar />
+        <div className="border-b border-white/[.07] p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-cyan-300 text-slate-950 shadow-[0_0_28px_rgba(103,232,249,.2)]">
+              <FileText className="h-5 w-5" aria-hidden="true" />
             </div>
-            <div>
-              <ImageUpload />
+            <div className="min-w-0 flex-1">
+              <h1 className="truncate text-base font-black tracking-tight">PDF Editor Offline</h1>
+              <p className="mt-0.5 font-mono text-[9px] uppercase tracking-[.18em] text-slate-400">Private workbench · v2.1.0</p>
             </div>
-          </div>
-        )}
-      </div>
-
-      {/* History Section */}
-      <div className="border-b border-slate-700/50">
-        <button
-          onClick={() => toggleSection('history')}
-          className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium transition-colors ${
-            expandedSection === 'history'
-              ? 'text-white bg-slate-800'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <History className="w-4 h-4" />
-            <span>History</span>
-          </div>
-          <ChevronRight className={`w-4 h-4 transition-transform ${expandedSection === 'history' ? 'rotate-90' : ''}`} />
-        </button>
-
-        {expandedSection === 'history' && (
-          <div className="px-3 pb-4 animate-fade-in">
-            <HistoryPanel />
-          </div>
-        )}
-      </div>
-
-      {/* Local comments section */}
-      <div className="border-b border-slate-700/50">
-        <button
-          onClick={() => toggleSection('comments')}
-          className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium transition-colors ${
-            expandedSection === 'comments'
-              ? 'text-white bg-slate-800'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <MessageSquare className="w-4 h-4" />
-            <span>Local comments</span>
-          </div>
-          <ChevronRight className={`w-4 h-4 transition-transform ${expandedSection === 'comments' ? 'rotate-90' : ''}`} />
-        </button>
-
-        {expandedSection === 'comments' && (
-          <div className="px-3 pb-4 min-h-0 animate-fade-in">
-            <CollaborativeAnnotations />
-          </div>
-        )}
-      </div>
-
-      {/* Bottom Section */}
-      <div className="p-4 border-t border-slate-700/50 space-y-3">
-        <FileUpload />
-        <RecentFiles />
-
-        {/* Status & Actions */}
-        <div className="flex items-center justify-between px-2 py-2 rounded-lg bg-slate-800/50">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[10px] font-medium text-slate-400">Ready</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <FullscreenButton />
             <button
-              onClick={onShowShortcuts}
-              className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-all"
-              title="Keyboard shortcuts"
-              aria-label="Show keyboard shortcuts"
+              type="button"
+              onClick={onMobileClose}
+              className="touch-target inline-flex h-11 w-11 items-center justify-center rounded-xl text-slate-400 hover:bg-white/5 hover:text-white lg:hidden"
+              aria-label="Close sidebar menu"
             >
-              <Keyboard className="w-4 h-4" />
+              <X className="h-5 w-5" aria-hidden="true" />
             </button>
           </div>
+
+          <button
+            type="button"
+            onClick={onOpenCommandPalette}
+            className="touch-target mt-4 flex min-h-12 w-full items-center gap-3 rounded-2xl border border-cyan-300/20 bg-cyan-300/[.065] px-3 text-left text-slate-200 transition hover:border-cyan-300/40 hover:bg-cyan-300/10"
+            aria-label="Search all workflows and tools"
+          >
+            <Search className="h-4 w-4 text-cyan-300" aria-hidden="true" />
+            <span className="min-w-0 flex-1 text-xs font-bold">Find a workflow or tool</span>
+            <kbd className="flex items-center gap-1 rounded-lg border border-white/10 bg-black/20 px-2 py-1 font-mono text-[9px] text-slate-400"><Command className="h-2.5 w-2.5" aria-hidden="true" />K</kbd>
+          </button>
         </div>
-      </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
+          <nav aria-label="Primary workflows">
+            <div className="mb-2 flex items-center justify-between px-2">
+              <p className="text-[9px] font-black uppercase tracking-[.22em] text-slate-400">Five primary jobs</p>
+              <span className="rounded-full bg-emerald-300/10 px-2 py-1 font-mono text-[8px] uppercase text-emerald-300">On-device</span>
+            </div>
+            <div className="space-y-1.5">
+              {PRIMARY_WORKFLOWS.map((item, index) => {
+                const Icon = item.icon;
+                const active = activeView === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => handleViewSelection(item.id)}
+                    aria-current={active ? 'page' : undefined}
+                    className={`group flex min-h-14 w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition ${active ? 'border-cyan-300/45 bg-white/[.075] shadow-[inset_3px_0_0_#67e8f9]' : 'border-transparent text-slate-400 hover:border-white/10 hover:bg-white/[.035] hover:text-white'}`}
+                  >
+                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${item.accent} text-slate-950 shadow-sm`}>
+                      <Icon className="h-5 w-5" aria-hidden="true" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-display text-[13px] font-bold">{item.label}</span>
+                      <span className="mt-0.5 block truncate font-mono text-[8px] uppercase tracking-wider text-slate-400">0{index + 1} · {item.keywords[0]}</span>
+                    </span>
+                    <ChevronRight className={`h-4 w-4 shrink-0 transition ${active ? 'text-cyan-300' : 'text-slate-700 group-hover:translate-x-0.5 group-hover:text-slate-400'}`} aria-hidden="true" />
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
+
+          <section className="mt-5 border-t border-white/[.07] pt-3" aria-labelledby="all-tools-heading">
+            <button
+              type="button"
+              onClick={() => setAllToolsOpen(open => !open)}
+              aria-expanded={allToolsOpen}
+              aria-controls="all-tools-panel"
+              className="touch-target flex min-h-11 w-full items-center gap-3 rounded-xl px-2 text-left text-xs font-bold text-slate-400 transition hover:bg-white/[.035] hover:text-white"
+            >
+              <Wrench className="h-4 w-4" aria-hidden="true" />
+              <span id="all-tools-heading" className="flex-1">All tools</span>
+              <span className="font-mono text-[8px] text-slate-400">{SECONDARY_COMMANDS.length}</span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${allToolsOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+            </button>
+            {allToolsOpen && (
+              <div id="all-tools-panel" className="mt-1 space-y-1 animate-fade-in">
+                {SECONDARY_COMMANDS.map(item => {
+                  const Icon = item.icon;
+                  const active = activeView === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleViewSelection(item.id)}
+                      aria-current={active ? 'page' : undefined}
+                      className={`touch-target flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-xs transition ${active ? 'bg-cyan-300 text-slate-950' : 'text-slate-400 hover:bg-white/[.035] hover:text-slate-200'}`}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                      <span className="flex-1 font-semibold">{item.shortLabel}</span>
+                      {active && <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          <section className="mt-3 border-t border-white/[.07] pt-3" aria-label="Workspace utilities">
+            <p className="px-2 pb-1 text-[9px] font-black uppercase tracking-[.22em] text-slate-400">Workspace utilities</p>
+            {utilityItems.map(item => {
+              const Icon = item.icon;
+              const expanded = utilityPanel === item.id;
+              return (
+                <div key={item.id}>
+                  <button
+                    type="button"
+                    onClick={() => setUtilityPanel(current => current === item.id ? null : item.id)}
+                    aria-expanded={expanded}
+                    aria-controls={`utility-${item.id}`}
+                    className="touch-target flex min-h-11 w-full items-center gap-3 rounded-xl px-2 text-left text-xs font-semibold text-slate-400 transition hover:bg-white/[.035] hover:text-slate-200"
+                  >
+                    <Icon className="h-4 w-4" aria-hidden="true" />
+                    <span className="flex-1">{item.label}</span>
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`} aria-hidden="true" />
+                  </button>
+                  {expanded && (
+                    <div id={`utility-${item.id}`} className="mb-2 rounded-xl border border-white/[.07] bg-black/20 p-3 animate-fade-in">
+                      {renderUtility()}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </section>
+        </div>
+
+        <div className="border-t border-white/[.07] bg-black/15 p-3">
+          <FileUpload compact />
+          <div className="mt-2"><RecentFiles /></div>
+          <div className="mt-2 flex min-h-11 items-center justify-between rounded-xl bg-white/[.035] px-2">
+            <div className="flex items-center gap-2 px-1">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.6)]" aria-hidden="true" />
+              <span className="font-mono text-[9px] uppercase tracking-wider text-slate-400">Ready locally</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="sr-only"><Fullscreen aria-hidden="true" />Display controls</span>
+              <FullscreenButton />
+              <button
+                type="button"
+                onClick={onShowShortcuts}
+                className="touch-target inline-flex h-11 w-11 items-center justify-center rounded-xl text-slate-500 transition hover:bg-white/5 hover:text-white"
+                title="Keyboard shortcuts"
+                aria-label="Show keyboard shortcuts"
+              >
+                <Keyboard className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+        </div>
       </aside>
     </>
   );

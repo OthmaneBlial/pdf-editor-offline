@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import {
-  CheckCircle2,
-  CircleX,
   FileSearch,
   Gauge,
   Languages,
@@ -19,6 +17,8 @@ import {
 
 import { useEditor } from '../../contexts/EditorContext';
 import { API_BASE_URL } from '../../lib/apiClient';
+import ExpertDisclosure from '../ExpertDisclosure';
+import WorkflowFeedback from '../WorkflowFeedback';
 
 interface OCRCapabilities {
   available: boolean;
@@ -447,10 +447,9 @@ export default function OCRSearchWorkflow() {
         </header>
 
         {(notice || error) && (
-          <div role={error ? 'alert' : 'status'} className={`flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm ${error ? 'border-rose-400/40 bg-rose-950/40 text-rose-100' : 'border-cyan-400/30 bg-cyan-950/40 text-cyan-100'}`}>
-            {error ? <CircleX className="mt-0.5 h-4 w-4 shrink-0" /> : <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />}
-            <span>{error ?? notice}</span>
-          </div>
+          <WorkflowFeedback tone={error ? 'error' : 'info'} title={error ? 'OCR action failed' : 'OCR status'}>
+            {error ?? notice}
+          </WorkflowFeedback>
         )}
 
         <div className="grid gap-5 xl:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)]">
@@ -466,19 +465,10 @@ export default function OCRSearchWorkflow() {
                 </span>
               </div>
 
-              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <div className="mt-5">
                 <label className="text-sm font-semibold text-slate-200">
                   Page range
                   <input value={pageRange} onChange={event => setPageRange(event.target.value)} placeholder="all or 1-3, 7" className="mt-2 w-full rounded-xl border border-slate-600 bg-slate-950 px-3 py-2.5 text-white outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20" />
-                </label>
-                <label className="text-sm font-semibold text-slate-200">
-                  Render quality
-                  <select value={dpi} onChange={event => setDpi(Number(event.target.value))} className="mt-2 w-full rounded-xl border border-slate-600 bg-slate-950 px-3 py-2.5 text-white outline-none focus:border-cyan-400">
-                    <option value={120}>Fast · 120 DPI</option>
-                    <option value={180}>Balanced · 180 DPI</option>
-                    <option value={240}>Detailed · 240 DPI</option>
-                    <option value={300}>Maximum · 300 DPI</option>
-                  </select>
                 </label>
               </div>
 
@@ -496,21 +486,32 @@ export default function OCRSearchWorkflow() {
                 <p className="mt-2 text-xs text-slate-500">Only recognition packs already on this machine appear here. Orientation data: {capabilities?.orientation_data_available ? 'installed' : 'not installed'}. This app never downloads either while processing.</p>
               </fieldset>
 
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <label className="flex items-start gap-3 rounded-2xl border border-slate-700 bg-slate-950/50 p-3 text-sm">
-                  <input type="checkbox" checked={autoRotate} disabled={!capabilities?.orientation_data_available} onChange={event => setAutoRotate(event.target.checked)} className="mt-1 accent-cyan-400 disabled:opacity-40" />
-                  <span><strong className="block text-white">Auto-rotation</strong><span className="text-xs text-slate-400">Use installed orientation data when available.</span></span>
+              <ExpertDisclosure title="Expert recognition controls" summary="Balanced 180 DPI, deskew, orientation, and confidence thresholds" tone="dark" className="mt-5">
+                <label className="block text-sm font-semibold text-slate-200">
+                  Render quality
+                  <select value={dpi} onChange={event => setDpi(Number(event.target.value))} className="mt-2 w-full rounded-xl border border-slate-600 bg-slate-950 px-3 py-2.5 text-white outline-none focus:border-cyan-400">
+                    <option value={120}>Fast · 120 DPI</option>
+                    <option value={180}>Balanced · 180 DPI</option>
+                    <option value={240}>Detailed · 240 DPI</option>
+                    <option value={300}>Maximum · 300 DPI</option>
+                  </select>
                 </label>
-                <label className="flex items-start gap-3 rounded-2xl border border-slate-700 bg-slate-950/50 p-3 text-sm">
-                  <input type="checkbox" checked={deskew} onChange={event => setDeskew(event.target.checked)} className="mt-1 accent-cyan-400" />
-                  <span><strong className="block text-white">Deskew analysis</strong><span className="text-xs text-slate-400">Correct small scan angles for recognition only.</span></span>
-                </label>
-              </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <label className="flex items-start gap-3 rounded-2xl border border-slate-700 bg-slate-950/50 p-3 text-sm">
+                    <input type="checkbox" checked={autoRotate} disabled={!capabilities?.orientation_data_available} onChange={event => setAutoRotate(event.target.checked)} className="mt-1 accent-cyan-400 disabled:opacity-40" />
+                    <span><strong className="block text-white">Auto-rotation</strong><span className="text-xs text-slate-400">Use installed orientation data when available.</span></span>
+                  </label>
+                  <label className="flex items-start gap-3 rounded-2xl border border-slate-700 bg-slate-950/50 p-3 text-sm">
+                    <input type="checkbox" checked={deskew} onChange={event => setDeskew(event.target.checked)} className="mt-1 accent-cyan-400" />
+                    <span><strong className="block text-white">Deskew analysis</strong><span className="text-xs text-slate-400">Correct small scan angles for recognition only.</span></span>
+                  </label>
+                </div>
 
-              <label className="mt-5 block text-sm font-semibold text-slate-200">
-                Ignore words below {minimumConfidence}% confidence
-                <input aria-label="Minimum OCR confidence" type="range" min="0" max="90" step="5" value={minimumConfidence} onChange={event => setMinimumConfidence(Number(event.target.value))} className="mt-3 w-full accent-cyan-400" />
-              </label>
+                <label className="mt-4 block text-sm font-semibold text-slate-200">
+                  Ignore words below {minimumConfidence}% confidence
+                  <input aria-label="Minimum OCR confidence" type="range" min="0" max="90" step="5" value={minimumConfidence} onChange={event => setMinimumConfidence(Number(event.target.value))} className="mt-3 w-full accent-cyan-400" />
+                </label>
+              </ExpertDisclosure>
 
               <button type="button" onClick={() => void queueOCR()} disabled={!capabilities?.available || !languages.length || busy !== null || Boolean(job && !TERMINAL_STATES.has(job.status))} className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-400 to-sky-500 px-4 py-3 font-black text-slate-950 shadow-lg shadow-cyan-950/40 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40">
                 {busy === 'queue' ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <WandSparkles className="h-5 w-5" />}

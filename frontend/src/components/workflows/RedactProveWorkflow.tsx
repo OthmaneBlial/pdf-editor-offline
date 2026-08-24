@@ -21,6 +21,7 @@ import {
 import { useEditor } from '../../contexts/EditorContext';
 import { API_BASE_URL } from '../../lib/apiClient';
 import { saveBlob } from '../../lib/downloads';
+import WorkflowFeedback from '../WorkflowFeedback';
 
 interface SearchMatch {
   index: number;
@@ -329,9 +330,13 @@ const RedactProveWorkflow = () => {
         </ol>
 
         {message && (
-          <div className={`mb-6 rounded-2xl border px-4 py-3 text-sm ${stage === 'blocked' ? 'border-rose-400/30 bg-rose-400/10 text-rose-200' : stage === 'verified' ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200' : 'border-sky-400/20 bg-sky-400/10 text-sky-200'}`} role={stage === 'blocked' ? 'alert' : 'status'} aria-live="polite">
+          <WorkflowFeedback
+            tone={stage === 'blocked' ? 'error' : stage === 'verified' ? 'success' : stage === 'applying' ? 'progress' : 'info'}
+            title={stage === 'verified' ? 'Verified copy ready' : stage === 'blocked' ? 'Verification blocked' : 'Redaction status'}
+            className="mb-6"
+          >
             {message}
-          </div>
+          </WorkflowFeedback>
         )}
 
         {(stage === 'mark' || stage === 'review') && (

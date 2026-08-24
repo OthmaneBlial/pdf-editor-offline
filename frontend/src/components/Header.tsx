@@ -1,5 +1,5 @@
 import { useEditor } from '../contexts/EditorContext';
-import { Download, Save, Loader2, PanelLeft, X } from 'lucide-react';
+import { Command, Download, Save, Loader2, PanelLeft, Search, X } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import RuntimeHealthPanel from './RuntimeHealthPanel';
 import RecoveryCenter from './RecoveryCenter';
@@ -8,9 +8,10 @@ interface HeaderProps {
     onToggleSidebar?: () => void;
     isSidebarOpen?: boolean;
     activeViewLabel?: string;
+    onOpenCommandPalette?: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onToggleSidebar, isSidebarOpen = false, activeViewLabel = 'Editor' }) => {
+const Header: React.FC<HeaderProps> = ({ onToggleSidebar, isSidebarOpen = false, activeViewLabel = 'Editor', onOpenCommandPalette }) => {
     const { exportPDF, saveChanges, hasUnsavedChanges, sessionId, isUploading } = useEditor();
     const disabledActions = !sessionId || isUploading;
 
@@ -20,7 +21,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, isSidebarOpen = false,
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                 <button
                     onClick={onToggleSidebar}
-                    className="lg:hidden p-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-inset)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-default)] transition-colors"
+                    className="touch-target lg:hidden p-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-inset)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-default)] transition-colors"
                     aria-label={isSidebarOpen ? 'Close sidebar menu' : 'Open sidebar menu'}
                 >
                     {isSidebarOpen ? <X className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
@@ -47,6 +48,17 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, isSidebarOpen = false,
 
             {/* Actions */}
             <div className="flex items-center gap-2 sm:gap-3">
+                <button
+                    type="button"
+                    onClick={onOpenCommandPalette}
+                    className="touch-target hidden min-h-11 items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-inset)] px-3 text-[var(--text-secondary)] transition hover:border-[var(--accent-primary)] hover:text-[var(--text-primary)] md:flex"
+                    aria-label="Open command palette"
+                    title="Search workflows and tools"
+                >
+                    <Search className="h-4 w-4" aria-hidden="true" />
+                    <span className="hidden xl:inline font-display text-[11px] font-semibold">Find a tool</span>
+                    <kbd className="hidden items-center gap-1 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-canvas)] px-1.5 py-0.5 font-mono text-[9px] text-[var(--text-muted)] lg:flex"><Command className="h-2.5 w-2.5" aria-hidden="true" />K</kbd>
+                </button>
                 <RuntimeHealthPanel />
                 <RecoveryCenter />
                 <ThemeToggle />
@@ -56,7 +68,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, isSidebarOpen = false,
                     onClick={() => exportPDF()}
                     disabled={disabledActions}
                     className={`
-                        flex items-center gap-2 px-2 sm:px-4 py-2 
+                        touch-target flex min-h-11 items-center gap-2 px-2 sm:px-4 py-2
                         font-display text-xs sm:text-sm font-semibold uppercase tracking-wide
                         rounded-lg border transition-all duration-200
                         ${disabledActions
@@ -78,7 +90,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, isSidebarOpen = false,
                     onClick={() => saveChanges()}
                     disabled={disabledActions || !hasUnsavedChanges}
                     className={`
-                        flex items-center gap-2 px-2 sm:px-4 py-2
+                        touch-target flex min-h-11 items-center gap-2 px-2 sm:px-4 py-2
                         font-display text-xs sm:text-sm font-semibold uppercase tracking-wide
                         rounded-lg transition-all duration-200
                         ${(hasUnsavedChanges && !disabledActions)

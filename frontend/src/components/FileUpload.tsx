@@ -4,7 +4,11 @@ import { FileUp } from 'lucide-react';
 import { addRecentFile } from '../services/recentFiles';
 import { isDesktopRuntime, openPdfWithDesktopDialog } from '../lib/desktop';
 
-const FileUpload: React.FC = () => {
+interface FileUploadProps {
+  compact?: boolean;
+}
+
+const FileUpload: React.FC<FileUploadProps> = ({ compact = false }) => {
   const { setDocument } = useEditor();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -49,7 +53,7 @@ const FileUpload: React.FC = () => {
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         id="file-upload"
-        className="group relative w-full py-8 rounded-xl border-2 border-dashed border-[var(--sidebar-border)] hover:border-[var(--accent-primary)] bg-white/5 hover:bg-white/10 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center gap-3 overflow-hidden focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2"
+        className={`group relative w-full rounded-xl border-2 border-dashed border-[var(--sidebar-border)] hover:border-[var(--accent-primary)] bg-white/5 hover:bg-white/10 transition-all duration-300 cursor-pointer flex items-center justify-center overflow-hidden focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 ${compact ? 'touch-target min-h-12 flex-row gap-2 px-3 py-2' : 'flex-col gap-3 py-8'}`}
         role="button"
         tabIndex={0}
         aria-label="Upload PDF file"
@@ -64,8 +68,8 @@ const FileUpload: React.FC = () => {
         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-[var(--accent-primary)]/5 via-transparent to-[var(--accent-tertiary)]/5 pointer-events-none" aria-hidden="true" />
 
         {/* Icon */}
-        <div className="p-3 bg-[var(--accent-primary)]/10 rounded-xl group-hover:bg-[var(--accent-primary)]/20 group-hover:scale-110 transition-all duration-300 relative z-10" aria-hidden="true">
-          <FileUp className="w-6 h-6 text-[var(--accent-primary)]" />
+        <div className={`${compact ? 'p-2' : 'p-3'} bg-[var(--accent-primary)]/10 rounded-xl group-hover:bg-[var(--accent-primary)]/20 group-hover:scale-110 transition-all duration-300 relative z-10`} aria-hidden="true">
+          <FileUp className={`${compact ? 'h-4 w-4' : 'h-6 w-6'} text-[var(--accent-primary)]`} />
         </div>
 
         {/* Text */}
@@ -73,7 +77,7 @@ const FileUpload: React.FC = () => {
           <p className="text-sm font-display font-semibold text-[var(--sidebar-text)] group-hover:text-[var(--accent-primary)] transition-colors">
             Upload PDF
           </p>
-          <p className="text-xs text-[var(--sidebar-text-muted)] mt-1 font-body">
+          <p className={`${compact ? 'sr-only' : 'mt-1 text-xs'} text-[var(--sidebar-text-muted)] font-body`}>
             Click or drag file here
           </p>
         </div>

@@ -22,6 +22,8 @@ import {
 import { useEditor } from '../../contexts/EditorContext';
 import { API_BASE_URL } from '../../lib/apiClient';
 import { saveBlob } from '../../lib/downloads';
+import ExpertDisclosure from '../ExpertDisclosure';
+import WorkflowFeedback from '../WorkflowFeedback';
 
 type BatchAction = 'rotate_left' | 'rotate_right' | 'delete' | 'duplicate' | 'crop';
 
@@ -386,14 +388,16 @@ export default function OrganizePagesWorkflow() {
           </div>
         </section>
 
-        <section aria-label="Advanced page assembly" className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-slate-950 p-3 text-white shadow-sm">
-          <button type="button" onClick={() => void detectDuplicates()} disabled={Boolean(busy)} className="flex items-center gap-2 rounded-xl border border-white/20 px-3 py-2.5 text-xs font-bold transition hover:border-cyan-300 disabled:opacity-35"><Search className="h-4 w-4" /> Find exact duplicates</button>
-          <button type="button" onClick={() => setShowBates(value => !value)} disabled={!selected.size || Boolean(busy)} className="flex items-center gap-2 rounded-xl border border-white/20 px-3 py-2.5 text-xs font-bold transition hover:border-cyan-300 disabled:opacity-35"><Hash className="h-4 w-4" /> Bates numbering</button>
-          <div className="ml-auto flex min-w-64 flex-1 items-center justify-end gap-2 sm:flex-none">
-            <select aria-label="Interleave order" value={interleaveFirst} onChange={event => setInterleaveFirst(event.target.value as typeof interleaveFirst)} className="min-w-0 rounded-xl border border-white/20 bg-slate-900 px-2 py-2 text-[11px] font-bold text-white"><option value="current">Current PDF first</option><option value="inserted">Inserted PDF first</option></select>
-            <label className="flex cursor-pointer items-center gap-2 rounded-xl bg-cyan-300 px-3 py-2.5 text-xs font-black text-slate-950"><Shuffle className="h-4 w-4" /> Interleave PDF<input ref={interleaveInputRef} type="file" accept="application/pdf,.pdf" className="sr-only" aria-label="Interleave PDF" onChange={event => void interleave(event.target.files?.[0] ?? null)} /></label>
-          </div>
-        </section>
+        <ExpertDisclosure title="Advanced page assembly" summary="Exact duplicates, Bates numbering, and interleaving" tone="dark" className="mt-3">
+          <section aria-label="Advanced page assembly" className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={() => void detectDuplicates()} disabled={Boolean(busy)} className="touch-target flex items-center gap-2 rounded-xl border border-white/20 px-3 py-2.5 text-xs font-bold transition hover:border-cyan-300 disabled:opacity-35"><Search className="h-4 w-4" /> Find exact duplicates</button>
+            <button type="button" onClick={() => setShowBates(value => !value)} disabled={!selected.size || Boolean(busy)} className="touch-target flex items-center gap-2 rounded-xl border border-white/20 px-3 py-2.5 text-xs font-bold transition hover:border-cyan-300 disabled:opacity-35"><Hash className="h-4 w-4" /> Bates numbering</button>
+            <div className="ml-auto flex min-w-64 flex-1 items-center justify-end gap-2 sm:flex-none">
+              <select aria-label="Interleave order" value={interleaveFirst} onChange={event => setInterleaveFirst(event.target.value as typeof interleaveFirst)} className="touch-target min-w-0 rounded-xl border border-white/20 bg-slate-900 px-2 py-2 text-[11px] font-bold text-white"><option value="current">Current PDF first</option><option value="inserted">Inserted PDF first</option></select>
+              <label className="touch-target flex cursor-pointer items-center gap-2 rounded-xl bg-cyan-300 px-3 py-2.5 text-xs font-black text-slate-950"><Shuffle className="h-4 w-4" /> Interleave PDF<input ref={interleaveInputRef} type="file" accept="application/pdf,.pdf" className="sr-only" aria-label="Interleave PDF" onChange={event => void interleave(event.target.files?.[0] ?? null)} /></label>
+            </div>
+          </section>
+        </ExpertDisclosure>
 
         {showCrop && (
           <section className="mt-3 grid gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:grid-cols-[repeat(4,minmax(0,1fr))_auto]">
@@ -413,10 +417,10 @@ export default function OrganizePagesWorkflow() {
         )}
 
         {(status || warnings.length > 0) && (
-          <section role="status" aria-live="polite" className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 text-xs">
-            {status && <p className="font-bold text-slate-800">{status}</p>}
-            {warnings.length > 0 && <ul className="mt-2 space-y-1 text-amber-800">{warnings.map(warning => <li key={warning}>• {warningLabels[warning] ?? warning.replaceAll('_', ' ')}</li>)}</ul>}
-          </section>
+          <WorkflowFeedback tone={warnings.length > 0 ? 'warning' : busy ? 'progress' : 'success'} title="Page operation result" className="mt-4 text-xs">
+            {status && <p className="font-bold">{status}</p>}
+            {warnings.length > 0 && <ul className="mt-2 space-y-1">{warnings.map(warning => <li key={warning}>• {warningLabels[warning] ?? warning.replaceAll('_', ' ')}</li>)}</ul>}
+          </WorkflowFeedback>
         )}
 
         <section aria-label="Page thumbnails" className="mt-5 grid grid-cols-2 gap-3 pb-16 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
