@@ -27,7 +27,7 @@ This matrix is the public contract for PDF Editor Offline 2.1.0. A feature is no
 | AcroForm list/fill | Beta | Text, date, checkbox, radio, dropdown, and list fields use deterministic visual tab order. XFA is rejected; JavaScript and calculations are reported but never executed. |
 | True form flattening | Beta | A separate sharing copy renders field appearances into page content and removes widgets; the editable session remains unchanged. |
 | Visual signature image | Stable | Typed, drawn, and imported local assets with explicit deletion. Placement is undoable. This is not a certificate-backed digital signature. |
-| Certificate signing/validation | Unsupported | Planned only as a separate, security-reviewed workflow. |
+| Certificate signing/validation | Beta | Separate signed copy from ephemeral P12/PFX; SHA-256; offline integrity/modification checks; trust only against explicitly supplied roots; no timestamp or revocation conclusion. |
 | Metadata cleanup | Stable | Removes standard and XML metadata through the documented cleanup path. |
 | Hidden-data cleanup | Beta | Review the selected profile; removing forms, links, annotations, or attachments is destructive. |
 | Sanitize & Share profiles | Beta | Content-free preview and audit engine; maximum sanitization intentionally rasterizes pages and removes search/accessibility. |

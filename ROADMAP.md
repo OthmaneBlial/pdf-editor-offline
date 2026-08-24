@@ -243,7 +243,7 @@ Time ranges are planning estimates for a small maintainer team, not release prom
 - [x] Flatten a true sharing copy while preserving the editable original.
 - [x] Warn on unsupported XFA, scripts, calculations, and signature invalidation.
 - [x] Support typed, drawn, and imported visual signatures stored locally with explicit delete controls.
-- [ ] Add certificate-backed signing and validation only as a separately specified, tested workflow.
+- [x] Add certificate-backed signing and validation only as a separately specified, tested workflow. Evidence: [request-only signing and explicit-root validation contract](docs/DIGITAL_SIGNATURES.md), [core/API security tests](tests/test_digital_signatures.py), and [separate Certificate lab interaction tests](frontend/tests/FillSignWorkflow.spec.tsx).
 
 #### OCR & Search
 

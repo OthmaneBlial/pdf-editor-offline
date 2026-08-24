@@ -14,6 +14,8 @@ Desktop UI ──token + loopback──> local FastAPI sidecar ──> PyMuPDF /
 Browser UI ──token + loopback──> local FastAPI process  ──> local session storage
 Browser UI ──network───────────> self-hosted Docker     ──> operator-controlled host
 CLI / Python API ──────────────> local filesystem and subprocesses
+P12/PFX + passphrase ─one request─> pyHanko signer ──> separate signed copy
+PEM/DER trust root ──one request─> offline validator (network fetching disabled)
 ```
 
 The desktop and `start.sh` modes are same-device boundaries. Docker is not same-device unless the browser and container actually run on the same machine.
@@ -31,7 +33,9 @@ The desktop and `start.sh` modes are same-device boundaries. Docker is not same-
 | Temp/session disclosure | App-owned directories, TTL cleanup, one-click stale cleanup | Shutdown, expiry, and cleanup tests remove only app-owned files. |
 | Recoverable redaction | Apply-redaction save path, garbage collection and cleanup | Redaction corpus proves absence through extraction, metadata, attachments, forms, and reopen. |
 | Silent fidelity loss | Save-copy default and documented beta matrix | Visual/semantic corpus detects unintended changes. |
-| Signature confusion | UI labels image placement as Visual Signature | No UI or docs imply certificate validation. |
+| Signature confusion | Visual Signature and Certificate lab are visually/API-separated; validation reports integrity, changes, explicit trust, and offline revocation independently | UI/API tests prove image assets never enter certificate requests and trust stays false without an explicit root. |
+| Private-key disclosure | P12/PFX is bounded, request-only, removed in `finally`; passphrase is never logged/persisted and is cleared in the UI | Success, wrong-passphrase, and temp-cleanup tests leave no certificate/signed temp output. |
+| False certificate trust | No OS/TLS root discovery, network fetching, timestamp, or inferred revocation result | A valid signature is untrusted without a supplied root; explicit-root and no-egress tests cover both branches. |
 | Dependency vulnerability | Lockfiles, dependency review, Dependabot, audit gates | Applicable high/critical findings block release or have a public mitigation. |
 
 ## Out of scope

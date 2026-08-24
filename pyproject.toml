@@ -52,6 +52,7 @@ dependencies = [
     "pdfplumber",
     "pypdfium2",
     "cryptography",
+    "pyHanko==0.36.2",
     "pandas",
     "openpyxl",
     "pytesseract",

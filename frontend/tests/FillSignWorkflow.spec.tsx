@@ -67,6 +67,35 @@ describe('FillSignWorkflow', () => {
     mockedAxios.get.mockResolvedValue({ data: { data: inventory } });
     mockedAxios.put.mockResolvedValue({ data: { data: { warnings: [], can_undo: true, can_redo: false } } });
     mockedAxios.post.mockImplementation(async url => {
+      if (String(url).includes('/digital-signatures/sign-copy')) {
+        return { data: new Blob(['signed-pdf'], { type: 'application/pdf' }), headers: { 'x-source-preserved': 'true' } };
+      }
+      if (String(url).includes('/digital-signatures/validate')) {
+        return { data: { data: {
+          status: 'signed',
+          signature_count: 1,
+          all_intact: true,
+          all_cryptographically_valid: true,
+          all_documents_unchanged_since_signature: true,
+          all_trusted: true,
+          trust_roots_supplied: true,
+          trust_model: 'explicit_roots_only',
+          network_fetching: false,
+          revocation_status: 'not_checked_offline',
+          signatures: [{
+            index: 0,
+            field_name: 'OfflineSignature',
+            intact: true,
+            cryptographically_valid: true,
+            trusted: true,
+            trust_status: 'trusted_explicit_root',
+            coverage: 'entire_file',
+            modification_level: 'none',
+            document_unchanged_since_signature: true,
+            certificate: { subject_common_name: 'Synthetic Offline Signer', issuer_common_name: 'Synthetic Offline Signer', sha256_fingerprint: 'abcdef', valid_from: '2026-08-23', valid_until: '2026-09-23' },
+          }],
+        } } };
+      }
       if (String(url).includes('/flatten-copy')) {
         return { data: new Blob(['pdf'], { type: 'application/pdf' }), headers: { 'x-fields-flattened': '4', 'x-pdf-editor-warnings': 'editable_original_preserved' } };
       }
@@ -127,5 +156,37 @@ describe('FillSignWorkflow', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete imported visual signature' }));
     expect(assetMocks.delete).toHaveBeenCalledWith('asset-1');
+  });
+
+  it('keeps certificate signing separate, clears the passphrase, and validates with explicit trust', async () => {
+    render(<FillSignWorkflow />);
+    await screen.findByRole('heading', { name: 'Digital signing & offline validation' });
+
+    const certificate = new File(['p12'], 'synthetic.p12', { type: 'application/x-pkcs12' });
+    fireEvent.change(screen.getByLabelText('Import P12 or PFX certificate'), { target: { files: [certificate] } });
+    const passphrase = screen.getByLabelText(/Passphrase · never stored/);
+    fireEvent.change(passphrase, { target: { value: 'one-request-only' } });
+    fireEvent.change(screen.getByLabelText(/Reason · optional/), { target: { value: 'Local approval' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create separate signed copy' }));
+
+    await waitFor(() => expect(saveBlob).toHaveBeenCalledWith(expect.any(Blob), 'certificate-signed-copy.pdf'));
+    const signingCall = mockedAxios.post.mock.calls.find(call => String(call[0]).includes('/digital-signatures/sign-copy'));
+    const signingForm = signingCall?.[1] as FormData;
+    expect(signingForm.get('certificate')).toBe(certificate);
+    expect(signingForm.get('passphrase')).toBe('one-request-only');
+    expect(signingForm.get('reason')).toBe('Local approval');
+    expect(passphrase).toHaveValue('');
+    expect(assetMocks.save).not.toHaveBeenCalled();
+
+    const root = new File(['pem'], 'root.pem', { type: 'application/x-pem-file' });
+    fireEvent.change(screen.getByLabelText('Import explicit trust root'), { target: { files: [root] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Validate offline' }));
+
+    expect(await screen.findByText('Synthetic Offline Signer')).toBeInTheDocument();
+    expect(screen.getByLabelText('Digital signature validation result')).toHaveTextContent('Valid');
+    expect(screen.getByLabelText('Digital signature validation result')).toHaveTextContent('Trusted');
+    expect(screen.getByLabelText('Digital signature validation result')).toHaveTextContent('Not checked');
+    const validationCall = mockedAxios.post.mock.calls.find(call => String(call[0]).includes('/digital-signatures/validate'));
+    expect((validationCall?.[1] as FormData).get('trust_roots')).toBe(root);
   });
 });

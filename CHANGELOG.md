@@ -4,6 +4,11 @@ All notable changes to PDF Editor Offline are documented here.
 
 ## Unreleased
 
+### Added
+
+- Added a separately bounded Certificate lab for ephemeral P12/PFX signing, source-preserving signed copies, offline signature validation, and explicit-root-only trust.
+- Added regression evidence for wrong passphrases, invalid roots, post-sign modifications, request-only key cleanup, no implicit trust, and no certificate-network fetching.
+
 ## 2.1.0 - 2026-08-23
 
 ### Added

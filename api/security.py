@@ -254,7 +254,16 @@ def validate_pdf_file(file_content: bytes, filename: str, max_size_bytes: int) -
                 )
 
             for xref in range(1, document.xref_length()):
-                definition = document.xref_object(xref, compressed=False)
+                try:
+                    definition = document.xref_object(xref, compressed=False)
+                except RuntimeError as exc:
+                    # Incremental writers can legally leave an unused object
+                    # number between revisions. MuPDF reports that free slot as
+                    # a missing xref object even though the page tree and both
+                    # revisions are intact.
+                    if "cannot find object in xref" in str(exc):
+                        continue
+                    raise
                 if len(definition.encode("utf-8", errors="ignore")) > MAX_PDF_OBJECT_BYTES:
                     raise HTTPException(
                         status_code=413,

@@ -5,6 +5,7 @@
 - XFA forms are detected but unsupported. Standard AcroForms are the supported form target.
 - AcroForm JavaScript and automatic calculations are detected but never executed; calculated values require manual review.
 - Visual signatures are locally stored images, not certificate-backed digital signatures or identity proof.
+- Certificate signing uses a request-only P12/PFX and creates a separate signed copy, but does not obtain a trusted timestamp, query OCSP/CRL services, establish legal authority, or support hardware tokens. Offline validation trusts only a PEM/DER root supplied explicitly for that request.
 - Local comments in the sidebar are not collaborative and are not embedded in exported PDFs.
 - OCR requires local Tesseract and language data. The current endpoint does not yet provide background progress, cancellation, or correction.
 - Office-to-PDF requires LibreOffice. Relevant PDF/A, repair, and compression operations may require Ghostscript.

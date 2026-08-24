@@ -1,6 +1,6 @@
 # Fill & Sign
 
-Fill & Sign is the primary workflow for standard AcroForms and clearly labelled visual signature images. It does not treat an image as identity proof and does not expose certificate signing inside the visual-signature flow.
+Fill & Sign is the primary workflow for standard AcroForms and clearly labelled visual signature images. It does not treat an image as identity proof. Certificate signing and validation live below it as a visually and technically separate trust boundary.
 
 ## Standard AcroForms
 
@@ -30,4 +30,6 @@ Applying an asset sends the image to the token-protected loopback API, validates
 
 ## Digital-signature boundary
 
-A visual signature does not prove signer identity, document integrity, certificate trust, revocation status, or signing time. Certificate-backed creation and validation remain a separately specified workflow with distinct key handling, trust-store, algorithm, timestamp, revocation, and verification requirements. No private key belongs in the visual-signature library.
+A visual signature does not prove signer identity, document integrity, certificate trust, revocation status, or signing time. The separate **Certificate lab** creates an incrementally signed copy from an ephemeral P12/PFX identity and validates embedded signatures offline. No private key belongs in the visual-signature library or app storage.
+
+Validation distinguishes cryptographic integrity, later modifications, explicit certificate trust, and unavailable offline revocation evidence. It never uses operating-system/TLS roots or fetches OCSP/CRL data implicitly. Read the complete [digital-signature contract](DIGITAL_SIGNATURES.md) before relying on a result.

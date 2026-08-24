@@ -6,10 +6,13 @@ import {
   Eraser,
   FileCheck2,
   FileSignature,
+  Fingerprint,
+  KeyRound,
   Loader2,
   PenLine,
   Redo2,
   ShieldAlert,
+  ShieldCheck,
   Trash2,
   Type,
   Undo2,
@@ -50,6 +53,37 @@ interface FormInventory {
   calculation_actions: number;
   signature_fields: number;
   warnings: string[];
+}
+
+interface DigitalSignatureResult {
+  status: 'unsigned' | 'signed';
+  signature_count: number;
+  all_intact: boolean;
+  all_cryptographically_valid: boolean;
+  all_documents_unchanged_since_signature: boolean;
+  all_trusted: boolean;
+  trust_roots_supplied: boolean;
+  trust_model: 'explicit_roots_only';
+  network_fetching: false;
+  revocation_status: 'not_checked_offline';
+  signatures: Array<{
+    index: number;
+    field_name: string | null;
+    intact: boolean;
+    cryptographically_valid: boolean;
+    trusted: boolean;
+    trust_status: string;
+    coverage: string | null;
+    modification_level: string | null;
+    document_unchanged_since_signature: boolean;
+    certificate: null | {
+      subject_common_name: string | null;
+      issuer_common_name: string | null;
+      sha256_fingerprint: string;
+      valid_from: string | null;
+      valid_until: string | null;
+    };
+  }>;
 }
 
 const warningLabels: Record<string, string> = {
@@ -112,8 +146,23 @@ export default function FillSignWorkflow() {
   const [typedName, setTypedName] = useState('');
   const [hasInk, setHasInk] = useState(false);
   const [placement, setPlacement] = useState({ page: currentPage + 1, x: 72, y: 500, width: 180, height: 60 });
+  const [certificateFile, setCertificateFile] = useState<File | null>(null);
+  const [certificatePassphrase, setCertificatePassphrase] = useState('');
+  const [trustRootFile, setTrustRootFile] = useState<File | null>(null);
+  const [digitalValidation, setDigitalValidation] = useState<DigitalSignatureResult | null>(null);
+  const [digitalDetails, setDigitalDetails] = useState({
+    fieldName: 'OfflineSignature',
+    reason: '',
+    location: '',
+    page: currentPage + 1,
+    x0: 72,
+    y0: 72,
+    x1: 300,
+    y1: 132,
+  });
   const drawCanvasRef = useRef<HTMLCanvasElement>(null);
   const drawingRef = useRef(false);
+  const certificateInputRef = useRef<HTMLInputElement>(null);
 
   const selectedAsset = useMemo(
     () => assets.find(asset => asset.id === selectedAssetId) ?? null,
@@ -315,6 +364,60 @@ export default function FillSignWorkflow() {
     }
   };
 
+  const createCertificateSignedCopy = async () => {
+    if (!sessionId || !certificateFile) return;
+    setBusy('certificate-sign');
+    try {
+      const form = new FormData();
+      form.append('certificate', certificateFile);
+      form.append('passphrase', certificatePassphrase);
+      form.append('field_name', digitalDetails.fieldName);
+      form.append('reason', digitalDetails.reason);
+      form.append('location', digitalDetails.location);
+      form.append('page', String(digitalDetails.page - 1));
+      form.append('x0', String(digitalDetails.x0));
+      form.append('y0', String(digitalDetails.y0));
+      form.append('x1', String(digitalDetails.x1));
+      form.append('y1', String(digitalDetails.y1));
+      const response = await axios.post(
+        `${API_BASE_URL}/api/documents/${sessionId}/digital-signatures/sign-copy`,
+        form,
+        { responseType: 'blob' },
+      );
+      await saveBlob(response.data, 'certificate-signed-copy.pdf');
+      setStatus('A separate certificate-signed copy was created. Reopen that copy here to validate it.');
+    } catch (error) {
+      const detail = axios.isAxiosError(error) ? error.response?.data?.detail : undefined;
+      setStatus(detail || 'The certificate-signed copy could not be created. Check the P12/PFX and passphrase.');
+    } finally {
+      setCertificatePassphrase('');
+      setCertificateFile(null);
+      if (certificateInputRef.current) certificateInputRef.current.value = '';
+      setBusy('');
+    }
+  };
+
+  const validateDigitalSignatures = async () => {
+    if (!sessionId) return;
+    setBusy('certificate-validate');
+    try {
+      const form = new FormData();
+      if (trustRootFile) form.append('trust_roots', trustRootFile);
+      const response = await axios.post(
+        `${API_BASE_URL}/api/documents/${sessionId}/digital-signatures/validate`,
+        form,
+      );
+      const result = response.data?.data as DigitalSignatureResult;
+      setDigitalValidation(result);
+      setStatus(result.status === 'unsigned' ? 'No embedded digital signature was found.' : `Inspected ${result.signature_count} digital signature${result.signature_count === 1 ? '' : 's'} entirely offline.`);
+    } catch (error) {
+      const detail = axios.isAxiosError(error) ? error.response?.data?.detail : undefined;
+      setStatus(detail || 'Digital signatures could not be inspected safely.');
+    } finally {
+      setBusy('');
+    }
+  };
+
   const history = async (direction: 'undo' | 'redo') => {
     if (!sessionId) return;
     setBusy(direction);
@@ -438,6 +541,55 @@ export default function FillSignWorkflow() {
             <button type="button" onClick={() => void applyVisualSignature()} disabled={!selectedAsset || Boolean(busy)} className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-300 px-4 py-3.5 text-sm font-black text-slate-950 disabled:opacity-35"><FileSignature className="h-4 w-4" /> Place visual signature</button>
           </section>
         </div>
+
+        <section className="mt-5 overflow-hidden rounded-3xl border border-emerald-300 bg-emerald-950 text-white shadow-xl" aria-labelledby="certificate-lab-heading">
+          <div className="grid gap-4 border-b border-emerald-800 bg-[radial-gradient(circle_at_top_right,rgba(52,211,153,.18),transparent_42%)] p-5 sm:p-7 lg:grid-cols-[1fr_auto] lg:items-end">
+            <div>
+              <p className="font-mono text-[10px] font-bold uppercase tracking-[.22em] text-emerald-300">Certificate lab · separate trust boundary</p>
+              <h3 id="certificate-lab-heading" className="mt-2 font-display text-3xl font-bold">Digital signing & offline validation</h3>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-emerald-100/75">This workflow uses a P12/PFX private key for one request, creates a separate incrementally signed copy, then discards the upload and passphrase. It never treats visual signature images as certificates.</p>
+            </div>
+            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-wider text-emerald-200"><KeyRound className="h-4 w-4" /> No key library</span>
+          </div>
+
+          <div className="grid gap-px bg-emerald-800 lg:grid-cols-2">
+            <div className="bg-emerald-950 p-5 sm:p-7">
+              <div className="flex items-start gap-3"><Fingerprint className="mt-1 h-7 w-7 text-emerald-300" /><div><h4 className="font-display text-2xl font-bold">Validate this PDF</h4><p className="mt-1 text-xs leading-5 text-emerald-100/65">Integrity is checked without network access. Trust stays false unless you explicitly provide a PEM/DER trust root.</p></div></div>
+              <label className="mt-5 block rounded-2xl border border-dashed border-emerald-500/35 bg-white/5 p-4 text-xs font-bold text-emerald-100">Optional explicit trust root · PEM, CRT, CER, or DER
+                <input type="file" accept=".pem,.crt,.cer,.der,application/x-pem-file,application/pkix-cert" aria-label="Import explicit trust root" onChange={event => setTrustRootFile(event.target.files?.[0] ?? null)} className="mt-2 block w-full text-[11px] text-emerald-200 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-300 file:px-3 file:py-2 file:font-bold file:text-emerald-950" />
+              </label>
+              <button type="button" onClick={() => void validateDigitalSignatures()} disabled={Boolean(busy)} className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-300 px-4 py-3.5 text-sm font-black text-emerald-950 disabled:opacity-35">{busy === 'certificate-validate' ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} Validate offline</button>
+
+              {digitalValidation && <div className="mt-5 rounded-2xl border border-white/10 bg-black/15 p-4" aria-label="Digital signature validation result">
+                {digitalValidation.status === 'unsigned' ? <p className="text-sm font-bold text-amber-200">Unsigned · no embedded digital signature found</p> : <>
+                  <div className="grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-4">
+                    <div className="rounded-xl bg-white/5 p-3"><span className="block text-emerald-100/55">Cryptography</span><strong className={digitalValidation.all_cryptographically_valid ? 'text-emerald-300' : 'text-rose-300'}>{digitalValidation.all_cryptographically_valid ? 'Valid' : 'Invalid'}</strong></div>
+                    <div className="rounded-xl bg-white/5 p-3"><span className="block text-emerald-100/55">Later changes</span><strong className={digitalValidation.all_documents_unchanged_since_signature ? 'text-emerald-300' : 'text-amber-200'}>{digitalValidation.all_documents_unchanged_since_signature ? 'None' : 'Detected'}</strong></div>
+                    <div className="rounded-xl bg-white/5 p-3"><span className="block text-emerald-100/55">Explicit trust</span><strong className={digitalValidation.all_trusted ? 'text-emerald-300' : 'text-amber-200'}>{digitalValidation.all_trusted ? 'Trusted' : 'Not established'}</strong></div>
+                    <div className="rounded-xl bg-white/5 p-3"><span className="block text-emerald-100/55">Revocation</span><strong className="text-amber-200">Not checked</strong></div>
+                  </div>
+                  <ul className="mt-3 space-y-2">{digitalValidation.signatures.map(signature => <li key={`${signature.index}-${signature.field_name}`} className="rounded-xl border border-white/10 p-3 text-xs"><strong>{signature.certificate?.subject_common_name ?? signature.field_name ?? `Signature ${signature.index + 1}`}</strong><span className="mt-1 block break-all font-mono text-[9px] text-emerald-100/50">SHA-256 {signature.certificate?.sha256_fingerprint ?? 'unavailable'}</span></li>)}</ul>
+                </>}
+              </div>}
+            </div>
+
+            <div className="bg-emerald-950 p-5 sm:p-7">
+              <div className="flex items-start gap-3"><KeyRound className="mt-1 h-7 w-7 text-emerald-300" /><div><h4 className="font-display text-2xl font-bold">Create a signed copy</h4><p className="mt-1 text-xs leading-5 text-emerald-100/65">No timestamp authority or online revocation service is contacted. Any later edit can change the validation result.</p></div></div>
+              <label className="mt-5 block text-[10px] font-bold uppercase tracking-wider text-emerald-100/70">P12 or PFX signing identity
+                <input ref={certificateInputRef} type="file" accept=".p12,.pfx,application/x-pkcs12" aria-label="Import P12 or PFX certificate" onChange={event => setCertificateFile(event.target.files?.[0] ?? null)} className="mt-1 block w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs normal-case tracking-normal text-emerald-100" />
+              </label>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-emerald-100/70">Passphrase · never stored<input type="password" autoComplete="off" value={certificatePassphrase} onChange={event => setCertificatePassphrase(event.target.value)} className="mt-1 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm normal-case tracking-normal text-white" /></label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-emerald-100/70">PDF field name<input value={digitalDetails.fieldName} maxLength={80} onChange={event => setDigitalDetails(current => ({ ...current, fieldName: event.target.value }))} className="mt-1 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm normal-case tracking-normal text-white" /></label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-emerald-100/70">Reason · optional<input value={digitalDetails.reason} maxLength={200} onChange={event => setDigitalDetails(current => ({ ...current, reason: event.target.value }))} className="mt-1 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm normal-case tracking-normal text-white" /></label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-emerald-100/70">Location · optional<input value={digitalDetails.location} maxLength={120} onChange={event => setDigitalDetails(current => ({ ...current, location: event.target.value }))} className="mt-1 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm normal-case tracking-normal text-white" /></label>
+              </div>
+              <div className="mt-3 grid grid-cols-5 gap-2">{([['page', 'Page'], ['x0', 'X₀'], ['y0', 'Y₀'], ['x1', 'X₁'], ['y1', 'Y₁']] as const).map(([key, label]) => <label key={key} className="text-[9px] font-bold uppercase text-emerald-100/60">{label}<input type="number" min={key === 'page' ? 1 : 0} max={key === 'page' ? pageCount : undefined} value={digitalDetails[key]} onChange={event => setDigitalDetails(current => ({ ...current, [key]: Number(event.target.value) }))} className="mt-1 w-full rounded-lg border border-white/15 bg-white/5 px-2 py-2 text-xs text-white" /></label>)}</div>
+              <button type="button" onClick={() => void createCertificateSignedCopy()} disabled={!certificateFile || !digitalDetails.fieldName.trim() || Boolean(busy)} className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-emerald-300 bg-transparent px-4 py-3.5 text-sm font-black text-emerald-200 disabled:opacity-35">{busy === 'certificate-sign' ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSignature className="h-4 w-4" />} Create separate signed copy</button>
+              <p className="mt-3 flex gap-2 text-[10px] leading-4 text-amber-200/80"><ShieldAlert className="h-4 w-4 shrink-0" /> Trust is contextual, not a legal conclusion. This offline workflow does not check certificate revocation or obtain a trusted timestamp.</p>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   );

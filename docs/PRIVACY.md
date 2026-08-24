@@ -16,6 +16,8 @@ Do not add analytics, crash uploads, remote fonts, CDNs, AI APIs, update pings, 
 | Temporary inputs/outputs | Conversion and export | Operation cleanup or stale-file cleanup | Runtime health panel cleanup; source mode defaults to the app-owned `pdf-editor-offline` OS temp subdirectory |
 | Recent-file record | Convenience | Until removed | Remove one, clear all, or use **Delete all local workspace data** |
 | Visual signature asset | Typed, drawn, or imported image mark; never a certificate | Browser-profile storage, maximum eight assets | Delete each asset in **Fill & Sign** or use **Delete all local workspace data** |
+| Certificate identity and passphrase | One certificate-backed signed-copy request | Bounded app temp file and request memory only; deleted after success or failure | File input and passphrase are cleared automatically; no key library exists |
+| Explicit validation trust root | Establish trust for one offline validation request | Bounded app temp file only; deleted after the response | Omit the root to perform integrity checks without claiming trust |
 | UI preferences | Theme and local username | Browser/app storage | Clear application storage |
 | Content-free redaction report | Audit evidence: fixed check names, counts, version, size, and output hash | Lifetime of the verified-copy session | Delete the verified-copy session / clean stale local data |
 | Recovery copy and journal | Continue after interruption; journal contains stage, time, counts, and sizes only | Seven days by default | Preview/restore locally, explicit two-step deletion, or delete all local workspace data |
@@ -23,6 +25,8 @@ Do not add analytics, crash uploads, remote fonts, CDNs, AI APIs, update pings, 
 The runtime health panel reports only content-free counts and byte totals for session PDFs, audit reports, inactive recovery copies, drafts, temporary outputs, and recent-file references. It never exposes filenames or absolute paths. **Delete all local workspace data** requires an explicit checkbox, closes the current document, and removes every app-owned session, report, draft/recovery file, temporary output, browser-profile visual signature asset, and browser/desktop recent-file reference. Unrelated files in the operating-system temp directory are outside its scope and are preserved. The [recovery contract](RECOVERY.md) documents autosave timing, retention, preview, restoration, and interruption boundaries.
 
 Visual signature assets are local image data, limited to eight entries. Imported assets are limited to PNG, JPEG, or WebP files of at most 750 KB in the UI. When an asset is placed, the browser sends it only to the token-protected loopback API; the bounded temporary image is removed after the operation. Do not import a private key or certificate: this workflow creates a visible image mark only.
+
+The separate Certificate lab accepts a P12/PFX identity only for one signed-copy request. The backend never writes the passphrase, never creates a key library, never includes key material in recovery data, and removes the bounded certificate upload in a `finally` cleanup path. Explicit PEM/DER trust roots follow the same request-only lifecycle. Certificate summaries returned by validation contain only the subject/issuer common names, serial, validity window, algorithm facts, and SHA-256 fingerprint needed to explain the result.
 
 The visible **Processed on this device** control opens this inspector and explains the data flow: workspace → token-protected loopback → local API → app-owned storage. Diagnostics must scrub absolute paths and document-derived values.
 
@@ -33,6 +37,7 @@ The Redact & Prove UI submits target text in a local POST body, not a URL query,
 - Desktop and `./start.sh` communicate only with a token-protected API on `127.0.0.1`.
 - Tailwind styles and the Syne, JetBrains Mono, and Instrument Serif fonts are bundled with the frontend; the workspace does not load a CDN or remote font service.
 - Core processing does not require an internet connection after dependencies and the application are installed.
+- Digital-signature validation disables certificate/revocation fetching. It never falls back to OS/TLS trust roots; revocation remains explicitly unchecked offline.
 - The application does not silently fall back to a remote service when LibreOffice, Tesseract, Ghostscript, or a language pack is missing.
 - Docker/self-hosted browser use sends documents to the configured host. The operator owns that privacy boundary.
 - Project documentation and release downloads are normal web resources; they are separate from document processing.

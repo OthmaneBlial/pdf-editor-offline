@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import hmac
 import json
@@ -16,6 +17,10 @@ from PIL import Image
 from starlette.background import BackgroundTask
 
 from pdf_editor_offline.core.exceptions import InvalidOperationError, PDFLoadError
+from pdf_editor_offline.core.digital_signatures import (
+    sign_pdf_with_pkcs12,
+    validate_pdf_signatures,
+)
 from pdf_editor_offline.core.form_handler import FormHandler
 
 logger = logging.getLogger(__name__)
@@ -1495,6 +1500,113 @@ def _remove_temp_output(path: str) -> None:
         os.remove(path)
     except OSError:
         pass
+
+
+@router.post("/{doc_id}/digital-signatures/sign-copy")
+async def create_certificate_signed_copy(
+    doc_id: str,
+    certificate: UploadFile = File(...),
+    passphrase: str = Form(""),
+    field_name: str = Form("OfflineSignature"),
+    reason: str = Form(""),
+    location: str = Form(""),
+    page: int = Form(0),
+    x0: int = Form(72),
+    y0: int = Form(72),
+    x1: int = Form(300),
+    y1: int = Form(132),
+):
+    """Create a separate signed copy; never retain key material or mutate source."""
+    session = get_session(doc_id)
+    certificate_path = await _store_upload_temporarily(
+        certificate,
+        "digital_certificate",
+        allowed_extensions={".p12", ".pfx"},
+        allowed_content_types={
+            "application/x-pkcs12",
+            "application/pkcs12",
+            "application/octet-stream",
+        },
+        max_size_bytes=4 * 1024 * 1024,
+    )
+    output_path = os.path.join(TEMP_DIR, f"digitally_signed_{uuid.uuid4().hex}.pdf")
+    try:
+        result = await asyncio.to_thread(
+            sign_pdf_with_pkcs12,
+            session["storage_path"],
+            certificate_path,
+            output_path,
+            passphrase=passphrase,
+            field_name=field_name,
+            reason=reason or None,
+            location=location or None,
+            page=page,
+            box=(x0, y0, x1, y1),
+        )
+    except InvalidOperationError as exc:
+        _remove_temp_output(output_path)
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    finally:
+        _remove_temp_output(certificate_path)
+
+    filename = sanitize_download_filename(
+        f"{Path(session['filename']).stem}-signed.pdf",
+        default="certificate-signed-copy.pdf",
+        allowed_extensions=(".pdf",),
+    )
+    return FileResponse(
+        output_path,
+        filename=filename,
+        media_type="application/pdf",
+        headers={
+            "X-Signature-Field": result["field_name"],
+            "X-Source-Preserved": "true",
+            "X-Private-Key-Persisted": "false",
+            "X-Timestamp-Embedded": "false",
+            "X-Online-Revocation-Checked": "false",
+        },
+        background=BackgroundTask(_remove_temp_output, output_path),
+    )
+
+
+@router.post("/{doc_id}/digital-signatures/validate", response_model=APIResponse)
+async def validate_certificate_signatures(
+    doc_id: str,
+    trust_roots: Optional[UploadFile] = File(None),
+):
+    """Validate locally; trust is granted only through an explicit PEM/DER root."""
+    session = get_session(doc_id)
+    root_path = None
+    try:
+        if trust_roots is not None:
+            root_path = await _store_upload_temporarily(
+                trust_roots,
+                "digital_trust_roots",
+                allowed_extensions={".pem", ".cer", ".crt", ".der"},
+                allowed_content_types={
+                    "application/x-pem-file",
+                    "application/pem-certificate-chain",
+                    "application/pkix-cert",
+                    "application/x-x509-ca-cert",
+                    "application/octet-stream",
+                },
+                max_size_bytes=2 * 1024 * 1024,
+            )
+        result = await asyncio.to_thread(
+            validate_pdf_signatures,
+            session["storage_path"],
+            trust_root_paths=[root_path] if root_path else (),
+        )
+        return APIResponse(
+            success=True,
+            data=result,
+            message="Digital signatures inspected offline",
+        )
+    except InvalidOperationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    finally:
+        if root_path:
+            _remove_temp_output(root_path)
 
 
 @router.post("/{doc_id}/forms/flatten-copy")

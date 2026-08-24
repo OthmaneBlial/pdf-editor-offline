@@ -113,7 +113,14 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
-    expose_headers=["Content-Disposition"],
+    expose_headers=[
+        "Content-Disposition",
+        "X-Signature-Field",
+        "X-Source-Preserved",
+        "X-Private-Key-Persisted",
+        "X-Timestamp-Embedded",
+        "X-Online-Revocation-Checked",
+    ],
 )
 
 # Import routes after app is created to avoid circular imports

@@ -10,6 +10,8 @@ Dependency findings are release gates, not an aggregate score.
 - Pull requests: GitHub dependency review rejects new high or critical findings.
 - Updates: Dependabot checks pip, both npm workspaces, Cargo, and GitHub Actions weekly.
 
+Certificate-backed PDF signing pins `pyHanko==0.36.2`. Its transitive ASN.1 and certificate-validation parsers are covered by the clean-environment `pip-audit` release gate; any high/critical advisory or signing/validation behavior change blocks release until reviewed.
+
 As of the 2.1.0 foundation work, the locked frontend and Python trees report no
 known vulnerabilities, and `cargo audit` reports no vulnerability-class
 findings. Informational RustSec warnings that cannot yet be removed from the
