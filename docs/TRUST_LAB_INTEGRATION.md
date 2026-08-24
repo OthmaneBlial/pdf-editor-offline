@@ -83,6 +83,31 @@ entries, and validate their own output against the public schemas. Case IDs,
 feature identifiers, and `expected_behavior` are the stable join keys. Do not
 use the synthetic signing key or certificate for any real document.
 
+### Reusable GitHub Action consumer
+
+The repository includes
+[`verify-evidence`](../.github/actions/verify-evidence/action.yml), a composite
+GitHub Action that consumes an existing content-free CLI report. It accepts only
+filenames from the immutable v1 schema catalogue, validates Draft 2020-12, fails
+if `content_included` is not `false`, and writes only schema identity and verdict
+to the job log/summary.
+
+```yaml
+- name: Produce capability evidence
+  run: pdf-editor-offline capabilities --json > "$RUNNER_TEMP/capabilities.json"
+- name: Validate the stable contract
+  uses: OthmaneBlial/pdf-editor-offline/.github/actions/verify-evidence@main
+  with:
+    report: ${{ runner.temp }}/capabilities.json
+    schema: capabilities.schema.json
+```
+
+Pin `uses:` to a full reviewed commit SHA in production. The project's own
+`python-full` CI job executes this exact producer/consumer boundary on every
+push, so the integration example cannot silently drift away from the CLI schema.
+The action never uploads the report; artifact retention remains the caller's
+explicit decision.
+
 Please link the dashboard or repository when publishing derived results so
 readers can inspect the exact generator and limitations. Compatibility results
 from a different engine should state its version, OS, architecture, and any

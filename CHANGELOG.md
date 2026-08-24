@@ -6,6 +6,7 @@ All notable changes to PDF Editor Offline are documented here.
 
 ### Added
 
+- Added a reusable GitHub Action consumer for stable content-free reports, executed by CI against a real `capabilities --json` payload and immutable v1 schema.
 - Added reviewed architecture RFCs and a machine-readable disabled-experiment registry for browser/WASM, touch/pen tablet support, and optional LAN/folder collaboration.
 - Published measurable compatibility, bundle, OCR, forms, security, recovery, opt-in, and maintenance gates while preserving the fully offline loopback-only solo runtime.
 - Added an Experimental Content Editing Lab for one isolated horizontal Base-14 replacement, with content-free preflight, explicit redaction-plus-redraw disclosure, versioned supported/refused corpus, and atomic rollback.

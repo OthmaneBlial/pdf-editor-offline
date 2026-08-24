@@ -63,6 +63,13 @@ jobs:
           --release "ci-${GITHUB_SHA}"
           --results "$RUNNER_TEMP/trust-lab-results"
           --dashboard "$RUNNER_TEMP/trust-lab.html"
+      - name: Generate stable content-free integration evidence
+        run: pdf-editor-offline capabilities --json > "$RUNNER_TEMP/pdf-editor-capabilities.json"
+      - name: Consume CLI evidence through the reusable GitHub Action
+        uses: ./.github/actions/verify-evidence
+        with:
+          report: ${{ runner.temp }}/pdf-editor-capabilities.json
+          schema: capabilities.schema.json
       - name: Upload Trust Lab regression evidence
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

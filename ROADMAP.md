@@ -307,9 +307,9 @@ Time ranges are planning estimates for a small maintainer team, not release prom
 
 #### Exit gate
 
-- Trust Lab schemas and fixtures are versioned, documented, and used by CI.
-- At least one external integration consumes a report or CLI command.
-- Experimental editing claims list exactly which structures and fidelity thresholds are supported.
+- [x] Trust Lab schemas and fixtures are versioned, documented, and used by CI. Evidence: immutable `trust_lab/schemas/v1` contracts, hashed `trust_lab/corpus/v1` fixtures, the [integration guide](docs/TRUST_LAB_INTEGRATION.md), and the cross-engine `python-full` CI gate.
+- [x] At least one external integration consumes a report or CLI command. Evidence: the reusable [GitHub Action evidence consumer](.github/actions/verify-evidence/action.yml) validates a real `capabilities --json` report in CI without logging or uploading its content.
+- [x] Experimental editing claims list exactly which structures and fidelity thresholds are supported. Evidence: the [experimental editing specification](docs/EXPERIMENTAL_CONTENT_EDITING.md), versioned supported/refused corpus, and immutable schema disclose isolated horizontal Base-14 spans, redaction-plus-redraw semantics, 8% target-page and 0.01% non-target render thresholds, and every refusal boundary.
 
 ### Phase 5 — Community and repeatable launches
 
