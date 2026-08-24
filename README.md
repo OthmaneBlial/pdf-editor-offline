@@ -56,6 +56,16 @@ checksums, SBOMs, and build provenance all pass. Until then, use the source,
 PyPI, or Docker instructions below. Verify every future installer with the
 release's [`SHA256SUMS`](docs/DESKTOP_DISTRIBUTION.md) before opening it.
 
+### Code signing policy
+
+The project is applying for free open-source Windows signing: **Free code
+signing provided by [SignPath.io](https://about.signpath.io/), certificate by
+[SignPath Foundation](https://signpath.org/)**. The application is pending, so
+no current Windows artifact is represented as SignPath-signed. macOS still
+requires a separate Apple Developer ID signature and Apple notarization. Read
+the [complete policy, named roles, privacy boundary, and verification
+chain](docs/CODE_SIGNING_POLICY.md).
+
 ## Why it is different
 
 - **Local by default:** no account, document upload, analytics, or hidden

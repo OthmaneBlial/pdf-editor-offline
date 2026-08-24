@@ -10,6 +10,10 @@ cohort gates pass.
 
 ### Added
 
+- Added a public code-signing policy with named author, reviewer, and signing
+  approver roles; a fail-closed SignPath Foundation application path for free
+  open-source Windows signing; and an explicit boundary that Apple Developer ID
+  signing and notarization remain separate requirements.
 - Added a protected two-stage production release: the workflow retains the
   exact signed candidate for a moderated four-platform cohort, waits for
   environment approval, validates a content-free 10-person/80%/zero-P0 summary

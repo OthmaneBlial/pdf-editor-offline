@@ -193,6 +193,14 @@ gate accept a reviewed `launch/activation/3.0.0.json` summary with at least 10
 fresh-machine testers, 80% unassisted five-minute success, zero P0 blockers, and
 coverage of all four supported platform targets.
 
+**Signing-provider path:** the public [code signing
+policy](docs/CODE_SIGNING_POLICY.md) prepares a free SignPath Foundation
+application for Windows with named roles, repository-origin restrictions,
+manual approval, Authenticode verification, and the required privacy language.
+The application remains external and pending; macOS still requires a real Apple
+Developer ID membership, signature, and notarization, so neither gate is marked
+complete prematurely.
+
 - At least 8 of 10 fresh-machine testers install the correct artifact and finish `open sample → redact → verify → export → reopen` in under five minutes without maintainer help.
 - All release assets pass signature/checksum verification and clean-machine smoke tests.
 - No terminal is required for the primary desktop path.
