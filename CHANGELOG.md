@@ -6,10 +6,17 @@ All notable changes to PDF Editor Offline are documented here.
 
 ### Added
 
+- Added a privacy-safe moderated activation-cohort schema/analyzer, channel-specific launch drafts, a release discussion, and a repeatable 24-hour/7-day/30-day retrospective format with explicit no-fabrication gates.
+- Added a weekly aggregate GitHub/release metrics archive with bounded `null` values when traffic permission is unavailable and no application or document telemetry.
 - Rebuilt the repository front page around one verified-local-redaction promise, real proof, a download path, supported platforms, limitations, workflow captures, and a one-page architecture map.
 - Added a 1280×640 social preview, reproducible community onboarding, eight bounded first-contribution tasks, and a release gate that requires complete contributor and first-time-contributor credits.
 - Added a reusable GitHub Action consumer for stable content-free reports, executed by CI against a real `capabilities --json` payload and immutable v1 schema.
 - Added reviewed architecture RFCs and a machine-readable disabled-experiment registry for browser/WASM, touch/pen tablet support, and optional LAN/folder collaboration.
+
+### Fixed
+
+- Updated the browser smoke to exercise the explicit preflight, acknowledgement, and post-edit fidelity gates for experimental content replacement.
+- Made Intel macOS sidecar packaging use the same supported Homebrew OpenSSL ABI that builds `cryptography`, avoiding a mismatched PyInstaller `libssl` at launch without downgrading the security dependency.
 - Published measurable compatibility, bundle, OCR, forms, security, recovery, opt-in, and maintenance gates while preserving the fully offline loopback-only solo runtime.
 - Added an Experimental Content Editing Lab for one isolated horizontal Base-14 replacement, with content-free preflight, explicit redaction-plus-redraw disclosure, versioned supported/refused corpus, and atomic rollback.
 - Added extraction, render, semantic, metadata, annotation, and structural-loss fidelity gates plus `content-edit-check` and acknowledged `experimental-replace` CLI commands.

@@ -93,17 +93,35 @@ def run_smoke(
         page.wait_for_selector("canvas", timeout=60000)
         page.wait_for_timeout(1000)
 
-        # Text tools: replace text.
+        # Text tools: exercise the explicit two-step experimental replacement.
         _open_advanced_tool(page, "Text Tools")
         page.get_by_role("heading", name="Advanced Text Tools").wait_for(timeout=30000)
-        page.get_by_placeholder("Text to find...").fill("Page")
-        page.get_by_placeholder("New text...").fill("Part")
+        page.get_by_placeholder("Text to find...").fill("Offline")
+        page.get_by_placeholder("New text...").fill("Local")
+        _trigger_and_wait_for_response(
+            page,
+            url_fragment="/text/replace/preflight",
+            method="POST",
+            action=lambda: page.get_by_role(
+                "button", name="Check experimental support"
+            ).click(),
+        )
+        page.get_by_text("Bounded input is eligible").wait_for(timeout=30000)
+        page.get_by_role(
+            "checkbox",
+            name=re.compile(r"I understand this is experimental"),
+        ).check()
         _trigger_and_wait_for_response(
             page,
             url_fragment="/text/replace",
             method="POST",
-            action=lambda: page.get_by_role("button", name="Replace Text").click(),
+            action=lambda: page.get_by_role(
+                "button", name="Apply + run fidelity gates"
+            ).click(),
         )
+        page.get_by_text(
+            "Experimental replacement passed extraction, visual, semantic, and structural fidelity gates."
+        ).first.wait_for(timeout=60000)
         _wait_for_tool_toast(page)
 
         # Navigation tools: auto TOC, bookmark, and external link.

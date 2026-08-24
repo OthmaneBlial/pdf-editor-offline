@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://othmaneblial.github.io/pdf-editor-offline/launch/schemas/activation-cohort.schema.json",
+  "title": "PDF Editor Offline moderated activation cohort",
+  "type": "object",
+  "required": ["schema", "schema_version", "cohort_id", "release_version", "participants"],
+  "properties": {
+    "schema": { "const": "pdf-editor-offline.activation-cohort" },
+    "schema_version": { "const": "1.0.0" },
+    "cohort_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{2,63}$" },
+    "release_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "participants": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "required": [
+          "tester_id",
+          "platform",
+          "fresh_machine",
+          "checksum_verified",
+          "installed_without_help",
+          "workflow_completed",
+          "workflow_seconds",
+          "output_reopened",
+          "verification_passed",
+          "blocker"
+        ],
+        "properties": {
+          "tester_id": { "type": "string", "pattern": "^T[0-9]{2}$" },
+          "platform": {
+            "enum": ["windows-x64", "macos-arm64", "macos-x64", "linux-x64"]
+          },
+          "fresh_machine": { "type": "boolean" },
+          "checksum_verified": { "type": "boolean" },
+          "installed_without_help": { "type": "boolean" },
+          "workflow_completed": { "type": "boolean" },
+          "workflow_seconds": { "type": ["integer", "null"], "minimum": 0, "maximum": 3600 },
+          "output_reopened": { "type": "boolean" },
+          "verification_passed": { "type": "boolean" },
+          "blocker": {
+            "oneOf": [
+              { "type": "null" },
+              {
+                "type": "object",
+                "required": ["stage", "severity", "category"],
+                "properties": {
+                  "stage": {
+                    "enum": ["choose_asset", "verify", "install", "launch", "open", "redact", "verify_output", "export", "reopen"]
+                  },
+                  "severity": { "enum": ["P0", "P1", "P2"] },
+                  "category": {
+                    "enum": ["wrong_asset", "signature", "permissions", "startup", "discoverability", "fidelity", "performance", "crash", "other"]
+                  }
+                },
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

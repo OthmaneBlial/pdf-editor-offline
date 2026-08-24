@@ -1,0 +1,47 @@
+name: Privacy-safe launch metrics
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 9 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  aggregate:
+    name: Archive GitHub and release aggregates
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Collect aggregate repository and release evidence
+        env:
+          GITHUB_TOKEN: ${{ secrets.TRAFFIC_METRICS_TOKEN || github.token }}
+        run: >-
+          python scripts/collect_launch_metrics.py
+          --repository "$GITHUB_REPOSITORY"
+          --output "$RUNNER_TEMP/launch-metrics.json"
+      - name: Publish bounded summary
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json, os
+          from pathlib import Path
+          report = json.loads((Path(os.environ["RUNNER_TEMP"]) / "launch-metrics.json").read_text())
+          print("### Privacy-safe launch metrics")
+          print(f"- Stars: {report['attention']['stars']}")
+          print(f"- Release asset downloads: {report['distribution']['release_asset_downloads']}")
+          print(f"- Traffic aggregates available: {report['attention']['traffic_available']}")
+          print("- Application/document telemetry: none")
+          PY
+      - name: Archive weekly snapshot
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: launch-metrics-${{ github.run_id }}
+          path: ${{ runner.temp }}/launch-metrics.json
+          if-no-files-found: error
+          retention-days: 90

@@ -47,6 +47,7 @@ but not recognized words, corrections, or search terms.
 - OCR invokes the local Tesseract executable with fixed arguments, processes one temporary page image at a time, and never fetches trained data.
 - Docker/self-hosted browser use sends documents to the configured host. The operator owns that privacy boundary.
 - Project documentation and release downloads are normal web resources; they are separate from document processing.
+- The optional scheduled launch-metrics workflow reads aggregate GitHub repository, traffic, referrer, path, contributor-count, and release-download APIs. It has no app runtime connection, receives no PDF/session data, archives no individual visitor identity, and records unavailable traffic as `null`.
 
 ## Local subprocesses
 

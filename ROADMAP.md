@@ -326,6 +326,14 @@ Time ranges are planning estimates for a small maintainer team, not release prom
 
 #### Launch sequence
 
+**Execution system ready:** the [repeatable launch kit](launch/README.md) contains
+channel-specific drafts, evidence gates, a release discussion, and a public
+retrospective template. The [private cohort protocol](docs/ACTIVATION_COHORT.md)
+and machine-readable analyzer enforce the real 10-person/80%/zero-P0 activation
+gate without names, document data, or invented participants. Public promotion
+remains intentionally blocked until signed 3.0 artifacts and real cohort evidence
+exist.
+
 1. **Private activation cohort:** 10–20 fresh-machine testers; fix every install and first-workflow blocker.
 2. **GitHub Release 3.0:** signed binaries, checksums, sample pack, human release notes, and a release discussion.
 3. **Show HN:** lead with the technical story—local sidecar, no-egress proof, and verified redaction—not “62 PDF tools.”
