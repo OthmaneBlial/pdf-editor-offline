@@ -79,11 +79,13 @@ function AppContent() {
     };
   }, [isMobileSidebarOpen]);
 
-  // Support keyboard close on mobile drawer.
+  // Escape must close transient navigation even before a newly opened dialog
+  // has moved focus inside itself on the next animation frame.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setIsMobileSidebarOpen(false);
+        setShowCommandPalette(false);
       }
     };
     window.addEventListener('keydown', onKeyDown);

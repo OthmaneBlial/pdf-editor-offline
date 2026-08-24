@@ -38,12 +38,14 @@ def run_smoke(base_url: str) -> int:
             failures.append("merge did not resolve to the Organize Pages workflow")
         page.keyboard.press("Enter")
         page.get_by_role("heading", name="Organize Pages").wait_for(timeout=10_000)
+        dialog.wait_for(state="hidden", timeout=10_000)
 
         palette_trigger = page.get_by_role("button", name="Open command palette")
         palette_trigger.focus()
         palette_trigger.press("Enter")
         dialog.wait_for(timeout=10_000)
         page.keyboard.press("Escape")
+        dialog.wait_for(state="hidden", timeout=10_000)
         if not palette_trigger.evaluate("element => element === document.activeElement"):
             failures.append("focus was not restored to the command-palette trigger")
 
