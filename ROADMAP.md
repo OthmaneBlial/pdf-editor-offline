@@ -166,9 +166,9 @@ Time ranges are planning estimates for a small maintainer team, not release prom
 - [x] Bundle or guide every required runtime dependency; never discover after installation that OCR or conversion is unusable.
 - [x] Record the explicit release-owner exception that native Windows signing and macOS signing/notarization do not block the separately labeled technical preview; preserve their absence in every download surface and publish Linux SHA/provenance guidance. Evidence: [unsigned preview notes](docs/releases/3.0.0-unsigned-preview.md), [distribution guide](docs/DESKTOP_DISTRIBUTION.md), and the still fail-closed [stable signing workflow](.github/workflows/desktop-release.yml).
 - [x] Add release CI that builds on clean OS runners, installs each artifact, runs the sample workflow, and uninstalls cleanly.
-- [ ] Attach SHA-256 checksums, an SBOM, build provenance, supported-OS notes, and known limitations.
-- [ ] Publish a real GitHub Release with binary assets and edited, human-readable release notes.
-- [x] Put “Download for your OS” above source/PyPI/Docker instructions in the README and Pages site. Evidence: the [README download matrix](README.md#download-for-your-os) and [live Pages channel](https://othmaneblial.github.io/pdf-editor-offline/#download) expose Windows, macOS Apple Silicon/Intel, and Linux choices before source automation while clearly refusing to claim unsigned 3.0 installers are available.
+- [x] Attach SHA-256 checksums, an SBOM, build provenance, supported-OS notes, and known limitations. Evidence: the [public unsigned preview](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/desktop-preview-3.0.0) contains 17 uploaded assets, including five installers, four CycloneDX SBOMs, four offline Sigstore provenance bundles, `SHA256SUMS`, the release manifest, the sample pack, and the immutable unsigned-preview notice.
+- [x] Publish a real GitHub Release with binary assets and edited, human-readable release notes. Evidence: [desktop-preview-3.0.0](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/desktop-preview-3.0.0) was published as an explicit non-latest GitHub pre-release from commit [`16edad6`](https://github.com/OthmaneBlial/pdf-editor-offline/commit/16edad625984d31cc5205b68fb720cac0793bb76) by the [verified four-platform workflow](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/32775578344).
+- [x] Put “Download for your OS” above source/PyPI/Docker instructions in the README and Pages site. Evidence: the [README download matrix](README.md#download-for-your-os) and [live Pages channel](https://othmaneblial.github.io/pdf-editor-offline/#download) expose Windows, macOS Apple Silicon/Intel, and Linux choices before source automation while clearly labeling every 3.0 download as an unsigned technical preview.
 - [x] Add a 60-second real product video/GIF and a five-minute sample workflow using synthetic PDFs. Evidence: [real captured demo](site/assets/product-demo.gif) and [bounded five-minute workflow](docs/FIVE_MINUTE_REDACTION_WORKFLOW.md).
 - [x] Add a startup health panel that shows: local API status, installed capabilities, storage use, network policy, and cleanup action. Evidence: [runtime trust console](frontend/src/components/RuntimeHealthPanel.tsx) and [interaction tests](frontend/tests/RuntimeHealthPanel.spec.tsx).
 
@@ -184,8 +184,11 @@ and
 on 2026-08-24. The release owner explicitly authorized a separate unsigned
 technical preview on 2026-08-24. It is reproducibility and early-testing
 evidence, not a claim of Authenticode, Developer ID, notarization, or broad
-stable activation; the two preview publication gates remain unchecked until
-their public assets are independently verified.
+stable activation. The [public pre-release](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/desktop-preview-3.0.0)
+was independently checked after publication: all 15 manifest-declared assets
+matched GitHub's remote SHA-256 digests, the two contract files were present,
+the tag resolved to the exact source commit, and `v2.1.0` remained the latest
+stable release.
 
 **Future stable activation gate:** the [production release workflow](.github/workflows/desktop-release.yml)
 now retains the exact signed candidate for 30 days and waits at the protected

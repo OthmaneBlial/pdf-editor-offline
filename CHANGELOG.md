@@ -9,6 +9,11 @@ labeled unsigned technical pre-release for expert testing. Native signing,
 notarization, and activation remain fail-closed requirements only for a future
 stable desktop release.
 
+The [unsigned desktop preview](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/desktop-preview-3.0.0)
+was published on 2026-08-24 from commit `16edad625984d31cc5205b68fb720cac0793bb76`
+after clean-install smoke tests on Windows x64, macOS Apple Silicon/Intel, and
+Linux x64. It is a GitHub pre-release and does not replace stable `v2.1.0`.
+
 ### Added
 
 - Added an explicitly confirmed unsigned-preview workflow that still requires
