@@ -276,6 +276,73 @@ pre,
   font-weight: 700;
 }
 
+.download-section {
+  padding-bottom: 34px;
+}
+
+.download-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.download-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 20px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.platform-mark {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  color: #fff;
+  background: var(--dark);
+  border-radius: 6px;
+  font-family: "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.download-card h3,
+.download-card p {
+  margin: 0;
+}
+
+.download-card p {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.release-gate {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  margin-top: 14px;
+  padding: 16px 18px;
+  color: #553e05;
+  background: #fff7d6;
+  border: 1px solid #e9cf6a;
+  border-radius: var(--radius);
+}
+
+.release-gate span {
+  line-height: 1.5;
+}
+
+.release-gate a {
+  font-weight: 800;
+}
+
 .section-heading {
   max-width: 780px;
   margin-bottom: 34px;
@@ -880,6 +947,10 @@ pre {
     grid-template-columns: 1fr 1fr;
   }
 
+  .download-grid {
+    grid-template-columns: 1fr;
+  }
+
   .docs-sidebar {
     position: static;
     margin-bottom: 24px;
@@ -942,6 +1013,11 @@ pre {
   .doc-grid,
   .endpoint-groups,
   .sample-list.inline {
+    grid-template-columns: 1fr;
+  }
+
+  .download-card,
+  .release-gate {
     grid-template-columns: 1fr;
   }
 

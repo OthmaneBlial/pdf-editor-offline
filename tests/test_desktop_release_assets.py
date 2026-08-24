@@ -1,6 +1,7 @@
 import importlib.util
 import json
 import sys
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -148,3 +149,77 @@ def test_verify_tag_requires_exact_desktop_version(tmp_path: Path):
     assert release_assets.verify_tag("v3.0.0", package_json) == "3.0.0"
     with pytest.raises(ValueError, match="does not match"):
         release_assets.verify_tag("v3.0.1", package_json)
+
+
+def test_sample_pack_is_reproducible_and_contains_only_public_sources(tmp_path: Path):
+    first = release_assets.build_sample_pack(ROOT, tmp_path / "first", "3.0.0")
+    second = release_assets.build_sample_pack(ROOT, tmp_path / "second", "3.0.0")
+
+    assert first.read_bytes() == second.read_bytes()
+    with zipfile.ZipFile(first) as archive:
+        assert set(archive.namelist()) == {
+            "README.txt",
+            "FIVE_MINUTE_REDACTION_WORKFLOW.md",
+            "KNOWN_LIMITATIONS.md",
+            "VERIFY_DOWNLOAD.md",
+            "samples/demo-basic.pdf",
+            "samples/demo-privacy.pdf",
+            "samples/demo-redaction.pdf",
+        }
+        assert all(info.date_time == (1980, 1, 1, 0, 0, 0) for info in archive.infolist())
+
+
+def test_finalize_checksums_cover_every_published_asset(tmp_path: Path):
+    for platform in release_assets.PLATFORM_SPECS:
+        bundle_root = tmp_path / f"bundle-{platform}"
+        make_bundles(bundle_root, platform)
+        release_assets.collect(
+            bundle_root=bundle_root,
+            output_dir=tmp_path,
+            platform=platform,
+            version="3.0.0",
+        )
+        make_evidence(tmp_path, platform)
+    release_assets.verify_release_set(tmp_path, "3.0.0")
+    release_assets.build_sample_pack(ROOT, tmp_path, "3.0.0")
+    trust_dir = tmp_path / "trust-lab"
+    trust_dir.mkdir()
+    (trust_dir / "3.0.0.json").write_text(
+        json.dumps(
+            {
+                "release_version": "3.0.0",
+                "content_included": False,
+                "summary": {"status": "passed"},
+            }
+        )
+    )
+    (tmp_path / "trust-lab.html").write_text("dashboard")
+    (tmp_path / "trust-lab-schemas-v1.tar.gz").write_bytes(b"schemas")
+
+    manifest = release_assets.finalize_public_release(tmp_path, "3.0.0")
+    checksums = (tmp_path / "SHA256SUMS").read_text().splitlines()
+
+    assert len(manifest["assets"]) == 17
+    assert len(checksums) == 18
+    assert any(line.endswith("  PDF-Editor-Offline-3.0.0-sample-pack.zip") for line in checksums)
+    assert any(line.endswith("  trust-lab-results-3.0.0.json") for line in checksums)
+    assert any(line.endswith("  release-manifest.json") for line in checksums)
+
+
+def test_finalize_rejects_failed_or_content_bearing_trust_lab_result(tmp_path: Path):
+    (tmp_path / "release-manifest.json").write_text(
+        json.dumps({"version": "3.0.0", "assets": []})
+    )
+    trust_dir = tmp_path / "trust-lab"
+    trust_dir.mkdir()
+    (trust_dir / "3.0.0.json").write_text(
+        json.dumps(
+            {
+                "release_version": "3.0.0",
+                "content_included": True,
+                "summary": {"status": "failed"},
+            }
+        )
+    )
+    with pytest.raises(ValueError, match="did not pass"):
+        release_assets.finalize_public_release(tmp_path, "3.0.0")

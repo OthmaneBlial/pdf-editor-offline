@@ -383,13 +383,33 @@ jobs:
           python desktop/scripts/release_assets.py verify-set
           --root release
           --version "${{ needs.preflight.outputs.version }}"
+      - name: Build deterministic synthetic sample pack
+        run: >-
+          python desktop/scripts/release_assets.py sample-pack
+          --repository-root .
+          --root release
+          --version "${{ needs.preflight.outputs.version }}"
+      - name: Verify public extras and finalize complete checksums
+        run: >-
+          python desktop/scripts/release_assets.py finalize
+          --root release
+          --version "${{ needs.preflight.outputs.version }}"
       - name: Verify published GitHub provenance attestations
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          for asset in release/PDF-Editor-Offline-*; do
-            gh attestation verify "$asset" --repo "$GITHUB_REPOSITORY"
-          done
+          python - <<'PY' > "$RUNNER_TEMP/installer-assets.txt"
+          import json
+          from pathlib import Path
+
+          manifest = json.loads(Path("release/release-manifest.json").read_text())
+          for asset in manifest["assets"]:
+              if asset["kind"] == "installer":
+                  print(asset["name"])
+          PY
+          while IFS= read -r asset; do
+            gh attestation verify "release/$asset" --repo "$GITHUB_REPOSITORY"
+          done < "$RUNNER_TEMP/installer-assets.txt"
       - name: Require human-authored release notes
         run: >-
           test -s "docs/releases/${{ needs.preflight.outputs.version }}.md"
@@ -418,7 +438,7 @@ jobs:
             release/sbom-*.cdx.json \
             release/provenance-*.sigstore.json \
             release/trust-lab.html \
-            "release/trust-lab/$RELEASE_VERSION.json" \
+            "release/trust-lab-results-$RELEASE_VERSION.json" \
             release/trust-lab-schemas-v1.tar.gz \
             --verify-tag \
             --title "PDF Editor Offline $RELEASE_VERSION" \

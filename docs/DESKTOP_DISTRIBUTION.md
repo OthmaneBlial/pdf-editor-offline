@@ -91,6 +91,12 @@ Every platform build must provide all of the following before release upload:
 6. artifact size, supported-OS notes, capability limitations, and release
    version matching the UI and source metadata.
 
+The release also includes a deterministic sample pack containing only the three
+synthetic repository PDFs, the five-minute workflow, known limitations, and this
+verification guide. The final `SHA256SUMS` covers every installer, SBOM,
+provenance bundle, Trust Lab result/dashboard/schema archive, sample pack, and
+combined release manifest that GitHub receives.
+
 No secret value, absolute user path, document content, or document-derived
 metadata may appear in these reports.
 

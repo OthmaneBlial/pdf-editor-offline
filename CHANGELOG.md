@@ -10,6 +10,7 @@ cohort gates pass.
 
 ### Added
 
+- Added a byte-reproducible synthetic 3.0 sample pack and a final release checksum gate covering every uploaded installer, SBOM, provenance bundle, Trust Lab artifact, schema archive, sample asset, and manifest.
 - Added a privacy-safe moderated activation-cohort schema/analyzer, channel-specific launch drafts, a release discussion, and a repeatable 24-hour/7-day/30-day retrospective format with explicit no-fabrication gates.
 - Added a weekly aggregate GitHub/release metrics archive with bounded `null` values when traffic permission is unavailable and no application or document telemetry.
 - Rebuilt the repository front page around one verified-local-redaction promise, real proof, a download path, supported platforms, limitations, workflow captures, and a one-page architecture map.

@@ -8,6 +8,7 @@ import hashlib
 import json
 import re
 import shutil
+import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -35,6 +36,15 @@ EVIDENCE_SPECS = {
 }
 
 SEMVER = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$")
+
+SAMPLE_PACK_FILES = (
+    ("examples/sample_pdfs/demo-basic.pdf", "samples/demo-basic.pdf"),
+    ("examples/sample_pdfs/demo-redaction.pdf", "samples/demo-redaction.pdf"),
+    ("examples/sample_pdfs/demo-privacy.pdf", "samples/demo-privacy.pdf"),
+    ("docs/FIVE_MINUTE_REDACTION_WORKFLOW.md", "FIVE_MINUTE_REDACTION_WORKFLOW.md"),
+    ("docs/KNOWN_LIMITATIONS.md", "KNOWN_LIMITATIONS.md"),
+    ("docs/DESKTOP_DISTRIBUTION.md", "VERIFY_DOWNLOAD.md"),
+)
 
 
 def sha256(path: Path) -> str:
@@ -195,6 +205,107 @@ def verify_release_set(root: Path, expected_version: str) -> dict:
     return combined
 
 
+def build_sample_pack(repository_root: Path, release_root: Path, version: str) -> Path:
+    """Create a byte-reproducible public onboarding pack from synthetic files."""
+    if not SEMVER.fullmatch(version):
+        raise ValueError("Invalid sample-pack version")
+    destination = release_root / f"PDF-Editor-Offline-{version}-sample-pack.zip"
+    release_root.mkdir(parents=True, exist_ok=True)
+    readme = (
+        f"PDF Editor Offline {version} synthetic sample pack\n\n"
+        "These PDFs were generated for public testing and contain no private data.\n"
+        "Start with FIVE_MINUTE_REDACTION_WORKFLOW.md. Verify the downloaded pack\n"
+        "against SHA256SUMS from the same immutable GitHub Release. Never replace\n"
+        "a minimized synthetic reproduction with a customer or personal PDF.\n"
+    ).encode("utf-8")
+
+    with zipfile.ZipFile(
+        destination, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9
+    ) as archive:
+        entries: list[tuple[str, bytes]] = [("README.txt", readme)]
+        for source_name, archive_name in SAMPLE_PACK_FILES:
+            source = repository_root / source_name
+            if not source.is_file():
+                raise FileNotFoundError(f"Missing sample-pack source: {source_name}")
+            entries.append((archive_name, source.read_bytes()))
+        for archive_name, content in sorted(entries):
+            info = zipfile.ZipInfo(archive_name, date_time=(1980, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.external_attr = 0o100644 << 16
+            info.create_system = 3
+            archive.writestr(
+                info,
+                content,
+                compress_type=zipfile.ZIP_DEFLATED,
+                compresslevel=9,
+            )
+    return destination
+
+
+def finalize_public_release(root: Path, expected_version: str) -> dict:
+    """Verify public extras and checksum exactly the assets uploaded to GitHub."""
+    manifest_path = root / "release-manifest.json"
+    if not manifest_path.is_file():
+        raise FileNotFoundError("Core release manifest must be verified first")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if manifest.get("version") != expected_version:
+        raise ValueError("Core release manifest version mismatch")
+
+    trust_source = root / "trust-lab" / f"{expected_version}.json"
+    if not trust_source.is_file():
+        raise FileNotFoundError(f"Missing Trust Lab result: {trust_source}")
+    trust_payload = json.loads(trust_source.read_text(encoding="utf-8"))
+    if (
+        trust_payload.get("release_version") != expected_version
+        or trust_payload.get("content_included") is not False
+        or trust_payload.get("summary", {}).get("status") != "passed"
+    ):
+        raise ValueError("Trust Lab release evidence did not pass its public contract")
+    trust_name = f"trust-lab-results-{expected_version}.json"
+    shutil.copy2(trust_source, root / trust_name)
+
+    extras = {
+        f"PDF-Editor-Offline-{expected_version}-sample-pack.zip": "sample_pack",
+        "trust-lab.html": "trust_lab_dashboard",
+        trust_name: "trust_lab_results",
+        "trust-lab-schemas-v1.tar.gz": "trust_lab_schemas",
+    }
+    extra_assets = []
+    for name, kind in extras.items():
+        path = root / name
+        if not path.is_file() or path.stat().st_size == 0:
+            raise FileNotFoundError(f"Missing public release extra: {name}")
+        extra_assets.append(
+            {
+                "name": name,
+                "kind": kind,
+                "platform": "all",
+                "bytes": path.stat().st_size,
+                "sha256": sha256(path),
+            }
+        )
+
+    core_kinds = {"installer", "sbom", "provenance"}
+    core_assets = [
+        asset
+        for asset in manifest.get("assets", [])
+        if asset.get("kind") in core_kinds
+    ]
+    manifest["assets"] = sorted(core_assets + extra_assets, key=lambda item: item["name"])
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+
+    public_paths = [root / asset["name"] for asset in manifest["assets"]]
+    public_paths.append(manifest_path)
+    checksums = "".join(
+        f"{sha256(path)}  {path.name}\n"
+        for path in sorted(public_paths, key=lambda item: item.name)
+    )
+    (root / "SHA256SUMS").write_text(checksums, encoding="utf-8")
+    return manifest
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -212,6 +323,15 @@ def main() -> int:
     verify_parser = subparsers.add_parser("verify-set")
     verify_parser.add_argument("--root", required=True, type=Path)
     verify_parser.add_argument("--version", required=True)
+
+    sample_parser = subparsers.add_parser("sample-pack")
+    sample_parser.add_argument("--repository-root", required=True, type=Path)
+    sample_parser.add_argument("--root", required=True, type=Path)
+    sample_parser.add_argument("--version", required=True)
+
+    finalize_parser = subparsers.add_parser("finalize")
+    finalize_parser.add_argument("--root", required=True, type=Path)
+    finalize_parser.add_argument("--version", required=True)
 
     tag_parser = subparsers.add_parser("verify-tag")
     tag_parser.add_argument("--tag", required=True)
@@ -236,6 +356,14 @@ def main() -> int:
             parser.error("--version must be semantic version text")
         combined = verify_release_set(args.root, args.version)
         print(json.dumps(combined, indent=2, sort_keys=True))
+    elif args.command == "sample-pack":
+        path = build_sample_pack(args.repository_root, args.root, args.version)
+        print(path)
+    elif args.command == "finalize":
+        if not SEMVER.fullmatch(args.version):
+            parser.error("--version must be semantic version text")
+        manifest = finalize_public_release(args.root, args.version)
+        print(json.dumps(manifest, indent=2, sort_keys=True))
     else:
         try:
             version = verify_tag(args.tag, args.package_json)

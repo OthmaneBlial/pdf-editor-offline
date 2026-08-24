@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>PDF Editor Offline</title>
-    <meta name="description" content="A local PDF editor with web app, FastAPI backend, CLI, and Python package.">
+    <meta name="description" content="Redact sensitive text locally and get content-free evidence that it is actually gone.">
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
@@ -19,6 +19,7 @@
         <a href="#demo">Demo</a>
         <a href="#proof">Proof</a>
         <a href="trust-lab.html">Trust Lab</a>
+        <a href="#download">Download</a>
         <a href="#install">Run</a>
         <a href="docs.html">Docs</a>
         <a href="https://github.com/OthmaneBlial/pdf-editor-offline">GitHub</a>
@@ -28,19 +29,19 @@
     <main id="main">
       <section class="hero section-band">
         <div class="hero-copy">
-          <p class="eyebrow">Local PDF editing for desktop workflows</p>
+          <p class="eyebrow">Verified local redaction</p>
           <h1>PDF Editor Offline</h1>
           <p class="hero-lede">
-            Edit, convert, protect, redact, and clean PDFs on your machine. No account, no upload queue, no cloud storage.
+            Redact sensitive text on your machine—and get evidence that it is actually gone. No account, document upload, analytics, or cloud storage.
           </p>
           <div class="hero-badges" aria-label="Project guarantees">
             <span>Local-first</span>
-            <span>Private files</span>
-            <span>Free tools</span>
+            <span>Content-free proof</span>
+            <span>Copy-first edits</span>
           </div>
           <div class="hero-actions" aria-label="Primary actions">
-            <a class="button primary" href="#install">Run locally</a>
-            <a class="button secondary" href="docs.html">Read docs</a>
+            <a class="button primary" href="#download">Download for your OS</a>
+            <a class="button secondary" href="#demo">See the 60-second proof</a>
           </div>
         </div>
         <div class="hero-media" aria-label="Project header artwork">
@@ -54,12 +55,12 @@
           <span>Trust Lab fixtures</span>
         </div>
         <div>
-          <strong>100+</strong>
-          <span>API routes</span>
+          <strong>8</strong>
+          <span>stable evidence schemas</span>
         </div>
         <div>
-          <strong>400+</strong>
-          <span>tests in repo</span>
+          <strong>0</strong>
+          <span>document telemetry</span>
         </div>
         <div>
           <strong>3</strong>
@@ -76,6 +77,43 @@
         <div class="code-stack">
           <a class="button primary" href="trust-lab.html">Open the results dashboard</a>
           <a class="button secondary" href="https://github.com/OthmaneBlial/pdf-editor-offline/tree/main/trust_lab">Reuse the fixtures</a>
+        </div>
+      </section>
+
+      <section id="download" class="section download-section" aria-labelledby="download-heading">
+        <div class="section-heading">
+          <p class="eyebrow">Desktop release channel</p>
+          <h2 id="download-heading">Download for your OS</h2>
+          <p>
+            Signed 3.0.0 installers appear on the immutable GitHub Release only after signing, notarization, clean-machine smoke tests, checksums, SBOMs, and provenance all pass. The channel stays closed while any gate is missing.
+          </p>
+        </div>
+        <div class="download-grid">
+          <article class="download-card">
+            <span class="platform-mark" aria-hidden="true">WIN</span>
+            <div><h3>Windows</h3><p>Windows 10/11 · x64 · NSIS installer</p></div>
+            <a class="button secondary" href="https://github.com/OthmaneBlial/pdf-editor-offline/releases/latest">Open releases</a>
+          </article>
+          <article class="download-card">
+            <span class="platform-mark" aria-hidden="true">ARM</span>
+            <div><h3>macOS Apple Silicon</h3><p>macOS 11+ · arm64 · notarized DMG</p></div>
+            <a class="button secondary" href="https://github.com/OthmaneBlial/pdf-editor-offline/releases/latest">Open releases</a>
+          </article>
+          <article class="download-card">
+            <span class="platform-mark" aria-hidden="true">X64</span>
+            <div><h3>macOS Intel</h3><p>macOS 11+ · x64 · notarized DMG</p></div>
+            <a class="button secondary" href="https://github.com/OthmaneBlial/pdf-editor-offline/releases/latest">Open releases</a>
+          </article>
+          <article class="download-card">
+            <span class="platform-mark" aria-hidden="true">LNX</span>
+            <div><h3>Linux</h3><p>Ubuntu 22.04/24.04 · x64 · AppImage or DEB</p></div>
+            <a class="button secondary" href="https://github.com/OthmaneBlial/pdf-editor-offline/releases/latest">Open releases</a>
+          </article>
+        </div>
+        <div class="release-gate" role="status">
+          <strong>3.0.0 release candidate</strong>
+          <span>Installer links activate only when every production-signing gate is green. Source, PyPI, and Docker remain available below.</span>
+          <a href="https://github.com/OthmaneBlial/pdf-editor-offline/blob/main/docs/DESKTOP_DISTRIBUTION.md">How to verify a download</a>
         </div>
       </section>
 
@@ -240,8 +278,8 @@
 
       <section id="install" class="section split-section">
         <div class="section-heading compact">
-          <p class="eyebrow">Run it</p>
-          <h2>Install, start, or automate.</h2>
+          <p class="eyebrow">Source and automation</p>
+          <h2>Use PyPI, source, or Docker.</h2>
           <p>
             The repo supports a Python package, local web app, Docker image, and direct Python imports.
           </p>

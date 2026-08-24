@@ -41,6 +41,21 @@ does not turn an unavailable OCR engine into a pass. Reproduce it with the
   <a href="https://github.com/OthmaneBlial/pdf-editor-offline"><img src="https://img.shields.io/github/stars/OthmaneBlial/pdf-editor-offline?style=social" alt="GitHub stars"></a>
 </p>
 
+## Download for your OS
+
+| Platform | Installer | Support |
+| --- | --- | --- |
+| Windows 10/11 x64 | [Open signed desktop releases](https://github.com/OthmaneBlial/pdf-editor-offline/releases/latest) | NSIS `.exe` |
+| macOS 11+ Apple Silicon | [Open signed desktop releases](https://github.com/OthmaneBlial/pdf-editor-offline/releases/latest) | Notarized `.dmg`, arm64 |
+| macOS 11+ Intel | [Open signed desktop releases](https://github.com/OthmaneBlial/pdf-editor-offline/releases/latest) | Notarized `.dmg`, x64 |
+| Ubuntu 22.04/24.04 x64 | [Open signed desktop releases](https://github.com/OthmaneBlial/pdf-editor-offline/releases/latest) | `.AppImage` and `.deb` |
+
+The desktop download channel is deliberately fail-closed: version 3.0.0 links
+become available only after code signing, notarization, clean-machine smoke tests,
+checksums, SBOMs, and build provenance all pass. Until then, use the source,
+PyPI, or Docker instructions below. Verify every future installer with the
+release's [`SHA256SUMS`](docs/DESKTOP_DISTRIBUTION.md) before opening it.
+
 ## Why it is different
 
 - **Local by default:** no account, document upload, analytics, or hidden
