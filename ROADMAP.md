@@ -282,9 +282,9 @@ Time ranges are planning estimates for a small maintainer team, not release prom
 
 #### Visual and semantic change review
 
-- [ ] Show before/after page overlays, changed objects, extracted-text diff, metadata diff, and annotation history.
-- [ ] Offer a “safe edit” mode that refuses lossy output instead of silently degrading it.
-- [ ] Produce deterministic, content-free audit summaries with output hashes.
+- [x] Show before/after page overlays, changed objects, extracted-text diff, metadata diff, and annotation history. Evidence: [local review UI and artifact client](frontend/src/components/tools/AdvancedTools.tsx), [visual/semantic engine](pdf_editor_offline/core/change_review.py), and [API artifact regressions](tests/test_change_review_api.py).
+- [x] Offer a “safe edit” mode that refuses lossy output instead of silently degrading it. Evidence: [atomic CLI/API promotion gate](pdf_editor_offline/core/change_review.py), [Safe Edit command](pdf_editor_offline/cli/main.py), and refusal tests that preserve the prior destination.
+- [x] Produce deterministic, content-free audit summaries with output hashes. Evidence: [stable schema v1](trust_lab/schemas/v1/change-review.schema.json), self-verifying `audit_sha256`, input/output hashes, and [tamper regression](tests/test_change_review.py).
 
 #### Accessibility inspector
 

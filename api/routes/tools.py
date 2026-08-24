@@ -5,10 +5,13 @@ import zipfile
 from typing import List, Optional
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
+from starlette.background import BackgroundTask
 
+from api.change_reviews import create_change_review, get_change_review_artifact
 from api.deps import TEMP_DIR
 from api.utils import persist_upload_file
+from pdf_editor_offline.core.change_review import UnsafeEditError, promote_safe_edit
 from pdf_editor_offline.core.converter import PDFConverter
 from pdf_editor_offline.core.manipulator import PDFManipulator
 from pdf_editor_offline.core.privacy_cleaner import PDFPrivacyCleaner
@@ -396,6 +399,74 @@ async def compare_pdfs(file1: UploadFile = File(...), file2: UploadFile = File(.
     PDFManipulator().compare_pdfs(p1, p2, out_path)
     return FileResponse(
         out_path, filename="comparison_diff.pdf", media_type="application/pdf"
+    )
+
+
+@router.post("/change-review")
+async def create_semantic_change_review(
+    before: UploadFile = File(...),
+    after: UploadFile = File(...),
+    dpi: int = Form(110),
+):
+    """Create a local, expiring review with visual and semantic artifacts."""
+    before_path = await persist_upload_file(before, PDF_MIME, "review_before_")
+    after_path = await persist_upload_file(after, PDF_MIME, "review_after_")
+    try:
+        review = create_change_review(before_path, after_path, dpi=dpi)
+    finally:
+        for path in (before_path, after_path):
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+    return {
+        "success": True,
+        "data": review,
+        "message": "Local change review created; content-bearing artifacts expire automatically",
+    }
+
+
+@router.get("/change-review/{review_id}/artifacts/{artifact_name}")
+async def download_change_review_artifact(review_id: str, artifact_name: str):
+    path, media_type = get_change_review_artifact(review_id, artifact_name)
+    return FileResponse(path, filename=artifact_name, media_type=media_type)
+
+
+@router.post("/safe-edit")
+async def finalize_safe_edit(
+    before: UploadFile = File(...),
+    candidate: UploadFile = File(...),
+):
+    """Return a candidate PDF only if strict structural-loss checks pass."""
+    before_path = await persist_upload_file(before, PDF_MIME, "safe_before_")
+    candidate_path = await persist_upload_file(candidate, PDF_MIME, "safe_candidate_")
+    output_path = os.path.join(TEMP_DIR, f"safe_edit_{uuid.uuid4().hex}.pdf")
+    try:
+        report = promote_safe_edit(before_path, candidate_path, output_path)
+    except UnsafeEditError as error:
+        return JSONResponse(
+            status_code=409,
+            content={
+                "detail": "Safe edit refused because structural loss was detected",
+                "report": error.report,
+            },
+        )
+    finally:
+        for path in (before_path, candidate_path):
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+    return FileResponse(
+        output_path,
+        filename="safe-edited.pdf",
+        media_type="application/pdf",
+        headers={
+            "X-Safe-Edit": "passed",
+            "X-Change-Audit-SHA256": report["audit_sha256"],
+            "X-Output-SHA256": report["files"]["after_sha256"],
+        },
+        background=BackgroundTask(lambda: os.remove(output_path)),
     )
 
 

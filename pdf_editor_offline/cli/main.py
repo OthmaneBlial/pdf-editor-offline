@@ -11,7 +11,12 @@ from ..core.exceptions import InvalidOperationError, PDFLoadError, PDFSaveError
 from ..core.metadata_editor import MetadataEditor
 from ..core.object_inspector import ObjectInspector
 from ..core.page_manipulator import PageManipulator
-from ..core.change_review import compare_pdf_files, write_change_report
+from ..core.change_review import (
+    UnsafeEditError,
+    compare_pdf_files,
+    promote_safe_edit,
+    write_change_report,
+)
 from ..core.redaction_verifier import RedactionVerifier
 from ..trust_lab import (
     discover_runtime_capabilities,
@@ -134,6 +139,54 @@ def compare_documents(
         _write_or_echo_json(payload, None)
     if payload["verdict"] == "unexpected_changes":
         raise typer.Exit(2)
+
+
+@app.command("safe-edit")
+def safe_edit(
+    before: Path = typer.Argument(..., exists=True, dir_okay=False, readable=True),
+    candidate: Path = typer.Argument(..., exists=True, dir_okay=False, readable=True),
+    output: Path = typer.Argument(..., dir_okay=False),
+    report: Path | None = typer.Option(
+        None,
+        "--report",
+        help="Write the deterministic content-free audit report to this path.",
+    ),
+    artifact_dir: Path | None = typer.Option(
+        None,
+        help="Optional empty directory for content-bearing review artifacts.",
+    ),
+    tolerance: float = typer.Option(0.001, min=0.0, max=1.0),
+    pixel_threshold: int = typer.Option(12, min=0, max=255),
+    dpi: int = typer.Option(144, min=72, max=300),
+) -> None:
+    """Promote a candidate copy atomically, refusing detected structural loss."""
+    try:
+        payload = promote_safe_edit(
+            before,
+            candidate,
+            output,
+            artifact_dir=artifact_dir,
+            tolerance=tolerance,
+            pixel_threshold=pixel_threshold,
+            dpi=dpi,
+        )
+    except UnsafeEditError as error:
+        if report:
+            write_change_report(error.report, report)
+            typer.echo(f"Refusal report written to {report}", err=True)
+        else:
+            _write_or_echo_json(error.report, None)
+        typer.echo("Safe edit refused: structural loss detected", err=True)
+        raise typer.Exit(2) from error
+    except (OSError, ValueError, RuntimeError, fitz.FileDataError) as error:
+        typer.echo(f"Safe edit failed closed: {error}", err=True)
+        raise typer.Exit(2) from error
+    if report:
+        write_change_report(payload, report)
+        typer.echo(f"Content-free JSON report written to {report}", err=True)
+    else:
+        _write_or_echo_json(payload, None)
+    typer.echo(f"Safe candidate promoted to {output}", err=True)
 
 
 @app.command("capabilities")

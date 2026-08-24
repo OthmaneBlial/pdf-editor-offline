@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from api.deps import cleanup_all_sessions, cleanup_stale_sessions
+from api.change_reviews import cleanup_all_change_reviews, cleanup_stale_change_reviews
 from api.ocr_jobs import shutdown_ocr_jobs
 from api.capabilities import get_runtime_capabilities
 from api.security import sanitize_error_detail
@@ -27,10 +28,12 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting up PDF Editor Offline API...")
     cleanup_stale_sessions()
+    cleanup_stale_change_reviews()
     yield
     # Shutdown
     logger.info("Shutting down PDF Editor Offline API...")
     shutdown_ocr_jobs()
+    cleanup_all_change_reviews()
     cleanup_all_sessions()
 
 
@@ -122,6 +125,9 @@ app.add_middleware(
         "X-Private-Key-Persisted",
         "X-Timestamp-Embedded",
         "X-Online-Revocation-Checked",
+        "X-Safe-Edit",
+        "X-Change-Audit-SHA256",
+        "X-Output-SHA256",
     ],
 )
 

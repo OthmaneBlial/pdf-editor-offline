@@ -77,6 +77,7 @@ APP_TEMP_PREFIXES = (
     "rep_",
     "rot_",
     "scan_",
+    "safe_",
     "sign_d_",
     "sign_s_",
     "split_",

@@ -4,10 +4,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import shutil
+import tempfile
+from collections import Counter
 from dataclasses import asdict, dataclass
-from difflib import SequenceMatcher
+from difflib import SequenceMatcher, unified_diff
 from pathlib import Path
-from typing import Iterable, Mapping, Sequence
+from typing import Any, Iterable, Mapping, Sequence
 
 import pymupdf as fitz
 from PIL import Image, ImageChops, ImageDraw, ImageStat
@@ -17,6 +21,14 @@ from pdf_editor_offline import __version__
 
 SCHEMA_NAME = "pdf-editor-offline.change-review"
 SCHEMA_VERSION = "1.0.0"
+
+
+class UnsafeEditError(RuntimeError):
+    """Raised when strict safe-edit promotion detects structural loss."""
+
+    def __init__(self, report: dict):
+        super().__init__("Candidate output was refused because structural loss was detected")
+        self.report = report
 
 
 @dataclass(frozen=True)
@@ -41,6 +53,39 @@ def _sha256(path: str | Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _canonical_json(payload: Any) -> bytes:
+    return json.dumps(
+        payload,
+        ensure_ascii=True,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+
+
+def compute_audit_sha256(report: Mapping[str, Any]) -> str:
+    """Hash a report deterministically while excluding its self-hash."""
+    unsigned = dict(report)
+    unsigned.pop("audit_sha256", None)
+    return hashlib.sha256(_canonical_json(unsigned)).hexdigest()
+
+
+def verify_audit_sha256(report: Mapping[str, Any]) -> bool:
+    supplied = report.get("audit_sha256")
+    return isinstance(supplied, str) and supplied == compute_audit_sha256(report)
+
+
+def _rounded_rect(rect: fitz.Rect) -> list[float]:
+    return [round(float(value), 3) for value in (rect.x0, rect.y0, rect.x1, rect.y1)]
+
+
+def _safe_number(value: Any) -> float | int | None:
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, (int, float)):
+        return round(float(value), 4)
+    return None
 
 
 def _font_key(name: str) -> str:
@@ -115,6 +160,183 @@ def inspect_document(document: fitz.Document) -> DocumentInventory:
         metadata_keys=metadata_keys,
         tagged=_is_tagged(document),
     )
+
+
+def _annotation_record(
+    annotation: fitz.Annot,
+    page_number: int,
+    *,
+    include_content: bool = False,
+) -> dict[str, Any]:
+    annotation_type = annotation.type
+    record: dict[str, Any] = {
+        "page": page_number,
+        "type": str(annotation_type[1] if len(annotation_type) > 1 else annotation_type[0]),
+        "rect": _rounded_rect(annotation.rect),
+        "flags": int(annotation.flags),
+    }
+    colors = annotation.colors or {}
+    record["stroke_components"] = len(colors.get("stroke") or ())
+    record["fill_components"] = len(colors.get("fill") or ())
+    if include_content:
+        info = annotation.info or {}
+        record["content"] = {
+            key: str(info.get(key) or "")
+            for key in ("title", "subject", "content", "creationDate", "modDate")
+        }
+        record["colors"] = {
+            key: [round(float(value), 4) for value in (colors.get(key) or ())]
+            for key in ("stroke", "fill")
+        }
+    return record
+
+
+def _annotation_records(
+    document: fitz.Document, *, include_content: bool = False
+) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    for page_index, page in enumerate(document):
+        for annotation in page.annots() or []:
+            records.append(
+                _annotation_record(
+                    annotation,
+                    page_index + 1,
+                    include_content=include_content,
+                )
+            )
+    return records
+
+
+def _fingerprint(value: Mapping[str, Any]) -> str:
+    return hashlib.sha256(_canonical_json(value)).hexdigest()
+
+
+def _page_object_fingerprints(page: fitz.Page) -> dict[str, Counter[str]]:
+    objects: dict[str, Counter[str]] = {
+        "drawings": Counter(),
+        "images": Counter(),
+        "links": Counter(),
+        "form_fields": Counter(),
+        "annotations": Counter(),
+    }
+    for drawing in page.get_drawings():
+        rect = drawing.get("rect")
+        payload = {
+            "rect": _rounded_rect(rect) if isinstance(rect, fitz.Rect) else None,
+            "fill_components": len(drawing.get("fill") or ()),
+            "stroke_components": len(drawing.get("color") or ()),
+            "width": _safe_number(drawing.get("width")),
+            "item_types": [str(item[0]) for item in drawing.get("items", ())],
+        }
+        objects["drawings"][_fingerprint(payload)] += 1
+    try:
+        image_info = page.get_image_info(hashes=True, xrefs=True)
+    except (AttributeError, RuntimeError, ValueError):
+        image_info = []
+    for image in image_info:
+        digest = image.get("digest")
+        payload = {
+            "bbox": [round(float(value), 3) for value in image.get("bbox", ())],
+            "width": int(image.get("width") or 0),
+            "height": int(image.get("height") or 0),
+            "digest": digest.hex() if isinstance(digest, bytes) else str(digest or ""),
+        }
+        objects["images"][_fingerprint(payload)] += 1
+    for link in page.get_links():
+        source = link.get("from")
+        payload = {
+            "kind": int(link.get("kind") or 0),
+            "from": _rounded_rect(source) if isinstance(source, fitz.Rect) else None,
+            "target_page": int(link.get("page", -1)),
+        }
+        objects["links"][_fingerprint(payload)] += 1
+    for widget in page.widgets() or []:
+        payload = {
+            "type": int(widget.field_type),
+            "rect": _rounded_rect(widget.rect),
+            "flags": int(widget.field_flags or 0),
+        }
+        objects["form_fields"][_fingerprint(payload)] += 1
+    for annotation in page.annots() or []:
+        record = _annotation_record(annotation, page.number + 1)
+        objects["annotations"][_fingerprint(record)] += 1
+    return objects
+
+
+def _counter_delta(before: Counter[str], after: Counter[str]) -> dict[str, int]:
+    removed = sum((before - after).values())
+    added = sum((after - before).values())
+    modified = min(removed, added)
+    return {
+        "added": added - modified,
+        "removed": removed - modified,
+        "modified": modified,
+    }
+
+
+def _object_change_summary(
+    before: fitz.Document, after: fitz.Document
+) -> dict[str, Any]:
+    categories = ("drawings", "images", "links", "form_fields", "annotations")
+    totals = {
+        category: {"added": 0, "removed": 0, "modified": 0}
+        for category in categories
+    }
+    pages: list[dict[str, Any]] = []
+    for index in range(max(len(before), len(after))):
+        before_objects = (
+            _page_object_fingerprints(before[index])
+            if index < len(before)
+            else {category: Counter() for category in categories}
+        )
+        after_objects = (
+            _page_object_fingerprints(after[index])
+            if index < len(after)
+            else {category: Counter() for category in categories}
+        )
+        changes = {
+            category: _counter_delta(before_objects[category], after_objects[category])
+            for category in categories
+        }
+        for category, delta in changes.items():
+            for operation, count in delta.items():
+                totals[category][operation] += count
+        if any(sum(delta.values()) for delta in changes.values()):
+            pages.append({"page": index + 1, "changes": changes})
+    return {
+        "pages_changed": len(pages),
+        "by_type": totals,
+        "pages": pages,
+    }
+
+
+def _annotation_history_summary(
+    before_records: Sequence[Mapping[str, Any]],
+    after_records: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    before_by_page: dict[int, Counter[str]] = {}
+    after_by_page: dict[int, Counter[str]] = {}
+    for record in before_records:
+        before_by_page.setdefault(int(record["page"]), Counter())[_fingerprint(record)] += 1
+    for record in after_records:
+        after_by_page.setdefault(int(record["page"]), Counter())[_fingerprint(record)] += 1
+    pages = []
+    totals = {"added": 0, "removed": 0, "modified": 0}
+    for page_number in sorted(set(before_by_page) | set(after_by_page)):
+        delta = _counter_delta(
+            before_by_page.get(page_number, Counter()),
+            after_by_page.get(page_number, Counter()),
+        )
+        if sum(delta.values()):
+            pages.append({"page": page_number, **delta})
+            for key, value in delta.items():
+                totals[key] += value
+    return {
+        "before": len(before_records),
+        "after": len(after_records),
+        **totals,
+        "pages": pages,
+    }
 
 
 def _text_delta(before: str, after: str) -> tuple[int, int]:
@@ -227,6 +449,8 @@ def _loss_warnings(
     file_changed: bool,
 ) -> list[str]:
     warnings = []
+    if after.pages < before.pages:
+        warnings.append("pages_removed")
     if before_fonts and before_fonts != after_fonts:
         warnings.append("font_substitution_or_removal")
     if before.form_fields and after.form_fields < before.form_fields:
@@ -246,6 +470,27 @@ def _loss_warnings(
     if before.layers and after.layers < before.layers:
         warnings.append("layers_flattened_or_removed")
     return warnings
+
+
+def _artifact_manifest(directory: Path | None) -> list[dict[str, Any]]:
+    if directory is None:
+        return []
+    media_types = {
+        ".png": "image/png",
+        ".diff": "text/x-diff",
+        ".json": "application/json",
+    }
+    return [
+        {
+            "name": path.name,
+            "media_type": media_types.get(path.suffix.lower(), "application/octet-stream"),
+            "bytes": path.stat().st_size,
+            "sha256": _sha256(path),
+            "content_bearing": True,
+        }
+        for path in sorted(directory.iterdir(), key=lambda item: item.name)
+        if path.is_file()
+    ]
 
 
 def compare_pdf_files(
@@ -269,18 +514,40 @@ def compare_pdf_files(
     before_hash = _sha256(before_path)
     after_hash = _sha256(after_path)
     regions_by_page = expected_changed_regions or {}
-    overlays = Path(artifact_dir) if artifact_dir else None
+    artifacts = Path(artifact_dir) if artifact_dir else None
+    if artifacts is not None:
+        if artifacts.exists() and any(artifacts.iterdir()):
+            raise ValueError("artifact_dir must be empty to keep the review deterministic")
+        artifacts.mkdir(parents=True, exist_ok=True)
 
     with fitz.open(before_path) as before, fitz.open(after_path) as after:
         before_inventory = inspect_document(before)
         after_inventory = inspect_document(after)
         before_fonts = _font_keys(before)
         after_fonts = _font_keys(after)
+        object_changes = _object_change_summary(before, after)
+        before_annotation_records = _annotation_records(before)
+        after_annotation_records = _annotation_records(after)
+        annotation_history = _annotation_history_summary(
+            before_annotation_records,
+            after_annotation_records,
+        )
         visual_pages = []
         max_pages = max(len(before), len(after))
         for index in range(max_pages):
             before_image, after_image, page_rect = _page_canvas(before, after, index, dpi)
-            overlay_path = overlays / f"page-{index + 1:03d}-overlay.png" if overlays else None
+            before_render_path = (
+                artifacts / f"page-{index + 1:03d}-before.png" if artifacts else None
+            )
+            after_render_path = (
+                artifacts / f"page-{index + 1:03d}-after.png" if artifacts else None
+            )
+            overlay_path = (
+                artifacts / f"page-{index + 1:03d}-overlay.png" if artifacts else None
+            )
+            if before_render_path is not None and after_render_path is not None:
+                before_image.save(before_render_path, format="PNG", optimize=True)
+                after_image.save(after_render_path, format="PNG", optimize=True)
             page_result = _visual_page_diff(
                 before_image,
                 after_image,
@@ -291,11 +558,17 @@ def compare_pdf_files(
                 overlay_path,
             )
             page_result["page"] = index + 1
+            page_result["artifacts"] = {
+                "before": before_render_path.name if before_render_path else None,
+                "after": after_render_path.name if after_render_path else None,
+                "overlay": overlay_path.name if overlay_path else None,
+            }
             visual_pages.append(page_result)
 
         changed_text_pages = 0
         added_characters = 0
         removed_characters = 0
+        text_pages: list[dict[str, Any]] = []
         for index in range(max_pages):
             before_text = before[index].get_text("text") if index < len(before) else ""
             after_text = after[index].get_text("text") if index < len(after) else ""
@@ -304,13 +577,80 @@ def compare_pdf_files(
                 added, removed = _text_delta(before_text, after_text)
                 added_characters += added
                 removed_characters += removed
+                text_artifact = None
+                if artifacts is not None:
+                    text_artifact_path = artifacts / f"page-{index + 1:03d}-text.diff"
+                    diff = unified_diff(
+                        before_text.splitlines(keepends=True),
+                        after_text.splitlines(keepends=True),
+                        fromfile=f"page-{index + 1:03d}-before.txt",
+                        tofile=f"page-{index + 1:03d}-after.txt",
+                        lineterm="\n",
+                    )
+                    text_artifact_path.write_text("".join(diff), encoding="utf-8")
+                    text_artifact = text_artifact_path.name
+                text_pages.append(
+                    {
+                        "page": index + 1,
+                        "before_characters": len(before_text),
+                        "after_characters": len(after_text),
+                        "characters_added": added,
+                        "characters_removed": removed,
+                        "artifact": text_artifact,
+                    }
+                )
 
         before_metadata = before.metadata or {}
         after_metadata = after.metadata or {}
         metadata_keys = set(before_metadata) | set(after_metadata)
-        changed_metadata_keys = sum(
-            before_metadata.get(key) != after_metadata.get(key) for key in metadata_keys
+        metadata_added = sorted(
+            key for key in metadata_keys if not before_metadata.get(key) and after_metadata.get(key)
         )
+        metadata_removed = sorted(
+            key for key in metadata_keys if before_metadata.get(key) and not after_metadata.get(key)
+        )
+        metadata_modified = sorted(
+            key
+            for key in metadata_keys
+            if before_metadata.get(key)
+            and after_metadata.get(key)
+            and before_metadata.get(key) != after_metadata.get(key)
+        )
+        changed_metadata_keys = len(metadata_added) + len(metadata_removed) + len(metadata_modified)
+        metadata_artifact = None
+        if artifacts is not None and changed_metadata_keys:
+            metadata_artifact_path = artifacts / "metadata-diff.json"
+            metadata_artifact_path.write_text(
+                json.dumps(
+                    {
+                        "before": before_metadata,
+                        "after": after_metadata,
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                    sort_keys=True,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            metadata_artifact = metadata_artifact_path.name
+        annotation_artifact = None
+        if artifacts is not None:
+            annotation_artifact_path = artifacts / "annotation-history.json"
+            annotation_artifact_path.write_text(
+                json.dumps(
+                    {
+                        "before": _annotation_records(before, include_content=True),
+                        "after": _annotation_records(after, include_content=True),
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                    sort_keys=True,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            annotation_artifact = annotation_artifact_path.name
         warnings = _loss_warnings(
             before_inventory,
             after_inventory,
@@ -340,7 +680,7 @@ def compare_pdf_files(
     else:
         verdict = "binary_only_change"
 
-    return {
+    report = {
         "schema": SCHEMA_NAME,
         "schema_version": SCHEMA_VERSION,
         "app_version": __version__,
@@ -363,16 +703,83 @@ def compare_pdf_files(
             "changed_text_pages": changed_text_pages,
             "characters_added": added_characters,
             "characters_removed": removed_characters,
+            "text_pages": text_pages,
             "changed_metadata_keys": changed_metadata_keys,
+            "metadata": {
+                "added": len(metadata_added),
+                "removed": len(metadata_removed),
+                "modified": len(metadata_modified),
+                "artifact": metadata_artifact,
+            },
             "before": asdict(before_inventory),
             "after": asdict(after_inventory),
         },
+        "objects": object_changes,
+        "annotation_history": {
+            **annotation_history,
+            "artifact": annotation_artifact,
+        },
+        "artifacts": {
+            "generated": artifacts is not None,
+            "content_bearing": artifacts is not None,
+            "files": _artifact_manifest(artifacts),
+        },
         "warnings": warnings,
+        "safe_to_publish": not warnings,
         "content_included": False,
     }
+    report["audit_sha256"] = compute_audit_sha256(report)
+    return report
 
 
 def write_change_report(report: dict, path: str | Path) -> None:
+    persisted = dict(report)
+    persisted["audit_sha256"] = compute_audit_sha256(persisted)
     Path(path).write_text(
-        json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        json.dumps(persisted, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
+
+
+def promote_safe_edit(
+    before_path: str | Path,
+    candidate_path: str | Path,
+    output_path: str | Path,
+    *,
+    artifact_dir: str | Path | None = None,
+    tolerance: float = 0.001,
+    pixel_threshold: int = 12,
+    dpi: int = 144,
+) -> dict:
+    """Atomically promote a candidate only when no structural loss is detected."""
+    source = Path(before_path).resolve()
+    candidate = Path(candidate_path).resolve()
+    destination = Path(output_path).resolve()
+    if destination in {source, candidate}:
+        raise ValueError("safe-edit output must be a separate path")
+    report = compare_pdf_files(
+        source,
+        candidate,
+        artifact_dir=artifact_dir,
+        tolerance=tolerance,
+        pixel_threshold=pixel_threshold,
+        dpi=dpi,
+    )
+    if not report["safe_to_publish"]:
+        raise UnsafeEditError(report)
+
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{destination.name}.",
+        suffix=".tmp",
+        dir=destination.parent,
+    )
+    os.close(descriptor)
+    temporary = Path(temporary_name)
+    try:
+        shutil.copy2(candidate, temporary)
+        if _sha256(temporary) != report["files"]["after_sha256"]:
+            raise OSError("candidate changed while safe-edit was promoting it")
+        os.replace(temporary, destination)
+    finally:
+        temporary.unlink(missing_ok=True)
+    return report

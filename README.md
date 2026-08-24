@@ -42,6 +42,7 @@ Python package. Capability status is deliberately explicit:
 - Create a copy-first **Redact & Prove** result with independent extraction, rendering, OCR checks, and content-free JSON/Markdown evidence
 - Create certificate-backed signed copies from request-only P12/PFX identities and validate integrity, later changes, and explicit trust fully offline
 - Create a separate searchable scan copy with local OCR progress, cancel/retry, installed multilingual packs, confidence review, corrections, and a removable text layer
+- Review before/after renders, changed objects, extracted text, metadata, and annotation history; optionally refuse structurally lossy candidates with Safe Edit
 
 Five task-first workflows live directly in the sidebar: **Redact & Prove**, **Fill & Sign**, **Organize Pages**, **Sanitize & Share**, and **OCR & Search**. Press `Ctrl/Command+K` to search every workflow and specialist tool by intent. Quick defaults appear first; optional OCR, page-assembly, and certificate controls stay behind labelled expert disclosures. The shared progress, warning, output, verification, focus, reflow, and touch-target rules are documented in the [Coherent UX contract](docs/COHERENT_UX.md). See the [OCR contract and local-data model](docs/OCR_SEARCH.md) for scan-specific boundaries.
 
@@ -57,10 +58,11 @@ fidelity.
 pdf-editor-offline verify-redaction redacted.pdf --target "removed text"
 pdf-editor-offline inspect-privacy input.pdf
 pdf-editor-offline compare before.pdf after.pdf --output change-review.json
+pdf-editor-offline safe-edit before.pdf candidate.pdf verified.pdf --report verified.audit.json
 pdf-editor-offline capabilities --json
 ```
 
-These reports contain counts, hashes, fixed check identifiers, and engine facts—not document text, metadata values, filenames, or paths. See the [stable schemas, exit codes, reuse policy, and minimized-fixture guide](docs/TRUST_LAB_INTEGRATION.md).
+These reports contain counts, hashes, fixed check identifiers, and engine facts—not document text, metadata values, filenames, or paths. The optional private artifact bundle contains the page renders and human-readable diffs. See the [change-review and Safe Edit contract](docs/CHANGE_REVIEW.md) and the [stable schemas, exit codes, reuse policy, and minimized-fixture guide](docs/TRUST_LAB_INTEGRATION.md).
 
 ## 60-second local proof
 

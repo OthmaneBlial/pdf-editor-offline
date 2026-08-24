@@ -39,6 +39,34 @@
       "additionalProperties": false
     },
     "semantic": { "type": "object" },
+    "objects": { "type": "object" },
+    "annotation_history": { "type": "object" },
+    "artifacts": {
+      "type": "object",
+      "required": ["generated", "content_bearing", "files"],
+      "properties": {
+        "generated": { "type": "boolean" },
+        "content_bearing": { "type": "boolean" },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "media_type", "bytes", "sha256", "content_bearing"],
+            "properties": {
+              "name": { "type": "string", "pattern": "^[^/\\\\]+$" },
+              "media_type": { "type": "string" },
+              "bytes": { "type": "integer", "minimum": 0 },
+              "sha256": { "$ref": "#/$defs/sha256" },
+              "content_bearing": { "const": true }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "audit_sha256": { "$ref": "#/$defs/sha256" },
+    "safe_to_publish": { "type": "boolean" },
     "warnings": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
     "content_included": { "const": false }
   },

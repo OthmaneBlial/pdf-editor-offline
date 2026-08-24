@@ -16,6 +16,7 @@ tested where possible, but their status acknowledges a wider fidelity surface.
 | OCR & Search (Beta) | `tests/test_ocr_workflow.py`, `frontend/tests/OCRSearchWorkflow.spec.tsx`, `scripts/benchmark_ocr.py` | OCR & Search contract; source-preserving/removable layer; local language-pack and scale budgets |
 | Task navigation and accessible operation feedback | `frontend/tests/Sidebar.test.tsx`, `frontend/tests/CommandPalette.spec.tsx`, `frontend/tests/CoherentUXAccessibility.spec.tsx`, `tests/e2e/coherent_ux_smoke.py` | Five primary jobs; searchable command palette; progressive disclosure; WCAG 2.2 AA shell contract |
 | Trust Lab CLI, schemas, and cross-engine evidence | `tests/test_trust_lab_cli.py`, `tests/test_trust_lab_corpus.py`, `tests/test_change_review.py`, `scripts/run_trust_lab.py` | Content-free CLI contracts; immutable schema v1; PyMuPDF/pdfplumber/PDFium release history |
+| Visual and semantic change review + Safe Edit | `tests/test_change_review.py`, `tests/test_change_review_api.py`, `frontend/tests/AdvancedTools.spec.tsx` | Before/after/overlay artifacts; object/text/metadata/annotation deltas; deterministic audit hash; fail-closed structural-loss gate |
 | Metadata cleanup | `tests/test_phase5_privacy.py` | Privacy contract; capability matrix |
 | Document validation and local API boundary | `tests/test_adversarial_corpus.py`, `tests/test_runtime_capabilities.py` | Threat model; security policy |
 | CLI documented commands | `tests/test_cli_contract.py`, wheel-install CI smoke | README; frontend setup guide |

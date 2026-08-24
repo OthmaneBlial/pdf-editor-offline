@@ -6,6 +6,8 @@ All notable changes to PDF Editor Offline are documented here.
 
 ### Added
 
+- Added visual and semantic change review with before/after/overlay renders, changed-object counts, extracted-text and metadata diffs, annotation history, and expiring local artifacts.
+- Added deterministic content-free audit hashes plus CLI and API Safe Edit gates that atomically refuse structurally lossy candidates.
 - Published PDF Trust Lab v1 with nine synthetic fixtures, a 9/9 cross-engine PyMuPDF/pdfplumber/PDFium baseline, release history, and a static results dashboard.
 - Added content-free `verify-redaction`, `inspect-privacy`, `compare`, and `capabilities --json` CLI commands with six stable Draft 2020-12 JSON schemas.
 - Added Trust Lab CI/release evidence, an external integration guide, and a privacy-gated minimized-fixture proposal form.

@@ -1,11 +1,12 @@
 import json
 from pathlib import Path
 
-import fitz
+import pymupdf as fitz
 from jsonschema import Draft202012Validator, validate
 from typer.testing import CliRunner
 
 from pdf_editor_offline.cli.main import app
+from pdf_editor_offline.core.change_review import verify_audit_sha256
 from pdf_editor_offline.trust_lab import inspect_privacy_report
 from pdf_editor_offline.trust_lab.runner import run_corpus
 
@@ -72,6 +73,23 @@ def test_compare_command_writes_a_schema_valid_content_free_report(sample_pdf, t
     validate(payload, _schema("change-review.schema.json"))
     assert payload["verdict"] == "unchanged"
     assert sample_pdf not in json.dumps(payload)
+
+
+def test_safe_edit_cli_promotes_a_verified_candidate_with_a_tamper_evident_report(
+    sample_pdf, tmp_path
+):
+    output = tmp_path / "safe-copy.pdf"
+    result = runner.invoke(
+        app,
+        ["safe-edit", sample_pdf, sample_pdf, str(output)],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    validate(payload, _schema("change-review.schema.json"))
+    assert payload["safe_to_publish"] is True
+    assert verify_audit_sha256(payload)
+    assert output.read_bytes() == Path(sample_pdf).read_bytes()
 
 
 def test_verify_redaction_command_fails_closed_and_emits_no_target(sample_pdf):
