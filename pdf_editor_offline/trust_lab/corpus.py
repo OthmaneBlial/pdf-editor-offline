@@ -106,22 +106,27 @@ def _forms(path: Path) -> None:
     page.insert_text((72, 54), "Synthetic form controls", fontsize=16)
 
     fields = (
-        ("full_name", fitz.PDF_WIDGET_TYPE_TEXT, fitz.Rect(72, 90, 300, 120)),
-        ("approved", fitz.PDF_WIDGET_TYPE_CHECKBOX, fitz.Rect(72, 145, 92, 165)),
-        ("priority", fitz.PDF_WIDGET_TYPE_COMBOBOX, fitz.Rect(72, 190, 220, 220)),
+        ("full_name", fitz.PDF_WIDGET_TYPE_TEXT, fitz.Rect(72, 90, 300, 120), "Synthetic value"),
+        ("approved", fitz.PDF_WIDGET_TYPE_CHECKBOX, fitz.Rect(72, 145, 92, 165), "Yes"),
+        ("priority", fitz.PDF_WIDGET_TYPE_COMBOBOX, fitz.Rect(72, 190, 220, 220), "Normal"),
+        ("signed_date", fitz.PDF_WIDGET_TYPE_TEXT, fitz.Rect(72, 235, 220, 265), "2026-08-24"),
+        ("delivery_method", fitz.PDF_WIDGET_TYPE_RADIOBUTTON, fitz.Rect(72, 290, 92, 310), "Off"),
     )
-    for name, field_type, rect in fields:
+    for name, field_type, rect, value in fields:
         widget = fitz.Widget()
         widget.field_name = name
-        widget.field_type = field_type
+        widget.field_label = name.replace("_", " ").title()
+        widget.field_type = (
+            fitz.PDF_WIDGET_TYPE_CHECKBOX
+            if field_type == fitz.PDF_WIDGET_TYPE_RADIOBUTTON
+            else field_type
+        )
+        if field_type == fitz.PDF_WIDGET_TYPE_RADIOBUTTON:
+            widget.field_flags = fitz.PDF_BTN_FIELD_IS_RADIO
         widget.rect = rect
         if field_type == fitz.PDF_WIDGET_TYPE_COMBOBOX:
             widget.choice_values = ["Low", "Normal", "High"]
-            widget.field_value = "Normal"
-        elif field_type == fitz.PDF_WIDGET_TYPE_TEXT:
-            widget.field_value = "Synthetic value"
-        else:
-            widget.field_value = "Yes"
+        widget.field_value = value
         page.add_widget(widget)
     _save(document, path)
 

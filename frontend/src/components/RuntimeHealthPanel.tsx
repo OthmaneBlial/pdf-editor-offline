@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { API_BASE_URL } from '../lib/apiClient';
 import { clearRecentFiles, loadRecentFiles } from '../services/recentFiles';
+import { clearSignatureAssets } from '../services/signatureAssets';
 
 interface ToolCapability {
   available: boolean;
@@ -145,6 +146,7 @@ export default function RuntimeHealthPanel() {
         delete_all_app_data: true,
       });
       await clearRecentFiles();
+      clearSignatureAssets();
       window.dispatchEvent(new CustomEvent('pdf-local-data-cleared'));
       setInventory({
         session_files: 0,
@@ -161,7 +163,7 @@ export default function RuntimeHealthPanel() {
       });
       setRecentReferences(0);
       setDeleteConfirmed(false);
-      setStorageMessage('All app-owned documents, reports, drafts, temporary files, and recent references were deleted.');
+      setStorageMessage('All app-owned documents, reports, drafts, temporary files, visual signature assets, and recent references were deleted.');
       await loadCapabilities();
     } catch {
       setStorageMessage('Some local data could not be deleted. Review the inventory and retry.');
@@ -251,7 +253,7 @@ export default function RuntimeHealthPanel() {
                       </dl>
                     )}
                     <button type="button" onClick={() => void cleanup()} disabled={cleaning} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs font-semibold transition hover:bg-white/10 disabled:opacity-50"><Trash2 className="h-4 w-4" /> {cleaning ? 'Cleaning…' : 'Clean stale local data'}</button>
-                    <label className="mt-3 flex items-start gap-2 rounded-xl border border-rose-300/10 bg-rose-300/5 p-3 text-[10px] leading-4 text-rose-100/70"><input type="checkbox" checked={deleteConfirmed} onChange={(event) => setDeleteConfirmed(event.target.checked)} className="mt-0.5 accent-rose-400" /><span>Close current documents and delete all app-owned sessions, reports, drafts, temporary files, and recent references.</span></label>
+                    <label className="mt-3 flex items-start gap-2 rounded-xl border border-rose-300/10 bg-rose-300/5 p-3 text-[10px] leading-4 text-rose-100/70"><input type="checkbox" checked={deleteConfirmed} onChange={(event) => setDeleteConfirmed(event.target.checked)} className="mt-0.5 accent-rose-400" /><span>Close current documents and delete all app-owned sessions, reports, drafts, temporary files, visual signature assets, and recent references.</span></label>
                     <button type="button" onClick={() => void deleteAllLocalData()} disabled={!deleteConfirmed || deleting} className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-rose-400/25 bg-rose-400/10 px-3 py-2.5 text-xs font-semibold text-rose-200 transition hover:bg-rose-400/20 disabled:cursor-not-allowed disabled:opacity-35"><Trash2 className="h-4 w-4" /> {deleting ? 'Deleting all local data…' : 'Delete all local workspace data'}</button>
                     {storageMessage && <p className="mt-3 text-[10px] leading-4 text-slate-400" role="status" aria-live="polite">{storageMessage}</p>}
                   </div>

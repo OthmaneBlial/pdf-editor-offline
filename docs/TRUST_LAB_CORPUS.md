@@ -6,7 +6,7 @@ The public corpus in [`trust_lab/corpus/v1`](../trust_lab/corpus/v1) contains no
 
 | Fixture | Structure under test | Expected behavior |
 | --- | --- | --- |
-| `forms.pdf` | Text, checkbox, and dropdown AcroForm widgets | Preserve or warn before flattening/removal |
+| `forms.pdf` | Text, date, checkbox, radio, and dropdown AcroForm widgets | Fill in deterministic visual tab order; flatten only a separate sharing copy |
 | `mixed-fonts.pdf` | Four built-in font/style combinations | Preserve or report substitution/removal |
 | `image-scan.pdf` | Image-only scanned page | Render locally; OCR remains explicit and optional |
 | `layers-transparency.pdf` | Optional-content group, vector drawing, alpha transparency | Preserve or report flattening |

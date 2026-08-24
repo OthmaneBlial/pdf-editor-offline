@@ -21,17 +21,19 @@ import ImageTools from './components/tools/ImageTools';
 import RedactProveWorkflow from './components/workflows/RedactProveWorkflow';
 import SanitizeShareWorkflow from './components/workflows/SanitizeShareWorkflow';
 import OrganizePagesWorkflow from './components/workflows/OrganizePagesWorkflow';
+import FillSignWorkflow from './components/workflows/FillSignWorkflow';
 import './App.css';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useEditor } from './contexts/EditorContext';
 
-export type ViewMode = 'editor' | 'redact' | 'sanitize' | 'manipulation' | 'conversion' | 'security' | 'advanced' | 'batch' | 'text' | 'navigation' | 'annotations' | 'images';
+export type ViewMode = 'editor' | 'redact' | 'fill-sign' | 'sanitize' | 'manipulation' | 'conversion' | 'security' | 'advanced' | 'batch' | 'text' | 'navigation' | 'annotations' | 'images';
 
 // Advanced Editing tools that need tabbed interface
 const ADVANCED_EDITING_TOOLS: ViewMode[] = ['text', 'navigation', 'annotations', 'images'];
 const VIEW_LABELS: Record<ViewMode, string> = {
   editor: 'Editor',
   redact: 'Redact & Prove',
+  'fill-sign': 'Fill & Sign',
   sanitize: 'Sanitize & Share',
   manipulation: 'Organize Pages',
   conversion: 'Conversion',
@@ -136,6 +138,8 @@ function AppContent() {
           );
         case 'redact':
           return <RedactProveWorkflow />;
+        case 'fill-sign':
+          return <FillSignWorkflow />;
         case 'sanitize':
           return <SanitizeShareWorkflow />;
         case 'manipulation':

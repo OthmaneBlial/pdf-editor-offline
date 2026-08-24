@@ -3,7 +3,8 @@
 - Signed desktop installers are not published yet. The current Tauri application is a source-buildable beta.
 - Existing-text replacement uses redaction plus overlay and cannot guarantee original font/reflow fidelity for every PDF.
 - XFA forms are detected but unsupported. Standard AcroForms are the supported form target.
-- Visual signatures are images, not certificate-backed digital signatures.
+- AcroForm JavaScript and automatic calculations are detected but never executed; calculated values require manual review.
+- Visual signatures are locally stored images, not certificate-backed digital signatures or identity proof.
 - Local comments in the sidebar are not collaborative and are not embedded in exported PDFs.
 - OCR requires local Tesseract and language data. The current endpoint does not yet provide background progress, cancellation, or correction.
 - Office-to-PDF requires LibreOffice. Relevant PDF/A, repair, and compression operations may require Ghostscript.

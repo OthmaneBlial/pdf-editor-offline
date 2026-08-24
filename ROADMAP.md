@@ -239,10 +239,10 @@ Time ranges are planning estimates for a small maintainer team, not release prom
 
 #### Fill & Sign
 
-- [ ] Detect and fill AcroForm text, checkbox, radio, dropdown, and date fields with usable tab order.
-- [ ] Flatten a true sharing copy while preserving the editable original.
-- [ ] Warn on unsupported XFA, scripts, calculations, and signature invalidation.
-- [ ] Support typed, drawn, and imported visual signatures stored locally with explicit delete controls.
+- [x] Detect and fill AcroForm text, checkbox, radio, dropdown, and date fields with usable tab order.
+- [x] Flatten a true sharing copy while preserving the editable original.
+- [x] Warn on unsupported XFA, scripts, calculations, and signature invalidation.
+- [x] Support typed, drawn, and imported visual signatures stored locally with explicit delete controls.
 - [ ] Add certificate-backed signing and validation only as a separately specified, tested workflow.
 
 #### OCR & Search

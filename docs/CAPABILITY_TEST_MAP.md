@@ -11,7 +11,7 @@ tested where possible, but their status acknowledges a wider fidelity surface.
 | Rotate, extract, duplicate, insert | `tests/test_page_manipulation.py`, `tests/test_phase2_insert_pages.py` | Capability matrix; known limitations |
 | Persistent page reorder and undo/redo | `tests/test_page_manipulation.py::TestPageReordering` | Capability matrix |
 | Text, image, and drawing overlays | `frontend/tests/editor-context.spec.tsx`, `frontend/tests/PDFViewer.lifecycle.spec.tsx`, browser E2E | Capability matrix; overlay limitation |
-| Visual signature image | `tests/test_api_tools.py::test_sign_pdf`, `frontend/tests/SecurityTools.spec.tsx` | Capability matrix; visible Visual Signature explanation |
+| Visual signature image | `tests/test_forms_workflow.py::test_visual_signature_is_bounded_explicit_and_undoable`, `frontend/tests/FillSignWorkflow.spec.tsx`, `frontend/tests/signatureAssets.spec.ts` | Fill & Sign contract; privacy contract; visible non-digital warning |
 | Metadata cleanup | `tests/test_phase5_privacy.py` | Privacy contract; capability matrix |
 | Document validation and local API boundary | `tests/test_adversarial_corpus.py`, `tests/test_runtime_capabilities.py` | Threat model; security policy |
 | CLI documented commands | `tests/test_cli_contract.py`, wheel-install CI smoke | README; frontend setup guide |

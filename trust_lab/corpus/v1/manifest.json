@@ -1,7 +1,7 @@
 {
   "cases": [
     {
-      "bytes": 2806,
+      "bytes": 3855,
       "expected_behavior": "preserve_or_warn",
       "features": [
         "forms",
@@ -12,7 +12,7 @@
       "filename": "forms.pdf",
       "id": "forms",
       "pages": 1,
-      "sha256": "43aea97bb178876fe284f5e5b91c34e8893782e3a68c6ef2a97e2dd7f99ca641",
+      "sha256": "f937f8d02adf1341885163524107e33e365aefc07bf434f68dd64995f0c645dc",
       "valid_pdf": true
     },
     {

@@ -109,6 +109,7 @@ describe('RuntimeHealthPanel', () => {
 
   it('inspects and deletes all app-owned local data after explicit confirmation', async () => {
     const cleared = vi.fn();
+    localStorage.setItem('pdf-editor-visual-signatures', '[{"id":"local-signature"}]');
     window.addEventListener('pdf-local-data-cleared', cleared);
     render(<RuntimeHealthPanel />);
     await waitFor(() => expect(getMock).toHaveBeenCalledTimes(1));
@@ -126,6 +127,7 @@ describe('RuntimeHealthPanel', () => {
       { delete_all_app_data: true },
     ));
     await waitFor(() => expect(cleared).toHaveBeenCalledTimes(1));
+    expect(localStorage.getItem('pdf-editor-visual-signatures')).toBeNull();
     expect(screen.getByText(/All app-owned documents/i)).toBeInTheDocument();
     window.removeEventListener('pdf-local-data-cleared', cleared);
   });

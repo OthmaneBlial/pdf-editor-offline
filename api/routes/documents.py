@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import secrets
+import shutil
 import uuid
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -11,8 +12,11 @@ from typing import List, Optional, Tuple
 import fitz
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
+from PIL import Image
+from starlette.background import BackgroundTask
 
 from pdf_editor_offline.core.exceptions import InvalidOperationError, PDFLoadError
+from pdf_editor_offline.core.form_handler import FormHandler
 
 logger = logging.getLogger(__name__)
 
@@ -1412,18 +1416,23 @@ async def list_form_fields(doc_id: str):
     session = get_session(doc_id)
     handler = session["form_handler"]
     fields = handler.list_form_fields()
-    has_xfa = handler.has_xfa()
+    risks = handler.inspect_risks()
+    warnings = []
+    if risks["has_xfa"]:
+        warnings.append("xfa_unsupported")
+    if risks["javascript_actions"]:
+        warnings.append("javascript_not_executed")
+    if risks["calculation_actions"]:
+        warnings.append("calculations_not_executed")
+    if risks["signature_fields"]:
+        warnings.append("existing_signatures_will_be_invalidated")
     return APIResponse(
         success=True,
         data={
             "fields": fields,
             "field_count": len(fields),
-            "has_xfa": has_xfa,
-            "warnings": (
-                ["XFA forms are detected but are not edited by this application"]
-                if has_xfa
-                else []
-            ),
+            **risks,
+            "warnings": warnings,
         },
     )
 
@@ -1432,16 +1441,40 @@ async def list_form_fields(doc_id: str):
 async def fill_form_fields(doc_id: str, request: FillFormRequest):
     session = get_session(doc_id)
     handler = session["form_handler"]
+    risks = handler.inspect_risks()
+    if risks["has_xfa"]:
+        raise HTTPException(status_code=409, detail="XFA forms are detected but unsupported")
+    capture_page_operation_snapshot(doc_id, "fill_form")
     try:
         for field in request.fields:
             handler.fill_form_field(field.name, field.value)
     except InvalidOperationError as exc:
+        rollback_page_operation_snapshot(doc_id)
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    persist_session_document(doc_id)
+    except Exception:
+        rollback_page_operation_snapshot(doc_id)
+        raise
+    try:
+        persist_session_document(doc_id, recovery_stage="fill_form")
+    except Exception:
+        rollback_page_operation_snapshot(doc_id)
+        raise
+    warnings = []
+    if risks["javascript_actions"]:
+        warnings.append("javascript_not_executed")
+    if risks["calculation_actions"]:
+        warnings.append("calculations_not_executed")
+    if risks["signature_fields"]:
+        warnings.append("existing_signatures_will_be_invalidated")
     return APIResponse(
         success=True,
         message=f"Updated {len(request.fields)} form field(s)",
-        data={"updated": [field.name for field in request.fields]},
+        data={
+            "updated": [field.name for field in request.fields],
+            "warnings": warnings,
+            "can_undo": True,
+            "can_redo": False,
+        },
     )
 
 
@@ -1455,6 +1488,114 @@ async def flatten_form_fields(doc_id: str):
         message=f"Flattened {flattened} form field(s) into page content",
         data={"fields_flattened": flattened},
     )
+
+
+def _remove_temp_output(path: str) -> None:
+    try:
+        os.remove(path)
+    except OSError:
+        pass
+
+
+@router.post("/{doc_id}/forms/flatten-copy")
+async def create_flattened_form_copy(doc_id: str):
+    """Create a true flattened sharing copy without mutating the editable session."""
+    session = get_session(doc_id)
+    risks = session["form_handler"].inspect_risks()
+    if risks["has_xfa"]:
+        raise HTTPException(status_code=409, detail="XFA forms cannot be flattened safely")
+    source_copy = os.path.join(TEMP_DIR, f"form_source_{uuid.uuid4().hex}.pdf")
+    output_path = os.path.join(TEMP_DIR, f"form_flattened_{uuid.uuid4().hex}.pdf")
+    try:
+        shutil.copy2(session["storage_path"], source_copy)
+        with fitz.open(source_copy) as document:
+            flattened = FormHandler(document).flatten_form()
+            document.save(output_path, garbage=4, clean=True, deflate=True)
+    except Exception:
+        _remove_temp_output(output_path)
+        raise
+    finally:
+        _remove_temp_output(source_copy)
+    warnings = ["editable_original_preserved"]
+    if risks["javascript_actions"]:
+        warnings.append("javascript_not_executed")
+    if risks["calculation_actions"]:
+        warnings.append("calculations_not_executed")
+    if risks["signature_fields"]:
+        warnings.append("existing_signatures_will_be_invalidated")
+    return FileResponse(
+        output_path,
+        filename="flattened-sharing-copy.pdf",
+        media_type="application/pdf",
+        headers={
+            "X-Fields-Flattened": str(flattened),
+            "X-PDF-Editor-Warnings": ",".join(warnings),
+        },
+        background=BackgroundTask(_remove_temp_output, output_path),
+    )
+
+
+@router.post("/{doc_id}/visual-signatures", response_model=APIResponse)
+async def add_visual_signature(
+    doc_id: str,
+    signature: UploadFile = File(...),
+    page_num: int = Form(...),
+    x: float = Form(...),
+    y: float = Form(...),
+    width: float = Form(...),
+    height: float = Form(...),
+):
+    """Place a visual PNG/JPEG mark; this is explicitly not digital signing."""
+    session = get_session(doc_id)
+    document = session["document_manager"].get_document()
+    if page_num < 0 or page_num >= len(document):
+        raise HTTPException(status_code=400, detail="Signature page is outside the document")
+    if width <= 0 or height <= 0:
+        raise HTTPException(status_code=400, detail="Signature dimensions must be positive")
+    rectangle = fitz.Rect(x, y, x + width, y + height)
+    if not document[page_num].rect.contains(rectangle):
+        raise HTTPException(status_code=400, detail="Signature rectangle must fit inside its page")
+
+    temp_path = await _store_upload_temporarily(
+        signature,
+        "visual_signature",
+        allowed_extensions={".png", ".jpg", ".jpeg", ".webp"},
+        allowed_content_types={"image/png", "image/jpeg", "image/webp"},
+        max_size_bytes=4 * 1024 * 1024,
+    )
+    snapshot_captured = False
+    try:
+        with Image.open(temp_path) as image:
+            image.verify()
+            if image.width > 4096 or image.height > 4096:
+                raise HTTPException(status_code=413, detail="Signature image dimensions are too large")
+        warnings = _organizer_preservation_warnings(document, "visual_signature")
+        warnings.append("visual_signature_is_not_digital_signature")
+        capture_page_operation_snapshot(doc_id, "visual_signature")
+        snapshot_captured = True
+        document[page_num].insert_image(rectangle, filename=temp_path, overlay=True)
+        persist_session_document(doc_id, recovery_stage="visual_signature")
+        return APIResponse(
+            success=True,
+            message="Visual signature placed",
+            data={
+                "page_count": session["page_count"],
+                "page": page_num,
+                "warnings": warnings,
+                "can_undo": True,
+                "can_redo": False,
+            },
+        )
+    except HTTPException:
+        if snapshot_captured:
+            rollback_page_operation_snapshot(doc_id)
+        raise
+    except Exception as exc:
+        if snapshot_captured:
+            rollback_page_operation_snapshot(doc_id)
+        raise HTTPException(status_code=400, detail="Invalid visual signature image") from exc
+    finally:
+        _remove_temp_output(temp_path)
 
 
 # ============================================
