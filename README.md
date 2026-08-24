@@ -5,54 +5,65 @@
 </p>
 
 <p align="center">
-  Private PDF work you can inspect: edit, organize, redact, and sanitize locally—with no account or document telemetry.
+  <strong>Redact sensitive text locally—and get evidence that it is actually gone.</strong>
 </p>
 
 <p align="center">
-  <a href="https://github.com/OthmaneBlial/pdf-editor-offline">
-    <img src="https://img.shields.io/github/stars/OthmaneBlial/pdf-editor-offline?style=social" alt="GitHub stars">
-  </a>
-  <a href="https://opensource.org/licenses/MIT">
-    <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License">
-  </a>
-  <a href="https://pypi.org/project/pdf-editor-offline/">
-    <img src="https://img.shields.io/pypi/v/pdf-editor-offline.svg" alt="PyPI version">
-  </a>
-  <a href="https://pypi.org/project/pdf-editor-offline/">
-    <img src="https://img.shields.io/pypi/pyversions/pdf-editor-offline.svg" alt="Python versions">
-  </a>
+  <a href="https://github.com/OthmaneBlial/pdf-editor-offline/releases/latest"><strong>Download the latest release</strong></a>
+  ·
+  <a href="#60-second-proof">See the 60-second proof</a>
 </p>
 
-## Project Site
+**Platforms:** Windows 10/11 x64 · macOS 11+ on Apple Silicon or Intel ·
+Ubuntu 22.04/24.04 x64. The CLI/Python package supports Python 3.10–3.12.
 
-Open the live project site: [PDF Editor Offline Project Site](https://othmaneblial.github.io/pdf-editor-offline/index.html).
+**Known limits:** complex fonts/layouts can lose fidelity; XFA is inspect-only;
+editing bytes can invalidate existing signatures; OCR, LibreOffice conversions,
+and Ghostscript operations need optional local tools. Signed 3.0 desktop assets
+are published only after clean-machine and signing gates pass. Keep the original
+and review the exported copy. [Read all limitations](docs/KNOWN_LIMITATIONS.md).
 
-Inspect the versioned, machine-readable compatibility evidence in the [PDF Trust Lab dashboard](https://othmaneblial.github.io/pdf-editor-offline/trust-lab.html). Its nine synthetic fixtures run across PyMuPDF, pdfplumber, and PDFium; the v1 JSON schemas and release histories are public and content-free.
+## 60-second proof
 
-The self-contained local copy lives at [`site/index.html`](site/index.html). It includes product docs, screenshots, sample PDFs, API/CLI notes, and release checks.
+![A real local workflow loading the synthetic redaction PDF, finding two SECRET_TOKEN occurrences, permanently redacting them, and verifying zero remaining matches](https://raw.githubusercontent.com/OthmaneBlial/pdf-editor-offline/main/site/assets/product-demo.gif)
 
-PDF Editor Offline provides a desktop shell, local web workspace, API, CLI, and
-Python package. Capability status is deliberately explicit:
+This is the real local app using the public synthetic
+[`demo-redaction.pdf`](examples/sample_pdfs/demo-redaction.pdf): two matches are
+found, permanently redacted, then independently checked until zero remain. A
+green result means the target was absent from every check that actually ran; it
+does not turn an unavailable OCR engine into a pass. Reproduce it with the
+[five-minute Redact & Prove guide](docs/FIVE_MINUTE_REDACTION_WORKFLOW.md).
 
-- Edit pages, annotations, images, metadata, watermarks, and visual signatures
-- Merge, split, rotate, crop, resize, compress, repair, protect, and unlock PDFs
-- Convert PDF to Word, PowerPoint, Excel, JPG, Markdown, TXT, EPUB, SVG, and PDF/A
-- Convert Word, PowerPoint, Excel, Markdown, TXT, CSV, JSON, HTML, and images to PDF
-- Clean metadata, remove hidden data, redact page areas, and clear app temp files
-- Create a copy-first **Redact & Prove** result with independent extraction, rendering, OCR checks, and content-free JSON/Markdown evidence
-- Create certificate-backed signed copies from request-only P12/PFX identities and validate integrity, later changes, and explicit trust fully offline
-- Create a separate searchable scan copy with local OCR progress, cancel/retry, installed multilingual packs, confidence review, corrections, and a removable text layer
-- Review before/after renders, changed objects, extracted text, metadata, and annotation history; optionally refuse structurally lossy candidates with Safe Edit
-- Inspect document language, tags, reading order, headings, image alternatives, bookmarks, tables, and form labels without claiming automated PDF/UA remediation
-- Experiment with one narrowly gated Base-14 text replacement as a separate redaction-plus-redraw copy, with explicit unsupported structures and visual/semantic fidelity thresholds
+<p align="center">
+  <a href="https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/OthmaneBlial/pdf-editor-offline/ci.yml?branch=main&amp;label=full-stack%20CI" alt="Full-stack CI status"></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-0b6b58" alt="MIT License"></a>
+  <a href="https://pypi.org/project/pdf-editor-offline/"><img src="https://img.shields.io/pypi/v/pdf-editor-offline.svg" alt="PyPI version"></a>
+  <a href="https://github.com/OthmaneBlial/pdf-editor-offline"><img src="https://img.shields.io/github/stars/OthmaneBlial/pdf-editor-offline?style=social" alt="GitHub stars"></a>
+</p>
 
-Five task-first workflows live directly in the sidebar: **Redact & Prove**, **Fill & Sign**, **Organize Pages**, **Sanitize & Share**, and **OCR & Search**. Press `Ctrl/Command+K` to search every workflow and specialist tool by intent. Quick defaults appear first; optional OCR, page-assembly, and certificate controls stay behind labelled expert disclosures. The shared progress, warning, output, verification, focus, reflow, and touch-target rules are documented in the [Coherent UX contract](docs/COHERENT_UX.md). See the [OCR contract and local-data model](docs/OCR_SEARCH.md) for scan-specific boundaries.
+## Why it is different
 
-Read the [capability matrix](docs/CAPABILITIES.md) before relying on a workflow:
-it distinguishes stable, beta, experimental, external-dependency, and
-unsupported behavior. In particular, a visual signature is not certificate
-signing; the separate certificate workflow does not infer revocation or legal authority, local comments are not collaboration, and complex conversions can lose
-fidelity.
+- **Local by default:** no account, document upload, analytics, or hidden
+  conversion service; source and desktop modes bind to authenticated loopback.
+- **Copy first:** high-risk edits preserve the source and recovery snapshots.
+- **Evidence over badges:** Redact & Prove, Safe Edit, privacy inspection, and
+  the public Trust Lab report exactly which checks ran and which did not.
+- **Useful beyond the UI:** stable content-free JSON schemas, CLI exit codes,
+  FastAPI, Python, and a reusable GitHub Action support automation.
+
+The five primary workflows are **Redact & Prove**, **Fill & Sign**, **Organize
+Pages**, **Sanitize & Share**, and **OCR & Search**. Specialist tools remain
+searchable with `Ctrl/Command+K`. Read the [capability matrix](docs/CAPABILITIES.md)
+before relying on a workflow; it separates stable, beta, experimental,
+dependency-bound, and unsupported behavior.
+
+## Live evidence and documentation
+
+- [Project site](https://othmaneblial.github.io/pdf-editor-offline/)
+- [PDF Trust Lab dashboard](https://othmaneblial.github.io/pdf-editor-offline/trust-lab.html)
+- [One-page architecture map](docs/ARCHITECTURE_MAP.md)
+- [Privacy contract](docs/PRIVACY.md) and [threat model](docs/THREAT_MODEL.md)
+- [Coherent UX contract](docs/COHERENT_UX.md)
 
 ## Trust Lab CLI
 
@@ -68,23 +79,18 @@ pdf-editor-offline capabilities --json
 
 These reports contain counts, hashes, fixed check identifiers, and engine facts—not document text, metadata values, filenames, or paths. The optional private artifact bundle contains the page renders and human-readable diffs. See the [experimental content-editing specification](docs/EXPERIMENTAL_CONTENT_EDITING.md), [Accessibility inspector evidence boundary](docs/ACCESSIBILITY_INSPECTOR.md), [change-review and Safe Edit contract](docs/CHANGE_REVIEW.md), and [stable schemas, exit codes, reuse policy, and minimized-fixture guide](docs/TRUST_LAB_INTEGRATION.md).
 
-## 60-second local proof
+## Workflow screenshots
 
-![A real local workflow loading the synthetic redaction PDF, finding two SECRET_TOKEN occurrences, permanently redacting them, and verifying zero remaining matches](https://raw.githubusercontent.com/OthmaneBlial/pdf-editor-offline/main/site/assets/product-demo.gif)
+Captured from the local app with synthetic PDFs in `examples/sample_pdfs/`.
+They show completed jobs, not a catalogue of tool buttons.
 
-This is a real capture of the local app using [`demo-redaction.pdf`](examples/sample_pdfs/demo-redaction.pdf), not a product mockup. It shows the on-device trust console, upload, text search, two permanent redactions, a zero-match verification, and the rendered result. Follow the bounded [five-minute redaction workflow](docs/FIVE_MINUTE_REDACTION_WORKFLOW.md) to reproduce it; it explains what this check proves and what it does not.
-
-## Screenshots
-
-Captured from the local web app with the sample PDFs in `examples/sample_pdfs/`.
-
-| Editor workspace | Text search and redaction |
+| Open a real PDF | Find and permanently redact text |
 | --- | --- |
 | ![Editor workspace showing demo PDF](https://raw.githubusercontent.com/OthmaneBlial/pdf-editor-offline/main/screenshots/01-editor-workspace.png) | ![Text search, font analysis, and permanent redaction](https://raw.githubusercontent.com/OthmaneBlial/pdf-editor-offline/main/screenshots/02-text-search-redaction.png) |
 
-| File attachments | Merge PDFs |
+| Sanitize before sharing | Assemble pages into one output |
 | --- | --- |
-| ![File attachment added in the annotations tool](https://raw.githubusercontent.com/OthmaneBlial/pdf-editor-offline/main/screenshots/05-annotations-file-attachment.png) | ![PDF merge completed successfully](https://raw.githubusercontent.com/OthmaneBlial/pdf-editor-offline/main/screenshots/08-manipulation-merge.png) |
+| ![Privacy cleanup workflow showing document checks](https://raw.githubusercontent.com/OthmaneBlial/pdf-editor-offline/main/screenshots/07-security-privacy-cleanup.png) | ![PDF merge workflow completed successfully](https://raw.githubusercontent.com/OthmaneBlial/pdf-editor-offline/main/screenshots/08-manipulation-merge.png) |
 
 More captures are in `screenshots/`, including image insertion, privacy cleanup, and PDF-to-TXT conversion.
 
@@ -253,11 +259,17 @@ Small demo PDFs live in `examples/sample_pdfs/`:
 ```text
 api/                 FastAPI app
 frontend/            React app
+desktop/             Tauri shell and packaged Python sidecar
 pdf_editor_offline/  Python package and CLI
 examples/            Example scripts
 examples/sample_pdfs/ Small local demo PDFs
+trust_lab/            Versioned schemas, corpus, and release evidence
 tests/               Integration tests
 ```
+
+See the [one-page architecture map](docs/ARCHITECTURE_MAP.md) for ownership and
+the path from React through FastAPI/Python to fixtures, CI, installers, and
+release evidence.
 
 ## License
 

@@ -1,0 +1,83 @@
+<svg width="1280" height="640" viewBox="0 0 1280 640" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">PDF Editor Offline — redact and verify without uploading</title>
+  <desc id="desc">Social preview showing a local redaction proof moving from two sensitive text matches to zero verified matches.</desc>
+  <defs>
+    <linearGradient id="background" x1="70" y1="24" x2="1190" y2="640" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8F1E4"/>
+      <stop offset="0.58" stop-color="#F3F7F2"/>
+      <stop offset="1" stop-color="#DCEFE8"/>
+    </linearGradient>
+    <linearGradient id="signal" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#F24B3F"/>
+      <stop offset="1" stop-color="#D93429"/>
+    </linearGradient>
+    <pattern id="grid" width="36" height="36" patternUnits="userSpaceOnUse">
+      <path d="M36 0H0V36" stroke="#12211B" stroke-opacity="0.055"/>
+    </pattern>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="20" stdDeviation="22" flood-color="#12211B" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <rect width="1280" height="640" rx="32" fill="url(#background)"/>
+  <rect width="1280" height="640" rx="32" fill="url(#grid)"/>
+  <circle cx="1200" cy="32" r="236" fill="#F24B3F" fill-opacity="0.08"/>
+  <circle cx="1094" cy="584" r="218" fill="#168873" fill-opacity="0.08"/>
+
+  <g transform="translate(68 64)">
+    <rect width="58" height="58" rx="17" fill="#12211B"/>
+    <path d="M29 11L44 18V31C44 42 36.8 48.5 29 52C21.2 48.5 14 42 14 31V18L29 11Z" fill="#168873"/>
+    <path d="M21 31L27 37L38 24" stroke="white" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="78" y="40" fill="#12211B" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="800" letter-spacing="-0.5">PDF EDITOR OFFLINE</text>
+  </g>
+
+  <g transform="translate(68 178)">
+    <text x="0" y="0" fill="#12211B" font-family="Georgia, 'Times New Roman', serif" font-size="64" font-weight="700" letter-spacing="-1.5">Redact it.</text>
+    <text x="0" y="72" fill="#12211B" font-family="Georgia, 'Times New Roman', serif" font-size="64" font-weight="700" letter-spacing="-1.5">Prove it’s gone.</text>
+    <text x="2" y="186" fill="#42544D" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="500">Your PDF never leaves your machine.</text>
+
+    <g transform="translate(0 242)">
+      <rect width="182" height="50" rx="25" fill="#12211B"/>
+      <circle cx="27" cy="25" r="7" fill="#38C8A7"/>
+      <text x="47" y="33" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">LOCAL ONLY</text>
+      <rect x="194" width="197" height="50" rx="25" fill="#FFFFFF" stroke="#BAC8C1" stroke-width="2"/>
+      <text x="219" y="33" fill="#12211B" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">NO ACCOUNT</text>
+    </g>
+  </g>
+
+  <g transform="translate(734 96)" filter="url(#shadow)">
+    <rect width="478" height="462" rx="28" fill="#11211B"/>
+    <g transform="translate(30 28)">
+      <circle cx="9" cy="9" r="6" fill="#F24B3F"/>
+      <circle cx="31" cy="9" r="6" fill="#F4BE4D"/>
+      <circle cx="53" cy="9" r="6" fill="#38C8A7"/>
+      <text x="327" y="16" fill="#95AAA1" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700">TRUST CONSOLE</text>
+    </g>
+
+    <g transform="translate(30 76)">
+      <rect width="418" height="112" rx="18" fill="#182C24" stroke="#2D453B"/>
+      <rect x="18" y="18" width="78" height="76" rx="12" fill="#FFFDF8"/>
+      <rect x="31" y="33" width="52" height="7" rx="3.5" fill="#7B8983"/>
+      <rect x="31" y="49" width="42" height="7" rx="3.5" fill="#7B8983"/>
+      <rect x="29" y="62" width="56" height="16" rx="3" fill="url(#signal)"/>
+      <text x="118" y="42" fill="#E9F2EE" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700">SEARCH TARGET</text>
+      <text x="118" y="80" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="800">2 matches found</text>
+    </g>
+
+    <g transform="translate(30 208)">
+      <path d="M16 6V50" stroke="#60776D" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="16" cy="12" r="11" fill="#F24B3F"/>
+      <path d="M11 12H21" stroke="white" stroke-width="3" stroke-linecap="round"/>
+      <text x="46" y="18" fill="#B8C9C1" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700">Permanent redaction applied</text>
+    </g>
+
+    <g transform="translate(30 280)">
+      <rect width="418" height="138" rx="18" fill="#DDF7EC"/>
+      <circle cx="48" cy="52" r="24" fill="#168873"/>
+      <path d="M36 52L45 61L62 42" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="88" y="47" fill="#0B4F41" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="800">VERIFICATION PASSED</text>
+      <text x="88" y="82" fill="#12211B" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="900">0 matches remain</text>
+      <text x="20" y="116" fill="#43645A" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="600">Extraction · render · optional local OCR</text>
+    </g>
+  </g>
+</svg>

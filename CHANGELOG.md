@@ -6,6 +6,8 @@ All notable changes to PDF Editor Offline are documented here.
 
 ### Added
 
+- Rebuilt the repository front page around one verified-local-redaction promise, real proof, a download path, supported platforms, limitations, workflow captures, and a one-page architecture map.
+- Added a 1280×640 social preview, reproducible community onboarding, eight bounded first-contribution tasks, and a release gate that requires complete contributor and first-time-contributor credits.
 - Added a reusable GitHub Action consumer for stable content-free reports, executed by CI against a real `capabilities --json` payload and immutable v1 schema.
 - Added reviewed architecture RFCs and a machine-readable disabled-experiment registry for browser/WASM, touch/pen tablet support, and optional LAN/folder collaboration.
 - Published measurable compatibility, bundle, OCR, forms, security, recovery, opt-in, and maintenance gates while preserving the fully offline loopback-only solo runtime.

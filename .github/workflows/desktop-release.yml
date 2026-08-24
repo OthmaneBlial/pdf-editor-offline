@@ -362,6 +362,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.preflight.outputs.tag }}
+          fetch-depth: 0
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
@@ -392,6 +393,14 @@ jobs:
       - name: Require human-authored release notes
         run: >-
           test -s "docs/releases/${{ needs.preflight.outputs.version }}.md"
+      - name: Require complete contributor credits
+        env:
+          RELEASE_VERSION: ${{ needs.preflight.outputs.version }}
+        run: >-
+          python scripts/check_release_credits.py
+          --notes "docs/releases/$RELEASE_VERSION.md"
+          --previous-tag "$(git describe --tags --abbrev=0 HEAD^)"
+          --release-ref HEAD
       - name: Publish immutable release assets
         env:
           GH_TOKEN: ${{ github.token }}

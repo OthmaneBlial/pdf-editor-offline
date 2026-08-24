@@ -317,12 +317,12 @@ Time ranges are planning estimates for a small maintainer team, not release prom
 
 #### Repository conversion
 
-- [ ] Rewrite the first README screen around one promise, one 60-second proof, one download CTA, supported platforms, and known limitations.
-- [ ] Add a 1280×640 social preview, concise repository description, curated topics, and screenshots that show workflows rather than tool grids.
-- [ ] Add `CODE_OF_CONDUCT.md`, `SUPPORT.md`, issue forms, a pull-request template, Discussions, and a privacy-safe fixture policy.
-- [ ] Seed 5–10 genuinely bounded `good first issue` tasks with exact files, acceptance criteria, and test commands.
-- [ ] Publish a one-page architecture map for Python, API, React, Tauri, fixtures, and release workflows.
-- [ ] Credit every contributor in release notes and highlight first-time contributors.
+- [x] Rewrite the first README screen around one promise, one 60-second proof, one download CTA, supported platforms, and known limitations. Evidence: the [README](README.md) now leads with verified local redaction, one real capture, the latest-release link, the supported desktop/Python matrix, and explicit fidelity/dependency/signature limits.
+- [x] Add a 1280×640 social preview, concise repository description, curated topics, and screenshots that show workflows rather than tool grids. Evidence: `social-preview.png`/`social-preview.svg`, the concise GitHub metadata, and README workflow captures for redact, sanitize, and assemble outcomes.
+- [x] Add `CODE_OF_CONDUCT.md`, `SUPPORT.md`, issue forms, a pull-request template, Discussions, and a privacy-safe fixture policy. Evidence: repository community health files, three structured issue forms, the privacy/security checklist, [fixture policy](docs/FIXTURE_POLICY.md), and enabled GitHub Discussions.
+- [x] Seed 5–10 genuinely bounded `good first issue` tasks with exact files, acceptance criteria, and test commands. Evidence: eight open issues under the [`good first issue` label](https://github.com/OthmaneBlial/pdf-editor-offline/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22), each with a narrow file boundary, acceptance checklist, and focused verification command.
+- [x] Publish a one-page architecture map for Python, API, React, Tauri, fixtures, and release workflows. Evidence: [architecture map](docs/ARCHITECTURE_MAP.md) traces the local runtime, ownership, fixtures, CI, installers, and release evidence without inventing a second backend.
+- [x] Credit every contributor in release notes and highlight first-time contributors. Evidence: [3.0 release notes](docs/releases/3.0.0.md) credit all current Git authors and include a first-time contributor section; `scripts/check_release_credits.py` makes both requirements a production-release gate.
 
 #### Launch sequence
 

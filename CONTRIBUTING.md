@@ -1,19 +1,36 @@
 # Contributing to PDF Editor Offline
 
-Thank you for your interest! We welcome contributions.
+Small, evidence-backed contributions are welcome. Start with a bounded
+[`good first issue`](https://github.com/OthmaneBlial/pdf-editor-offline/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+or discuss a larger change before implementation.
 
-## Getting Started
+## Local setup
 
-1.  **Fork the Repository**: Create your own fork on GitHub.
-2.  **Clone your Fork**: `git clone https://github.com/OthmaneBlial/pdf-editor-offline.git`
-3.  **Set Up**:
-    -   Backend: `pip install -e .`
-    -   Frontend: `cd frontend && npm install`
+```bash
+git clone https://github.com/OthmaneBlial/pdf-editor-offline.git
+cd pdf-editor-offline
+python3 -m venv .venv
+.venv/bin/python -m pip install -e ".[dev]"
+npm --prefix frontend ci
+```
 
-## How to Contribute
+Run the smallest command named by the issue while iterating, then run the full
+affected subsystem before opening a pull request. `./run_ci.sh` is the local
+full-stack gate. User-facing changes also need keyboard, 320px reflow, browser
+console, and real workflow evidence.
 
-- **Reporting Bugs**: Search [GitHub Issues](https://github.com/OthmaneBlial/pdf-editor-offline/issues). If not found, open a new one with steps to reproduce.
-- **Pull Requests**: Ensure tests pass and documentation is updated.
+## Pull requests
+
+- Keep one observable outcome per pull request.
+- State the capability status and trust boundary affected.
+- Update limitations and preservation/loss language with the code.
+- Reopen any changed PDF output with an independent reader or engine.
+- Add deterministic tests; never make CI depend on a private document.
+- Use the pull-request template and include exact commands/results.
+
+The [architecture map](docs/ARCHITECTURE_MAP.md) shows which layer owns a change
+and the smallest useful check. The [capability test map](docs/CAPABILITY_TEST_MAP.md)
+shows where claims are enforced.
 
 ## PDF Trust Lab cases
 
@@ -26,5 +43,16 @@ Never submit an anonymized real-world PDF. Recreate the smallest relevant PDF
 structure from code, state the expected behavior, and add a structural test plus
 cross-engine evidence.
 
+Read the complete [security fixture policy](docs/FIXTURE_POLICY.md) before
+adding a PDF. Customer, production, medical, legal, identity, downloaded, or
+otherwise private documents are forbidden even when names appear removed.
+
+## Contributor credit
+
+Every shipped contributor is credited in release notes. First-time contributors
+are highlighted separately; CI compares the release note credits with Git
+authors since the previous tag.
+
 ## License
+
 By contributing, you agree that your contributions will be licensed under the MIT License.
