@@ -171,7 +171,7 @@ jobs:
           name: desktop-${{ matrix.platform }}
           path: desktop/dist/release/${{ matrix.platform }}
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 1
 
   assemble-preview:
     name: Assemble transparent unsigned preview
@@ -225,13 +225,14 @@ jobs:
             release/sbom-*.cdx.json
             release/provenance-*.sigstore.json
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 1
 
   publish-preview:
     name: Publish verified unsigned GitHub pre-release
     needs: assemble-preview
     runs-on: ubuntu-22.04
     permissions:
+      actions: write
       attestations: read
       contents: write
     steps:
@@ -326,3 +327,15 @@ jobs:
           assert remote["tagName"] == "${{ needs.assemble-preview.outputs.tag }}"
           assert actual == expected
           PY
+      - name: Delete transient workflow artifacts after successful publication
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mapfile -t artifact_ids < <(
+            gh api "/repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" \
+              --paginate --jq '.artifacts[].id'
+          )
+          for artifact_id in "${artifact_ids[@]}"; do
+            gh api --method DELETE \
+              "/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id"
+          done

@@ -127,6 +127,9 @@ trust facts:
   CycloneDX SBOM, GitHub build attestation, offline provenance bundle, SHA-256
   entry, exact source commit, and combined manifest;
 - the preview is a pre-release and never replaces the latest stable release.
+- transient Actions artifacts use one-day retention and are deleted immediately
+  after their byte-identical release assets are remotely verified, limiting
+  storage usage without deleting the public release evidence.
 
 The workflow refuses any other confirmation phrase and refuses to mutate an
 existing preview tag. The separate production workflow below is unchanged.

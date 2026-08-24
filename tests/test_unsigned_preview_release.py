@@ -16,6 +16,10 @@ def test_preview_workflow_requires_explicit_phrase_and_provenance() -> None:
     assert "--prerelease" in workflow
     assert "desktop-preview-$version" in workflow
     assert "secrets." not in workflow
+    assert workflow.count("retention-days: 1") == 2
+    assert "actions: write" in workflow
+    assert "--method DELETE" in workflow
+    assert "actions/artifacts/$artifact_id" in workflow
 
 
 def test_preview_warning_never_claims_native_platform_trust() -> None:
