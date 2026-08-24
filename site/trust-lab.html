@@ -30,7 +30,7 @@
     .history { list-style:none; padding:0; margin:0; } .history a { display:flex; justify-content:space-between; gap:1rem; padding:1rem; border-top:1px solid var(--line); text-decoration:none; } .history span { color:var(--muted); }
     footer { margin-top:4rem; border-top:1px solid var(--line); padding:2rem 0 4rem; color:var(--muted); font-size:.72rem; }
     @media(max-width:850px) { .hero { grid-template-columns:1fr; } .case-grid { grid-template-columns:1fr 1fr; } .metrics { grid-template-columns:1fr 1fr; } .metrics div:nth-child(2) { border-right:0; } .contract-grid { grid-template-columns:1fr; } }
-    @media(max-width:560px) { header { align-items:flex-start; } nav { justify-content:flex-end; } .case-grid { grid-template-columns:1fr; } .section-head { display:block; } h1 { font-size:3.6rem; } }
+    @media(max-width:560px) { header { align-items:center; gap:.65rem; padding:.7rem 1rem; } .brand { flex:0 0 auto; } .brand>span:last-child { display:none; } nav { flex:1; flex-wrap:nowrap; justify-content:flex-start; gap:.2rem; overflow-x:auto; overscroll-behavior-inline:contain; scrollbar-width:none; } nav a { display:flex; align-items:center; flex:0 0 auto; min-height:44px; padding:0 .5rem; } .hero { gap:2rem; padding:3rem 0 2.5rem; } .hero-proof { padding:1.25rem; border-radius:1.3rem; } section { padding:3rem 0; } .case-grid { grid-template-columns:1fr; } .section-head { display:block; } h1 { font-size:clamp(3.1rem,16vw,3.6rem); } }
     @media(prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } }
   </style>
 </head>

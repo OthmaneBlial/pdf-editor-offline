@@ -23,6 +23,7 @@
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 84px;
 }
 
 body {
@@ -127,6 +128,10 @@ pre,
   background: rgba(16, 167, 184, 0.1);
 }
 
+.site-menu-toggle {
+  display: none;
+}
+
 .section,
 .section-band,
 .metrics,
@@ -143,6 +148,10 @@ pre,
 
 .section-band {
   position: relative;
+}
+
+[id] {
+  scroll-margin-top: 84px;
 }
 
 .hero {
@@ -716,6 +725,10 @@ pre {
   border-top: 1px solid var(--line);
 }
 
+.mobile-rail-hint {
+  display: none;
+}
+
 .lightbox {
   position: fixed;
   inset: 0;
@@ -806,10 +819,12 @@ pre {
 
 .docs-content {
   display: grid;
+  min-width: 0;
   gap: 28px;
 }
 
 .doc-section {
+  min-width: 0;
   padding: clamp(22px, 4vw, 34px);
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid var(--line);
@@ -962,32 +977,154 @@ pre {
 }
 
 @media (max-width: 680px) {
+  html {
+    scroll-padding-top: 72px;
+  }
+
+  body.mobile-menu-open {
+    overflow: hidden;
+  }
+
   .site-header {
-    padding: 12px 16px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    min-height: 64px;
+    padding: 10px 16px;
+  }
+
+  .brand {
+    min-width: 0;
+    font-size: 0.94rem;
+  }
+
+  .brand-mark {
+    width: 38px;
+    height: 32px;
+    flex: 0 0 auto;
+  }
+
+  .brand > span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .site-menu-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 82px;
+    min-height: 44px;
+    padding: 0 12px;
+    color: #fff;
+    background: var(--dark);
+    border: 1px solid var(--dark);
+    border-radius: 6px;
+    font: 800 0.82rem/1 "Trebuchet MS", "Aptos", "Segoe UI", sans-serif;
+    cursor: pointer;
+  }
+
+  .site-menu-toggle:hover,
+  .site-menu-toggle:focus-visible {
+    background: #243145;
+    border-color: #243145;
+    outline: 3px solid rgba(16, 167, 184, 0.3);
+    outline-offset: 2px;
+  }
+
+  .menu-glyph {
+    display: grid;
+    gap: 3px;
+    width: 15px;
+  }
+
+  .menu-glyph span {
+    display: block;
+    width: 100%;
+    height: 2px;
+    background: currentColor;
+    border-radius: 999px;
+    transition: transform 160ms ease, opacity 160ms ease;
+  }
+
+  .site-menu-toggle[aria-expanded="true"] .menu-glyph span:nth-child(1) {
+    transform: translateY(5px) rotate(45deg);
+  }
+
+  .site-menu-toggle[aria-expanded="true"] .menu-glyph span:nth-child(2) {
+    opacity: 0;
+  }
+
+  .site-menu-toggle[aria-expanded="true"] .menu-glyph span:nth-child(3) {
+    transform: translateY(-5px) rotate(-45deg);
   }
 
   .site-nav {
-    margin-top: 12px;
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 12px;
+    right: 12px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    max-height: calc(100dvh - 88px);
+    margin: 0;
+    padding: 10px;
+    overflow-y: auto;
+    background: rgba(255, 250, 240, 0.98);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: 0 22px 55px rgba(15, 23, 42, 0.2);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-8px) scale(0.985);
+    transform-origin: top right;
+    transition: opacity 160ms ease, transform 160ms ease, visibility 160ms ease;
+  }
+
+  .site-nav[data-open="true"] {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+  }
+
+  .site-nav a {
+    display: flex;
+    align-items: center;
+    min-height: 48px;
+    padding: 0 12px;
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid rgba(216, 224, 234, 0.9);
   }
 
   .section,
   .section-band {
-    padding: 58px 0;
+    padding: 48px 0;
+  }
+
+  [id] {
+    scroll-margin-top: 72px;
   }
 
   .hero {
     overflow: hidden;
+    padding-top: 38px;
+    padding-bottom: 42px;
   }
 
   .hero-copy,
   .hero-media {
-    max-width: min(100%, 360px);
+    max-width: 100%;
   }
 
   .hero h1 {
     max-width: 100%;
-    font-size: 3.1rem;
-    line-height: 1.08;
+    font-size: clamp(2.75rem, 14vw, 3.25rem);
+    line-height: 1;
     overflow-wrap: anywhere;
   }
 
@@ -1005,10 +1142,90 @@ pre {
     min-width: 0;
   }
 
-  .metrics,
+  .hero-actions,
+  .demo-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .hero-actions .button,
+  .demo-actions .button,
+  .code-stack > .button,
+  .docs-cta .button {
+    width: 100%;
+    min-height: 50px;
+  }
+
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: -18px;
+  }
+
+  .metrics div {
+    min-width: 0;
+    padding: 17px;
+  }
+
+  .metrics strong {
+    font-size: 2rem;
+  }
+
+  .metrics span {
+    font-size: 0.8rem;
+    line-height: 1.35;
+  }
+
+  .mobile-rail-hint {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: -18px 0 14px;
+    color: var(--muted);
+    font-family: "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+    font-size: 0.74rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .mobile-rail-hint span {
+    color: var(--red);
+    font-size: 1.2rem;
+  }
+
   .feature-grid,
   .proof-grid,
-  .sample-list,
+  .samples > .sample-list {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: min(82vw, 310px);
+    gap: 12px;
+    margin-inline: -16px;
+    padding: 0 16px 14px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-padding-inline: 16px;
+    scroll-snap-type: inline mandatory;
+    scrollbar-width: thin;
+  }
+
+  .feature-grid > *,
+  .proof-grid > *,
+  .samples > .sample-list > * {
+    scroll-snap-align: start;
+  }
+
+  .feature-tile {
+    min-height: 238px;
+  }
+
+  .proof-grid figure {
+    min-width: 0;
+  }
+
+  .sample-list a {
+    min-height: 132px;
+  }
+
   .fact-list,
   .doc-grid,
   .endpoint-groups,
@@ -1019,6 +1236,60 @@ pre {
   .download-card,
   .release-gate {
     grid-template-columns: 1fr;
+  }
+
+  .download-card {
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .platform-mark {
+    width: 44px;
+    height: 44px;
+  }
+
+  .download-card .button {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-height: 48px;
+  }
+
+  .release-gate {
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .release-gate a {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(85, 62, 5, 0.2);
+  }
+
+  .section-heading {
+    margin-bottom: 26px;
+  }
+
+  .section-heading h2,
+  .docs-cta h2 {
+    font-size: clamp(2rem, 10vw, 2.6rem);
+    line-height: 1.06;
+  }
+
+  .section-heading p:not(.eyebrow),
+  .docs-cta p {
+    font-size: 0.98rem;
+    line-height: 1.6;
+  }
+
+  .demo-guide {
+    padding: 24px 18px;
+  }
+
+  .demo-guide ol {
+    gap: 14px;
   }
 
   .workflow-list li {
@@ -1040,11 +1311,92 @@ pre {
     columns: 1;
   }
 
+  .docs-layout {
+    width: min(100% - 24px, 1180px);
+    padding: 24px 0 48px;
+  }
+
+  .docs-content,
+  .doc-section,
+  .doc-grid,
+  .endpoint-groups,
+  .fact-list,
+  .tool-table,
+  .code-card {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .doc-section h1,
+  .doc-section h2,
+  .doc-section h3,
+  .doc-section p,
+  .doc-section li,
+  .doc-section dd,
+  .doc-section a {
+    overflow-wrap: anywhere;
+  }
+
+  .docs-sidebar {
+    padding: 12px;
+    margin-bottom: 18px;
+  }
+
+  .docs-sidebar nav {
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    gap: 4px;
+    padding-bottom: 6px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+  }
+
+  .docs-sidebar a {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .doc-section {
+    padding: 19px;
+  }
+
+  .doc-section h1 {
+    font-size: clamp(2rem, 10vw, 2.65rem);
+    line-height: 1.02;
+    overflow-wrap: normal;
+  }
+
   .site-footer {
     display: grid;
+    width: min(100% - 32px, 1180px);
+    padding-bottom: max(36px, env(safe-area-inset-bottom));
   }
 
   .lightbox {
     padding: 14px;
+  }
+}
+
+@media (max-width: 350px) {
+  .brand > span:last-child {
+    max-width: 118px;
+  }
+
+  .site-menu-toggle {
+    min-width: 72px;
+    padding-inline: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .menu-glyph span,
+  .site-nav {
+    transition: none;
   }
 }

@@ -41,6 +41,10 @@ Linux x64. It is a GitHub pre-release and does not replace stable `v2.1.0`.
 
 ### Fixed
 
+- Rebuilt the GitHub Pages mobile experience with a compact accessible menu,
+  full-width touch actions, 2×2 proof metrics, condensed download cards,
+  swipeable feature/screenshot/sample rails, cache-busted assets, visible
+  anchor targets, and overflow-safe Docs and Trust Lab layouts.
 - Made `Escape` close the command palette even during its first focus-transfer
   frame, preventing the overlay from trapping immediate keyboard-to-mobile
   navigation; the 320 px E2E now waits for explicit dialog teardown.

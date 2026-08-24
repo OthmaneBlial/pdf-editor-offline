@@ -1,5 +1,29 @@
 const copyButtons = document.querySelectorAll("[data-copy-target]");
 
+const menuToggle = document.querySelector("[data-menu-toggle]");
+const siteNavigation = document.querySelector("[data-site-nav]");
+const mobileNavigation = window.matchMedia("(max-width: 680px)");
+
+function setMenuOpen(open, { restoreFocus = false } = {}) {
+  if (!menuToggle || !siteNavigation) return;
+  const nextOpen = Boolean(open && mobileNavigation.matches);
+  menuToggle.setAttribute("aria-expanded", String(nextOpen));
+  siteNavigation.dataset.open = String(nextOpen);
+  document.body.classList.toggle("mobile-menu-open", nextOpen);
+  if (restoreFocus) menuToggle.focus();
+}
+
+menuToggle?.addEventListener("click", () => {
+  setMenuOpen(menuToggle.getAttribute("aria-expanded") !== "true");
+});
+
+siteNavigation?.querySelectorAll("a").forEach((link) => {
+  link.addEventListener("click", () => setMenuOpen(false));
+});
+
+mobileNavigation.addEventListener("change", () => setMenuOpen(false));
+setMenuOpen(false);
+
 const productDemo = document.querySelector("[data-product-demo]");
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 if (productDemo && !reducedMotion.matches) {
@@ -56,7 +80,29 @@ lightbox?.addEventListener("click", (event) => {
   if (event.target === lightbox) hideLightbox();
 });
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") hideLightbox();
+  if (event.key === "Escape") {
+    hideLightbox();
+    if (menuToggle?.getAttribute("aria-expanded") === "true") {
+      setMenuOpen(false, { restoreFocus: true });
+    }
+  }
+});
+
+document.addEventListener("click", (event) => {
+  if (menuToggle?.getAttribute("aria-expanded") !== "true") return;
+  if (event.target instanceof Element && event.target.closest(".site-header")) return;
+  setMenuOpen(false);
+});
+
+document.querySelectorAll(".mobile-rail").forEach((rail) => {
+  rail.addEventListener("keydown", (event) => {
+    if (!mobileNavigation.matches || !["ArrowLeft", "ArrowRight"].includes(event.key)) return;
+    event.preventDefault();
+    rail.scrollBy({
+      left: event.key === "ArrowRight" ? rail.clientWidth * 0.82 : rail.clientWidth * -0.82,
+      behavior: reducedMotion.matches ? "auto" : "smooth",
+    });
+  });
 });
 
 const filterInput = document.getElementById("doc-filter");

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>PDF Editor Offline</title>
     <meta name="description" content="Redact sensitive text locally and get content-free evidence that it is actually gone.">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=20260824-mobile-4">
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -14,7 +14,11 @@
         <span class="brand-mark">PDF</span>
         <span>PDF Editor Offline</span>
       </a>
-      <nav class="site-nav" aria-label="Primary navigation">
+      <button class="site-menu-toggle" type="button" aria-controls="site-navigation" aria-expanded="false" data-menu-toggle>
+        <span class="menu-glyph" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span>Menu</span>
+      </button>
+      <nav id="site-navigation" class="site-nav" aria-label="Primary navigation" data-site-nav>
         <a href="#features">Features</a>
         <a href="#demo">Demo</a>
         <a href="#proof">Proof</a>
@@ -126,7 +130,8 @@
             The public surface is split into web workflows, API endpoints, CLI commands, and reusable Python core modules.
           </p>
         </div>
-        <div class="feature-grid">
+        <p class="mobile-rail-hint" aria-hidden="true">Swipe to explore <span>→</span></p>
+        <div class="feature-grid mobile-rail" tabindex="0" aria-label="Product capabilities; scroll horizontally on small screens">
           <article class="feature-tile">
             <span>01</span>
             <h3>Edit and annotate</h3>
@@ -237,7 +242,8 @@
             These images were captured after real API-backed operations using the sample PDFs included in this repository.
           </p>
         </div>
-        <div class="proof-grid">
+        <p class="mobile-rail-hint" aria-hidden="true">Swipe through real screens <span>→</span></p>
+        <div class="proof-grid mobile-rail" tabindex="0" aria-label="Product screenshots; scroll horizontally on small screens">
           <figure>
             <button class="image-button" type="button" data-full="assets/screenshots/01-editor-workspace.png">
               <img src="assets/screenshots/01-editor-workspace.png" alt="Editor workspace with demo PDF loaded">
@@ -321,7 +327,8 @@ pdf-editor-offline add image input.pdf stamp.png 0 100 120 180 80 --output stamp
           <p class="eyebrow">Local fixtures</p>
           <h2>Sample PDFs included for demos and smoke tests</h2>
         </div>
-        <div class="sample-list">
+        <p class="mobile-rail-hint" aria-hidden="true">Swipe through safe samples <span>→</span></p>
+        <div class="sample-list mobile-rail" tabindex="0" aria-label="Sample PDFs; scroll horizontally on small screens">
           <a href="assets/samples/demo-basic.pdf">
             <strong>demo-basic.pdf</strong>
             <span>General editing, annotations, export, and conversion.</span>
@@ -357,6 +364,6 @@ pdf-editor-offline add image input.pdf stamp.png 0 100 120 180 80 --output stamp
       <span>MIT License</span>
       <a href="https://github.com/OthmaneBlial/pdf-editor-offline">Repository</a>
     </footer>
-    <script src="app.js"></script>
+    <script src="app.js?v=20260824-mobile-4"></script>
   </body>
 </html>
