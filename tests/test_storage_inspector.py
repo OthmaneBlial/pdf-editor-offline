@@ -43,6 +43,8 @@ def test_inventory_and_delete_all_cover_only_app_owned_data(tmp_path, monkeypatc
     storage_two.write_bytes(b"second")
     Path(f"{storage_one}.redaction-report.json").write_text("{}")
     Path(f"{storage_one}.privacy-report.md").write_text("report")
+    ocr_index = Path(f"{storage_one}.ocr-layer.json")
+    ocr_index.write_bytes(b"ocr-text")
 
     temp_dir = tmp_path / "temp"
     temp_dir.mkdir()
@@ -78,6 +80,8 @@ def test_inventory_and_delete_all_cover_only_app_owned_data(tmp_path, monkeypatc
         "session_bytes": 9,
         "report_files": 2,
         "report_bytes": 8,
+        "ocr_index_files": 1,
+        "ocr_index_bytes": 8,
         "recovery_files": 0,
         "recovery_bytes": 0,
         "draft_files": 2,
@@ -93,6 +97,7 @@ def test_inventory_and_delete_all_cover_only_app_owned_data(tmp_path, monkeypatc
     assert fake_store.list_all() == []
     assert not storage_one.exists()
     assert not storage_two.exists()
+    assert not ocr_index.exists()
     assert not draft.exists()
     assert not recovery.exists()
     assert not generated.exists()
@@ -109,6 +114,8 @@ def test_storage_routes_return_content_free_inventory_and_explicit_delete(
         "session_bytes": 1200,
         "report_files": 2,
         "report_bytes": 400,
+        "ocr_index_files": 1,
+        "ocr_index_bytes": 800,
         "recovery_files": 1,
         "recovery_bytes": 300,
         "draft_files": 1,

@@ -7,6 +7,7 @@ frontend/ (React + PDF.js + Fabric)
 api/ (FastAPI sessions, validation, capability discovery)
           │
           ├── pdf_editor_offline/ (PyMuPDF editing, conversion, CLI)
+          ├── bounded OCR workers (local Tesseract, two concurrent jobs)
           ├── local session/temp storage
           └── optional local tools (LibreOffice, Tesseract, Ghostscript)
 
@@ -36,6 +37,21 @@ desktop/ (Tauri)
 - Destructive operations save or export a copy unless the user explicitly chooses otherwise.
 - Errors never expose absolute paths or document-derived secrets.
 - Version numbers across Python, React, Tauri, Docker, and release metadata remain synchronized.
+
+## OCR data flow
+
+OCR jobs take an app-owned snapshot of the source session, then process one page
+at a time with a fixed-argument local Tesseract subprocess. Rendered page images
+are temporary and deleted after each page. The successful result is imported as
+a new session, so the original session and its visual scan are never overwritten.
+
+The searchable copy adds an invisible, removable optional-content layer. Its
+content-bearing local sidecar stores recognized words, confidence, bounding
+boxes, and stream references needed for inspection and correction. Search terms
+travel in authenticated request bodies rather than URL query strings. Runtime
+health and job records expose counts and status only; deleting the result session
+also deletes the OCR sidecar. See [OCR & Search](OCR_SEARCH.md) for the complete
+workflow, bounds, and API contract.
 
 ## Adding a feature
 

@@ -247,10 +247,10 @@ Time ranges are planning estimates for a small maintainer team, not release prom
 
 #### OCR & Search
 
-- [ ] Add page range, language, progress, cancel, retry, and background job controls.
-- [ ] Preserve the source scan and make the OCR layer inspectable, correctable, and removable.
-- [ ] Add deskew/rotation, confidence display, and multilingual packs without hidden downloads.
-- [ ] Benchmark 100-, 500-, and 1,000-page documents on modest hardware with memory/time budgets.
+- [x] Add page range, language, progress, cancel, retry, and background job controls. Evidence: [bounded two-worker jobs](api/ocr_jobs.py), [copy-first API](api/routes/ocr.py), and [primary workflow UI](frontend/src/components/workflows/OCRSearchWorkflow.tsx).
+- [x] Preserve the source scan and make the OCR layer inspectable, correctable, and removable. Evidence: [source-preserving optional-content layer engine](pdf_editor_offline/core/ocr.py) and [render/source/API regressions](tests/test_ocr_workflow.py).
+- [x] Add deskew/rotation, confidence display, and multilingual packs without hidden downloads. Evidence: [installed-pack-only contract](docs/OCR_SEARCH.md), local orientation/deskew engine, and [interaction tests](frontend/tests/OCRSearchWorkflow.spec.tsx).
+- [x] Benchmark 100-, 500-, and 1,000-page documents on modest hardware with memory/time budgets. Evidence: [2 CPU / 4 GiB methodology and passing results](docs/OCR_BENCHMARKS.md), [machine-readable report](docs/benchmarks/ocr-2026-08-24.json), and [reproducible real-Tesseract runner](scripts/benchmark_ocr.py).
 
 #### Coherent UX
 

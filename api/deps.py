@@ -106,9 +106,17 @@ def privacy_report_paths(storage_path: str) -> tuple[str, str]:
     )
 
 
+def ocr_layer_path(storage_path: str) -> str:
+    return f"{storage_path}.ocr-layer.json"
+
+
 def session_sidecar_paths(storage_path: str) -> tuple[str, ...]:
-    """Return every app-owned, content-free report associated with a PDF."""
-    return (*redaction_report_paths(storage_path), *privacy_report_paths(storage_path))
+    """Return every app-owned report or workflow sidecar associated with a PDF."""
+    return (
+        *redaction_report_paths(storage_path),
+        *privacy_report_paths(storage_path),
+        ocr_layer_path(storage_path),
+    )
 
 
 def _remove_session_files(storage_path: str) -> None:
@@ -534,6 +542,8 @@ def get_local_storage_inventory() -> Dict[str, int]:
     session_bytes = 0
     report_files = 0
     report_bytes = 0
+    ocr_index_files = 0
+    ocr_index_bytes = 0
     recovery_files = 0
     recovery_bytes = 0
     for record in records:
@@ -545,12 +555,21 @@ def get_local_storage_inventory() -> Dict[str, int]:
                 recovery_bytes += size
         except OSError:
             pass
-        for sidecar in session_sidecar_paths(record.storage_path):
+        report_sidecars = (
+            *redaction_report_paths(record.storage_path),
+            *privacy_report_paths(record.storage_path),
+        )
+        for sidecar in report_sidecars:
             try:
                 report_bytes += os.path.getsize(sidecar)
                 report_files += 1
             except OSError:
                 pass
+        try:
+            ocr_index_bytes += os.path.getsize(ocr_layer_path(record.storage_path))
+            ocr_index_files += 1
+        except OSError:
+            pass
 
     temporary_files = 0
     temporary_bytes = 0
@@ -581,6 +600,8 @@ def get_local_storage_inventory() -> Dict[str, int]:
         "session_bytes": session_bytes,
         "report_files": report_files,
         "report_bytes": report_bytes,
+        "ocr_index_files": ocr_index_files,
+        "ocr_index_bytes": ocr_index_bytes,
         "recovery_files": recovery_files,
         "recovery_bytes": recovery_bytes,
         "draft_files": draft_files,

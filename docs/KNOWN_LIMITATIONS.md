@@ -7,7 +7,7 @@
 - Visual signatures are locally stored images, not certificate-backed digital signatures or identity proof.
 - Certificate signing uses a request-only P12/PFX and creates a separate signed copy, but does not obtain a trusted timestamp, query OCSP/CRL services, establish legal authority, or support hardware tokens. Offline validation trusts only a PEM/DER root supplied explicitly for that request.
 - Local comments in the sidebar are not collaborative and are not embedded in exported PDFs.
-- OCR requires local Tesseract and language data. The current endpoint does not yet provide background progress, cancellation, or correction.
+- OCR & Search requires local Tesseract and explicitly installed language data. Confidence is not correctness; handwriting, vertical text, complex reading order, damaged scans, and mixed scripts require manual review. Orientation/deskew change recognition coordinates only and do not visually repair the scan. The committed scale benchmark uses a repeatable synthetic English scan, not every real-world layout.
 - Office-to-PDF requires LibreOffice. Relevant PDF/A, repair, and compression operations may require Ghostscript.
 - Conversion to editable Office formats is best effort and may change layout, fonts, tables, and reading order.
 - Resize changes page geometry and does not reflow arbitrary page content.

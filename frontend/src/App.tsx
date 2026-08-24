@@ -22,11 +22,12 @@ import RedactProveWorkflow from './components/workflows/RedactProveWorkflow';
 import SanitizeShareWorkflow from './components/workflows/SanitizeShareWorkflow';
 import OrganizePagesWorkflow from './components/workflows/OrganizePagesWorkflow';
 import FillSignWorkflow from './components/workflows/FillSignWorkflow';
+import OCRSearchWorkflow from './components/workflows/OCRSearchWorkflow';
 import './App.css';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useEditor } from './contexts/EditorContext';
 
-export type ViewMode = 'editor' | 'redact' | 'fill-sign' | 'sanitize' | 'manipulation' | 'conversion' | 'security' | 'advanced' | 'batch' | 'text' | 'navigation' | 'annotations' | 'images';
+export type ViewMode = 'editor' | 'redact' | 'fill-sign' | 'sanitize' | 'ocr' | 'manipulation' | 'conversion' | 'security' | 'advanced' | 'batch' | 'text' | 'navigation' | 'annotations' | 'images';
 
 // Advanced Editing tools that need tabbed interface
 const ADVANCED_EDITING_TOOLS: ViewMode[] = ['text', 'navigation', 'annotations', 'images'];
@@ -35,6 +36,7 @@ const VIEW_LABELS: Record<ViewMode, string> = {
   redact: 'Redact & Prove',
   'fill-sign': 'Fill & Sign',
   sanitize: 'Sanitize & Share',
+  ocr: 'OCR & Search',
   manipulation: 'Organize Pages',
   conversion: 'Conversion',
   security: 'Security',
@@ -142,6 +144,8 @@ function AppContent() {
           return <FillSignWorkflow />;
         case 'sanitize':
           return <SanitizeShareWorkflow />;
+        case 'ocr':
+          return <OCRSearchWorkflow />;
         case 'manipulation':
           return <OrganizePagesWorkflow />;
         case 'conversion':
@@ -252,13 +256,13 @@ function AppContent() {
       />
 
       {/* Main Content */}
-      <main className="flex-1 min-w-0 relative flex flex-col overflow-hidden">
+      <main className="flex-1 min-h-0 min-w-0 relative flex flex-col overflow-clip">
         <Header
           onToggleSidebar={() => setIsMobileSidebarOpen(prev => !prev)}
           isSidebarOpen={isMobileSidebarOpen}
           activeViewLabel={VIEW_LABELS[activeView]}
         />
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 min-h-0 overflow-auto">
           {renderContent()}
         </div>
       </main>

@@ -1,10 +1,12 @@
 import ipaddress
+import shutil
 import socket
 
 import fitz
 
 from api.routes import documents as document_routes
 from pdf_editor_offline.core.redaction_verifier import RedactionVerifier
+from pdf_editor_offline.core.ocr import OCRConfig, create_searchable_ocr_copy
 
 
 TARGET = "NO_EGRESS_SECRET_6024"
@@ -138,4 +140,20 @@ def test_redact_and_sanitize_workflows_make_no_external_network_calls(
     assert api_client.get(
         f"/api/documents/{copy_id}/sanitize-report/json"
     ).status_code == 200
+    if shutil.which("tesseract"):
+        searchable = tmp_path / "no-egress-searchable.pdf"
+        manifest = create_searchable_ocr_copy(
+            source,
+            searchable,
+            OCRConfig(
+                pages=(0,),
+                languages=("eng",),
+                dpi=120,
+                auto_rotate=False,
+                deskew=False,
+            ),
+            temporary_dir=tmp_path,
+        )
+        assert manifest["source_preserved"] is True
+        assert searchable.is_file()
     assert attempts == []

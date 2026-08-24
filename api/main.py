@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from api.deps import cleanup_all_sessions, cleanup_stale_sessions
+from api.ocr_jobs import shutdown_ocr_jobs
 from api.capabilities import get_runtime_capabilities
 from api.security import sanitize_error_detail
 from pdf_editor_offline import __version__ as package_version
@@ -29,6 +30,7 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown
     logger.info("Shutting down PDF Editor Offline API...")
+    shutdown_ocr_jobs()
     cleanup_all_sessions()
 
 
@@ -124,10 +126,11 @@ app.add_middleware(
 )
 
 # Import routes after app is created to avoid circular imports
-from api.routes import documents, sanitization, tools
+from api.routes import documents, ocr, sanitization, tools
 
 # Register routes
 app.include_router(documents.router)
+app.include_router(ocr.router)
 app.include_router(sanitization.router)
 app.include_router(tools.router)
 

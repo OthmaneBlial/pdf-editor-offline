@@ -33,7 +33,7 @@ This matrix is the public contract for PDF Editor Offline 2.1.0. A feature is no
 | Sanitize & Share profiles | Beta | Content-free preview and audit engine; maximum sanitization intentionally rasterizes pages and removes search/accessibility. |
 | Local autosave and recovery | Beta | Atomic backend checkpoints, five-second canvas autosave, first-page preview, copy-first restore, and two-step deletion; memory before the first completed checkpoint cannot be recovered. |
 | Redact & Prove | Beta | Guarded copy-first UI and local API; content-free reports; independent extraction/render/OCR verification. Requires local Tesseract for a green verified state. |
-| OCR | Beta, external dependency | Requires Tesseract and installed language data. Progress/cancel and correction UI remain planned. |
+| OCR & Search | Beta, external dependency | Source-preserving searchable copy with page range, installed multilingual packs, progress/cancel/retry, confidence review, search, corrections, and removable text streams. Requires local Tesseract; complex layout accuracy remains review-required. |
 | Office-to-PDF | External dependency | Requires LibreOffice. Complex layout fidelity is best effort. |
 | PDF/A, repair, advanced compression | External dependency | Requires Ghostscript for relevant operations. |
 | PDF-to-Office conversions | Beta | Layout, tables, fonts, and reading order can differ. Never treat a round-trip as native editing. |

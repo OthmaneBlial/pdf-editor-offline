@@ -433,43 +433,31 @@ class PDFConverter:
 
     def ocr_pdf(self, pdf_path: str, output_path: str, language: str = "eng"):
         """
-        OCR PDF using pytesseract (Tesseract).
+        Create a source-preserving searchable copy with the shared OCR engine.
+
+        This compatibility entry point remains synchronous, but it no longer
+        raster-replaces pages or silently falls back after recognition errors.
         """
-        import io
-
         import fitz
-        import pytesseract
-        from PIL import Image
 
-        _require_dependency("tesseract", "Tesseract OCR")
+        from .ocr import OCRConfig, create_searchable_ocr_copy
 
-        doc = fitz.open(pdf_path)
-        out_doc = fitz.open()
-
-        for page in doc:
-            # Get image from page
-            pix = page.get_pixmap()
-            img_data = pix.tobytes("png")
-            img = Image.open(io.BytesIO(img_data))
-
-            # OCR to PDF
-            try:
-                pdf_bytes = pytesseract.image_to_pdf_or_hocr(
-                    img, extension="pdf", lang=language
-                )
-                img_pdf = fitz.open("pdf", pdf_bytes)
-                out_doc.insert_pdf(img_pdf)
-                img_pdf.close()
-            except Exception as e:
-                print(f"OCR failed for page: {e}")
-                # Fallback: just insert original page (as image or original)
-                # If we insert original page, it might not be searchable if it was image-only.
-                # But better than failing.
-                out_doc.insert_pdf(doc, from_page=page.number, to_page=page.number)
-
-        out_doc.save(output_path)
-        out_doc.close()
-        doc.close()
+        with fitz.open(pdf_path) as document:
+            pages = tuple(range(document.page_count))
+        languages = tuple(part.strip() for part in language.split("+") if part.strip())
+        create_searchable_ocr_copy(
+            pdf_path,
+            output_path,
+            OCRConfig(
+                pages=pages,
+                languages=languages,
+                # The legacy method has no orientation option and historically
+                # required only the selected recognition pack. Keep that
+                # contract; the primary OCR workflow exposes explicit OSD.
+                auto_rotate=False,
+                deskew=True,
+            ),
+        )
 
     def pdf_to_markdown(self, pdf_path: str, output_path: str):
         """

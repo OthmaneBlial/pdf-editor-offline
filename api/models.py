@@ -118,6 +118,30 @@ class FillFormRequest(BaseModel):
     fields: List[FormFieldUpdate]
 
 
+class OCRJobRequest(BaseModel):
+    page_range: str = Field(default="all", min_length=1, max_length=500)
+    languages: List[str] = Field(
+        default_factory=lambda: ["eng"], min_length=1, max_length=8
+    )
+    dpi: int = Field(default=180, ge=100, le=300)
+    auto_rotate: bool = True
+    deskew: bool = True
+    minimum_confidence: float = Field(default=0, ge=0, le=100)
+
+
+class OCRWordCorrection(BaseModel):
+    id: str = Field(min_length=1, max_length=80)
+    text: str = Field(max_length=512)
+
+
+class OCRCorrectionRequest(BaseModel):
+    corrections: List[OCRWordCorrection] = Field(min_length=1, max_length=500)
+
+
+class OCRSearchRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=128)
+
+
 class DuplicatePageRequest(BaseModel):
     page_num: int  # 0-indexed page to duplicate
     insert_at: Optional[int] = None  # Position to insert (default: after original)

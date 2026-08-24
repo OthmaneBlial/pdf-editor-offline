@@ -42,6 +42,7 @@ keywords = [
 ]
 dependencies = [
     "PyMuPDF",
+    "pymupdf-fonts==1.0.5",
     "Pillow",
     "typer",
     "fastapi",
@@ -54,6 +55,7 @@ dependencies = [
     "cryptography",
     "pyHanko==0.36.2",
     "pandas",
+    "numpy",
     "openpyxl",
     "pytesseract",
     "python-dotenv",

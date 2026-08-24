@@ -88,6 +88,8 @@ def run_pyinstaller() -> Path:
             "api",
             "--collect-submodules",
             "pdf_editor_offline",
+            "--collect-all",
+            "pymupdf_fonts",
             "--collect-submodules",
             "fastapi",
             "--collect-submodules",

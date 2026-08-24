@@ -60,6 +60,15 @@ describe('Sidebar Component', () => {
     expect(props.onViewChange).toHaveBeenCalledWith('manipulation');
   });
 
+  it('exposes OCR & Search as a primary workflow', () => {
+    const props = createProps();
+    render(<Sidebar {...props} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /OCR & Search/i }));
+
+    expect(props.onViewChange).toHaveBeenCalledWith('ocr');
+  });
+
   it('reveals tool content when Tools section is expanded', () => {
     const props = createProps();
     render(<Sidebar {...props} />);

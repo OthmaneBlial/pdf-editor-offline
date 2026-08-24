@@ -36,6 +36,8 @@ The desktop and `start.sh` modes are same-device boundaries. Docker is not same-
 | Signature confusion | Visual Signature and Certificate lab are visually/API-separated; validation reports integrity, changes, explicit trust, and offline revocation independently | UI/API tests prove image assets never enter certificate requests and trust stays false without an explicit root. |
 | Private-key disclosure | P12/PFX is bounded, request-only, removed in `finally`; passphrase is never logged/persisted and is cleared in the UI | Success, wrong-passphrase, and temp-cleanup tests leave no certificate/signed temp output. |
 | False certificate trust | No OS/TLS root discovery, network fetching, timestamp, or inferred revocation result | A valid signature is untrusted without a supplied root; explicit-root and no-egress tests cover both branches. |
+| OCR content disclosure | Recognized text stays in a session-bound local sidecar; content-free inventory exposes counts/bytes only; rendered pages and snapshots are removed | No-egress workflow, sidecar/session deletion, safe-error, cancellation, and storage-inventory tests. |
+| OCR resource exhaustion | Bounded two-worker executor, 100–300 DPI, per-page timeout, one-page temp lifecycle, fixed range/parser limits | Cancellation/retry tests and published 100/500/1,000-page time/RSS budgets. |
 | Dependency vulnerability | Lockfiles, dependency review, Dependabot, audit gates | Applicable high/critical findings block release or have a public mitigation. |
 
 ## Out of scope

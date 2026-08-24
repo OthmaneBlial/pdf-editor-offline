@@ -1,0 +1,88 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-08-24T01:29:08.899947+00:00",
+  "engine": "real-tesseract-tsv",
+  "fixture": "repeatable-900x900-grayscale-scan",
+  "configuration": {
+    "language": "eng",
+    "dpi": 100,
+    "auto_rotate": false,
+    "deskew": false,
+    "jobs": 1
+  },
+  "hardware": {
+    "platform": "Linux-6.12.76-linuxkit-aarch64-with-glibc2.41",
+    "machine": "aarch64",
+    "python": "3.12.14",
+    "logical_cpus_visible": 8,
+    "physical_memory_bytes": 8321798144,
+    "cpu_quota": 2.0,
+    "memory_limit_bytes": 4294967296,
+    "address_space_limit_bytes": null,
+    "profile": "modest-2cpu-4gib",
+    "execution_policy": "docker-cgroup"
+  },
+  "results": [
+    {
+      "pages": 100,
+      "wall_seconds": 37.045,
+      "pages_per_second": 2.699,
+      "peak_process_rss_bytes": 110264320,
+      "peak_tesseract_child_rss_bytes": 110264320,
+      "conservative_peak_rss_bytes": 220528640,
+      "source_bytes": 51962,
+      "output_bytes": 2249521,
+      "word_count": 3500,
+      "average_confidence": 94.74,
+      "source_preserved": true,
+      "recognition_succeeded": true,
+      "budget": {
+        "wall_seconds": 120,
+        "peak_rss_mib": 768
+      },
+      "within_time_budget": true,
+      "within_memory_budget": true
+    },
+    {
+      "pages": 500,
+      "wall_seconds": 181.325,
+      "pages_per_second": 2.757,
+      "peak_process_rss_bytes": 119959552,
+      "peak_tesseract_child_rss_bytes": 119959552,
+      "conservative_peak_rss_bytes": 239919104,
+      "source_bytes": 157979,
+      "output_bytes": 2771766,
+      "word_count": 17500,
+      "average_confidence": 94.74,
+      "source_preserved": true,
+      "recognition_succeeded": true,
+      "budget": {
+        "wall_seconds": 600,
+        "peak_rss_mib": 1024
+      },
+      "within_time_budget": true,
+      "within_memory_budget": true
+    },
+    {
+      "pages": 1000,
+      "wall_seconds": 478.799,
+      "pages_per_second": 2.089,
+      "peak_process_rss_bytes": 137039872,
+      "peak_tesseract_child_rss_bytes": 137039872,
+      "conservative_peak_rss_bytes": 274079744,
+      "source_bytes": 292480,
+      "output_bytes": 3426267,
+      "word_count": 35000,
+      "average_confidence": 94.74,
+      "source_preserved": true,
+      "recognition_succeeded": true,
+      "budget": {
+        "wall_seconds": 1200,
+        "peak_rss_mib": 1280
+      },
+      "within_time_budget": true,
+      "within_memory_budget": true
+    }
+  ],
+  "passed": true
+}

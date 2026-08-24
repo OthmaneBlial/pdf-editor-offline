@@ -12,6 +12,14 @@ Dependency findings are release gates, not an aggregate score.
 
 Certificate-backed PDF signing pins `pyHanko==0.36.2`. Its transitive ASN.1 and certificate-validation parsers are covered by the clean-environment `pip-audit` release gate; any high/critical advisory or signing/validation behavior change blocks release until reviewed.
 
+OCR invokes the locally installed Tesseract executable through a fixed argument
+array with no shell interpolation. `pymupdf-fonts==1.0.5` supplies the bundled
+FiraGO/CJK fonts used by removable Unicode text streams, and direct NumPy usage
+implements bounded projection-based deskew analysis. Their installed Python
+graphs are covered by the same clean-environment `pip-audit` gate. Tesseract and
+language-pack versions are user-visible capability facts, not silently updated
+application dependencies.
+
 As of the 2.1.0 foundation work, the locked frontend and Python trees report no
 known vulnerabilities, and `cargo audit` reports no vulnerability-class
 findings. Informational RustSec warnings that cannot yet be removed from the

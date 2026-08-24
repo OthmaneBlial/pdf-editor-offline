@@ -45,6 +45,8 @@ interface StorageInventory {
   session_bytes: number;
   report_files: number;
   report_bytes: number;
+  ocr_index_files: number;
+  ocr_index_bytes: number;
   recovery_files: number;
   recovery_bytes: number;
   draft_files: number;
@@ -154,6 +156,8 @@ export default function RuntimeHealthPanel() {
         session_bytes: 0,
         report_files: 0,
         report_bytes: 0,
+        ocr_index_files: 0,
+        ocr_index_bytes: 0,
         recovery_files: 0,
         recovery_bytes: 0,
         draft_files: 0,
@@ -163,7 +167,7 @@ export default function RuntimeHealthPanel() {
       });
       setRecentReferences(0);
       setDeleteConfirmed(false);
-      setStorageMessage('All app-owned documents, reports, drafts, temporary files, visual signature assets, and recent references were deleted.');
+      setStorageMessage('All app-owned documents, OCR indexes, reports, drafts, temporary files, visual signature assets, and recent references were deleted.');
       await loadCapabilities();
     } catch {
       setStorageMessage('Some local data could not be deleted. Review the inventory and retry.');
@@ -246,6 +250,7 @@ export default function RuntimeHealthPanel() {
                       <dl className="mt-4 space-y-2 border-t border-white/8 pt-3 text-[11px]">
                         <div className="flex justify-between gap-3"><dt className="text-slate-500">Session PDFs</dt><dd>{inventory.session_files} · {formatBytes(inventory.session_bytes)}</dd></div>
                         <div className="flex justify-between gap-3"><dt className="text-slate-500">Audit reports</dt><dd>{inventory.report_files} · {formatBytes(inventory.report_bytes)}</dd></div>
+                        <div className="flex justify-between gap-3"><dt className="text-slate-500">OCR text indexes</dt><dd>{inventory.ocr_index_files} · {formatBytes(inventory.ocr_index_bytes)}</dd></div>
                         <div className="flex justify-between gap-3"><dt className="text-slate-500">Recovery copies</dt><dd>{inventory.recovery_files} · {formatBytes(inventory.recovery_bytes)}</dd></div>
                         <div className="flex justify-between gap-3"><dt className="text-slate-500">Drafts / recovery</dt><dd>{inventory.draft_files} · {formatBytes(inventory.draft_bytes)}</dd></div>
                         <div className="flex justify-between gap-3"><dt className="text-slate-500">Temporary outputs</dt><dd>{inventory.temporary_files} · {formatBytes(inventory.temporary_bytes)}</dd></div>
@@ -253,7 +258,7 @@ export default function RuntimeHealthPanel() {
                       </dl>
                     )}
                     <button type="button" onClick={() => void cleanup()} disabled={cleaning} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs font-semibold transition hover:bg-white/10 disabled:opacity-50"><Trash2 className="h-4 w-4" /> {cleaning ? 'Cleaning…' : 'Clean stale local data'}</button>
-                    <label className="mt-3 flex items-start gap-2 rounded-xl border border-rose-300/10 bg-rose-300/5 p-3 text-[10px] leading-4 text-rose-100/70"><input type="checkbox" checked={deleteConfirmed} onChange={(event) => setDeleteConfirmed(event.target.checked)} className="mt-0.5 accent-rose-400" /><span>Close current documents and delete all app-owned sessions, reports, drafts, temporary files, visual signature assets, and recent references.</span></label>
+                    <label className="mt-3 flex items-start gap-2 rounded-xl border border-rose-300/10 bg-rose-300/5 p-3 text-[10px] leading-4 text-rose-100/70"><input type="checkbox" checked={deleteConfirmed} onChange={(event) => setDeleteConfirmed(event.target.checked)} className="mt-0.5 accent-rose-400" /><span>Close current documents and delete all app-owned sessions, OCR indexes, reports, drafts, temporary files, visual signature assets, and recent references.</span></label>
                     <button type="button" onClick={() => void deleteAllLocalData()} disabled={!deleteConfirmed || deleting} className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-rose-400/25 bg-rose-400/10 px-3 py-2.5 text-xs font-semibold text-rose-200 transition hover:bg-rose-400/20 disabled:cursor-not-allowed disabled:opacity-35"><Trash2 className="h-4 w-4" /> {deleting ? 'Deleting all local data…' : 'Delete all local workspace data'}</button>
                     {storageMessage && <p className="mt-3 text-[10px] leading-4 text-slate-400" role="status" aria-live="polite">{storageMessage}</p>}
                   </div>

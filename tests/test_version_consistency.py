@@ -82,6 +82,8 @@ def test_sidecar_build_is_native_pinned_and_uses_installed_resources():
     assert 'PYINSTALLER_VERSION = "6.22.2"' in build_script
     assert '"--onedir"' in build_script
     assert '"--contents-directory"' in build_script
+    assert '"--collect-all"' in build_script
+    assert '"pymupdf_fonts"' in build_script
     assert "requested {target}, current host is {host}" in build_script
     assert '.join("resources")' in rust_launcher
     assert '.join("sidecar")' in rust_launcher

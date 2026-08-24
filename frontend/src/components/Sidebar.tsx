@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   FileText, Scissors, RefreshCw, Shield, ShieldCheck, Zap, Wrench, History,
-  MessageSquare, Keyboard, ChevronRight, Layers, Sparkles,
+  MessageSquare, Keyboard, ChevronRight, Layers, Sparkles, ScanSearch,
   Type, Bookmark, PenTool, ImageIcon, X
 } from 'lucide-react';
 import FileUpload from './FileUpload';
@@ -26,6 +26,7 @@ const basicNavItems: NavItem[] = [
   { id: 'redact', label: 'Redact & Prove', icon: ShieldCheck },
   { id: 'fill-sign', label: 'Fill & Sign', icon: PenTool },
   { id: 'sanitize', label: 'Sanitize & Share', icon: Sparkles },
+  { id: 'ocr', label: 'OCR & Search', icon: ScanSearch },
   { id: 'manipulation', label: 'Organize Pages', icon: Scissors },
   { id: 'conversion', label: 'Conversion', icon: RefreshCw },
   { id: 'security', label: 'Security', icon: Shield },
