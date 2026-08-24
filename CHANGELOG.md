@@ -20,6 +20,9 @@ cohort gates pass.
 
 ### Fixed
 
+- Made `Escape` close the command palette even during its first focus-transfer
+  frame, preventing the overlay from trapping immediate keyboard-to-mobile
+  navigation; the 320 px E2E now waits for explicit dialog teardown.
 - Updated the browser smoke to exercise the explicit preflight, acknowledgement, and post-edit fidelity gates for experimental content replacement.
 - Made Intel macOS sidecar packaging use the same supported Homebrew OpenSSL ABI that builds `cryptography`, avoiding a mismatched PyInstaller `libssl` at launch without downgrading the security dependency.
 - Published measurable compatibility, bundle, OCR, forms, security, recovery, opt-in, and maintenance gates while preserving the fully offline loopback-only solo runtime.

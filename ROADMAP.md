@@ -174,7 +174,16 @@ Time ranges are planning estimates for a small maintainer team, not release prom
 
 #### Exit gate
 
-**Installer matrix evidence:** [Windows x64, macOS Apple Silicon/Intel, and Linux x64 clean-install smokes](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/32669341605) passed on 2026-08-24.
+**3.0 release-candidate evidence:** commit
+[`a1f4293`](https://github.com/OthmaneBlial/pdf-editor-offline/commit/a1f4293)
+passed the complete
+[Python/frontend/Rust/E2E/package/Docker/dependency CI](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/32687357784),
+[CodeQL](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/32687357866),
+and
+[Windows x64, macOS Apple Silicon/Intel, and Linux x64 clean-install matrix](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/32687357771)
+on 2026-08-24. The unsigned installer matrix is reproducibility evidence, not
+a substitute for the three deliberately unchecked production-signing and
+release-attachment gates above.
 
 - At least 8 of 10 fresh-machine testers install the correct artifact and finish `open sample → redact → verify → export → reopen` in under five minutes without maintainer help.
 - All release assets pass signature/checksum verification and clean-machine smoke tests.
