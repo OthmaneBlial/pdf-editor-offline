@@ -301,9 +301,9 @@ Time ranges are planning estimates for a small maintainer team, not release prom
 
 #### Architecture experiments
 
-- [ ] Write an RFC before attempting a pure browser/WASM edition; include engine compatibility, bundle size, OCR, forms, security, and maintenance costs.
-- [ ] Consider touch/pen-first tablet support only after the desktop workflows and crash recovery are reliable.
-- [ ] Keep optional LAN/folder collaboration separate and opt-in; solo workflows remain fully offline.
+- [x] Write an RFC before attempting a pure browser/WASM edition; include engine compatibility, bundle size, OCR, forms, security, and maintenance costs. Evidence: [RFC 0001](docs/rfcs/0001-pure-browser-wasm.md) publishes compatibility, performance, privacy, security, and one-year ownership gates while explicitly withholding implementation approval.
+- [x] Consider touch/pen-first tablet support only after the desktop workflows and crash recovery are reliable. Evidence: [RFC 0002](docs/rfcs/0002-touch-pen-tablet.md) defers implementation behind zero-P0, recovery, clean-install, and 80% moderated desktop task-success gates.
+- [x] Keep optional LAN/folder collaboration separate and opt-in; solo workflows remain fully offline. Evidence: [RFC 0003](docs/rfcs/0003-optional-lan-folder-collaboration.md) requires a separate executable/package, explicit opt-in, dedicated threat model, and no cloud fallback; the [experiment registry](experiments/registry.json) keeps all three proposals disabled and the core network-dependency count at zero.
 
 #### Exit gate
 

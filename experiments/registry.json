@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "registry_version": 1,
+  "updated": "2026-08-24",
+  "solo_offline_default": true,
+  "core_required_network_dependencies": 0,
+  "experiments": [
+    {
+      "id": "pure-browser-wasm",
+      "status": "rfc_only",
+      "implementation_enabled": false,
+      "rfc": "docs/rfcs/0001-pure-browser-wasm.md",
+      "promotion_requires": [
+        "cross_browser_trust_lab_parity",
+        "bundle_startup_memory_budgets",
+        "forms_signatures_ocr_parity",
+        "no_egress_and_storage_deletion_proof",
+        "twelve_month_maintenance_plan"
+      ]
+    },
+    {
+      "id": "touch-pen-tablet",
+      "status": "deferred",
+      "implementation_enabled": false,
+      "rfc": "docs/rfcs/0002-touch-pen-tablet.md",
+      "promotion_requires": [
+        "desktop_zero_open_p0_defects",
+        "desktop_recovery_evidence",
+        "clean_runner_install_evidence",
+        "desktop_ten_person_task_success_at_least_80_percent"
+      ]
+    },
+    {
+      "id": "lan-folder-collaboration",
+      "status": "separate_opt_in",
+      "implementation_enabled": false,
+      "rfc": "docs/rfcs/0003-optional-lan-folder-collaboration.md",
+      "promotion_requires": [
+        "dedicated_threat_model_and_protocol",
+        "default_no_non_loopback_listener_proof",
+        "authentication_encryption_revocation_tests",
+        "independent_security_review"
+      ]
+    }
+  ]
+}

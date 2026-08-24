@@ -60,3 +60,11 @@ workflow, bounds, and API contract.
 3. Add a task-oriented UI with progress, cancel/retry where applicable, and explicit preservation warnings.
 4. Add a synthetic fixture and regression at core/API/UI levels proportional to risk.
 5. Update the capability matrix, threat model, privacy contract, limitations, and changelog when affected.
+
+## Architecture experiments
+
+Browser/WASM, touch/pen-first tablet support, and LAN/folder collaboration are
+not shipped capabilities. Their RFCs, entry gates, security boundaries, and
+machine-readable disabled state live in
+[Architecture experiments](ARCHITECTURE_EXPERIMENTS.md). Unsupported experiments
+must not alter the loopback-only, fully offline solo runtime.
