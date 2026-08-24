@@ -20,7 +20,7 @@
     "fabric": "^7.4.0",
     "lucide-react": "^0.555.0",
     "pdfjs-dist": "^5.4.394",
-    "react": "^19.2.0",
+    "react": "^19.2.8",
     "react-dom": "^19.2.0"
   },
   "devDependencies": {
@@ -28,7 +28,7 @@
     "@testing-library/jest-dom": "^6.0.0",
     "@testing-library/react": "^16.0.0",
     "@types/node": "^24.10.1",
-    "@types/react": "^19.2.5",
+    "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.1.0",
     "@vitest/coverage-v8": "^4.1.11",
