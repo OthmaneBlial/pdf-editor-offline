@@ -2,6 +2,7 @@
   "schema_version": "1.0.0",
   "draft": "https://json-schema.org/draft/2020-12/schema",
   "schemas": [
+    "accessibility-inspection.schema.json",
     "capabilities.schema.json",
     "change-review.schema.json",
     "corpus-manifest.schema.json",

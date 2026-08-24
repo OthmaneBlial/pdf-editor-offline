@@ -97,6 +97,10 @@ from api.models import (
 )
 from pdf_editor_offline.core.privacy_cleaner import PDFPrivacyCleaner
 from pdf_editor_offline.core.change_review import inspect_document as inspect_change_inventory
+from pdf_editor_offline.core.accessibility_inspector import (
+    accessibility_preservation_warnings,
+    inspect_accessibility,
+)
 from pdf_editor_offline.core.redaction_verifier import RedactionVerifier
 from pdf_editor_offline.utils.canvas_helpers import (
     convert_to_pymupdf_annotation,
@@ -407,6 +411,25 @@ async def get_document_info(doc_id: str):
         last_modified=session["last_modified"],
     )
     return APIResponse(success=True, data=doc_session.model_dump())
+
+
+@router.get("/{doc_id}/accessibility", response_model=APIResponse)
+async def inspect_document_accessibility(doc_id: str, max_pages: int = 200):
+    """Return content-free accessibility evidence for the current local session."""
+    if max_pages < 1 or max_pages > 2000:
+        raise HTTPException(status_code=400, detail="max_pages must be between 1 and 2000")
+    session = get_session(doc_id)
+    document = session["document_manager"].get_document()
+    try:
+        report = inspect_accessibility(document, max_pages=max_pages)
+    except (OSError, ValueError, RuntimeError, fitz.FileDataError) as error:
+        logger.warning("Accessibility inspection failed for %s: %s", doc_id, error)
+        raise HTTPException(status_code=400, detail="Accessibility inspection failed safely") from error
+    return APIResponse(
+        success=True,
+        data=report,
+        message="Accessibility inspection completed locally",
+    )
 
 
 @router.delete("/{doc_id}", response_model=APIResponse)
@@ -836,6 +859,7 @@ def _organizer_preservation_warnings(document, action: str) -> list[str]:
             warnings.append("page_labels_may_require_review")
     except Exception:
         pass
+    warnings.extend(accessibility_preservation_warnings(document, action))
     return warnings
 
 

@@ -34,4 +34,15 @@ describe('ToolToast', () => {
     const { container } = render(<ToolToast />);
     expect(container.firstChild).toBeNull();
   });
+
+  it('announces accessibility preservation warnings assertively', () => {
+    useEditorMock.mockReturnValue({
+      toolToast: { type: 'warning', text: 'Accessibility semantics may be degraded' },
+      clearToolToast: vi.fn(),
+    });
+
+    render(<ToolToast />);
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Accessibility semantics may be degraded');
+  });
 });

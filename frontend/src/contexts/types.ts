@@ -78,7 +78,7 @@ export interface LinkItem {
 }
 
 export interface ToolToast {
-  type: 'success' | 'error';
+  type: 'success' | 'warning' | 'error';
   text: string;
 }
 
@@ -142,7 +142,7 @@ export interface EditorContextType extends EditorState, CanvasState, HistoryStat
   documentMutationVersion: number;
   toolToast: ToolToast | null;
   reportToolResult: (
-    type: 'success' | 'error',
+    type: 'success' | 'warning' | 'error',
     text: string,
     refreshDocument?: boolean
   ) => void;

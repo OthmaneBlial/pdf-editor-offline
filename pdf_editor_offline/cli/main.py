@@ -17,6 +17,7 @@ from ..core.change_review import (
     promote_safe_edit,
     write_change_report,
 )
+from ..core.accessibility_inspector import inspect_accessibility
 from ..core.redaction_verifier import RedactionVerifier
 from ..trust_lab import (
     discover_runtime_capabilities,
@@ -103,6 +104,27 @@ def inspect_privacy(
         payload = inspect_privacy_report(file)
     except (OSError, RuntimeError, fitz.FileDataError) as error:
         typer.echo(f"Inspection failed safely: {error}", err=True)
+        raise typer.Exit(2) from error
+    _write_or_echo_json(payload, output)
+
+
+@app.command("inspect-accessibility")
+def inspect_accessibility_command(
+    file: Path = typer.Argument(..., exists=True, dir_okay=False, readable=True),
+    output: Path | None = typer.Option(None, "--output", "-o"),
+    max_pages: int = typer.Option(
+        200,
+        "--max-pages",
+        min=1,
+        max=2000,
+        help="Bound page-level visual heuristics for large documents.",
+    ),
+) -> None:
+    """Report document accessibility evidence and manual repair guidance."""
+    try:
+        payload = inspect_accessibility(file, max_pages=max_pages)
+    except (OSError, ValueError, RuntimeError, fitz.FileDataError) as error:
+        typer.echo(f"Accessibility inspection failed safely: {error}", err=True)
         raise typer.Exit(2) from error
     _write_or_echo_json(payload, output)
 

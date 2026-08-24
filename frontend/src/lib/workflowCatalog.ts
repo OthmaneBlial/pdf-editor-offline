@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   Bookmark,
+  Accessibility,
   FilePenLine,
   FileSearch,
   FileText,
@@ -27,6 +28,7 @@ export type ViewMode =
   | 'conversion'
   | 'security'
   | 'advanced'
+  | 'accessibility'
   | 'batch'
   | 'text'
   | 'navigation'
@@ -139,6 +141,16 @@ export const SECONDARY_COMMANDS: WorkflowCommand[] = [
     keywords: ['multiple', 'files', 'bulk', 'queue'],
     icon: Layers,
     accent: 'from-violet-400 to-fuchsia-400',
+  },
+  {
+    id: 'accessibility',
+    label: 'Accessibility inspector',
+    shortLabel: 'Accessibility',
+    description: 'Inspect document semantics and get bounded manual repair guidance.',
+    group: 'specialist',
+    keywords: ['pdf ua', 'tags', 'reading order', 'alt text', 'headings', 'forms'],
+    icon: Accessibility,
+    accent: 'from-lime-300 to-cyan-300',
   },
   {
     id: 'advanced',

@@ -21,6 +21,14 @@ if (API_TOKEN) {
   axios.defaults.headers.common['X-PDF-Editor-Token'] = API_TOKEN;
 }
 
+axios.interceptors?.response?.use(response => {
+  const warning = response.headers?.['x-pdf-accessibility-warning'];
+  if (warning && typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('pdf-accessibility-warning', { detail: warning }));
+  }
+  return response;
+});
+
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: API_TOKEN ? { 'X-PDF-Editor-Token': API_TOKEN } : undefined,

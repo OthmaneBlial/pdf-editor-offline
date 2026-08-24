@@ -13,6 +13,7 @@ import ToolToast from './components/ToolToast';
 import ConversionTools from './components/tools/ConversionTools';
 import SecurityTools from './components/tools/SecurityTools';
 import AdvancedTools from './components/tools/AdvancedTools';
+import AccessibilityInspector from './components/tools/AccessibilityInspector';
 import BatchProcessingTools from './components/tools/BatchProcessingTools';
 // Advanced Editing tools
 import AdvancedTextTools from './components/tools/AdvancedTextTools';
@@ -153,6 +154,8 @@ function AppContent() {
           return <SecurityTools />;
         case 'advanced':
           return <AdvancedTools />;
+        case 'accessibility':
+          return <AccessibilityInspector />;
         case 'batch':
           return <BatchProcessingTools />;
         default:

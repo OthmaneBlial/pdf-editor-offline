@@ -7,13 +7,14 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from api.deps import cleanup_all_sessions, cleanup_stale_sessions
+from api.deps import cleanup_all_sessions, cleanup_stale_sessions, get_session
 from api.change_reviews import cleanup_all_change_reviews, cleanup_stale_change_reviews
 from api.ocr_jobs import shutdown_ocr_jobs
 from api.capabilities import get_runtime_capabilities
 from api.security import sanitize_error_detail
 from pdf_editor_offline import __version__ as package_version
 from pdf_editor_offline.core.exceptions import InvalidOperationError, MissingDependencyError
+from pdf_editor_offline.core.accessibility_inspector import accessibility_preservation_warnings
 
 # Setup logging
 logging.basicConfig(
@@ -42,6 +43,45 @@ app = FastAPI(
     version=package_version,
     lifespan=lifespan,
 )
+
+
+@app.middleware("http")
+async def warn_before_editing_tagged_documents(request: Request, call_next):
+    """Expose a visible warning for every successful document mutation."""
+    path_parts = request.url.path.strip("/").split("/")
+    document_route = "/".join(path_parts[3:])
+    non_editing_post = (
+        document_route in {
+            "redaction/review",
+            "digital-signatures/validate",
+            "images/extract",
+        }
+        or document_route.endswith("/text/search")
+    )
+    mutating_document = (
+        request.method in {"POST", "PUT", "PATCH", "DELETE"}
+        and len(path_parts) >= 4
+        and path_parts[:2] == ["api", "documents"]
+        and path_parts[2] not in {"upload", "maintenance", "recovery"}
+        and not non_editing_post
+    )
+    warning = False
+    if mutating_document:
+        try:
+            session = get_session(path_parts[2])
+            document = session["document_manager"].get_document()
+            warning = bool(
+                accessibility_preservation_warnings(document, "content_edit")
+            )
+        except Exception:
+            # Route validation owns unknown or expired session errors.
+            pass
+    response = await call_next(request)
+    if warning and response.status_code < 400:
+        response.headers[
+            "X-PDF-Accessibility-Warning"
+        ] = "accessibility_semantics_may_be_degraded"
+    return response
 
 
 @app.get("/api/health", tags=["health"])
@@ -128,6 +168,8 @@ app.add_middleware(
         "X-Safe-Edit",
         "X-Change-Audit-SHA256",
         "X-Output-SHA256",
+        "X-PDF-Accessibility-Warning",
+        "X-PDF-Editor-Warnings",
     ],
 )
 

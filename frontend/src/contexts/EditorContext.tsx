@@ -259,7 +259,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   }, [sessionId, saveChanges]);
 
   const reportToolResult = useCallback((
-    type: 'success' | 'error',
+    type: 'success' | 'warning' | 'error',
     text: string,
     refreshDocument: boolean = false
   ) => {
@@ -275,6 +275,17 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       toastTimeoutRef.current = null;
     }, 5000);
   }, []);
+
+  useEffect(() => {
+    const showAccessibilityWarning = () => {
+      reportToolResult(
+        'warning',
+        'This edit may degrade existing accessibility tags or reading order. Rerun the Accessibility inspector before sharing.',
+      );
+    };
+    window.addEventListener('pdf-accessibility-warning', showAccessibilityWarning);
+    return () => window.removeEventListener('pdf-accessibility-warning', showAccessibilityWarning);
+  }, [reportToolResult]);
 
   // Memoized reorder pages function
   const reorderPages = useCallback(async (fromIndex: number, toIndex: number) => {

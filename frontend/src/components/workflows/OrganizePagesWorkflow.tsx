@@ -40,6 +40,8 @@ const warningLabels: Record<string, string> = {
   inserted_signatures_will_not_remain_valid: 'Signatures in inserted PDFs will not remain valid.',
   inserted_form_fields_may_require_review: 'Inserted form fields may need review.',
   bates_numbers_are_visible_page_content: 'Bates identifiers become visible page content.',
+  accessibility_semantics_may_be_degraded: 'This edit may degrade the existing accessibility tag structure.',
+  tagged_reading_order_requires_review: 'The tagged reading order requires manual review after this edit.',
 };
 
 const parseRange = (value: string, pageCount: number) => {

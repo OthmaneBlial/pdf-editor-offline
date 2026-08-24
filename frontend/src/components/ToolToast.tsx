@@ -11,12 +11,14 @@ const ToolToast: React.FC = () => {
   return (
     <div className="fixed top-4 right-4 z-[60] max-w-sm w-[calc(100vw-2rem)] sm:w-auto">
       <div
-        role={toolToast.type === 'error' ? 'alert' : 'status'}
-        aria-live={toolToast.type === 'error' ? 'assertive' : 'polite'}
+        role={toolToast.type === 'success' ? 'status' : 'alert'}
+        aria-live={toolToast.type === 'success' ? 'polite' : 'assertive'}
         aria-atomic="true"
         className={`rounded-xl border shadow-xl px-4 py-3 flex items-start gap-3 ${
           toolToast.type === 'success'
             ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+            : toolToast.type === 'warning'
+              ? 'bg-amber-50 border-amber-300 text-amber-950'
             : 'bg-red-50 border-red-200 text-red-800'
         }`}
       >

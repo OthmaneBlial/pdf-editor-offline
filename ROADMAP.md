@@ -288,9 +288,9 @@ Time ranges are planning estimates for a small maintainer team, not release prom
 
 #### Accessibility inspector
 
-- [ ] Inspect document language, tags, reading order, headings, alt text, bookmarks, tables, and form labels.
-- [ ] Start with reliable reporting and manual repair guidance before automated PDF/UA remediation.
-- [ ] Warn whenever an edit may degrade existing accessibility semantics.
+- [x] Inspect document language, tags, reading order, headings, alt text, bookmarks, tables, and form labels. Evidence: [bounded content-free engine](pdf_editor_offline/core/accessibility_inspector.py), [local inspector UI](frontend/src/components/tools/AccessibilityInspector.tsx), and [schema-valid regression corpus](tests/test_accessibility_inspector.py).
+- [x] Start with reliable reporting and manual repair guidance before automated PDF/UA remediation. Evidence: [explicit evidence boundary and repair contract](docs/ACCESSIBILITY_INSPECTOR.md), fixed manual-review statuses, and `pdf_ua_conformance_claim: false` in the stable report schema.
+- [x] Warn whenever an edit may degrade existing accessibility semantics. Evidence: pre-mutation tag detection and `X-PDF-Accessibility-Warning` on every successful document edit, a shared assertive frontend warning, structural page-operation guidance, and Safe Edit's existing `accessibility_tags_lost` refusal gate.
 
 #### True content editing—only with evidence
 
