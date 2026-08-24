@@ -31,3 +31,4 @@ def test_preview_warning_never_claims_native_platform_trust() -> None:
     assert "no Authenticode" in notes
     assert "not notarized" in notes
     assert "Do not disable operating-system security controls" in notes
+    assert "](../" not in notes
