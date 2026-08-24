@@ -85,36 +85,36 @@
           <p class="eyebrow">Desktop release channel</p>
           <h2 id="download-heading">Download for your OS</h2>
           <p>
-            Signed 3.0.0 installers appear on the immutable GitHub Release only after signing, notarization, clean-machine smoke tests, checksums, SBOMs, and provenance all pass. The channel stays closed while any gate is missing.
+            An owner-authorized 3.0.0 technical preview is available without native signatures. It is not the stable release: Windows has no Authenticode identity and both macOS builds are not notarized. Clean-machine smoke, checksums, SBOMs, and GitHub provenance still apply.
           </p>
         </div>
         <div class="download-grid">
           <article class="download-card">
             <span class="platform-mark" aria-hidden="true">WIN</span>
-            <div><h3>Windows</h3><p>Windows 10/11 · x64 · NSIS installer</p></div>
-            <a class="button secondary" href="https://github.com/OthmaneBlial/pdf-editor-offline/releases/latest">Open releases</a>
+            <div><h3>Windows</h3><p>Windows 10/11 · x64 · unsigned NSIS installer</p></div>
+            <a class="button secondary" href="https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/desktop-preview-3.0.0">Open unsigned preview</a>
           </article>
           <article class="download-card">
             <span class="platform-mark" aria-hidden="true">ARM</span>
-            <div><h3>macOS Apple Silicon</h3><p>macOS 11+ · arm64 · notarized DMG</p></div>
-            <a class="button secondary" href="https://github.com/OthmaneBlial/pdf-editor-offline/releases/latest">Open releases</a>
+            <div><h3>macOS Apple Silicon</h3><p>macOS 11+ · arm64 · ad-hoc DMG, not notarized</p></div>
+            <a class="button secondary" href="https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/desktop-preview-3.0.0">Open unsigned preview</a>
           </article>
           <article class="download-card">
             <span class="platform-mark" aria-hidden="true">X64</span>
-            <div><h3>macOS Intel</h3><p>macOS 11+ · x64 · notarized DMG</p></div>
-            <a class="button secondary" href="https://github.com/OthmaneBlial/pdf-editor-offline/releases/latest">Open releases</a>
+            <div><h3>macOS Intel</h3><p>macOS 11+ · x64 · ad-hoc DMG, not notarized</p></div>
+            <a class="button secondary" href="https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/desktop-preview-3.0.0">Open unsigned preview</a>
           </article>
           <article class="download-card">
             <span class="platform-mark" aria-hidden="true">LNX</span>
             <div><h3>Linux</h3><p>Ubuntu 22.04/24.04 · x64 · AppImage or DEB</p></div>
-            <a class="button secondary" href="https://github.com/OthmaneBlial/pdf-editor-offline/releases/latest">Open releases</a>
+            <a class="button secondary" href="https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/desktop-preview-3.0.0">Open unsigned preview</a>
           </article>
         </div>
         <div class="release-gate" role="status">
-          <strong>3.0.0 release candidate</strong>
-          <span>Installer links activate only when every production-signing gate is green. Source, PyPI, and Docker remain available below.</span>
+          <strong>3.0.0 unsigned technical preview</strong>
+          <span>Do not disable OS security just to run it. Native signing remains required only for the future stable channel; source, PyPI, and Docker remain available below.</span>
           <a href="https://github.com/OthmaneBlial/pdf-editor-offline/blob/main/docs/DESKTOP_DISTRIBUTION.md">How to verify a download</a>
-          <a href="https://github.com/OthmaneBlial/pdf-editor-offline/blob/main/docs/CODE_SIGNING_POLICY.md">Code signing policy · SignPath application pending</a>
+          <a href="https://github.com/OthmaneBlial/pdf-editor-offline/blob/main/docs/CODE_SIGNING_POLICY.md">Code signing policy · no provider application submitted</a>
         </div>
       </section>
 

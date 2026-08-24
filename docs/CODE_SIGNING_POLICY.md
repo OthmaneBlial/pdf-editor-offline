@@ -7,18 +7,21 @@ presented as production releases.
 
 ## Windows signing provider
 
-The project is preparing an open-source application to SignPath Foundation.
-Pending acceptance, the intended Windows policy is:
+The project has evaluated SignPath Foundation as a possible open-source
+provider. No application has been submitted, no account has been created, and
+no terms have been accepted. If the owner explicitly approves a future
+application, the proposed Windows policy would be:
 
 > Free code signing provided by [SignPath.io](https://about.signpath.io/),
 > certificate by [SignPath Foundation](https://signpath.org/).
 
-This statement documents the intended provider; it does not claim that the
-current unsigned release candidate already has a SignPath signature. Until the
-application is accepted and the integration passes Authenticode verification,
-the public Windows desktop channel remains closed.
+This statement documents an evaluated option; it does not claim that the
+project uses SignPath or that the current unsigned release candidate has a
+SignPath signature. Unless a future application is separately approved,
+accepted, and integrated with passing Authenticode verification, the public
+Windows desktop channel remains closed.
 
-The SignPath integration must accept artifacts only when they:
+Any future SignPath integration must accept artifacts only when they:
 
 1. originate from this repository's GitHub Actions build for the exact release
    source revision;

@@ -13,7 +13,8 @@ def test_signpath_policy_is_public_but_does_not_claim_pending_signature() -> Non
         "> certificate by [SignPath Foundation](https://signpath.org/)"
     )
     assert required_credit in policy
-    assert "application is pending" in readme
+    assert "No application has been submitted" in readme
+    assert "no terms have been accepted" in readme
     assert "does not claim" in policy
     assert "Apple Developer ID" in policy
     assert "privacy contract" in policy

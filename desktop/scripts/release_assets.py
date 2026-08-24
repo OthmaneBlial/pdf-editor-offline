@@ -448,6 +448,58 @@ def attach_activation_summary(
     return manifest
 
 
+def finalize_unsigned_preview(
+    root: Path,
+    repository_root: Path,
+    notice_source: Path,
+    expected_version: str,
+    source_commit: str,
+) -> dict:
+    """Assemble a transparent unsigned preview without weakening stable gates."""
+    if not re.fullmatch(r"[0-9a-f]{40}", source_commit):
+        raise ValueError("Unsigned preview requires a full lowercase Git commit")
+    manifest = verify_release_set(root, expected_version)
+    sample_path = build_sample_pack(repository_root, root, expected_version)
+    if not notice_source.is_file() or notice_source.stat().st_size == 0:
+        raise FileNotFoundError("Unsigned preview notice is missing or empty")
+    notice_name = f"PDF-Editor-Offline-{expected_version}-UNSIGNED-PREVIEW.md"
+    notice_path = root / notice_name
+    shutil.copy2(notice_source, notice_path)
+
+    manifest.update(
+        {
+            "channel": "unsigned-preview",
+            "source_commit": source_commit,
+            "native_signature_status": {
+                "windows-x64": "unsigned",
+                "macos-arm64": "ad-hoc-only-not-notarized",
+                "macos-x64": "ad-hoc-only-not-notarized",
+                "linux-x64": "not-applicable",
+            },
+            "release_warning": (
+                "Technical preview: native platform trust gates are not satisfied."
+            ),
+        }
+    )
+    for path, kind in (
+        (sample_path, "sample_pack"),
+        (notice_path, "unsigned_preview_notice"),
+    ):
+        manifest["assets"].append(
+            {
+                "name": path.name,
+                "kind": kind,
+                "platform": "all",
+                "bytes": path.stat().st_size,
+                "sha256": sha256(path),
+            }
+        )
+    manifest["assets"] = sorted(manifest["assets"], key=lambda item: item["name"])
+    write_public_manifest(root, manifest)
+    verify_public_release(root, expected_version)
+    return manifest
+
+
 def finalize_public_release(root: Path, expected_version: str) -> dict:
     """Verify public extras and checksum exactly the assets uploaded to GitHub."""
     manifest_path = root / "release-manifest.json"
@@ -538,6 +590,13 @@ def main() -> int:
     activation_parser.add_argument("--summary", required=True, type=Path)
     activation_parser.add_argument("--version", required=True)
 
+    preview_parser = subparsers.add_parser("finalize-unsigned-preview")
+    preview_parser.add_argument("--root", required=True, type=Path)
+    preview_parser.add_argument("--repository-root", required=True, type=Path)
+    preview_parser.add_argument("--notice", required=True, type=Path)
+    preview_parser.add_argument("--version", required=True)
+    preview_parser.add_argument("--source-commit", required=True)
+
     tag_parser = subparsers.add_parser("verify-tag")
     tag_parser.add_argument("--tag", required=True)
     tag_parser.add_argument(
@@ -579,6 +638,17 @@ def main() -> int:
             parser.error("--version must be semantic version text")
         manifest = attach_activation_summary(
             args.root, args.summary, args.version
+        )
+        print(json.dumps(manifest, indent=2, sort_keys=True))
+    elif args.command == "finalize-unsigned-preview":
+        if not SEMVER.fullmatch(args.version):
+            parser.error("--version must be semantic version text")
+        manifest = finalize_unsigned_preview(
+            args.root,
+            args.repository_root,
+            args.notice,
+            args.version,
+            args.source_commit,
         )
         print(json.dumps(manifest, indent=2, sort_keys=True))
     else:

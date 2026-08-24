@@ -4,16 +4,23 @@ All notable changes to PDF Editor Offline are documented here.
 
 ## Unreleased
 
-Release candidate version: **3.0.0**. Public release remains blocked until the
-production signing, notarization, complete-asset, clean-runner, and activation
-cohort gates pass.
+Release candidate version: **3.0.0**. The owner has authorized a separately
+labeled unsigned technical pre-release for expert testing. Native signing,
+notarization, and activation remain fail-closed requirements only for a future
+stable desktop release.
 
 ### Added
 
+- Added an explicitly confirmed unsigned-preview workflow that still requires
+  four clean-runner install smokes, exact source identity, SHA-256, CycloneDX
+  SBOMs, GitHub/offline provenance, a synthetic sample pack, immutable warning
+  text, and GitHub pre-release status while leaving the stable signing workflow
+  untouched.
 - Added a public code-signing policy with named author, reviewer, and signing
-  approver roles; a fail-closed SignPath Foundation application path for free
-  open-source Windows signing; and an explicit boundary that Apple Developer ID
-  signing and notarization remain separate requirements.
+  approver roles; a fail-closed evaluation of SignPath Foundation as a possible
+  free open-source Windows provider without submitting an application or
+  accepting terms; and an explicit boundary that Apple Developer ID signing and
+  notarization remain separate requirements.
 - Added a protected two-stage production release: the workflow retains the
   exact signed candidate for a moderated four-platform cohort, waits for
   environment approval, validates a content-free 10-person/80%/zero-P0 summary

@@ -356,3 +356,49 @@ def test_activation_summary_refuses_unmet_real_world_gate(
         release_assets.attach_activation_summary(
             tmp_path, summary_path, "3.0.0"
         )
+
+
+def test_unsigned_preview_is_explicit_and_fully_checksummed(tmp_path: Path):
+    for platform in release_assets.PLATFORM_SPECS:
+        bundle_root = tmp_path / f"bundle-{platform}"
+        make_bundles(bundle_root, platform)
+        release_assets.collect(
+            bundle_root=bundle_root,
+            output_dir=tmp_path,
+            platform=platform,
+            version="3.0.0",
+        )
+        make_evidence(tmp_path, platform)
+    notice = tmp_path / "preview-notice.md"
+    notice.write_text("UNSIGNED technical preview; not notarized.\n")
+
+    manifest = release_assets.finalize_unsigned_preview(
+        tmp_path,
+        ROOT,
+        notice,
+        "3.0.0",
+        "a" * 40,
+    )
+
+    assert manifest["channel"] == "unsigned-preview"
+    assert manifest["source_commit"] == "a" * 40
+    assert manifest["native_signature_status"] == {
+        "windows-x64": "unsigned",
+        "macos-arm64": "ad-hoc-only-not-notarized",
+        "macos-x64": "ad-hoc-only-not-notarized",
+        "linux-x64": "not-applicable",
+    }
+    assert len(manifest["assets"]) == 15
+    assert len((tmp_path / "SHA256SUMS").read_text().splitlines()) == 16
+    assert release_assets.verify_public_release(tmp_path, "3.0.0") == manifest
+
+
+def test_unsigned_preview_refuses_an_unbound_source_revision(tmp_path: Path):
+    with pytest.raises(ValueError, match="full lowercase Git commit"):
+        release_assets.finalize_unsigned_preview(
+            tmp_path,
+            ROOT,
+            tmp_path / "missing.md",
+            "3.0.0",
+            "main",
+        )

@@ -2,6 +2,12 @@ name: Desktop installers
 
 on:
   workflow_dispatch:
+    inputs:
+      publish_preview:
+        description: Type PUBLISH-UNSIGNED-PREVIEW to publish the verified pre-release
+        required: false
+        default: ""
+        type: string
   push:
     branches: [main]
     paths:
@@ -65,6 +71,10 @@ jobs:
             signing_identity: ""
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     env:
       PYTHONDONTWRITEBYTECODE: "1"
       PYTHONUNBUFFERED: "1"
@@ -145,6 +155,16 @@ jobs:
           format: cyclonedx-json
           output-file: desktop/dist/release/${{ matrix.platform }}/sbom-${{ matrix.platform }}.cdx.json
           upload-artifact: false
+      - name: Generate GitHub build provenance
+        id: attest
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.1.1
+        with:
+          subject-path: desktop/dist/release/${{ matrix.platform }}/PDF-Editor-Offline-*
+      - name: Preserve offline Sigstore provenance bundle
+        env:
+          BUNDLE_PATH: ${{ steps.attest.outputs.bundle-path }}
+          DESTINATION: desktop/dist/release/${{ matrix.platform }}/provenance-${{ matrix.platform }}.sigstore.json
+        run: python -c "import os, shutil; shutil.copy2(os.environ['BUNDLE_PATH'], os.environ['DESTINATION'])"
       - name: Upload verified installer evidence
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -152,3 +172,157 @@ jobs:
           path: desktop/dist/release/${{ matrix.platform }}
           if-no-files-found: error
           retention-days: 14
+
+  assemble-preview:
+    name: Assemble transparent unsigned preview
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.publish_preview == 'PUBLISH-UNSIGNED-PREVIEW'
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.identity.outputs.version }}
+      tag: ${{ steps.identity.outputs.tag }}
+    steps:
+      - name: Check out exact preview source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Resolve preview identity
+        id: identity
+        run: |
+          version="$(python -c 'import json; print(json.load(open("desktop/package.json"))["version"])')"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=desktop-preview-$version" >> "$GITHUB_OUTPUT"
+      - name: Download every clean-runner asset and evidence bundle
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+        with:
+          pattern: desktop-*
+          path: release
+          merge-multiple: true
+      - name: Assemble and verify the unsigned preview contract
+        env:
+          VERSION: ${{ steps.identity.outputs.version }}
+        run: >-
+          python desktop/scripts/release_assets.py finalize-unsigned-preview
+          --root release
+          --repository-root .
+          --notice "docs/releases/$VERSION-unsigned-preview.md"
+          --version "$VERSION"
+          --source-commit "$GITHUB_SHA"
+      - name: Upload exact preview candidate
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: unsigned-desktop-preview-candidate
+          path: |
+            release/PDF-Editor-Offline-*
+            release/SHA256SUMS
+            release/release-manifest.json
+            release/sbom-*.cdx.json
+            release/provenance-*.sigstore.json
+          if-no-files-found: error
+          retention-days: 30
+
+  publish-preview:
+    name: Publish verified unsigned GitHub pre-release
+    needs: assemble-preview
+    runs-on: ubuntu-22.04
+    permissions:
+      attestations: read
+      contents: write
+    steps:
+      - name: Check out exact preview source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Download the exact assembled candidate
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+        with:
+          name: unsigned-desktop-preview-candidate
+          path: release
+      - name: Reverify hashes and explicit unsigned status
+        env:
+          VERSION: ${{ needs.assemble-preview.outputs.version }}
+        run: |
+          python desktop/scripts/release_assets.py verify-public \
+            --root release --version "$VERSION"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          manifest = json.loads(Path("release/release-manifest.json").read_text())
+          assert manifest["channel"] == "unsigned-preview"
+          assert manifest["source_commit"] == "${{ github.sha }}"
+          assert set(manifest["native_signature_status"].values()) == {
+              "unsigned", "ad-hoc-only-not-notarized", "not-applicable"
+          }
+          PY
+      - name: Reverify GitHub provenance for every installer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY' > "$RUNNER_TEMP/installer-assets.txt"
+          import json
+          from pathlib import Path
+
+          manifest = json.loads(Path("release/release-manifest.json").read_text())
+          for asset in manifest["assets"]:
+              if asset["kind"] == "installer":
+                  print(asset["name"])
+          PY
+          while IFS= read -r asset; do
+            gh attestation verify "release/$asset" --repo "$GITHUB_REPOSITORY"
+          done < "$RUNNER_TEMP/installer-assets.txt"
+      - name: Publish without changing the latest stable release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREVIEW_TAG: ${{ needs.assemble-preview.outputs.tag }}
+          VERSION: ${{ needs.assemble-preview.outputs.version }}
+        run: |
+          if gh release view "$PREVIEW_TAG" >/dev/null 2>&1; then
+            echo "Preview $PREVIEW_TAG already exists; refusing to mutate it" >&2
+            exit 1
+          fi
+          mapfile -t names < <(python - <<'PY'
+          import json
+          from pathlib import Path
+
+          manifest = json.loads(Path("release/release-manifest.json").read_text())
+          for asset in manifest["assets"]:
+              print(asset["name"])
+          PY
+          )
+          paths=(release/SHA256SUMS release/release-manifest.json)
+          for name in "${names[@]}"; do paths+=("release/$name"); done
+          gh release create "$PREVIEW_TAG" "${paths[@]}" \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --title "PDF Editor Offline $VERSION — UNSIGNED desktop preview" \
+            --notes-file "docs/releases/$VERSION-unsigned-preview.md"
+      - name: Verify the remote pre-release asset set
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREVIEW_TAG: ${{ needs.assemble-preview.outputs.tag }}
+        run: |
+          gh release view "$PREVIEW_TAG" --json tagName,isPrerelease,assets > "$RUNNER_TEMP/release.json"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          local = json.loads(Path("release/release-manifest.json").read_text())
+          remote = json.loads(Path("${{ runner.temp }}/release.json").read_text())
+          expected = {asset["name"] for asset in local["assets"]}
+          expected.update({"SHA256SUMS", "release-manifest.json"})
+          actual = {asset["name"] for asset in remote["assets"]}
+          assert remote["isPrerelease"] is True
+          assert remote["tagName"] == "${{ needs.assemble-preview.outputs.tag }}"
+          assert actual == expected
+          PY

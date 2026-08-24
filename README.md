@@ -43,28 +43,32 @@ does not turn an unavailable OCR engine into a pass. Reproduce it with the
 
 ## Download for your OS
 
-| Platform | Installer | Support |
-| --- | --- | --- |
-| Windows 10/11 x64 | [Open signed desktop releases](https://github.com/OthmaneBlial/pdf-editor-offline/releases/latest) | NSIS `.exe` |
-| macOS 11+ Apple Silicon | [Open signed desktop releases](https://github.com/OthmaneBlial/pdf-editor-offline/releases/latest) | Notarized `.dmg`, arm64 |
-| macOS 11+ Intel | [Open signed desktop releases](https://github.com/OthmaneBlial/pdf-editor-offline/releases/latest) | Notarized `.dmg`, x64 |
-| Ubuntu 22.04/24.04 x64 | [Open signed desktop releases](https://github.com/OthmaneBlial/pdf-editor-offline/releases/latest) | `.AppImage` and `.deb` |
+The release owner has authorized a separately labeled **unsigned technical
+preview** so native certificates do not block expert testing. It is not the
+stable signed release. Windows SmartScreen or macOS Gatekeeper may warn or
+refuse it; do not disable operating-system security solely to run the preview.
 
-The desktop download channel is deliberately fail-closed: version 3.0.0 links
-become available only after code signing, notarization, clean-machine smoke tests,
-checksums, SBOMs, and build provenance all pass. Until then, use the source,
-PyPI, or Docker instructions below. Verify every future installer with the
-release's [`SHA256SUMS`](docs/DESKTOP_DISTRIBUTION.md) before opening it.
+| Platform | Installer | Native trust status |
+| --- | --- | --- |
+| Windows 10/11 x64 | [Unsigned technical preview](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/desktop-preview-3.0.0) | NSIS `.exe`; no Authenticode identity |
+| macOS 11+ Apple Silicon | [Unsigned technical preview](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/desktop-preview-3.0.0) | Ad-hoc `.dmg`; not notarized |
+| macOS 11+ Intel | [Unsigned technical preview](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/desktop-preview-3.0.0) | Ad-hoc `.dmg`; not notarized |
+| Ubuntu 22.04/24.04 x64 | [Unsigned technical preview](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/desktop-preview-3.0.0) | `.AppImage` and `.deb`; SHA/provenance |
+
+The stable desktop channel remains fail-closed until native signing,
+notarization, clean-machine smoke tests, checksums, SBOMs, provenance, and the
+activation gate pass. The preview changes only availability—not its trust
+status. Verify it with the attached [`SHA256SUMS` and GitHub
+provenance](docs/DESKTOP_DISTRIBUTION.md) before opening it.
 
 ### Code signing policy
 
-The project is applying for free open-source Windows signing: **Free code
-signing provided by [SignPath.io](https://about.signpath.io/), certificate by
-[SignPath Foundation](https://signpath.org/)**. The application is pending, so
-no current Windows artifact is represented as SignPath-signed. macOS still
-requires a separate Apple Developer ID signature and Apple notarization. Read
-the [complete policy, named roles, privacy boundary, and verification
-chain](docs/CODE_SIGNING_POLICY.md).
+The project has evaluated SignPath Foundation as a possible free open-source
+Windows signing provider. **No application has been submitted, no account has
+been created, and no terms have been accepted.** No current Windows artifact is
+represented as SignPath-signed. macOS still requires a separate Apple Developer
+ID signature and Apple notarization. Read the [complete policy, named roles,
+privacy boundary, and verification chain](docs/CODE_SIGNING_POLICY.md).
 
 ## Why it is different
 

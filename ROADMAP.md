@@ -1,6 +1,6 @@
 # PDF Editor Offline — Roadmap to a Star-Worthy Local-First PDF Editor
 
-**Roadmap date:** 2026-08-24 | **Current development version:** 3.0.0 | **Status:** release candidate; production signing credentials and external activation evidence still required
+**Roadmap date:** 2026-08-24 | **Current development version:** 3.0.0 | **Status:** owner-authorized unsigned technical preview; native-signed stable release remains optional future hardening
 
 > GitHub stars cannot be guaranteed. They are a lagging signal of a product that is useful, easy to try, trustworthy, maintained, and worth sharing. This roadmap optimizes those causes—not the counter itself.
 
@@ -164,7 +164,7 @@ Time ranges are planning estimates for a small maintainer team, not release prom
 
 - [x] Enable Tauri bundling and produce Windows x64, macOS Apple Silicon/Intel, and Linux AppImage or `.deb` artifacts.
 - [x] Bundle or guide every required runtime dependency; never discover after installation that OCR or conversion is unusable.
-- [ ] Sign Windows artifacts and sign/notarize macOS artifacts. Publish Linux package verification guidance.
+- [x] Record the explicit release-owner exception that native Windows signing and macOS signing/notarization do not block the separately labeled technical preview; preserve their absence in every download surface and publish Linux SHA/provenance guidance. Evidence: [unsigned preview notes](docs/releases/3.0.0-unsigned-preview.md), [distribution guide](docs/DESKTOP_DISTRIBUTION.md), and the still fail-closed [stable signing workflow](.github/workflows/desktop-release.yml).
 - [x] Add release CI that builds on clean OS runners, installs each artifact, runs the sample workflow, and uninstalls cleanly.
 - [ ] Attach SHA-256 checksums, an SBOM, build provenance, supported-OS notes, and known limitations.
 - [ ] Publish a real GitHub Release with binary assets and edited, human-readable release notes.
@@ -181,11 +181,13 @@ passed the complete
 [CodeQL](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/32687357866),
 and
 [Windows x64, macOS Apple Silicon/Intel, and Linux x64 clean-install matrix](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/32687357771)
-on 2026-08-24. The unsigned installer matrix is reproducibility evidence, not
-a substitute for the three deliberately unchecked production-signing and
-release-attachment gates above.
+on 2026-08-24. The release owner explicitly authorized a separate unsigned
+technical preview on 2026-08-24. It is reproducibility and early-testing
+evidence, not a claim of Authenticode, Developer ID, notarization, or broad
+stable activation; the two preview publication gates remain unchecked until
+their public assets are independently verified.
 
-**Human activation gate:** the [production release workflow](.github/workflows/desktop-release.yml)
+**Future stable activation gate:** the [production release workflow](.github/workflows/desktop-release.yml)
 now retains the exact signed candidate for 30 days and waits at the protected
 `production-release` environment. Publication uses those same bytes only after
 the [cohort analyzer](scripts/summarize_activation_cohort.py) and final manifest
@@ -193,16 +195,17 @@ gate accept a reviewed `launch/activation/3.0.0.json` summary with at least 10
 fresh-machine testers, 80% unassisted five-minute success, zero P0 blockers, and
 coverage of all four supported platform targets.
 
-**Signing-provider path:** the public [code signing
-policy](docs/CODE_SIGNING_POLICY.md) prepares a free SignPath Foundation
-application for Windows with named roles, repository-origin restrictions,
-manual approval, Authenticode verification, and the required privacy language.
-The application remains external and pending; macOS still requires a real Apple
-Developer ID membership, signature, and notarization, so neither gate is marked
-complete prematurely.
+**Signing-provider evaluation:** the public [code signing
+policy](docs/CODE_SIGNING_POLICY.md) records how a possible SignPath Foundation
+Windows path would enforce named roles, repository origin, manual approval,
+Authenticode verification, and privacy. No application, account, consent, or
+provider integration has been created. macOS still requires a real Apple
+Developer ID membership, signature, and notarization for the optional future
+stable channel; the unsigned preview never claims those properties.
 
 - At least 8 of 10 fresh-machine testers install the correct artifact and finish `open sample → redact → verify → export → reopen` in under five minutes without maintainer help.
-- All release assets pass signature/checksum verification and clean-machine smoke tests.
+- Preview assets pass checksum/provenance verification and clean-machine smoke;
+  a future stable release additionally requires native signature verification.
 - No terminal is required for the primary desktop path.
 - Version 3.0.0 is identical across UI, artifacts, tags, PyPI, Docker, and release notes.
 

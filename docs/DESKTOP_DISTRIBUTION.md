@@ -109,7 +109,27 @@ macOS Apple Silicon, macOS Intel, and Ubuntu x64. Each clean runner executes the
 frozen-sidecar redaction smoke, builds the platform installer, installs and
 launches it, verifies exact-child cleanup, removes it, generates a CycloneDX
 SBOM, and uploads short-lived evidence. These artifacts are never presented as
-trusted public releases.
+trusted or signed releases.
+
+### Owner-authorized unsigned preview
+
+An explicit manual dispatch with the exact phrase
+`PUBLISH-UNSIGNED-PREVIEW` may turn one complete four-runner build into the
+`desktop-preview-3.0.0` GitHub pre-release. This path exists so native
+certificates do not block expert testing, but it cannot change or hide the
+trust facts:
+
+- Windows is unsigned and has no Authenticode publisher or trusted timestamp;
+- macOS is ad-hoc only and is not Developer ID signed or notarized;
+- the release title, notes, manifest, notice asset, README, and Pages download
+  surface all say `UNSIGNED` or `not notarized`;
+- every installer still passes installed-product smoke and receives a
+  CycloneDX SBOM, GitHub build attestation, offline provenance bundle, SHA-256
+  entry, exact source commit, and combined manifest;
+- the preview is a pre-release and never replaces the latest stable release.
+
+The workflow refuses any other confirmation phrase and refuses to mutate an
+existing preview tag. The separate production workflow below is unchanged.
 
 `.github/workflows/desktop-release.yml` is the production gate. It only accepts
 an existing `v<desktop-version>` tag, refuses to mutate an existing release,
@@ -168,6 +188,12 @@ codesign --verify --deep --strict --verbose=2 "PDF Editor Offline.app"
 spctl --assess --type execute --verbose=4 "PDF Editor Offline.app"
 xcrun stapler validate "PDF Editor Offline.app"
 ```
+
+Those platform commands are required to succeed for a stable signed release.
+For `desktop-preview-3.0.0`, a missing Windows signer and failed Developer
+ID/notarization assessment are expected disclosed limitations—not passing
+evidence. Do not weaken SmartScreen, Gatekeeper, or other operating-system
+security controls solely to run the preview.
 
 Linux packages use the release checksum plus Sigstore/GitHub provenance rather
 than a project-maintained long-lived GPG key. This keeps verification tied to
