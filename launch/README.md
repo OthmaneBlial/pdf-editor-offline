@@ -5,7 +5,7 @@ text on the user's machine and reports which independent checks found zero
 remaining matches.** The content pillars are local privacy, verifiable output,
 and open automation. Feature-count copy is deliberately excluded.
 
-## Current execution state — 2026-08-24
+## Current execution state — 2026-08-28
 
 | Stage | State | Gate to advance |
 | --- | --- | --- |
@@ -13,7 +13,7 @@ and open automation. Feature-count copy is deliberately excluded.
 | Private 3.0 cohort | Waiting for signed candidate | 10+ fresh-machine records; ≥80% unassisted success; zero P0 |
 | GitHub Release 3.0 | Blocked on production credentials | Windows signature, macOS Developer ID/notarization, complete clean-runner assets |
 | Show HN and privacy/open-source/Python communities | Draft only | Signed release plus cohort gate |
-| Product Hunt | Not eligible | Non-developers repeatedly install and complete the sample without help |
+| Product Hunt | Draft complete; not scheduled | Final maker confirmation, account eligibility, launch-day availability, and explicit unsigned-preview disclosure |
 | 8–12 week relaunches | Infrastructure ready | One shipped outcome, evidence, notes, and retrospective per cycle |
 
 Never bypass a gate to meet a date. Update this table with linked evidence when
