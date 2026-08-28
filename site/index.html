@@ -3,12 +3,18 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>PDF Editor Offline</title>
-    <meta name="description" content="Redact sensitive text locally and get content-free evidence that it is actually gone.">
+    <title>PDF Editor Offline — Private, local and free</title>
+    <meta name="description" content="A free, open-source PDF editor that runs on your computer. Edit, sign, organize, convert and redact without uploads, accounts or an Adobe subscription.">
+    <meta name="theme-color" content="#f3efe5">
+    <meta property="og:title" content="PDF Editor Offline — Your PDFs stay yours">
+    <meta property="og:description" content="Edit PDFs on your computer. No uploads, no account and no Adobe subscription.">
+    <meta property="og:image" content="https://raw.githubusercontent.com/OthmaneBlial/pdf-editor-offline/main/social-preview.png">
     <link rel="stylesheet" href="styles.css?v=20260824-mobile-4">
+    <link rel="stylesheet" href="home.css?v=20260828-simple-1">
   </head>
-  <body>
+  <body class="home">
     <a class="skip-link" href="#main">Skip to content</a>
+
     <header class="site-header">
       <a class="brand" href="index.html" aria-label="PDF Editor Offline home">
         <span class="brand-mark">PDF</span>
@@ -19,338 +25,305 @@
         <span>Menu</span>
       </button>
       <nav id="site-navigation" class="site-nav" aria-label="Primary navigation" data-site-nav>
-        <a href="#features">Features</a>
+        <a href="#features">What it does</a>
+        <a href="#privacy">Privacy</a>
         <a href="#demo">Demo</a>
-        <a href="#proof">Proof</a>
-        <a href="trust-lab.html">Trust Lab</a>
-        <a href="#download">Download</a>
-        <a href="#install">Run</a>
+        <a href="#proof">Screens</a>
         <a href="docs.html">Docs</a>
         <a href="https://github.com/OthmaneBlial/pdf-editor-offline">GitHub</a>
+        <a class="nav-cta" href="#download">Get it free</a>
       </nav>
     </header>
 
     <main id="main">
-      <section class="hero section-band">
+      <section class="home-hero" aria-labelledby="hero-title">
         <div class="hero-copy">
-          <p class="eyebrow">Verified local redaction</p>
-          <h1>PDF Editor Offline</h1>
+          <p class="eyebrow"><span aria-hidden="true"></span> Free · open source · local-first</p>
+          <h1 id="hero-title">Edit PDFs.<br><em>Keep them private.</em></h1>
           <p class="hero-lede">
-            Redact sensitive text on your machine—and get evidence that it is actually gone. No account, document upload, analytics, or cloud storage.
+            A full PDF editor that runs on your computer. Edit, sign, organize,
+            convert, redact, and clean private data—without sending your files
+            to the cloud.
           </p>
-          <div class="hero-badges" aria-label="Project guarantees">
-            <span>Local-first</span>
-            <span>Content-free proof</span>
-            <span>Copy-first edits</span>
-          </div>
+          <p class="hero-promise">No uploads. No account. No Adobe subscription.</p>
           <div class="hero-actions" aria-label="Primary actions">
-            <a class="button primary" href="#download">Download for your OS</a>
-            <a class="button secondary" href="#demo">See the 60-second proof</a>
+            <a class="button primary" href="#download">Get PDF Editor Offline <span aria-hidden="true">↓</span></a>
+            <a class="button secondary" href="#demo">Watch the real app <span aria-hidden="true">▶</span></a>
+          </div>
+          <p class="hero-note">Windows · macOS · Linux · Python 3.10–3.12</p>
+        </div>
+
+        <div class="hero-product" aria-label="PDF Editor Offline product preview">
+          <div class="privacy-stamp" aria-hidden="true">
+            <strong>STAYS HERE</strong>
+            <span>on your computer</span>
+          </div>
+          <div class="app-window">
+            <div class="window-bar" aria-hidden="true">
+              <span></span><span></span><span></span>
+              <small>localhost · private session</small>
+            </div>
+            <img src="assets/screenshots/01-editor-workspace.png" alt="PDF Editor Offline workspace with a PDF open locally">
+          </div>
+          <div class="no-cloud-card">
+            <span class="status-dot" aria-hidden="true"></span>
+            <div><strong>Local processing</strong><span>Your document never needs to leave this device.</span></div>
           </div>
         </div>
-        <div class="hero-media" aria-label="Project header artwork">
-          <img src="assets/readme-header.svg" alt="PDF Editor Offline product header">
-        </div>
       </section>
 
-      <section class="metrics" aria-label="Project facts">
-        <div>
-          <strong>9</strong>
-          <span>Trust Lab fixtures</span>
-        </div>
-        <div>
-          <strong>8</strong>
-          <span>stable evidence schemas</span>
-        </div>
-        <div>
-          <strong>0</strong>
-          <span>document telemetry</span>
-        </div>
-        <div>
-          <strong>3</strong>
-          <span>independent engines</span>
-        </div>
+      <section class="promise-strip" aria-label="Product promises">
+        <div><strong>100%</strong><span>local workflow</span></div>
+        <div><strong>0</strong><span>required accounts</span></div>
+        <div><strong>No</strong><span>subscription</span></div>
+        <div><strong>MIT</strong><span>open source</span></div>
       </section>
 
-      <section class="section split-section" aria-labelledby="trust-lab-heading">
-        <div class="section-heading compact">
-          <p class="eyebrow">Public compatibility evidence</p>
-          <h2 id="trust-lab-heading">PDF Trust Lab</h2>
-          <p>Nine synthetic fixtures run across PyMuPDF, pdfplumber, and PDFium. Release results publish page consensus, extraction counts, render deltas, engine versions, and stable JSON schemas—never document content.</p>
-        </div>
-        <div class="code-stack">
-          <a class="button primary" href="trust-lab.html">Open the results dashboard</a>
-          <a class="button secondary" href="https://github.com/OthmaneBlial/pdf-editor-offline/tree/main/trust_lab">Reuse the fixtures</a>
-        </div>
-      </section>
-
-      <section id="download" class="section download-section" aria-labelledby="download-heading">
-        <div class="section-heading">
-          <p class="eyebrow">Desktop release channel</p>
-          <h2 id="download-heading">Download for your OS</h2>
-          <p>
-            An owner-authorized 3.0.0 technical preview is available without native signatures. It is not the stable release: Windows has no Authenticode identity and both macOS builds are not notarized. Clean-machine smoke, checksums, SBOMs, and GitHub provenance still apply.
-          </p>
-        </div>
-        <div class="download-grid">
-          <article class="download-card">
-            <span class="platform-mark" aria-hidden="true">WIN</span>
-            <div><h3>Windows</h3><p>Windows 10/11 · x64 · unsigned NSIS installer</p></div>
-            <a class="button secondary" href="https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/desktop-preview-3.0.0">Open unsigned preview</a>
-          </article>
-          <article class="download-card">
-            <span class="platform-mark" aria-hidden="true">ARM</span>
-            <div><h3>macOS Apple Silicon</h3><p>macOS 11+ · arm64 · ad-hoc DMG, not notarized</p></div>
-            <a class="button secondary" href="https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/desktop-preview-3.0.0">Open unsigned preview</a>
-          </article>
-          <article class="download-card">
-            <span class="platform-mark" aria-hidden="true">X64</span>
-            <div><h3>macOS Intel</h3><p>macOS 11+ · x64 · ad-hoc DMG, not notarized</p></div>
-            <a class="button secondary" href="https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/desktop-preview-3.0.0">Open unsigned preview</a>
-          </article>
-          <article class="download-card">
-            <span class="platform-mark" aria-hidden="true">LNX</span>
-            <div><h3>Linux</h3><p>Ubuntu 22.04/24.04 · x64 · AppImage or DEB</p></div>
-            <a class="button secondary" href="https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/desktop-preview-3.0.0">Open unsigned preview</a>
-          </article>
-        </div>
-        <div class="release-gate" role="status">
-          <strong>3.0.0 unsigned technical preview</strong>
-          <span>Do not disable OS security just to run it. Native signing remains required only for the future stable channel; source, PyPI, and Docker remain available below.</span>
-          <a href="https://github.com/OthmaneBlial/pdf-editor-offline/blob/main/docs/DESKTOP_DISTRIBUTION.md">How to verify a download</a>
-          <a href="https://github.com/OthmaneBlial/pdf-editor-offline/blob/main/docs/CODE_SIGNING_POLICY.md">Code signing policy · no provider application submitted</a>
-        </div>
-      </section>
-
-      <section id="features" class="section">
-        <div class="section-heading">
-          <p class="eyebrow">What the repo supports</p>
-          <h2>One local toolchain for common PDF jobs</h2>
-          <p>
-            The public surface is split into web workflows, API endpoints, CLI commands, and reusable Python core modules.
-          </p>
+      <section id="features" class="home-section feature-section" aria-labelledby="features-title">
+        <div class="section-intro">
+          <p class="eyebrow">A real PDF toolbox</p>
+          <h2 id="features-title">Everything you need.<br><em>Nothing watching you.</em></h2>
+          <p>Everyday PDF jobs in one local workspace, from quick page changes to permanent redaction.</p>
         </div>
         <p class="mobile-rail-hint" aria-hidden="true">Swipe to explore <span>→</span></p>
         <div class="feature-grid mobile-rail" tabindex="0" aria-label="Product capabilities; scroll horizontally on small screens">
-          <article class="feature-tile">
-            <span>01</span>
-            <h3>Edit and annotate</h3>
-            <p>Page editing, metadata, watermarks, signatures, drawings, comments, images, file attachments, popup notes, polygons, and annotation appearance controls.</p>
+          <article class="feature-tile feature-edit">
+            <span class="feature-number">01</span>
+            <div class="feature-symbol" aria-hidden="true">Aa</div>
+            <h3>Edit & annotate</h3>
+            <p>Add text, images, drawings, highlights, comments, stamps, watermarks, and attachments.</p>
           </article>
-          <article class="feature-tile">
-            <span>02</span>
-            <h3>Convert both ways</h3>
-            <p>PDF export to Word, PowerPoint, Excel, JPG, Markdown, TXT, EPUB, SVG, and PDF/A, plus document, text, image, CSV, JSON, and HTML imports.</p>
+          <article class="feature-tile feature-sign">
+            <span class="feature-number">02</span>
+            <div class="feature-symbol" aria-hidden="true">✎</div>
+            <h3>Fill & sign</h3>
+            <p>Complete standard forms and add a typed, drawn, image, or certificate-backed signature.</p>
           </article>
-          <article class="feature-tile">
-            <span>03</span>
-            <h3>Manipulate pages</h3>
-            <p>Merge, split, extract, insert, duplicate, organize, rotate, crop, resize, compress, repair, number, and remove blank pages.</p>
+          <article class="feature-tile feature-pages">
+            <span class="feature-number">03</span>
+            <div class="feature-symbol" aria-hidden="true">▤</div>
+            <h3>Organize pages</h3>
+            <p>Merge, split, reorder, rotate, crop, duplicate, compress, number, and remove blank pages.</p>
           </article>
-          <article class="feature-tile">
-            <span>04</span>
-            <h3>Protect privacy</h3>
-            <p>AES PDF protection, granular permissions, unlock, metadata cleanup, hidden data cleanup, permanent redaction, temp cleanup, and safe upload validation.</p>
+          <article class="feature-tile feature-convert">
+            <span class="feature-number">04</span>
+            <div class="feature-symbol" aria-hidden="true">↔</div>
+            <h3>Convert files</h3>
+            <p>Move between PDF, Word, PowerPoint, Excel, images, Markdown, text, EPUB, SVG, and PDF/A.</p>
           </article>
-          <article class="feature-tile">
-            <span>05</span>
-            <h3>Inspect before sharing</h3>
-            <p>Content-free accessibility inspection, visual and semantic change review, Safe Edit refusal gates, redaction proof, and versioned Trust Lab evidence.</p>
+          <article class="feature-tile feature-clean">
+            <span class="feature-number">05</span>
+            <div class="feature-symbol" aria-hidden="true">⌁</div>
+            <h3>Clean private data</h3>
+            <p>Inspect and remove metadata, attachments, links, annotations, form data, and other hidden details.</p>
           </article>
-          <article class="feature-tile">
-            <span>06</span>
-            <h3>Automation ready</h3>
-            <p>FastAPI routes, Typer commands including inspect-accessibility and content-edit-check, stable JSON schemas, batch examples, local sample PDFs, and browser-tested workflows.</p>
+          <article class="feature-tile feature-redact">
+            <span class="feature-number">06</span>
+            <div class="feature-symbol redact-symbol" aria-hidden="true">SECRET</div>
+            <h3>Redact for real</h3>
+            <p>Permanently remove sensitive text, export a separate copy, and verify what remains.</p>
           </article>
+        </div>
+        <div class="feature-foot">
+          <span>Also included: local OCR, PDF protection, accessibility inspection, CLI, Python API, and FastAPI automation.</span>
+          <a href="docs.html">Explore every capability <span aria-hidden="true">→</span></a>
         </div>
       </section>
 
-      <section class="workflow section-band">
-        <div class="section-heading compact">
-          <p class="eyebrow">Local workflow</p>
-          <h2>Upload locally, operate locally, export locally.</h2>
-        </div>
-        <ol class="workflow-list">
-          <li>
-            <strong>Start the app</strong>
-            <span>Run the backend and Vite frontend, then open the local web workspace.</span>
-          </li>
-          <li>
-            <strong>Load a PDF</strong>
-            <span>Use the editor upload flow or API upload endpoint. Files stay in local app storage.</span>
-          </li>
-          <li>
-            <strong>Choose a tool</strong>
-            <span>Edit pages, convert files, manage navigation, add annotations, clean metadata, or run batch work.</span>
-          </li>
-          <li>
-            <strong>Export the result</strong>
-            <span>Save the edited PDF or download converted outputs from the browser, CLI, or API.</span>
-          </li>
-        </ol>
-      </section>
-
-      <section id="demo" class="section demo-section">
-        <div class="section-heading">
-          <p class="eyebrow">60-second product proof</p>
-          <h2>Watch the sensitive text disappear.</h2>
+      <section id="privacy" class="privacy-section" aria-labelledby="privacy-title">
+        <div class="privacy-copy">
+          <p class="eyebrow">Privacy is the default</p>
+          <h2 id="privacy-title">Your documents are<br><em>not the product.</em></h2>
           <p>
-            A real capture of the local app with the repository's synthetic redaction PDF. No staged dashboard, no production document, no cloud service.
+            Desktop and source mode keep processing on your device. There is no
+            account, document telemetry, hidden upload, or cloud conversion service.
           </p>
+          <ul class="privacy-list">
+            <li><span aria-hidden="true">✓</span><div><strong>Work offline</strong><small>Open, edit, and export without a cloud connection.</small></div></li>
+            <li><span aria-hidden="true">✓</span><div><strong>Keep the original</strong><small>High-risk edits create a separate copy and recovery checkpoints.</small></div></li>
+            <li><span aria-hidden="true">✓</span><div><strong>See what was checked</strong><small>Verification reports say what passed, failed, or could not run.</small></div></li>
+          </ul>
+          <a class="text-link" href="https://github.com/OthmaneBlial/pdf-editor-offline/blob/main/docs/PRIVACY.md">Read the plain-language privacy contract <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="privacy-visual" aria-label="Diagram showing files remaining on the current device">
+          <div class="device-shell">
+            <div class="device-camera" aria-hidden="true"></div>
+            <div class="device-screen">
+              <div class="local-file" aria-hidden="true">
+                <span>PDF</span>
+                <i></i><i></i><i></i>
+              </div>
+              <strong>YOUR DEVICE</strong>
+              <small>PDF opens here</small>
+              <span class="local-pill">● PROCESSING LOCALLY</span>
+            </div>
+          </div>
+          <div class="blocked-cloud" aria-hidden="true">
+            <span>☁</span>
+            <strong>NO UPLOAD</strong>
+          </div>
+        </div>
+        <p class="privacy-boundary">Self-hosted and Docker modes process files on the host you choose; that host becomes the privacy boundary.</p>
+      </section>
+
+      <section id="demo" class="home-section demo-section" aria-labelledby="demo-title">
+        <div class="section-intro demo-intro">
+          <p class="eyebrow">See it, don't just trust it</p>
+          <h2 id="demo-title">One minute.<br><em>A real local workflow.</em></h2>
+          <p>Watch a synthetic PDF get opened, searched, permanently redacted, exported, and checked again.</p>
         </div>
         <div class="demo-shell">
           <div class="demo-screen">
-            <video
-              controls
-              loop
-              muted
-              playsinline
-              preload="metadata"
-              poster="assets/product-demo-poster.webp"
-              aria-describedby="demo-description"
-              data-product-demo
-            >
+            <video controls loop muted playsinline preload="metadata" poster="assets/product-demo-poster.webp" aria-describedby="demo-description" data-product-demo>
               <source src="assets/product-demo.mp4" type="video/mp4">
               <a href="assets/product-demo.gif">Open the animated product demo</a>
             </video>
-            <p id="demo-description" class="demo-caption">
-              Silent 60-second sequence: verify the local runtime, load the synthetic sample, find two SECRET_TOKEN matches, redact both, verify zero matches, and inspect the result.
-            </p>
+            <p id="demo-description" class="demo-caption">A silent 60-second redaction demo using a public synthetic test PDF.</p>
           </div>
           <div class="demo-guide">
-            <p class="demo-kicker">Reproduce in under five minutes</p>
+            <p class="demo-kicker">What happens</p>
             <ol>
-              <li><strong>Confirm local.</strong><span>Loopback API, token required, telemetry off.</span></li>
-              <li><strong>Load the fixture.</strong><span>Use the public synthetic redaction sample.</span></li>
-              <li><strong>Find before editing.</strong><span>Expect exactly two target matches.</span></li>
-              <li><strong>Redact and verify.</strong><span>Apply both areas, then expect zero matches.</span></li>
-              <li><strong>Export and reopen.</strong><span>Repeat the search on the saved copy.</span></li>
+              <li><strong>Open locally</strong><span>The app confirms its loopback-only private session.</span></li>
+              <li><strong>Find the secret</strong><span>Two synthetic test matches are found before editing.</span></li>
+              <li><strong>Redact both</strong><span>The source stays untouched while a new copy is created.</span></li>
+              <li><strong>Verify the result</strong><span>The saved copy is checked until zero matches remain.</span></li>
             </ol>
             <div class="demo-actions">
-              <a class="button primary" href="assets/samples/demo-redaction.pdf">Get the safe sample</a>
-              <a class="button secondary" href="https://github.com/OthmaneBlial/pdf-editor-offline/blob/main/docs/FIVE_MINUTE_REDACTION_WORKFLOW.md">Read exact steps</a>
+              <a class="button primary" href="assets/samples/demo-redaction.pdf">Download the safe sample</a>
+              <a class="button secondary" href="https://github.com/OthmaneBlial/pdf-editor-offline/blob/main/docs/FIVE_MINUTE_REDACTION_WORKFLOW.md">Follow the steps</a>
             </div>
           </div>
         </div>
       </section>
 
-      <section id="proof" class="section">
-        <div class="section-heading">
-          <p class="eyebrow">Captured proof</p>
-          <h2>Real screenshots from the local app</h2>
-          <p>
-            These images were captured after real API-backed operations using the sample PDFs included in this repository.
-          </p>
+      <section id="proof" class="home-section proof-section" aria-labelledby="proof-title">
+        <div class="section-intro">
+          <p class="eyebrow">The actual product</p>
+          <h2 id="proof-title">No mockups.<br><em>Real screens.</em></h2>
+          <p>Captured from API-backed workflows using the safe sample PDFs included in the repository.</p>
         </div>
         <p class="mobile-rail-hint" aria-hidden="true">Swipe through real screens <span>→</span></p>
         <div class="proof-grid mobile-rail" tabindex="0" aria-label="Product screenshots; scroll horizontally on small screens">
           <figure>
-            <button class="image-button" type="button" data-full="assets/screenshots/01-editor-workspace.png">
-              <img src="assets/screenshots/01-editor-workspace.png" alt="Editor workspace with demo PDF loaded">
-            </button>
-            <figcaption>Editor workspace after uploading <code>demo-basic.pdf</code>.</figcaption>
+            <button class="image-button" type="button" data-full="assets/screenshots/01-editor-workspace.png"><img src="assets/screenshots/01-editor-workspace.png" alt="Editor workspace with a PDF open locally"></button>
+            <figcaption><strong>Open and edit</strong><span>Your PDF in the local workspace.</span></figcaption>
           </figure>
           <figure>
-            <button class="image-button" type="button" data-full="assets/screenshots/02-text-search-redaction.png">
-              <img src="assets/screenshots/02-text-search-redaction.png" alt="Text search and redaction tool result">
-            </button>
-            <figcaption>Text search, font data, and permanent redaction.</figcaption>
+            <button class="image-button" type="button" data-full="assets/screenshots/02-text-search-redaction.png"><img src="assets/screenshots/02-text-search-redaction.png" alt="Text search and permanent redaction result"></button>
+            <figcaption><strong>Search and redact</strong><span>Find text, remove it, then check again.</span></figcaption>
           </figure>
           <figure>
-            <button class="image-button" type="button" data-full="assets/screenshots/05-annotations-file-attachment.png">
-              <img src="assets/screenshots/05-annotations-file-attachment.png" alt="File attachment annotation success">
-            </button>
-            <figcaption>File attachment annotation created through the web app.</figcaption>
+            <button class="image-button" type="button" data-full="assets/screenshots/07-security-privacy-cleanup.png"><img src="assets/screenshots/07-security-privacy-cleanup.png" alt="Privacy cleanup tools for PDF documents"></button>
+            <figcaption><strong>Clean private data</strong><span>Inspect metadata and hidden information.</span></figcaption>
           </figure>
           <figure>
-            <button class="image-button" type="button" data-full="assets/screenshots/07-security-privacy-cleanup.png">
-              <img src="assets/screenshots/07-security-privacy-cleanup.png" alt="Security and privacy cleanup tools">
-            </button>
-            <figcaption>Metadata and hidden-data cleanup tools.</figcaption>
+            <button class="image-button" type="button" data-full="assets/screenshots/08-manipulation-merge.png"><img src="assets/screenshots/08-manipulation-merge.png" alt="Two PDF files merged successfully"></button>
+            <figcaption><strong>Organize pages</strong><span>Merge files into a new PDF.</span></figcaption>
           </figure>
           <figure>
-            <button class="image-button" type="button" data-full="assets/screenshots/08-manipulation-merge.png">
-              <img src="assets/screenshots/08-manipulation-merge.png" alt="PDF merge success">
-            </button>
-            <figcaption>Two sample PDFs merged successfully.</figcaption>
+            <button class="image-button" type="button" data-full="assets/screenshots/05-annotations-file-attachment.png"><img src="assets/screenshots/05-annotations-file-attachment.png" alt="File attachment annotation added to a PDF"></button>
+            <figcaption><strong>Add annotations</strong><span>Attach files, notes, drawings, and more.</span></figcaption>
           </figure>
           <figure>
-            <button class="image-button" type="button" data-full="assets/screenshots/09-conversion-pdf-to-txt.png">
-              <img src="assets/screenshots/09-conversion-pdf-to-txt.png" alt="PDF to TXT conversion tool">
-            </button>
-            <figcaption>PDF to TXT conversion from the conversion panel.</figcaption>
+            <button class="image-button" type="button" data-full="assets/screenshots/09-conversion-pdf-to-txt.png"><img src="assets/screenshots/09-conversion-pdf-to-txt.png" alt="PDF converted to a text file"></button>
+            <figcaption><strong>Convert files</strong><span>Export content to common formats.</span></figcaption>
           </figure>
         </div>
       </section>
 
-      <section id="install" class="section split-section">
-        <div class="section-heading compact">
-          <p class="eyebrow">Source and automation</p>
-          <h2>Use PyPI, source, or Docker.</h2>
-          <p>
-            The repo supports a Python package, local web app, Docker image, and direct Python imports.
-          </p>
+      <section id="download" class="download-section home-section" aria-labelledby="download-title">
+        <div class="download-head">
+          <p class="eyebrow">Free and open source</p>
+          <h2 id="download-title">Your PDF editor.<br><em>Your computer.</em></h2>
+          <p>Try the current desktop preview, or run the full app locally from source.</p>
         </div>
-        <div class="code-stack">
-          <div class="code-card">
-            <div class="code-card-head">
-              <span>Install from package</span>
-              <button class="copy-code" type="button" data-copy-target="code-install">Copy</button>
-            </div>
-            <pre id="code-install"><code>pip install pdf-editor-offline</code></pre>
-          </div>
-          <div class="code-card">
-            <div class="code-card-head">
-              <span>Run from source</span>
-              <button class="copy-code" type="button" data-copy-target="code-source">Copy</button>
-            </div>
+        <div class="download-grid">
+          <article class="download-card">
+            <span class="platform-mark" aria-hidden="true">⊞</span>
+            <div><h3>Windows</h3><p>Windows 10/11 · x64</p></div>
+            <a class="button primary" href="https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/desktop-preview-3.0.0">Open download</a>
+          </article>
+          <article class="download-card">
+            <span class="platform-mark" aria-hidden="true">⌘</span>
+            <div><h3>macOS</h3><p>Apple Silicon or Intel · macOS 11+</p></div>
+            <a class="button primary" href="https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/desktop-preview-3.0.0">Open download</a>
+          </article>
+          <article class="download-card">
+            <span class="platform-mark" aria-hidden="true">⌁</span>
+            <div><h3>Linux</h3><p>Ubuntu 22.04/24.04 · AppImage or DEB</p></div>
+            <a class="button primary" href="https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/desktop-preview-3.0.0">Open download</a>
+          </article>
+          <article class="download-card source-card">
+            <span class="platform-mark" aria-hidden="true">&lt;/&gt;</span>
+            <div><h3>Run from source</h3><p>Local web app · Python 3.10–3.12</p></div>
+            <a class="button primary" href="#install">See quick start</a>
+          </article>
+        </div>
+        <div class="release-gate" role="note">
+          <strong>Technical preview</strong>
+          <span>Desktop downloads are currently unsigned. Windows or macOS may warn or block them. Never disable OS security just to run the preview.</span>
+          <a href="https://github.com/OthmaneBlial/pdf-editor-offline/blob/main/docs/DESKTOP_DISTRIBUTION.md">Verify a download →</a>
+        </div>
+      </section>
+
+      <section id="install" class="install-section home-section" aria-labelledby="install-title">
+        <div class="section-intro compact">
+          <p class="eyebrow">For developers and self-hosters</p>
+          <h2 id="install-title">Run it your way.</h2>
+          <p>Start the visual editor locally, install the CLI, or reuse the Python and FastAPI layers.</p>
+        </div>
+        <div class="install-grid">
+          <div class="code-card featured-code">
+            <div class="code-card-head"><span>Complete local app</span><button class="copy-code" type="button" data-copy-target="code-source">Copy</button></div>
             <pre id="code-source"><code>git clone https://github.com/OthmaneBlial/pdf-editor-offline.git
 cd pdf-editor-offline
 pip install -e ".[dev]"
 ./start.sh</code></pre>
           </div>
           <div class="code-card">
-            <div class="code-card-head">
-              <span>CLI examples</span>
-              <button class="copy-code" type="button" data-copy-target="code-cli">Copy</button>
-            </div>
-            <pre id="code-cli"><code>pdf-editor-offline extract text input.pdf
-pdf-editor-offline extract images input.pdf --output-dir ./images
-pdf-editor-offline edit metadata input.pdf title "Quarterly Report"
-pdf-editor-offline add image input.pdf stamp.png 0 100 120 180 80 --output stamped.pdf</code></pre>
+            <div class="code-card-head"><span>CLI and Python package</span><button class="copy-code" type="button" data-copy-target="code-install">Copy</button></div>
+            <pre id="code-install"><code>pip install pdf-editor-offline
+pdf-editor-offline --version</code></pre>
+          </div>
+          <div class="code-card">
+            <div class="code-card-head"><span>Docker API</span><button class="copy-code" type="button" data-copy-target="code-docker">Copy</button></div>
+            <pre id="code-docker"><code>docker pull othmaneblial/pdf-editor-offline</code></pre>
           </div>
         </div>
       </section>
 
-      <section class="section samples">
-        <div class="section-heading">
-          <p class="eyebrow">Local fixtures</p>
-          <h2>Sample PDFs included for demos and smoke tests</h2>
+      <section class="trust-section home-section" aria-labelledby="trust-title">
+        <div>
+          <p class="eyebrow">Proof, not vague promises</p>
+          <h2 id="trust-title">Want to inspect the evidence?</h2>
+          <p>The public Trust Lab shows what the project tested, which PDF engines ran, and where support still has limits—without publishing document content.</p>
         </div>
-        <p class="mobile-rail-hint" aria-hidden="true">Swipe through safe samples <span>→</span></p>
-        <div class="sample-list mobile-rail" tabindex="0" aria-label="Sample PDFs; scroll horizontally on small screens">
-          <a href="assets/samples/demo-basic.pdf">
-            <strong>demo-basic.pdf</strong>
-            <span>General editing, annotations, export, and conversion.</span>
-          </a>
-          <a href="assets/samples/demo-redaction.pdf">
-            <strong>demo-redaction.pdf</strong>
-            <span>Permanent redaction checks for sensitive text.</span>
-          </a>
-          <a href="assets/samples/demo-privacy.pdf">
-            <strong>demo-privacy.pdf</strong>
-            <span>Metadata, embedded file, link, and annotation cleanup.</span>
-          </a>
+        <div class="trust-actions">
+          <a class="button primary" href="trust-lab.html">Open the PDF Trust Lab</a>
+          <a class="button secondary" href="docs.html">Read the documentation</a>
         </div>
       </section>
 
-      <section class="section docs-cta">
-        <div>
-          <p class="eyebrow">Deeper documentation</p>
-          <h2>Need the full project map?</h2>
-          <p>The docs page covers architecture, tool categories, API surface, security and privacy, examples, release checks, and copied source docs.</p>
+      <section class="home-section samples" aria-labelledby="samples-title">
+        <div class="section-intro compact">
+          <p class="eyebrow">Safe files to try</p>
+          <h2 id="samples-title">Test it without using a private PDF.</h2>
         </div>
-        <a class="button primary" href="docs.html">Open documentation</a>
+        <p class="mobile-rail-hint" aria-hidden="true">Swipe through safe samples <span>→</span></p>
+        <div class="sample-list mobile-rail" tabindex="0" aria-label="Sample PDFs; scroll horizontally on small screens">
+          <a href="assets/samples/demo-basic.pdf"><strong>demo-basic.pdf</strong><span>Editing, annotations, and exports.</span><b aria-hidden="true">↓</b></a>
+          <a href="assets/samples/demo-redaction.pdf"><strong>demo-redaction.pdf</strong><span>Permanent redaction checks.</span><b aria-hidden="true">↓</b></a>
+          <a href="assets/samples/demo-privacy.pdf"><strong>demo-privacy.pdf</strong><span>Metadata and hidden-data cleanup.</span><b aria-hidden="true">↓</b></a>
+        </div>
+      </section>
+
+      <section class="final-cta">
+        <p>PRIVATE PDF WORK SHOULD STAY PRIVATE PDF WORK.</p>
+        <h2>Edit locally.<br>Share only the result.</h2>
+        <div>
+          <a class="button primary" href="#download">Get PDF Editor Offline</a>
+          <a class="button secondary" href="https://github.com/OthmaneBlial/pdf-editor-offline">Star on GitHub <span aria-hidden="true">☆</span></a>
+        </div>
       </section>
     </main>
 
@@ -360,10 +333,16 @@ pdf-editor-offline add image input.pdf stamp.png 0 100 120 180 80 --output stamp
     </div>
 
     <footer class="site-footer">
-      <span>PDF Editor Offline</span>
-      <span>MIT License</span>
-      <a href="https://github.com/OthmaneBlial/pdf-editor-offline">Repository</a>
+      <div><span class="brand-mark">PDF</span><strong>PDF Editor Offline</strong></div>
+      <p>Free, private, local-first PDF editing. MIT licensed.</p>
+      <nav aria-label="Footer navigation">
+        <a href="docs.html">Docs</a>
+        <a href="trust-lab.html">Trust Lab</a>
+        <a href="https://github.com/OthmaneBlial/pdf-editor-offline">GitHub</a>
+        <a href="https://github.com/OthmaneBlial/pdf-editor-offline/blob/main/SECURITY.md">Security</a>
+      </nav>
     </footer>
+
     <script src="app.js?v=20260824-mobile-4"></script>
   </body>
 </html>

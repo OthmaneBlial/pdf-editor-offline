@@ -25,6 +25,12 @@ def test_public_pages_have_accessible_versioned_mobile_navigation():
 def test_homepage_uses_compact_touch_friendly_mobile_layout():
     page = (ROOT / "site/index.html").read_text()
     styles = (ROOT / "site/styles.css").read_text()
+    home_styles = (ROOT / "site/home.css").read_text()
+
+    assert "Edit PDFs." in page
+    assert "Keep them private." in page
+    assert "No uploads. No account. No Adobe subscription." in page
+    assert 'home.css?v=20260828-simple-1' in page
 
     assert page.count('class="mobile-rail-hint"') == 3
     assert page.count('class="feature-grid mobile-rail"') == 1
@@ -38,6 +44,8 @@ def test_homepage_uses_compact_touch_friendly_mobile_layout():
     assert "scroll-snap-type: inline mandatory;" in styles
     assert ".download-card .button" in styles
     assert "scroll-margin-top: 72px;" in styles
+    assert "grid-auto-columns: min(84vw, 330px);" in home_styles
+    assert ".privacy-section" in home_styles
 
 
 def test_trust_lab_generator_preserves_compact_mobile_header():

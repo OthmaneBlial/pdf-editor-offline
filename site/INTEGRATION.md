@@ -15,6 +15,7 @@ Open `http://127.0.0.1:4173/`.
 - `index.html`: product overview, proof screenshots, samples, and quick start
 - `docs.html`: detailed project documentation
 - `styles.css`: static responsive styling
+- `home.css`: distinctive landing-page design and responsive product layout
 - `app.js`: copy buttons, screenshot preview, and docs filtering
 - `assets/`: copied screenshots, sample PDFs, SVG header, and source Markdown docs
 
