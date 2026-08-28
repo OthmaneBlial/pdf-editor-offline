@@ -18,6 +18,8 @@
   ·
   <a href="https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/desktop-preview-3.0.0">Download the desktop preview</a>
   ·
+  <a href="https://www.producthunt.com/products/pdf-editor-offline?launch=pdf-editor-offline">View on Product Hunt</a>
+  ·
   <a href="#quick-start">Run it locally</a>
 </p>
 
