@@ -73,7 +73,7 @@ dev = [
     "jsonschema>=4.23,<5",
 ]
 e2e = [
-    "playwright>=1.52,<2",
+    "playwright>=1.62.0,<2",
 ]
 
 [project.urls]
