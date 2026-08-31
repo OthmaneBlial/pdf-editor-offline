@@ -70,7 +70,7 @@ dev = [
     "pytest",
     "pytest-cov",
     "httpx",
-    "jsonschema>=4.23,<5",
+    "jsonschema>=4.26.0,<5",
 ]
 e2e = [
     "playwright>=1.52,<2",
