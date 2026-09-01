@@ -7,7 +7,7 @@ Tests file validation, path traversal prevention, and input sanitization.
 import io
 import os
 
-import fitz
+import pymupdf as fitz
 import pytest
 from fastapi import HTTPException
 

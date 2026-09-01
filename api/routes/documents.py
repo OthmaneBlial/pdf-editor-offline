@@ -10,7 +10,7 @@ import uuid
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-import fitz
+import pymupdf
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from PIL import Image
@@ -135,7 +135,7 @@ def _validated_guarded_marks(session, request: GuardedRedactionRequest):
                 status_code=400,
                 detail="Redaction fill components must be between 0 and 1",
             )
-        rectangle = fitz.Rect(
+        rectangle = pymupdf.Rect(
             mark.x,
             mark.y,
             mark.x + mark.width,
@@ -427,7 +427,7 @@ async def inspect_document_accessibility(doc_id: str, max_pages: int = 200):
     document = session["document_manager"].get_document()
     try:
         report = inspect_accessibility(document, max_pages=max_pages)
-    except (OSError, ValueError, RuntimeError, fitz.FileDataError) as error:
+    except (OSError, ValueError, RuntimeError, pymupdf.FileDataError) as error:
         logger.warning("Accessibility inspection failed for %s: %s", doc_id, error)
         raise HTTPException(status_code=400, detail="Accessibility inspection failed safely") from error
     return APIResponse(
@@ -513,7 +513,7 @@ async def redact_page_area(doc_id: str, page_num: int, request: RedactionRequest
         raise HTTPException(status_code=400, detail=f"Invalid page number: {page_num}")
 
     page = doc[page_num]
-    rect = fitz.Rect(
+    rect = pymupdf.Rect(
         request.x,
         request.y,
         request.x + request.width,
@@ -615,7 +615,7 @@ async def apply_guarded_redaction(
     detached_document = None
     try:
         source_payload = Path(session["storage_path"]).read_bytes()
-        detached_document = fitz.open(stream=source_payload, filetype="pdf")
+        detached_document = pymupdf.open(stream=source_payload, filetype="pdf")
         pages_to_apply = set()
         for page_num, rectangle, fill_color in validated:
             detached_document[page_num].add_redact_annot(
@@ -625,9 +625,9 @@ async def apply_guarded_redaction(
             pages_to_apply.add(page_num)
         for page_num in pages_to_apply:
             detached_document[page_num].apply_redactions(
-                images=fitz.PDF_REDACT_IMAGE_PIXELS,
-                graphics=fitz.PDF_REDACT_LINE_ART_REMOVE_IF_TOUCHED,
-                text=fitz.PDF_REDACT_TEXT_REMOVE,
+                images=pymupdf.PDF_REDACT_IMAGE_PIXELS,
+                graphics=pymupdf.PDF_REDACT_LINE_ART_REMOVE_IF_TOUCHED,
+                text=pymupdf.PDF_REDACT_TEXT_REMOVE,
             )
 
         PDFPrivacyCleaner(detached_document).cleanup_hidden_data(
@@ -875,7 +875,7 @@ def _validated_selected_pages(document, pages: List[int]) -> list[int]:
     return selected
 
 
-def _bates_rectangle(page, position: str) -> tuple[fitz.Rect, int]:
+def _bates_rectangle(page, position: str) -> tuple[pymupdf.Rect, int]:
     margin = 18
     width = min(210, max(120, page.rect.width * 0.4))
     height = 24
@@ -883,8 +883,8 @@ def _bates_rectangle(page, position: str) -> tuple[fitz.Rect, int]:
     on_top = position.startswith("top")
     x0 = margin if on_left else page.rect.width - margin - width
     y0 = margin if on_top else page.rect.height - margin - height
-    alignment = fitz.TEXT_ALIGN_LEFT if on_left else fitz.TEXT_ALIGN_RIGHT
-    return fitz.Rect(x0, y0, x0 + width, y0 + height), alignment
+    alignment = pymupdf.TEXT_ALIGN_LEFT if on_left else pymupdf.TEXT_ALIGN_RIGHT
+    return pymupdf.Rect(x0, y0, x0 + width, y0 + height), alignment
 
 
 @router.post("/{doc_id}/pages/organize", response_model=APIResponse)
@@ -914,7 +914,7 @@ async def organize_selected_pages(doc_id: str, request: OrganizePagesRequest):
                 document.delete_page(page_number)
         elif request.action == "duplicate":
             for page_number in reversed(pages):
-                copy = fitz.open()
+                copy = pymupdf.open()
                 copy.insert_pdf(document, from_page=page_number, to_page=page_number)
                 document.insert_pdf(copy, start_at=page_number + 1)
                 copy.close()
@@ -923,7 +923,7 @@ async def organize_selected_pages(doc_id: str, request: OrganizePagesRequest):
                 page = document[page_number]
                 rect = page.rect
                 page.set_cropbox(
-                    fitz.Rect(
+                    pymupdf.Rect(
                         rect.x0 + request.crop_left,
                         rect.y0 + request.crop_top,
                         rect.x1 - request.crop_right,
@@ -958,8 +958,8 @@ async def detect_duplicate_pages(doc_id: str):
     for page_number, page in enumerate(document):
         scale = min(1.0, 1024 / max(page.rect.width, page.rect.height))
         pixmap = page.get_pixmap(
-            matrix=fitz.Matrix(scale, scale),
-            colorspace=fitz.csGRAY,
+            matrix=pymupdf.Matrix(scale, scale),
+            colorspace=pymupdf.csGRAY,
             alpha=False,
             annots=True,
         )
@@ -1138,7 +1138,7 @@ async def extract_pages(doc_id: str, request: ExtractPagesRequest):
             )
 
     # Create new document with selected pages
-    new_doc = fitz.open()
+    new_doc = pymupdf.open()
     for page_num in sorted(set(request.pages)):  # Remove duplicates and sort
         new_doc.insert_pdf(doc, from_page=page_num, to_page=page_num)
 
@@ -1175,12 +1175,12 @@ async def duplicate_page(doc_id: str, page_num: int, insert_at: Optional[int] = 
     # We need to create a new document with the page, then insert it
     import io
 
-    import fitz
+    import pymupdf
 
     source_page = doc[page_num]
 
     # Create a temporary PDF with just the page to duplicate
-    temp_doc = fitz.open()
+    temp_doc = pymupdf.open()
     temp_doc.insert_pdf(doc, from_page=page_num, to_page=page_num)
 
     # Insert the temporary doc's page into the main document
@@ -1244,11 +1244,11 @@ async def resize_page(
     scale_y = new_height / current_rect.height
 
     # Create new mediabox
-    new_rect = fitz.Rect(0, 0, new_width, new_height)
+    new_rect = pymupdf.Rect(0, 0, new_width, new_height)
     page.set_mediabox(new_rect)
 
     # Scale page content using transformation matrix
-    mat = fitz.Matrix(scale_x, scale_y)
+    mat = pymupdf.Matrix(scale_x, scale_y)
     # Note: This doesn't scale content, just sets new page size
     # For full content scaling, would need to re-render
 
@@ -1282,7 +1282,7 @@ async def crop_page(
     current_rect = page.rect
 
     # Calculate new crop box
-    new_rect = fitz.Rect(
+    new_rect = pymupdf.Rect(
         current_rect.x0 + left,
         current_rect.y0 + top,
         current_rect.x1 - right,
@@ -1324,7 +1324,7 @@ async def insert_pages_from_file(
     insert_doc = None
     snapshot_captured = False
     try:
-        insert_doc = fitz.open(temp_path)
+        insert_doc = pymupdf.open(temp_path)
         pages_to_insert = len(insert_doc)
         warnings = _organizer_preservation_warnings(doc, "insert")
         inserted_inventory = inspect_change_inventory(insert_doc)
@@ -1384,7 +1384,7 @@ async def interleave_pages_from_file(
     inserted = None
     snapshot_captured = False
     try:
-        inserted = fitz.open(temp_path)
+        inserted = pymupdf.open(temp_path)
         original_count = len(document)
         inserted_count = len(inserted)
         if inserted_count == 0:
@@ -1649,7 +1649,7 @@ async def create_flattened_form_copy(doc_id: str):
     output_path = os.path.join(TEMP_DIR, f"form_flattened_{uuid.uuid4().hex}.pdf")
     try:
         shutil.copy2(session["storage_path"], source_copy)
-        with fitz.open(source_copy) as document:
+        with pymupdf.open(source_copy) as document:
             flattened = FormHandler(document).flatten_form()
             document.save(output_path, garbage=4, clean=True, deflate=True)
     except Exception:
@@ -1693,7 +1693,7 @@ async def add_visual_signature(
         raise HTTPException(status_code=400, detail="Signature page is outside the document")
     if width <= 0 or height <= 0:
         raise HTTPException(status_code=400, detail="Signature dimensions must be positive")
-    rectangle = fitz.Rect(x, y, x + width, y + height)
+    rectangle = pymupdf.Rect(x, y, x + width, y + height)
     if not document[page_num].rect.contains(rectangle):
         raise HTTPException(status_code=400, detail="Signature rectangle must fit inside its page")
 

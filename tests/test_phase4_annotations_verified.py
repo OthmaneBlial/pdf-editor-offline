@@ -3,7 +3,7 @@
 from pathlib import Path
 import wave
 
-import fitz
+import pymupdf as fitz
 import pytest
 
 from pdf_editor_offline.core.annotation_enhancer import AnnotationEnhancer

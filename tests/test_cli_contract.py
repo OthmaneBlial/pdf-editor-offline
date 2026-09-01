@@ -1,4 +1,4 @@
-import fitz
+import pymupdf as fitz
 from typer.testing import CliRunner
 
 from pdf_editor_offline import __version__

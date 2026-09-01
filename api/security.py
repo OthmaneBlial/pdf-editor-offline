@@ -233,9 +233,9 @@ def validate_pdf_file(file_content: bytes, filename: str, max_size_bytes: int) -
     # streams. This rejects corrupt files and obviously abusive declarations
     # before a long-lived editing session is created.
     try:
-        import fitz
+        import pymupdf
 
-        document = fitz.open(stream=file_content, filetype="pdf")
+        document = pymupdf.open(stream=file_content, filetype="pdf")
         try:
             if document.is_repaired:
                 raise HTTPException(

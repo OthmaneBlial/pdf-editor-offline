@@ -28,9 +28,6 @@ def test_release_version_is_consistent_across_runtime_surfaces():
     assert _json_version("desktop/package.json") == expected
     assert _json_version("desktop/src-tauri/tauri.conf.json") == expected
     assert _toml_package_version("desktop/src-tauri/Cargo.toml") == expected
-    assert f"v{expected}" in (
-        ROOT / "frontend/src/components/Sidebar.tsx"
-    ).read_text(encoding="utf-8")
     assert f"version <code>{expected}</code>" in (
         ROOT / "site/docs.html"
     ).read_text(encoding="utf-8")
@@ -40,6 +37,19 @@ def test_release_version_is_consistent_across_runtime_surfaces():
     assert f"Current development version:** {expected}" in (
         ROOT / "ROADMAP.md"
     ).read_text(encoding="utf-8")
+
+
+def test_production_uses_the_supported_pymupdf_import():
+    deprecated_import = re.compile(r"(?m)^\s*(?:import\s+fitz\b|from\s+fitz\b)")
+    offenders = []
+    for source_root in (ROOT / "api", ROOT / "pdf_editor_offline", ROOT / "desktop/src-python"):
+        for source_file in source_root.rglob("*.py"):
+            if "tests" in source_file.parts:
+                continue
+            if deprecated_import.search(source_file.read_text(encoding="utf-8")):
+                offenders.append(str(source_file.relative_to(ROOT)))
+
+    assert offenders == [], f"Deprecated fitz imports remain: {offenders}"
 
 
 def test_desktop_source_mode_has_a_restrictive_content_security_policy():

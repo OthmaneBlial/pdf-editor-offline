@@ -5,7 +5,7 @@ from __future__ import annotations
 import io
 import zipfile
 
-import fitz
+import pymupdf as fitz
 
 
 def malformed_pdf() -> bytes:

@@ -6,7 +6,7 @@ collaborative annotations, undo/redo, smart zoom, and fullscreen.
 
 import os
 
-import fitz
+import pymupdf as fitz
 import pytest
 
 

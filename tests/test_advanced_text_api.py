@@ -2,7 +2,7 @@
 
 import os
 
-import fitz
+import pymupdf as fitz
 
 
 def upload_pdf(api_client, path: str) -> str:

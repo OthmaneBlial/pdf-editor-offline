@@ -1,6 +1,6 @@
 from pathlib import Path
 
-import fitz
+import pymupdf as fitz
 
 import api.deps as deps
 

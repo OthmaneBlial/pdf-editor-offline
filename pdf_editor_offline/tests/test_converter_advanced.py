@@ -1,6 +1,6 @@
 import os
 
-import fitz
+import pymupdf as fitz
 import pandas as pd
 import pytest
 from pptx import Presentation

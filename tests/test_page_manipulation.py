@@ -5,7 +5,7 @@ Tests the new Phase 2 features: extract, duplicate, resize, crop, insert pages.
 
 import os
 
-import fitz
+import pymupdf as fitz
 import pytest
 
 from api.deps import TEMP_DIR

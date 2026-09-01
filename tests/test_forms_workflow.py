@@ -1,4 +1,4 @@
-import fitz
+import pymupdf as fitz
 
 
 CORPUS_FORMS = "trust_lab/corpus/v1/forms.pdf"

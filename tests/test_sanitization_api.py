@@ -2,7 +2,7 @@ import hashlib
 import json
 import os
 
-import fitz
+import pymupdf as fitz
 
 from api.deps import get_session, privacy_report_paths
 

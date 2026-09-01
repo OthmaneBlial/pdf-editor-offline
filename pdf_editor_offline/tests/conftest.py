@@ -1,7 +1,7 @@
 import os
 import tempfile
 
-import fitz
+import pymupdf as fitz
 import pytest
 
 

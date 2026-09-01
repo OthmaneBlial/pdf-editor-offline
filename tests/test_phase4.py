@@ -7,7 +7,7 @@ Tests for text processing, rich text, navigation, annotations, and image tools.
 import os
 import tempfile
 import pytest
-import fitz
+import pymupdf as fitz
 
 from pdf_editor_offline.core.text_processor import TextProcessor
 from pdf_editor_offline.core.rich_text_editor import RichTextEditor

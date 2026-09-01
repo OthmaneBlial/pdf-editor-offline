@@ -1,4 +1,4 @@
-import fitz
+import pymupdf as fitz
 import pytest
 
 from pdf_editor_offline.core.text_processor import TextProcessor

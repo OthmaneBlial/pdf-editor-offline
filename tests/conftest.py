@@ -4,7 +4,7 @@ import wave
 from typing import Iterator
 
 import docx
-import fitz
+import pymupdf as fitz
 import pandas as pd
 import pytest
 from fastapi.testclient import TestClient

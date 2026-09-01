@@ -1,6 +1,6 @@
 import json
 
-import fitz
+import pymupdf as fitz
 import pytest
 
 from pdf_editor_offline.core.redaction_verifier import (

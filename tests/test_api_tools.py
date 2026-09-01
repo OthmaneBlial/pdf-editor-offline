@@ -4,7 +4,7 @@ import shutil
 import zipfile
 from typing import Iterable, Tuple
 
-import fitz
+import pymupdf as fitz
 import pytest
 
 from api.deps import TEMP_DIR

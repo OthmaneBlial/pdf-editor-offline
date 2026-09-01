@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 import sqlite3
 
-import fitz
+import pymupdf as fitz
 import pytest
 
 from api import deps

@@ -1,6 +1,6 @@
 import hashlib
 
-import fitz
+import pymupdf as fitz
 
 from pdf_editor_offline.core.sanitization import (
     PROFILES,

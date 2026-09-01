@@ -2,7 +2,7 @@ import os
 import time
 from datetime import datetime, timedelta
 
-import fitz
+import pymupdf as fitz
 
 from api.deps import TEMP_DIR, session_store, sessions
 

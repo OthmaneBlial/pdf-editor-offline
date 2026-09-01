@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import socket
 
-import fitz
+import pymupdf as fitz
 import pytest
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization

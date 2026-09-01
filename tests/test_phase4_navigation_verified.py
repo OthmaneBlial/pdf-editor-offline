@@ -1,6 +1,6 @@
 """Focused Phase 4 navigation regressions backed by real PyMuPDF PDFs."""
 
-import fitz
+import pymupdf as fitz
 import pytest
 
 from pdf_editor_offline.core.exceptions import InvalidOperationError

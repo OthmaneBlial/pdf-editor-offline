@@ -2,7 +2,7 @@ import base64
 import io
 import os
 
-import fitz
+import pymupdf as fitz
 from PIL import Image, ImageDraw
 
 from api.deps import TEMP_DIR

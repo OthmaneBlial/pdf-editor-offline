@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 from typing import Callable
 
-import fitz
+import pymupdf as fitz
 from playwright.sync_api import Page, sync_playwright
 
 

@@ -2,7 +2,7 @@ import ipaddress
 import shutil
 import socket
 
-import fitz
+import pymupdf as fitz
 
 from api.routes import documents as document_routes
 from pdf_editor_offline.core.redaction_verifier import RedactionVerifier

@@ -7,7 +7,7 @@ Ensures 100% offline functionality.
 import os
 import zipfile
 
-import fitz
+import pymupdf as fitz
 import pytest
 
 from api.deps import TEMP_DIR

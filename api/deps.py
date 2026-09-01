@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
 from fastapi import HTTPException
-import fitz
+import pymupdf
 
 from api.security import sanitize_filename as sanitize_pdf_filename
 from api.storage import STORAGE_DIR, SessionRecord, session_store
@@ -379,7 +379,7 @@ def list_recovery_drafts() -> list[Dict[str, Any]]:
             continue
         try:
             size = os.path.getsize(record.storage_path)
-            with fitz.open(record.storage_path) as document:
+            with pymupdf.open(record.storage_path) as document:
                 page_count = len(document)
         except Exception as exc:
             logger.warning("Ignoring unreadable recovery draft %s: %s", record.session_id, exc)
@@ -407,11 +407,11 @@ def get_recovery_record(recovery_id: str) -> SessionRecord:
 def render_recovery_preview(recovery_id: str, page_num: int = 0) -> bytes:
     record = get_recovery_record(recovery_id)
     try:
-        with fitz.open(record.storage_path) as document:
+        with pymupdf.open(record.storage_path) as document:
             if page_num < 0 or page_num >= len(document):
                 raise HTTPException(status_code=400, detail="Invalid recovery page")
             pixmap = document[page_num].get_pixmap(
-                matrix=fitz.Matrix(0.8, 0.8), alpha=False
+                matrix=pymupdf.Matrix(0.8, 0.8), alpha=False
             )
             return pixmap.tobytes("png")
     except HTTPException:

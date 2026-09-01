@@ -1,6 +1,6 @@
 import html
 
-import fitz
+import pymupdf as fitz
 
 from pdf_editor_offline.core.rich_text_editor import RichTextEditor
 

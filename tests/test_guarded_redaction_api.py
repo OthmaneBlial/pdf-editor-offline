@@ -2,7 +2,7 @@ import hashlib
 import json
 import os
 
-import fitz
+import pymupdf as fitz
 
 from api.deps import get_session, redaction_report_paths
 from api.routes import documents as document_routes

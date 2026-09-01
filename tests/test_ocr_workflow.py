@@ -4,7 +4,7 @@ import threading
 import time
 from pathlib import Path
 
-import fitz
+import pymupdf as fitz
 import pytest
 from PIL import Image, ImageDraw, ImageFont
 

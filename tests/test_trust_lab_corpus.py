@@ -2,7 +2,7 @@ import json
 import re
 from pathlib import Path
 
-import fitz
+import pymupdf as fitz
 import pytest
 from cryptography.hazmat.primitives.serialization import pkcs7
 

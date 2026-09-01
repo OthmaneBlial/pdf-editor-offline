@@ -4,7 +4,7 @@ Comprehensive tests for Phase 2: Insert Pages functionality.
 
 import os
 
-import fitz
+import pymupdf as fitz
 import pytest
 
 
