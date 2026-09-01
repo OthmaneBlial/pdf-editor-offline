@@ -33,6 +33,32 @@ struct DesktopFilePayload {
     bytes: Vec<u8>,
 }
 
+fn read_pdf_payload(path: &Path) -> Result<DesktopFilePayload, String> {
+    let is_pdf = path
+        .extension()
+        .and_then(|value| value.to_str())
+        .is_some_and(|value| value.eq_ignore_ascii_case("pdf"));
+    if !is_pdf {
+        return Err("Only PDF documents can be opened".to_string());
+    }
+    if !path.is_file() {
+        return Err(format!("PDF document does not exist: {}", path.display()));
+    }
+
+    let bytes = fs::read(path).map_err(|error| error.to_string())?;
+    let name = path
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or("document.pdf")
+        .to_string();
+
+    Ok(DesktopFilePayload {
+        name,
+        size: bytes.len() as u64,
+        bytes,
+    })
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct RecentFile {
     name: String,
@@ -163,18 +189,12 @@ fn open_pdf_file() -> Result<Option<DesktopFilePayload>, String> {
         return Ok(None);
     };
 
-    let bytes = fs::read(&path).map_err(|error| error.to_string())?;
-    let name = path
-        .file_name()
-        .and_then(|value| value.to_str())
-        .unwrap_or("document.pdf")
-        .to_string();
+    read_pdf_payload(&path).map(Some)
+}
 
-    Ok(Some(DesktopFilePayload {
-        name,
-        size: bytes.len() as u64,
-        bytes,
-    }))
+#[tauri::command]
+fn open_pdf_path(path: PathBuf) -> Result<DesktopFilePayload, String> {
+    read_pdf_payload(&path)
 }
 
 #[tauri::command]
@@ -249,6 +269,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_api_connection,
             open_pdf_file,
+            open_pdf_path,
             save_file,
             recent_files_get,
             recent_files_add,
@@ -272,7 +293,7 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::{read_recent_files, write_recent_files, RecentFile};
+    use super::{read_pdf_payload, read_recent_files, write_recent_files, RecentFile};
     use std::fs;
 
     fn temp_recent_files_path() -> std::path::PathBuf {
@@ -310,5 +331,34 @@ mod tests {
         fs::remove_file(&path).expect("remove malformed state");
 
         assert!(reloaded.is_empty());
+    }
+
+    #[test]
+    fn desktop_drop_reads_pdf_paths_case_insensitively() {
+        let path = std::env::temp_dir().join(format!(
+            "pdf-editor-offline-drop-{}.PDF",
+            uuid::Uuid::new_v4().simple()
+        ));
+        fs::write(&path, b"%PDF-1.7\n").expect("write PDF fixture");
+
+        let payload = read_pdf_payload(&path).expect("read dropped PDF");
+        fs::remove_file(&path).expect("remove PDF fixture");
+
+        assert!(payload.name.ends_with(".PDF"));
+        assert_eq!(payload.bytes, b"%PDF-1.7\n");
+    }
+
+    #[test]
+    fn desktop_drop_rejects_non_pdf_paths() {
+        let path = std::env::temp_dir().join(format!(
+            "pdf-editor-offline-drop-{}.txt",
+            uuid::Uuid::new_v4().simple()
+        ));
+        fs::write(&path, b"not a PDF").expect("write non-PDF fixture");
+
+        let error = read_pdf_payload(&path).expect_err("reject non-PDF drop");
+        fs::remove_file(&path).expect("remove non-PDF fixture");
+
+        assert_eq!(error, "Only PDF documents can be opened");
     }
 }

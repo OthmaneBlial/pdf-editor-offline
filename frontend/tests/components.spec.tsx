@@ -33,7 +33,7 @@ describe('FileUpload', () => {
     vi.clearAllMocks();
   });
 
-  it('calls setDocument when a file is selected', () => {
+  it('opens the same selected file again after resetting the native input', () => {
     const file = new File(['content'], 'resume.pdf', { type: 'application/pdf' });
     const setDocument = vi.fn();
     useEditorMock.mockReturnValue({ setDocument });
@@ -41,6 +41,23 @@ describe('FileUpload', () => {
     const { container } = render(<FileUpload />);
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(input, { target: { files: [file] } });
+    fireEvent.change(input, { target: { files: [file] } });
+
+    expect(setDocument).toHaveBeenCalledTimes(2);
+    expect(setDocument).toHaveBeenNthCalledWith(1, file);
+    expect(setDocument).toHaveBeenNthCalledWith(2, file);
+    expect(input.value).toBe('');
+  });
+
+  it('accepts Windows drops whose PDF MIME type is empty', () => {
+    const file = new File(['content'], 'windows-sandbox.PDF', { type: '' });
+    const setDocument = vi.fn();
+    useEditorMock.mockReturnValue({ setDocument });
+
+    const { getByRole } = render(<FileUpload />);
+    fireEvent.drop(getByRole('button', { name: /Upload PDF file/i }), {
+      dataTransfer: { files: [file] },
+    });
 
     expect(setDocument).toHaveBeenCalledWith(file);
   });

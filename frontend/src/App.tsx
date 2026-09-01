@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { EditorProvider } from './contexts/EditorContext';
 import PDFViewer from './components/PDFViewer';
 import ShortcutsModal from './components/ShortcutsModal';
@@ -29,6 +29,9 @@ import { VIEW_LABELS, type ViewMode } from './lib/workflowCatalog';
 import './App.css';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useEditor } from './contexts/EditorContext';
+import { addRecentFile } from './services/recentFiles';
+import { listenForDesktopPdfDrops } from './lib/desktop';
+import { isPdfFile } from './lib/pdfFiles';
 
 export type { ViewMode } from './lib/workflowCatalog';
 
@@ -44,16 +47,80 @@ function KeyboardShortcutsHandler({ onShowHelp }: { onShowHelp: () => void }) {
 
 // Inner component with access to EditorContext
 function AppContent() {
-  const { documentMutationVersion } = useEditor();
+  const { documentMutationVersion, setDocument } = useEditor();
   const [activeView, setActiveView] = useState<ViewMode>('editor');
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isPdfDragActive, setIsPdfDragActive] = useState(false);
+  const browserDragDepth = useRef(0);
   // For Advanced Editing tools, track which tab is active: 'editor' or 'tool'
   const [activeTab, setActiveTab] = useState<'editor' | 'tool'>('editor');
   // Force refresh PDF viewer when switching from tool tab to editor tab
   const [refreshKey, setRefreshKey] = useState<number>(0);
   const isAdvancedEditingTool = ADVANCED_EDITING_TOOLS.includes(activeView);
+
+  const openPdf = useCallback((file: File) => {
+    if (!isPdfFile(file)) {
+      return;
+    }
+    setDocument(file);
+    void addRecentFile(file);
+    setActiveView('editor');
+    setActiveTab('editor');
+    setIsMobileSidebarOpen(false);
+  }, [setDocument]);
+
+  useEffect(() => {
+    let disposed = false;
+    let unlisten: (() => void) | null = null;
+    void listenForDesktopPdfDrops(openPdf, setIsPdfDragActive).then(stopListening => {
+      if (disposed) {
+        stopListening?.();
+      } else {
+        unlisten = stopListening;
+      }
+    });
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
+  }, [openPdf]);
+
+  const hasDraggedFiles = (event: React.DragEvent) =>
+    Array.from(event.dataTransfer.types).includes('Files');
+
+  const handleBrowserDragEnter = (event: React.DragEvent) => {
+    if (!hasDraggedFiles(event)) return;
+    event.preventDefault();
+    browserDragDepth.current += 1;
+    setIsPdfDragActive(true);
+  };
+
+  const handleBrowserDragOver = (event: React.DragEvent) => {
+    if (!hasDraggedFiles(event)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+  };
+
+  const handleBrowserDragLeave = (event: React.DragEvent) => {
+    if (!hasDraggedFiles(event)) return;
+    browserDragDepth.current = Math.max(0, browserDragDepth.current - 1);
+    if (browserDragDepth.current === 0) {
+      setIsPdfDragActive(false);
+    }
+  };
+
+  const handleBrowserDrop = (event: React.DragEvent) => {
+    if (!hasDraggedFiles(event)) return;
+    event.preventDefault();
+    browserDragDepth.current = 0;
+    setIsPdfDragActive(false);
+    const pdf = Array.from(event.dataTransfer.files).find(isPdfFile);
+    if (pdf) {
+      openPdf(pdf);
+    }
+  };
 
   useEffect(() => {
     const openPalette = (event: KeyboardEvent) => {
@@ -239,6 +306,10 @@ function AppContent() {
     <div
       className="flex h-[100dvh] w-full bg-[var(--bg-app)] overflow-hidden relative"
       data-app-ready="true"
+      onDragEnter={handleBrowserDragEnter}
+      onDragOver={handleBrowserDragOver}
+      onDragLeave={handleBrowserDragLeave}
+      onDrop={handleBrowserDrop}
     >
       <KeyboardShortcutsHandler onShowHelp={() => setShowShortcuts(true)} />
       <ShortcutsModal isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
@@ -249,6 +320,15 @@ function AppContent() {
         onSelect={handleViewChange}
       />
       <ToolToast />
+
+      {isPdfDragActive && (
+        <div className="pointer-events-none fixed inset-3 z-[70] flex items-center justify-center rounded-3xl border-2 border-dashed border-[var(--accent-primary)] bg-[var(--bg-app)]/95 shadow-2xl backdrop-blur-sm" role="status" aria-live="polite">
+          <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-canvas)] px-8 py-6 text-center shadow-xl">
+            <p className="font-display text-lg font-black text-[var(--text-primary)]">Drop PDF to open</p>
+            <p className="mt-1 text-xs text-[var(--text-secondary)]">The document stays on this device.</p>
+          </div>
+        </div>
+      )}
 
       {/* Gradient mesh background */}
       <div

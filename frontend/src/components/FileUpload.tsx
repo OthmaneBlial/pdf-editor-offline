@@ -3,6 +3,7 @@ import { useEditor } from '../contexts/EditorContext';
 import { FileUp } from 'lucide-react';
 import { addRecentFile } from '../services/recentFiles';
 import { isDesktopRuntime, openPdfWithDesktopDialog } from '../lib/desktop';
+import { isPdfFile } from '../lib/pdfFiles';
 
 interface FileUploadProps {
   compact?: boolean;
@@ -12,11 +13,22 @@ const FileUpload: React.FC<FileUploadProps> = ({ compact = false }) => {
   const { setDocument } = useEditor();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const openFile = (file: File) => {
+    if (!isPdfFile(file)) {
+      return;
+    }
+    setDocument(file);
+    void addRecentFile(file);
+  };
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    // A file input does not emit another change event for the same path unless
+    // its value is cleared after every selection.
+    input.value = '';
     if (file) {
-      setDocument(file);
-      void addRecentFile(file);
+      openFile(file);
     }
   };
 
@@ -24,8 +36,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ compact = false }) => {
     if (isDesktopRuntime()) {
       const file = await openPdfWithDesktopDialog();
       if (file) {
-        setDocument(file);
-        void addRecentFile(file);
+        openFile(file);
       }
       return;
     }
@@ -35,15 +46,16 @@ const FileUpload: React.FC<FileUploadProps> = ({ compact = false }) => {
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     const file = e.dataTransfer.files?.[0];
-    if (file && file.type === 'application/pdf') {
-      setDocument(file);
-      void addRecentFile(file);
+    if (file) {
+      openFile(file);
     }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
   };
 
   return (
@@ -57,7 +69,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ compact = false }) => {
         role="button"
         tabIndex={0}
         aria-label="Upload PDF file"
-        onKeyPress={(e) => {
+        onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             void triggerFileInput();
@@ -92,7 +104,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ compact = false }) => {
       <input
         ref={fileInputRef}
         type="file"
-        accept="application/pdf"
+        accept="application/pdf,.pdf"
         onChange={handleFileUpload}
         className="hidden"
         aria-label="PDF file input"

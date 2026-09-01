@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import sys
 from pathlib import Path
 
@@ -26,10 +27,54 @@ def run_smoke(base_url: str, pdf_path: Path) -> int:
         page.locator("[data-app-ready='true']").wait_for(timeout=60000)
 
         file_input = page.locator("input[type='file']").first
-        file_input.set_input_files(str(pdf_path))
+        upload_response = lambda response: (
+            response.url.endswith("/api/documents/upload") and response.status == 200
+        )
+        with page.expect_response(upload_response, timeout=60_000):
+            file_input.set_input_files(str(pdf_path))
 
         # Wait for upload + first page render using observable UI state.
         page.locator("canvas").first.wait_for(state="visible", timeout=60000)
+
+        # Regression: selecting the same path a second time must emit a fresh
+        # upload rather than being swallowed by the native file input.
+        with page.expect_response(upload_response, timeout=60_000):
+            file_input.set_input_files(str(pdf_path))
+
+        # Regression: a PDF dropped in the middle of the workspace must open.
+        encoded_pdf = base64.b64encode(pdf_path.read_bytes()).decode("ascii")
+        app = page.locator("[data-app-ready='true']")
+        app.evaluate(
+            """(element, encoded) => {
+              const bytes = Uint8Array.from(atob(encoded), character => character.charCodeAt(0));
+              const transfer = new DataTransfer();
+              transfer.items.add(new File([bytes], 'workspace-drop.PDF', { type: '' }));
+              element.dispatchEvent(new DragEvent('dragenter', {
+                bubbles: true,
+                cancelable: true,
+                dataTransfer: transfer,
+              }));
+            }""",
+            encoded_pdf,
+        )
+        page.get_by_text("Drop PDF to open", exact=True).wait_for(timeout=10_000)
+        with page.expect_response(upload_response, timeout=60_000):
+            app.evaluate(
+                """(element, encoded) => {
+                  const bytes = Uint8Array.from(atob(encoded), character => character.charCodeAt(0));
+                  const transfer = new DataTransfer();
+                  transfer.items.add(new File([bytes], 'workspace-drop.PDF', { type: '' }));
+                  element.dispatchEvent(new DragEvent('drop', {
+                    bubbles: true,
+                    cancelable: true,
+                    dataTransfer: transfer,
+                  }));
+                }""",
+                encoded_pdf,
+            )
+        page.get_by_text("Drop PDF to open", exact=True).wait_for(
+            state="hidden", timeout=10_000
+        )
 
         # Trigger resize path to exercise ResizeObserver + rAF code.
         page.set_viewport_size({"width": 900, "height": 700})

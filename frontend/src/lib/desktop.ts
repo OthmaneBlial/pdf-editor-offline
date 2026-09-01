@@ -1,4 +1,5 @@
 type InvokeFn = <T>(command: string, args?: Record<string, unknown>) => Promise<T>;
+type UnlistenFn = () => void;
 
 export interface DesktopFilePayload {
   name: string;
@@ -39,6 +40,11 @@ const getInvoke = async (): Promise<InvokeFn | null> => {
   return api.invoke as InvokeFn;
 };
 
+const payloadToPdfFile = (payload: DesktopFilePayload): File => {
+  const bytes = new Uint8Array(payload.bytes);
+  return new File([bytes], payload.name, { type: 'application/pdf' });
+};
+
 export const initializeDesktopRuntime = async () => {
   const invoke = await getInvoke();
   if (!invoke) {
@@ -61,8 +67,49 @@ export const openPdfWithDesktopDialog = async (): Promise<File | null> => {
     return null;
   }
 
-  const bytes = new Uint8Array(payload.bytes);
-  return new File([bytes], payload.name, { type: 'application/pdf' });
+  return payloadToPdfFile(payload);
+};
+
+export const openPdfFromDesktopPath = async (path: string): Promise<File | null> => {
+  const invoke = await getInvoke();
+  if (!invoke) {
+    return null;
+  }
+
+  const payload = await invoke<DesktopFilePayload>('open_pdf_path', { path });
+  return payloadToPdfFile(payload);
+};
+
+export const listenForDesktopPdfDrops = async (
+  onFile: (file: File) => void,
+  onDragStateChange: (active: boolean) => void = () => undefined,
+): Promise<UnlistenFn | null> => {
+  if (!isDesktopRuntime()) {
+    return null;
+  }
+
+  const { getCurrentWebview } = await import('@tauri-apps/api/webview');
+  return getCurrentWebview().onDragDropEvent(async event => {
+    if (event.payload.type === 'over') {
+      onDragStateChange(true);
+      return;
+    }
+
+    onDragStateChange(false);
+    if (event.payload.type !== 'drop') {
+      return;
+    }
+
+    const pdfPath = event.payload.paths.find(path => path.toLowerCase().endsWith('.pdf'));
+    if (!pdfPath) {
+      return;
+    }
+
+    const file = await openPdfFromDesktopPath(pdfPath);
+    if (file) {
+      onFile(file);
+    }
+  });
 };
 
 export const saveBlobWithDesktopDialog = async (

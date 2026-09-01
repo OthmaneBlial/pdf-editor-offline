@@ -1,15 +1,30 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const invokeMock = vi.fn();
+const unlistenMock = vi.fn();
+let dragDropHandler: ((event: { payload: { type: string; paths?: string[] } }) => Promise<void>) | undefined;
+const onDragDropEventMock = vi.fn(async (handler) => {
+  dragDropHandler = handler;
+  return unlistenMock;
+});
 
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: invokeMock,
+}));
+
+vi.mock('@tauri-apps/api/webview', () => ({
+  getCurrentWebview: () => ({
+    onDragDropEvent: onDragDropEventMock,
+  }),
 }));
 
 describe('desktop runtime helpers', () => {
   beforeEach(() => {
     vi.resetModules();
     invokeMock.mockReset();
+    onDragDropEventMock.mockClear();
+    unlistenMock.mockClear();
+    dragDropHandler = undefined;
     delete window.__TAURI_INTERNALS__;
     delete window.__PDF_EDITOR_OFFLINE_API_BASE_URL__;
     delete window.__PDF_EDITOR_OFFLINE_API_TOKEN__;
@@ -38,5 +53,33 @@ describe('desktop runtime helpers', () => {
 
     expect(clickSpy).toHaveBeenCalled();
     expect(invokeMock).not.toHaveBeenCalled();
+  });
+
+  it('opens PDFs dropped through the native Tauri webview on Windows', async () => {
+    window.__TAURI_INTERNALS__ = {};
+    invokeMock.mockResolvedValueOnce({
+      name: 'Dropped.PDF',
+      size: 8,
+      bytes: [37, 80, 68, 70, 45, 49, 46, 55],
+    });
+    const onFile = vi.fn();
+    const onDragStateChange = vi.fn();
+
+    const { listenForDesktopPdfDrops } = await import('../src/lib/desktop');
+    const unlisten = await listenForDesktopPdfDrops(onFile, onDragStateChange);
+
+    await dragDropHandler?.({ payload: { type: 'over' } });
+    await dragDropHandler?.({ payload: { type: 'drop', paths: ['C:\\Users\\Tester\\Dropped.PDF'] } });
+
+    expect(onDragStateChange).toHaveBeenNthCalledWith(1, true);
+    expect(onDragStateChange).toHaveBeenLastCalledWith(false);
+    expect(invokeMock).toHaveBeenCalledWith('open_pdf_path', {
+      path: 'C:\\Users\\Tester\\Dropped.PDF',
+    });
+    expect(onFile).toHaveBeenCalledWith(expect.objectContaining({
+      name: 'Dropped.PDF',
+      type: 'application/pdf',
+    }));
+    expect(unlisten).toBe(unlistenMock);
   });
 });
