@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from pdf_editor_offline import __version__
+from pdf_editor_offline.core.converter import find_libreoffice
 
 
 def _find_command(*commands: str) -> str | None:
@@ -45,7 +46,7 @@ def _tesseract_languages(command: str | None) -> list[str]:
 
 
 def get_runtime_capabilities() -> dict[str, Any]:
-    libreoffice = _find_command("libreoffice", "soffice")
+    libreoffice = find_libreoffice()
     tesseract = _find_command("tesseract")
     ghostscript = _find_command("gs", "gswin64c", "gswin32c")
     external = {

@@ -230,7 +230,7 @@ def test_missing_office_dependency_returns_capability_error(
     api_client, sample_docx, monkeypatch
 ):
     monkeypatch.setattr(
-        "pdf_editor_offline.core.converter.shutil.which", lambda command: None
+        "pdf_editor_offline.core.converter.find_libreoffice", lambda: None
     )
     with open(sample_docx, "rb") as handle:
         response = api_client.post(

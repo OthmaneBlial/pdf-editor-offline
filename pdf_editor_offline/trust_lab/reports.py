@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from pdf_editor_offline import __version__
+from pdf_editor_offline.core.converter import find_libreoffice
 from pdf_editor_offline.core.sanitization import inspect_pdf
 
 
@@ -26,7 +27,7 @@ def discover_runtime_capabilities() -> dict[str, Any]:
     def find(*commands: str) -> str | None:
         return next((path for command in commands if (path := shutil.which(command))), None)
 
-    libreoffice = find("libreoffice", "soffice")
+    libreoffice = find_libreoffice()
     tesseract = find("tesseract")
     ghostscript = find("gs", "gswin64c", "gswin32c")
     languages: list[str] = []

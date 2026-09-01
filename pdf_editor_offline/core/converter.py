@@ -1,5 +1,8 @@
 import os
 import shutil
+import subprocess
+import tempfile
+from pathlib import Path
 from typing import List
 
 from .exceptions import MissingDependencyError
@@ -9,6 +12,88 @@ def _require_dependency(command: str, friendly_name: str):
     """Ensure an external binary exists before running a conversion."""
     if not shutil.which(command):
         raise MissingDependencyError(command, friendly_name)
+
+
+def find_libreoffice() -> str | None:
+    """Return a usable LibreOffice CLI on Linux, macOS, or Windows."""
+    for command in ("libreoffice", "soffice"):
+        executable = shutil.which(command)
+        if executable:
+            return executable
+
+    candidates = [Path("/Applications/LibreOffice.app/Contents/MacOS/soffice")]
+    for environment_variable in ("PROGRAMFILES", "PROGRAMFILES(X86)", "ProgramW6432"):
+        base_directory = os.environ.get(environment_variable)
+        if base_directory:
+            candidates.append(
+                Path(base_directory) / "LibreOffice" / "program" / "soffice.exe"
+            )
+
+    local_app_data = os.environ.get("LOCALAPPDATA")
+    if local_app_data:
+        candidates.append(
+            Path(local_app_data)
+            / "Programs"
+            / "LibreOffice"
+            / "program"
+            / "soffice.exe"
+        )
+
+    return next(
+        (str(candidate) for candidate in candidates if candidate.is_file()), None
+    )
+
+
+def _convert_office_to_pdf(input_path: str, output_dir: str) -> str:
+    executable = find_libreoffice()
+    if executable is None:
+        raise MissingDependencyError("libreoffice or soffice", "LibreOffice")
+
+    destination = Path(output_dir)
+    destination.mkdir(parents=True, exist_ok=True)
+    output_path = destination / f"{Path(input_path).stem}.pdf"
+
+    try:
+        with tempfile.TemporaryDirectory(
+            prefix="pdf-editor-offline-libreoffice-"
+        ) as profile:
+            result = subprocess.run(
+                [
+                    executable,
+                    "--headless",
+                    "--nologo",
+                    "--nodefault",
+                    "--nolockcheck",
+                    "--nofirststartwizard",
+                    f"-env:UserInstallation={Path(profile).resolve().as_uri()}",
+                    "--convert-to",
+                    "pdf",
+                    "--outdir",
+                    str(destination),
+                    input_path,
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+    except subprocess.TimeoutExpired as error:
+        raise RuntimeError("LibreOffice conversion timed out after 120 seconds") from error
+    except (OSError, subprocess.CalledProcessError) as error:
+        details = getattr(error, "stderr", "") or getattr(error, "stdout", "")
+        details = str(details).strip()
+        message = "LibreOffice conversion failed"
+        if details:
+            message = f"{message}: {details}"
+        raise RuntimeError(message) from error
+
+    if not output_path.is_file() or output_path.stat().st_size == 0:
+        details = (result.stderr or result.stdout).strip()
+        message = "LibreOffice did not create the expected PDF"
+        if details:
+            message = f"{message}: {details}"
+        raise RuntimeError(message)
+    return str(output_path)
 
 
 class PDFConverter:
@@ -184,98 +269,21 @@ class PDFConverter:
         Convert Word (DOC/DOCX) to PDF using LibreOffice.
         Returns the path to the created PDF.
         """
-        import subprocess
-
-        _require_dependency("libreoffice", "LibreOffice")
-
-        # LibreOffice converts to the same directory
-        cmd = [
-            "libreoffice",
-            "--headless",
-            "--convert-to",
-            "pdf",
-            "--outdir",
-            output_dir,
-            word_path,
-        ]
-
-        try:
-            subprocess.run(
-                cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-
-            # Construct expected output path
-            filename = os.path.basename(word_path)
-            name_without_ext = os.path.splitext(filename)[0]
-            pdf_filename = f"{name_without_ext}.pdf"
-            return os.path.join(output_dir, pdf_filename)
-
-        except subprocess.CalledProcessError as e:
-            raise Exception(f"LibreOffice conversion failed: {e.stderr.decode()}")
+        return _convert_office_to_pdf(word_path, output_dir)
 
     def ppt_to_pdf(self, ppt_path: str, output_dir: str) -> str:
         """
         Convert PowerPoint (PPT/PPTX) to PDF using LibreOffice.
         Returns the path to the created PDF.
         """
-        import subprocess
-
-        _require_dependency("libreoffice", "LibreOffice")
-
-        cmd = [
-            "libreoffice",
-            "--headless",
-            "--convert-to",
-            "pdf",
-            "--outdir",
-            output_dir,
-            ppt_path,
-        ]
-
-        try:
-            subprocess.run(
-                cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-
-            filename = os.path.basename(ppt_path)
-            name_without_ext = os.path.splitext(filename)[0]
-            pdf_filename = f"{name_without_ext}.pdf"
-            return os.path.join(output_dir, pdf_filename)
-
-        except subprocess.CalledProcessError as e:
-            raise Exception(f"LibreOffice conversion failed: {e.stderr.decode()}")
+        return _convert_office_to_pdf(ppt_path, output_dir)
 
     def excel_to_pdf(self, excel_path: str, output_dir: str) -> str:
         """
         Convert Excel (XLS/XLSX) to PDF using LibreOffice.
         Returns the path to the created PDF.
         """
-        import subprocess
-
-        _require_dependency("libreoffice", "LibreOffice")
-
-        cmd = [
-            "libreoffice",
-            "--headless",
-            "--convert-to",
-            "pdf",
-            "--outdir",
-            output_dir,
-            excel_path,
-        ]
-
-        try:
-            subprocess.run(
-                cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-
-            filename = os.path.basename(excel_path)
-            name_without_ext = os.path.splitext(filename)[0]
-            pdf_filename = f"{name_without_ext}.pdf"
-            return os.path.join(output_dir, pdf_filename)
-
-        except subprocess.CalledProcessError as e:
-            raise Exception(f"LibreOffice conversion failed: {e.stderr.decode()}")
+        return _convert_office_to_pdf(excel_path, output_dir)
 
     def pdf_to_jpg(self, pdf_path: str, output_dir: str) -> List[str]:
         """

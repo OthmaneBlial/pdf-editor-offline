@@ -1,10 +1,13 @@
 import os
+import subprocess
+from pathlib import Path
 
 import pymupdf as fitz
 import pandas as pd
 import pytest
 from pptx import Presentation
 
+from pdf_editor_offline.core import converter as converter_module
 from pdf_editor_offline.core.converter import PDFConverter
 
 
@@ -92,6 +95,51 @@ def test_pdf_to_word(sample_pdf, tmp_path):
     # for para in doc.paragraphs:
     #     full_text.append(para.text)
     # assert "Hello World" in '\n'.join(full_text)
+
+
+@pytest.mark.parametrize(
+    ("method_name", "extension"),
+    (
+        ("word_to_pdf", ".docx"),
+        ("ppt_to_pdf", ".pptx"),
+        ("excel_to_pdf", ".xlsx"),
+    ),
+)
+def test_office_to_pdf_accepts_soffice_command(
+    method_name, extension, monkeypatch, tmp_path
+):
+    soffice_path = "/opt/libreoffice/program/soffice"
+    monkeypatch.setattr(
+        converter_module.shutil,
+        "which",
+        lambda command: soffice_path if command == "soffice" else None,
+    )
+
+    source = tmp_path / f"source{extension}"
+    source.write_bytes(b"office fixture")
+
+    def fake_run(command, **options):
+        assert command[0] == soffice_path
+        assert command[-1] == str(source)
+        assert any(
+            argument.startswith("-env:UserInstallation=file:")
+            for argument in command
+        )
+        assert options == {
+            "check": True,
+            "capture_output": True,
+            "text": True,
+            "timeout": 120,
+        }
+        output_directory = Path(command[command.index("--outdir") + 1])
+        (output_directory / "source.pdf").write_bytes(b"%PDF-1.7\n%%EOF")
+        return subprocess.CompletedProcess(command, 0, "converted", "")
+
+    monkeypatch.setattr(converter_module.subprocess, "run", fake_run)
+
+    output = getattr(PDFConverter(), method_name)(str(source), str(tmp_path / "out"))
+
+    assert Path(output).read_bytes().startswith(b"%PDF")
 
 
 def test_scan_to_pdf(tmp_path):
