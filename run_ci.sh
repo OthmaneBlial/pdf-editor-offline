@@ -30,11 +30,11 @@ npm --prefix frontend run build
 
 echo "[3/4] Rust formatting, tests, lint, and source build"
 cargo fmt --manifest-path desktop/src-tauri/Cargo.toml --all -- --check
-TAURI_CONFIG='{"bundle":{"externalBin":[]}}' \
+TAURI_CONFIG='{"bundle":{"resources":[]}}' \
   cargo test --manifest-path desktop/src-tauri/Cargo.toml --locked
-TAURI_CONFIG='{"bundle":{"externalBin":[]}}' \
+TAURI_CONFIG='{"bundle":{"resources":[]}}' \
   cargo clippy --manifest-path desktop/src-tauri/Cargo.toml --locked --all-targets -- -D warnings
-TAURI_CONFIG='{"bundle":{"externalBin":[]}}' \
+TAURI_CONFIG='{"bundle":{"resources":[]}}' \
   cargo check --manifest-path desktop/src-tauri/Cargo.toml --locked
 
 echo "[4/4] Browser workflow"
