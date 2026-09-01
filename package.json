@@ -1,0 +1,42 @@
+{
+  "name": "pdf-editor-offline",
+  "version": "3.0.0",
+  "description": "Local-first PDF editor launcher and CLI bridge",
+  "type": "module",
+  "bin": {
+    "pdf-editor-offline": "bin/pdf-editor-offline.mjs"
+  },
+  "files": [
+    "bin/"
+  ],
+  "scripts": {
+    "test": "node --test npm-tests/*.test.mjs",
+    "pack:check": "npm pack --dry-run"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "preferGlobal": true,
+  "keywords": [
+    "pdf",
+    "pdf-editor",
+    "offline",
+    "privacy",
+    "redaction",
+    "desktop",
+    "cli"
+  ],
+  "author": "Othmane BLIAL",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OthmaneBlial/pdf-editor-offline.git"
+  },
+  "homepage": "https://othmaneblial.github.io/pdf-editor-offline/",
+  "bugs": {
+    "url": "https://github.com/OthmaneBlial/pdf-editor-offline/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

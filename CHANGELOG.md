@@ -16,6 +16,9 @@ Linux x64. It is a GitHub pre-release and does not replace stable `v2.1.0`.
 
 ### Added
 
+- Added the public `pdf-editor-offline` npm launcher with an immutable desktop
+  preview link, local Python CLI delegation, environment diagnostics, and a
+  minimal dependency-free package surface.
 - Added an explicitly confirmed unsigned-preview workflow that still requires
   four clean-runner install smokes, exact source identity, SHA-256, CycloneDX
   SBOMs, GitHub/offline provenance, a synthetic sample pack, immutable warning

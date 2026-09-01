@@ -27,6 +27,7 @@
   <a href="https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/OthmaneBlial/pdf-editor-offline/ci.yml?branch=main&amp;label=tests" alt="Test status"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-111111" alt="MIT License"></a>
   <a href="https://pypi.org/project/pdf-editor-offline/"><img src="https://img.shields.io/pypi/v/pdf-editor-offline.svg" alt="PyPI version"></a>
+  <a href="https://www.npmjs.com/package/pdf-editor-offline"><img src="https://img.shields.io/npm/v/pdf-editor-offline.svg" alt="npm version"></a>
   <a href="https://github.com/OthmaneBlial/pdf-editor-offline"><img src="https://img.shields.io/github/stars/OthmaneBlial/pdf-editor-offline?style=social" alt="GitHub stars"></a>
 </p>
 
@@ -135,6 +136,26 @@ pdf-editor-offline --version
 
 The PyPI package contains the Python API and command-line tools. The visual
 editor runs from a source checkout or the desktop preview.
+
+The npm launcher provides a short path to the desktop download and forwards
+automation commands to the separately installed Python CLI:
+
+```bash
+npm install --global pdf-editor-offline
+pdf-editor-offline desktop
+pdf-editor-offline doctor
+```
+
+You can also open the official desktop preview without a global install:
+
+```bash
+npx pdf-editor-offline@3.0.0 desktop
+```
+
+The small npm package does not bundle the unsigned installers or a Python
+runtime. It opens the immutable 3.0.0 preview release for the visual app; CLI
+commands require the PyPI package shown above. Documents remain local and are
+never handled by the npm launcher.
 
 ### Docker
 
