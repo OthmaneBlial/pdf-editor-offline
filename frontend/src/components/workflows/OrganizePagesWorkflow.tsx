@@ -350,7 +350,7 @@ export default function OrganizePagesWorkflow() {
   }
 
   return (
-    <div className="min-h-full bg-[#f6f8f4] p-3 text-slate-900 sm:p-6 lg:p-8">
+    <div className="min-h-full bg-[var(--bg-app)] p-3 text-[var(--text-primary)] sm:p-6 lg:p-8">
       <div className="mx-auto max-w-7xl">
         <header className="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
           <div>

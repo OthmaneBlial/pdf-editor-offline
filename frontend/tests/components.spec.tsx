@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
 import FileUpload from '../src/components/FileUpload';
@@ -70,6 +70,10 @@ describe('Header', () => {
     </ThemeProvider>
   );
 
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
   afterEach(() => {
     vi.clearAllMocks();
   });
@@ -115,5 +119,21 @@ describe('Header', () => {
     expect(enabledButton.getAttribute('disabled')).toBeNull();
     fireEvent.click(enabledButton);
     expect(saveChanges).toHaveBeenCalledTimes(1);
+  });
+
+  it('applies dark mode to the document root and persists it', async () => {
+    useEditorMock.mockReturnValue({
+      exportPDF: vi.fn(),
+      saveChanges: vi.fn(),
+      hasUnsavedChanges: false,
+      sessionId: '',
+      isUploading: false,
+    });
+
+    const { getByRole } = renderHeader();
+    fireEvent.click(getByRole('button', { name: 'Switch to dark mode' }));
+
+    await waitFor(() => expect(document.documentElement).toHaveAttribute('data-theme', 'dark'));
+    expect(window.localStorage.getItem('pdf-editor-theme')).toBe('dark');
   });
 });

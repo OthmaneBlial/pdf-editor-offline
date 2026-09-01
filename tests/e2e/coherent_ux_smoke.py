@@ -40,7 +40,9 @@ def run_smoke(base_url: str) -> int:
         page.get_by_role("heading", name="Organize Pages").wait_for(timeout=10_000)
         dialog.wait_for(state="hidden", timeout=10_000)
 
-        palette_trigger = page.get_by_role("button", name="Open command palette")
+        palette_trigger = page.get_by_role(
+            "button", name="Search all workflows and tools"
+        )
         palette_trigger.focus()
         palette_trigger.press("Enter")
         dialog.wait_for(timeout=10_000)

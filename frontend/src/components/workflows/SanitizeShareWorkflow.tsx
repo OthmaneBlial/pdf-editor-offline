@@ -218,7 +218,7 @@ const SanitizeShareWorkflow = () => {
 
   if (!sessionId) {
     return (
-      <section className="min-h-full bg-[#f4f7f5] p-5 sm:p-10 flex items-center justify-center" aria-labelledby="sanitize-title">
+      <section className="min-h-full bg-[var(--bg-app)] p-5 sm:p-10 flex items-center justify-center" aria-labelledby="sanitize-title">
         <div className="max-w-xl rounded-[2rem] border border-emerald-900/10 bg-white p-8 text-center shadow-xl">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-950 text-emerald-200"><Sparkles className="h-7 w-7" /></div>
           <h2 id="sanitize-title" className="mt-5 font-display text-3xl font-bold text-slate-950">Sanitize &amp; Share</h2>
@@ -229,7 +229,7 @@ const SanitizeShareWorkflow = () => {
   }
 
   return (
-    <section className="min-h-full bg-[#f4f7f5] text-slate-950" aria-labelledby="sanitize-title">
+    <section className="min-h-full bg-[var(--bg-app)] text-[var(--text-primary)]" aria-labelledby="sanitize-title">
       <div className="mx-auto max-w-7xl px-4 py-7 sm:px-8 sm:py-10">
         <header className="overflow-hidden rounded-[2rem] bg-emerald-950 p-6 text-white shadow-xl sm:p-9">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">

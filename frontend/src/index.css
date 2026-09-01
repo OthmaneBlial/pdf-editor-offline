@@ -664,6 +664,141 @@ h6 {
   opacity: 0.35;
 }
 
+/* Older specialist panels predate the shared theme tokens. Keep their neutral
+   utility surfaces synchronized without flattening deliberate status colors. */
+[data-theme='dark'] .theme-adaptive {
+  color-scheme: dark;
+}
+
+[data-theme='dark'] .theme-adaptive :where(
+  .bg-white,
+  [class~='bg-white/50'],
+  [class~='bg-white/80'],
+  .bg-slate-50,
+  .bg-slate-100,
+  .bg-slate-200,
+  .bg-gray-50,
+  .bg-gray-100,
+  .bg-gray-200,
+  .bg-stone-50,
+  .bg-stone-100,
+  .bg-stone-200,
+  .bg-zinc-50,
+  .bg-zinc-100,
+  .bg-zinc-200,
+  .bg-red-50,
+  .bg-orange-50,
+  .bg-amber-50,
+  .bg-yellow-50,
+  .bg-lime-50,
+  .bg-green-50,
+  .bg-emerald-50,
+  .bg-teal-50,
+  .bg-cyan-50,
+  .bg-sky-50,
+  .bg-blue-50,
+  .bg-indigo-50,
+  .bg-violet-50,
+  .bg-purple-50,
+  .bg-fuchsia-50,
+  .bg-pink-50,
+  .bg-rose-50
+) {
+  background-color: var(--bg-elevated);
+}
+
+[data-theme='dark'] .theme-adaptive :where(
+  .border-slate-100,
+  .border-slate-200,
+  .border-slate-300,
+  .border-gray-100,
+  .border-gray-200,
+  .border-gray-300,
+  .border-stone-100,
+  .border-stone-200,
+  .border-stone-300,
+  .border-zinc-100,
+  .border-zinc-200,
+  .border-zinc-300
+) {
+  border-color: var(--border-default);
+}
+
+[data-theme='dark'] .theme-adaptive :where(
+  .text-slate-950,
+  .text-slate-900,
+  .text-slate-800,
+  .text-gray-950,
+  .text-gray-900,
+  .text-gray-800,
+  .text-stone-950,
+  .text-stone-900,
+  .text-stone-800,
+  .text-zinc-950,
+  .text-zinc-900,
+  .text-zinc-800
+) {
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .theme-adaptive :where(
+  .text-slate-700,
+  .text-slate-600,
+  .text-gray-700,
+  .text-gray-600,
+  .text-stone-700,
+  .text-stone-600,
+  .text-zinc-700,
+  .text-zinc-600
+) {
+  color: var(--text-secondary);
+}
+
+[data-theme='dark'] .theme-adaptive :where(
+  .text-slate-500,
+  .text-gray-500,
+  .text-stone-500,
+  .text-zinc-500
+) {
+  color: var(--text-tertiary);
+}
+
+/* High-luminance action fills retain dark foregrounds in both themes. */
+[data-theme='dark'] .theme-adaptive :where(
+  .bg-cyan-200,
+  .bg-cyan-300,
+  .bg-sky-200,
+  .bg-sky-300,
+  .bg-emerald-200,
+  .bg-emerald-300,
+  .bg-lime-200,
+  .bg-lime-300,
+  .bg-amber-200,
+  .bg-amber-300,
+  .bg-yellow-200,
+  .bg-yellow-300
+) {
+  color: #0f172a;
+}
+
+[data-theme='dark'] .organize-action {
+  border-color: var(--border-default);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+}
+
+[data-theme='dark'] .organize-action:hover:not(:disabled) {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+[data-theme='dark'] .organize-action--primary,
+[data-theme='dark'] .organize-action--primary:hover:not(:disabled) {
+  border-color: var(--accent-primary);
+  background: var(--accent-primary);
+  color: var(--neutral-950);
+}
+
 /* WCAG 2.2 interaction baseline shared by every workflow. */
 .touch-target {
   min-width: 2.75rem;

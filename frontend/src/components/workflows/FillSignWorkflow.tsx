@@ -440,7 +440,7 @@ export default function FillSignWorkflow() {
 
   if (!sessionId) {
     return (
-      <div className="flex min-h-full items-center justify-center bg-[#f4f1e9] p-6">
+      <div className="flex min-h-full items-center justify-center bg-[var(--bg-app)] p-6">
         <div className="max-w-md rounded-3xl border border-dashed border-indigo-300 bg-white p-8 text-center">
           <FileSignature className="mx-auto h-11 w-11 text-indigo-700" />
           <h2 className="mt-4 font-display text-3xl font-bold">Fill & Sign</h2>
@@ -451,7 +451,7 @@ export default function FillSignWorkflow() {
   }
 
   return (
-    <div className="min-h-full bg-[#f4f1e9] p-3 text-slate-950 sm:p-6 lg:p-8">
+    <div className="min-h-full bg-[var(--bg-app)] p-3 text-[var(--text-primary)] sm:p-6 lg:p-8">
       <div className="mx-auto max-w-7xl">
         <header className="grid gap-5 border-b border-slate-300 pb-6 lg:grid-cols-[1fr_auto] lg:items-end">
           <div>

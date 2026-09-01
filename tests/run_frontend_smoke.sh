@@ -113,6 +113,8 @@ curl -fsS "http://127.0.0.1:$FRONTEND_PORT" >/dev/null
 
 "$PLAYWRIGHT_PYTHON" tests/e2e/coherent_ux_smoke.py \
   --url "http://127.0.0.1:$FRONTEND_PORT"
+"$PLAYWRIGHT_PYTHON" tests/e2e/theme_consistency_smoke.py \
+  --url "http://127.0.0.1:$FRONTEND_PORT"
 "$PLAYWRIGHT_PYTHON" tests/e2e/pdfviewer_smoke.py \
   --url "http://127.0.0.1:$FRONTEND_PORT" --pdf "$TMP_PDF"
 "$PLAYWRIGHT_PYTHON" tests/e2e/no_egress_smoke.py \

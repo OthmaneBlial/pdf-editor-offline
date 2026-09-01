@@ -90,7 +90,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <div className="min-w-0 flex-1">
               <h1 className="truncate text-base font-black tracking-tight">PDF Editor Offline</h1>
-              <p className="mt-0.5 font-mono text-[9px] uppercase tracking-[.18em] text-slate-400">Private workbench · v3.0.0</p>
+              <p className="mt-0.5 text-[10px] text-slate-400">Private, local PDF editing</p>
             </div>
             <button
               type="button"
@@ -116,12 +116,8 @@ const Sidebar: React.FC<SidebarProps> = ({
 
         <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
           <nav aria-label="Primary workflows">
-            <div className="mb-2 flex items-center justify-between px-2">
-              <p className="text-[9px] font-black uppercase tracking-[.22em] text-slate-400">Five primary jobs</p>
-              <span className="rounded-full bg-emerald-300/10 px-2 py-1 font-mono text-[8px] uppercase text-emerald-300">On-device</span>
-            </div>
             <div className="space-y-1.5">
-              {PRIMARY_WORKFLOWS.map((item, index) => {
+              {PRIMARY_WORKFLOWS.map(item => {
                 const Icon = item.icon;
                 const active = activeView === item.id;
                 return (
@@ -137,7 +133,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block font-display text-[13px] font-bold">{item.label}</span>
-                      <span className="mt-0.5 block truncate font-mono text-[8px] uppercase tracking-wider text-slate-400">0{index + 1} · {item.keywords[0]}</span>
                     </span>
                     <ChevronRight className={`h-4 w-4 shrink-0 transition ${active ? 'text-cyan-300' : 'text-slate-700 group-hover:translate-x-0.5 group-hover:text-slate-400'}`} aria-hidden="true" />
                   </button>
@@ -214,11 +209,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         <div className="border-t border-white/[.07] bg-black/15 p-3">
           <FileUpload compact />
           <div className="mt-2"><RecentFiles /></div>
-          <div className="mt-2 flex min-h-11 items-center justify-between rounded-xl bg-white/[.035] px-2">
-            <div className="flex items-center gap-2 px-1">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.6)]" aria-hidden="true" />
-              <span className="font-mono text-[9px] uppercase tracking-wider text-slate-400">Ready locally</span>
-            </div>
+          <div className="mt-2 flex min-h-11 items-center justify-end rounded-xl bg-white/[.035] px-2">
             <div className="flex items-center gap-1">
               <span className="sr-only"><Fullscreen aria-hidden="true" />Display controls</span>
               <FullscreenButton />

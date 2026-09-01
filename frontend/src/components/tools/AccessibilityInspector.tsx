@@ -113,7 +113,7 @@ export default function AccessibilityInspector() {
   );
 
   return (
-    <main className="min-h-full overflow-auto bg-[#f4f0e8] p-3 text-slate-950 sm:p-6 lg:p-8">
+    <main className="min-h-full overflow-auto bg-[var(--bg-app)] p-3 text-[var(--text-primary)] sm:p-6 lg:p-8">
       <div className="mx-auto max-w-7xl">
         <section className="relative overflow-hidden rounded-[2rem] border-2 border-slate-950 bg-[#d9ff43] p-5 shadow-[7px_7px_0_#0f172a] sm:p-8">
           <div className="absolute -right-10 -top-14 h-48 w-48 rounded-full border-[28px] border-slate-950/10" aria-hidden="true" />

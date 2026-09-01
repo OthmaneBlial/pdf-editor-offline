@@ -83,7 +83,9 @@ def run_smoke(
         page.locator("[data-app-ready='true']").wait_for(timeout=60000)
 
         # Upload PDF and wait for first render.
-        pdf_input = page.locator("input[type='file'][accept='application/pdf']").first
+        pdf_input = page.locator(
+            "input[type='file'][accept*='application/pdf']"
+        ).first
         _trigger_and_wait_for_response(
             page,
             url_fragment="/api/documents/upload",
@@ -241,7 +243,7 @@ def run_smoke(
             exported.close()
 
         reopen_input = page.locator(
-            "input[type='file'][accept='application/pdf']"
+            "input[type='file'][accept*='application/pdf']"
         ).first
         _trigger_and_wait_for_response(
             page,

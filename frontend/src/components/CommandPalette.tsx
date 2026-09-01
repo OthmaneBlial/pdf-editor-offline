@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRight, Command, FileSearch, Search, X } from 'lucide-react';
 
 import {
@@ -36,12 +36,11 @@ export default function CommandPalette({
     return ALL_COMMANDS.filter(command => commandSearchText(command).includes(needle));
   }, [query]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!open) return;
     previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
-    const frame = window.requestAnimationFrame(() => inputRef.current?.focus());
+    inputRef.current?.focus();
     return () => {
-      window.cancelAnimationFrame(frame);
       previouslyFocusedRef.current?.focus();
     };
   }, [open]);
