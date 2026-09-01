@@ -127,8 +127,12 @@ describe('OrganizePagesWorkflow', () => {
       expect.stringContaining('/api/documents/doc-1/page-duplicates'),
     ));
     expect(screen.getByRole('checkbox', { name: 'Select page 1' })).not.toBeChecked();
-    expect(screen.getByRole('checkbox', { name: 'Select page 3' })).toBeChecked();
-    expect(screen.getByText(/Found and selected 1 pixel-identical duplicate page/)).toBeInTheDocument();
+    await waitFor(() => expect(
+      screen.getByRole('checkbox', { name: 'Select page 3' }),
+    ).toBeChecked());
+    expect(await screen.findByText(
+      /Found and selected 1 pixel-identical duplicate page/,
+    )).toBeInTheDocument();
   });
 
   it('configures Bates numbering for the current selection', async () => {

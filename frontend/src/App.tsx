@@ -193,11 +193,11 @@ function AppContent() {
       switch (activeView) {
         case 'editor':
           return (
-            <div className="flex-1 relative overflow-auto p-2 sm:p-4 lg:p-6 pb-24 sm:pb-20 animate-fade-in">
+            <div className="h-full flex flex-1 flex-col relative overflow-auto p-2 sm:p-4 lg:p-6 pb-24 sm:pb-20 animate-fade-in">
               <div className="hidden lg:block">
                 <PageThumbnails />
               </div>
-              <div className="min-h-full bg-[var(--bg-canvas)] rounded-xl sm:rounded-2xl shadow-xl border border-[var(--border-subtle)] relative overflow-hidden">
+              <div className="min-h-0 flex-1 bg-[var(--bg-canvas)] rounded-xl sm:rounded-2xl shadow-xl border border-[var(--border-subtle)] relative overflow-hidden">
                 {/* Decorative corner accent */}
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[var(--accent-primary)]/10 to-transparent pointer-events-none" />
                 <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-[var(--accent-tertiary)]/10 to-transparent pointer-events-none" />
@@ -279,13 +279,13 @@ function AppContent() {
         </div>
 
         {/* Tab Content */}
-        <div className="flex-1 overflow-auto">
+        <div className="min-h-0 flex-1 overflow-auto">
           {activeTab === 'editor' ? (
-            <div className="p-2 sm:p-4 lg:p-6 pb-24 sm:pb-20">
+            <div className="flex h-full flex-col p-2 sm:p-4 lg:p-6 pb-24 sm:pb-20">
               <div className="hidden lg:block">
                 <PageThumbnails />
               </div>
-              <div className="min-h-full bg-[var(--bg-canvas)] rounded-xl sm:rounded-2xl shadow-xl border border-[var(--border-subtle)] relative overflow-hidden">
+              <div className="min-h-0 flex-1 bg-[var(--bg-canvas)] rounded-xl sm:rounded-2xl shadow-xl border border-[var(--border-subtle)] relative overflow-hidden">
                 {/* Decorative corner accent */}
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[var(--accent-primary)]/10 to-transparent pointer-events-none" />
                 <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-[var(--accent-tertiary)]/10 to-transparent pointer-events-none" />

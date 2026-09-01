@@ -26,6 +26,17 @@ def run_smoke(base_url: str) -> int:
         page.goto(base_url, wait_until="domcontentloaded", timeout=60_000)
         page.locator("[data-app-ready='true']").wait_for(timeout=60_000)
 
+        empty_state = page.get_by_text("Upload a PDF to get started.", exact=True)
+        empty_state.wait_for(timeout=10_000)
+        viewer_box = page.locator(".pdf-viewer").bounding_box()
+        empty_state_box = empty_state.bounding_box()
+        if (
+            viewer_box is None
+            or empty_state_box is None
+            or viewer_box["height"] < 300
+        ):
+            failures.append("empty editor canvas did not fill the visible workspace")
+
         page.keyboard.press("Control+k")
         dialog = page.get_by_role("dialog", name="Go straight to the job")
         dialog.wait_for(timeout=10_000)
