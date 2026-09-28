@@ -12,6 +12,6 @@
     "smoke:sidecar": "node scripts/run-python.mjs scripts/smoke-sidecar.py"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.11.4"
+    "@tauri-apps/cli": "^2.11.5"
   }
 }
