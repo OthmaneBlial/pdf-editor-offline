@@ -5,36 +5,84 @@ use eframe::egui;
 impl EditorApp {
     pub(super) fn workstation(&mut self, ui: &mut egui::Ui) {
         let width = ui.available_width();
+        let colors = crate::style::palette(ui.ctx().global_style().visuals.dark_mode);
         egui::Panel::top("navigation")
             .resizable(false)
+            .frame(
+                egui::Frame::new()
+                    .fill(colors.chrome)
+                    .inner_margin(egui::Margin {
+                        left: 18,
+                        right: 18,
+                        top: 8,
+                        bottom: 8,
+                    }),
+            )
             .show(ui, |ui| {
+                crate::style::chrome(ui);
                 self.navigation(ui);
-                self.document_tabs(ui);
             });
+        egui::Panel::top("tab-strip")
+            .resizable(false)
+            .frame(
+                egui::Frame::new()
+                    .fill(colors.panel)
+                    .inner_margin(egui::Margin {
+                        left: 18,
+                        right: 18,
+                        top: 6,
+                        bottom: 6,
+                    }),
+            )
+            .show(ui, |ui| self.document_tabs(ui));
         egui::Panel::bottom("status")
             .resizable(false)
+            .frame(
+                egui::Frame::new()
+                    .fill(colors.panel)
+                    .inner_margin(egui::Margin {
+                        left: 18,
+                        right: 18,
+                        top: 6,
+                        bottom: 6,
+                    }),
+            )
             .show(ui, |ui| self.status_bar(ui));
         if self.selected().is_some() && self.show_sidebar {
             egui::Panel::left("document-sidebar")
-                .default_size(220.0)
-                .min_size(180.0)
-                .max_size((width * 0.38).clamp(180.0, 340.0))
+                .default_size(240.0)
+                .min_size(196.0)
+                .max_size((width * 0.38).clamp(196.0, 360.0))
+                .frame(egui::Frame::new().fill(colors.panel).inner_margin(16))
                 .show(ui, |ui| self.sidebar(ui));
         }
         if self.selected().is_some() && self.show_inspector && width >= 960.0 {
             egui::Panel::right("document-inspector")
-                .default_size(250.0)
-                .min_size(210.0)
-                .max_size(320.0)
-                .show(ui, |ui| self.inspector(ui));
+                .default_size(256.0)
+                .min_size(232.0)
+                .max_size(340.0)
+                .frame(egui::Frame::new().fill(colors.panel).inner_margin(18))
+                .show(ui, |ui| {
+                    egui::ScrollArea::vertical()
+                        .id_salt("inspector-scroll")
+                        .auto_shrink([false, false])
+                        .show(ui, |ui| self.inspector(ui));
+                });
         }
         self.canvas(ui);
     }
 
     fn navigation(&mut self, ui: &mut egui::Ui) {
         let mut action = None;
+        let dark = ui.ctx().global_style().visuals.dark_mode;
+        let colors = crate::style::palette(dark);
+        let spacious = ui.available_width() >= 840.0;
         egui::MenuBar::new().ui(ui, |ui| {
-            ui.strong("PDF Editor");
+            egui::Frame::new().fill(colors.on_chrome).corner_radius(3).inner_margin(egui::Margin::symmetric(5, 2)).show(ui, |ui| {
+                ui.label(egui::RichText::new("PDF").font(crate::style::medium(14.0)).color(colors.chrome));
+            });
+            ui.label(egui::RichText::new("Editor").font(crate::style::medium(17.0)));
+            ui.add_space(8.0);
             ui.separator();
             ui.menu_button("File", |ui| {
                 if ui.add_enabled(!self.busy && self.tabs.len() < 16, egui::Button::new("Open PDF…")).clicked() { action = Some(Action::Open); ui.close(); }
@@ -43,9 +91,9 @@ impl EditorApp {
                 ui.separator();
                 if ui.button("Quit · Command/Ctrl+Q").clicked() { action = Some(Action::Quit); ui.close(); }
             });
-            if ui.add_enabled(!self.busy && self.tabs.len() < 16, egui::Button::new("Open…"))
+            if spacious && ui.add_enabled(!self.busy && self.tabs.len() < 16, crate::style::primary("Open…", dark))
                 .on_hover_text("Open local PDF · Command/Ctrl+O · up to 16 tabs").clicked() { action = Some(Action::Open); }
-            if ui.add_enabled(!self.busy && self.selected().is_some_and(Tab::editable), egui::Button::new("Save As…"))
+            if spacious && ui.add_enabled(!self.busy && self.selected().is_some_and(Tab::editable), egui::Button::new("Save As…"))
                 .on_hover_text("Save a new verified PDF · Command/Ctrl+S · originals are never overwritten").clicked() { action = Some(Action::Save); }
             ui.menu_button("Edit", |ui| {
                 if ui.add_enabled(!self.busy && self.selected().is_some_and(|tab| tab.status.can_undo), egui::Button::new("Undo · Command/Ctrl+Z")).clicked() { action = Some(Action::Undo); ui.close(); }
@@ -62,7 +110,7 @@ impl EditorApp {
             ui.menu_button("View", |ui| {
                 if ui.button(if self.show_sidebar { "Hide sidebar" } else { "Show sidebar" }).clicked() { action = Some(Action::ToggleSidebar); ui.close(); }
                 if ui.button(if self.show_inspector { "Hide inspector" } else { "Show inspector" }).on_hover_text("The inspector collapses automatically below a 960-point window width. Page text stays available in the sidebar.").clicked() { action = Some(Action::ToggleInspector); ui.close(); }
-                if ui.button(if ui.visuals().dark_mode { "Use light theme" } else { "Use dark theme" }).clicked() { action = Some(Action::Theme); ui.close(); }
+                if ui.button(if dark { "Use light theme" } else { "Use dark theme" }).clicked() { action = Some(Action::Theme); ui.close(); }
             });
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui.button("Commands").on_hover_text("Find a working command · Command/Ctrl+K").clicked() { action = Some(Action::Palette); }
@@ -76,34 +124,86 @@ impl EditorApp {
 
     fn document_tabs(&mut self, ui: &mut egui::Ui) {
         let mut close = None;
+        let colors = crate::style::palette(ui.ctx().global_style().visuals.dark_mode);
         egui::ScrollArea::horizontal()
             .id_salt("document-tabs")
             .show(ui, |ui| {
                 ui.horizontal(|ui| {
                     for tab in &self.tabs {
+                        let selected = self.active == Some(tab.id);
                         let title = format!(
                             "{}{}",
                             tab.title(),
                             if tab.status.dirty { " •" } else { "" }
                         );
-                        if ui
-                            .selectable_label(self.active == Some(tab.id), title)
-                            .on_hover_text(tab.path.display().to_string())
-                            .clicked()
-                        {
-                            self.active = Some(tab.id);
-                        }
-                        if ui
-                            .add_enabled(!self.busy, egui::Button::new("Close").small())
-                            .on_hover_text(format!("Close {}", tab.title()))
-                            .clicked()
-                        {
-                            close = Some(tab.id);
-                        }
-                        ui.separator();
+                        let foreground = if selected {
+                            colors.on_selection
+                        } else {
+                            colors.text
+                        };
+                        let fill = if selected {
+                            colors.selection
+                        } else {
+                            colors.inset
+                        };
+                        egui::Frame::new()
+                            .fill(fill)
+                            .corner_radius(5)
+                            .stroke(egui::Stroke::new(
+                                1.0,
+                                if selected {
+                                    colors.copper
+                                } else {
+                                    colors.border
+                                },
+                            ))
+                            .inner_margin(egui::Margin::symmetric(3, 1))
+                            .show(ui, |ui| {
+                                ui.spacing_mut().item_spacing.x = 2.0;
+                                ui.horizontal(|ui| {
+                                    if ui
+                                        .add_sized(
+                                            [180.0, 28.0],
+                                            egui::Button::new(
+                                                egui::RichText::new(title)
+                                                    .font(crate::style::medium(13.0))
+                                                    .color(foreground),
+                                            )
+                                            .selected(selected)
+                                            .fill(fill)
+                                            .stroke(egui::Stroke::NONE)
+                                            .truncate(),
+                                        )
+                                        .on_hover_text(tab.path.display().to_string())
+                                        .clicked()
+                                    {
+                                        self.active = Some(tab.id);
+                                    }
+                                    if ui
+                                        .add_enabled(
+                                            !self.busy,
+                                            egui::Button::new(
+                                                egui::RichText::new("Close")
+                                                    .small()
+                                                    .color(foreground),
+                                            )
+                                            .fill(fill)
+                                            .stroke(egui::Stroke::NONE),
+                                        )
+                                        .on_hover_text(format!("Close {}", tab.title()))
+                                        .clicked()
+                                    {
+                                        close = Some(tab.id);
+                                    }
+                                });
+                            });
                     }
                     if self.tabs.is_empty() {
-                        ui.label(egui::RichText::new("No document open").small().weak());
+                        ui.label(
+                            egui::RichText::new("Open a document to begin")
+                                .small()
+                                .weak(),
+                        );
                     }
                 });
             });
@@ -128,7 +228,7 @@ impl EditorApp {
             } else {
                 self.message.clone()
             };
-            let available = (ui.available_width() - 380.0).max(100.0);
+            let available = (ui.available_width() - 480.0).max(80.0);
             ui.add_sized(
                 [available, 22.0],
                 egui::Label::new(egui::RichText::new(status).small()).truncate(),

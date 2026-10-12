@@ -139,10 +139,14 @@ pub fn literal_excerpt(text: &str, query: &str, match_case: bool) -> Option<Stri
         .char_indices()
         .nth(150)
         .map_or(text.len(), |(index, _)| start + index);
+    let excerpt = text[begin..end]
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
     Some(format!(
         "{}{}{}",
         if begin > 0 { "…" } else { "" },
-        &text[begin..end],
+        excerpt,
         if end < text.len() { "…" } else { "" }
     ))
 }
@@ -171,6 +175,15 @@ mod tests {
         assert!(truncated);
         assert!(text.len() <= MAX_PAGE_TEXT_BYTES);
         assert!(text.ends_with('🦀'));
+    }
+
+    #[test]
+    fn search_excerpt_is_a_compact_paragraph_without_changing_source_text() {
+        let source = "Synthetic forms\n\n Name:\tCafé\r\n\r\n\u{a0}Checked: ✓";
+        let excerpt = literal_excerpt(source, "Café", true).expect("excerpt");
+        assert_eq!(excerpt, "Synthetic forms Name: Café Checked: ✓");
+        assert!(source.contains("\n\n"));
+        assert!(source.contains('\t'));
     }
 
     #[test]

@@ -57,3 +57,26 @@ clicking its visible coordinates and pasting worked. Text was exposed in the
 accessibility tree, but full VoiceOver interaction is unverified. Dock/system
 termination, multimonitor DPI transitions, large-document scrolling and the
 resolution-cap notice on an actual oversized document were not exercised.
+
+## Editorial visual revision
+
+The next native build introduced pinned IBM Plex Sans typography, ivory panels,
+forest chrome/selection, copper actions and a corresponding dark theme. The same
+real form fixture was checked in both themes. Command+F focused the actual query;
+pasting `Synthetic` and pressing Enter found page 1, kept query focus and exposed
+the compact original-text excerpt in the accessibility tree.
+
+Resizing to roughly 892×521 logical points collapsed the inspector and retained
+the search/navigation controls. At roughly 1261×462 points the inspector remained
+visible; scrolling reached its advanced details and extracted-text checkbox.
+Palette rotation, actual Command+Q's unsaved guard and Undo back to a clean 0°
+document were rechecked after the styling change.
+
+Actual captures: [light](../screenshots/native/editorial-light-2026-10-12.png),
+[dark](../screenshots/native/editorial-dark-2026-10-12.png),
+[compact](../screenshots/native/editorial-compact-2026-10-12.png) and
+[quit guard](../screenshots/native/editorial-quit-guard-2026-10-12.png).
+Binary SHA-256: `4a87784262b4253437aa4d03cc030ecf86d8b137f02ce56ede61e0d0c381d606`.
+Twenty-four tests, formatting, strict Clippy and build passed. Contrast tests
+cover critical theme text; they do not certify full accessibility. The previous
+platform, screen-reader, worker-isolation and release-packaging limits still apply.

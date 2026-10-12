@@ -51,7 +51,7 @@ Requires Rust 1.95+. See [native status](docs/RUST_STATUS.md),
 [native desktop](apps/desktop/README.md). Existing download links above still
 refer to the legacy desktop preview.
 
-![Actual native workstation with local search and Retina rendering](screenshots/native/workstation-search-retina-2026-10-12.png)
+![Actual native editor with local search, ivory and forest styling, and Retina rendering](screenshots/native/editorial-light-2026-10-12.png)
 
 Most PDF tools ask you to upload your document, create an account, or start a
 subscription. PDF Editor Offline is built for the opposite workflow: open a PDF

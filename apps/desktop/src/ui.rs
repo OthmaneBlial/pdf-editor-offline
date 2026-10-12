@@ -63,12 +63,13 @@ pub struct EditorApp {
     palette_open: bool,
     palette_query: String,
     palette_focus: bool,
+    search_focus: bool,
 }
 
 impl EditorApp {
     pub fn new(context: &eframe::CreationContext<'_>) -> Self {
         crate::fonts::configure(&context.egui_ctx);
-        context.egui_ctx.set_visuals(egui::Visuals::dark());
+        crate::style::configure(&context.egui_ctx, false);
         Self {
             worker: Worker::new(context.egui_ctx.clone()),
             tabs: vec![],
@@ -86,6 +87,7 @@ impl EditorApp {
             palette_open: false,
             palette_query: String::new(),
             palette_focus: false,
+            search_focus: false,
         }
     }
 
@@ -442,6 +444,7 @@ impl EditorApp {
             Action::Search => {
                 self.show_sidebar = true;
                 self.sidebar_mode = SidebarMode::Search;
+                self.search_focus = true;
             }
             Action::PageText => {
                 self.show_sidebar = true;
@@ -456,11 +459,7 @@ impl EditorApp {
             Action::ToggleSidebar => self.show_sidebar = !self.show_sidebar,
             Action::ToggleInspector => self.show_inspector = !self.show_inspector,
             Action::Theme => {
-                context.set_visuals(if context.global_style().visuals.dark_mode {
-                    egui::Visuals::light()
-                } else {
-                    egui::Visuals::dark()
-                });
+                crate::style::configure(context, !context.global_style().visuals.dark_mode);
             }
             Action::Quit => self.request_exit(context),
         }
@@ -587,14 +586,57 @@ mod tests {
     }
 
     #[test]
+    fn search_action_focuses_the_real_query_and_keeps_it_for_typing() {
+        let context = eframe::CreationContext::_new_kittest(egui::Context::default());
+        let mut app = EditorApp::new(&context);
+        app.tabs.push(Tab::new(
+            1,
+            "original.pdf".into(),
+            DocumentStatus {
+                info: DocumentInfo {
+                    version: "1.7".into(),
+                    page_count: 1,
+                    object_count: 5,
+                    encrypted: false,
+                    signature_fields: 0,
+                    pages: vec![],
+                },
+                revision: 0,
+                dirty: false,
+                can_undo: false,
+                can_redo: false,
+            },
+        ));
+        app.active = Some(1);
+        app.perform(Action::Search, &context.egui_ctx);
+        assert!(app.show_sidebar);
+        assert!(matches!(app.sidebar_mode, SidebarMode::Search));
+        let mut output = context
+            .egui_ctx
+            .run_ui(Default::default(), |ui| app.sidebar(ui));
+        output.textures_delta.clear();
+        let focused = context.egui_ctx.memory(|memory| memory.focused());
+        assert!(focused.is_some());
+        assert!(!app.search_focus);
+        let input = egui::RawInput {
+            events: vec![egui::Event::Text("Café".into())],
+            ..Default::default()
+        };
+        let mut output = context.egui_ctx.run_ui(input, |ui| app.sidebar(ui));
+        output.textures_delta.clear();
+        assert_eq!(app.tabs[0].search.draft, "Café");
+        assert_eq!(context.egui_ctx.memory(|memory| memory.focused()), focused);
+    }
+
+    #[test]
     fn theme_command_toggles_the_actual_visuals_in_both_directions() {
         let context = eframe::CreationContext::_new_kittest(egui::Context::default());
         let mut app = EditorApp::new(&context);
-        assert!(context.egui_ctx.global_style().visuals.dark_mode);
-        app.perform(Action::Theme, &context.egui_ctx);
         assert!(!context.egui_ctx.global_style().visuals.dark_mode);
         app.perform(Action::Theme, &context.egui_ctx);
         assert!(context.egui_ctx.global_style().visuals.dark_mode);
+        app.perform(Action::Theme, &context.egui_ctx);
+        assert!(!context.egui_ctx.global_style().visuals.dark_mode);
     }
 
     #[test]

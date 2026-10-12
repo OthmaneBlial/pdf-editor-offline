@@ -7,7 +7,12 @@ impl EditorApp {
     pub(super) fn sidebar(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
             ui.selectable_value(&mut self.sidebar_mode, SidebarMode::Pages, "Pages");
-            ui.selectable_value(&mut self.sidebar_mode, SidebarMode::Search, "Search");
+            if ui
+                .selectable_value(&mut self.sidebar_mode, SidebarMode::Search, "Search")
+                .clicked()
+            {
+                self.search_focus = true;
+            }
             if ui
                 .selectable_value(&mut self.sidebar_mode, SidebarMode::Text, "Text")
                 .clicked()
@@ -15,7 +20,9 @@ impl EditorApp {
                 self.show_page_text = true;
             }
         });
+        ui.add_space(4.0);
         ui.separator();
+        ui.add_space(4.0);
         match self.sidebar_mode {
             SidebarMode::Pages => self.page_list(ui),
             SidebarMode::Search => self.search_panel(ui),
@@ -30,10 +37,16 @@ impl EditorApp {
     fn page_list(&mut self, ui: &mut egui::Ui) {
         let mut select = None;
         if let Some(tab) = self.selected() {
+            ui.label(
+                egui::RichText::new(format!("{} pages", tab.status.info.page_count))
+                    .small()
+                    .weak(),
+            );
+            ui.add_space(4.0);
             egui::ScrollArea::vertical()
                 .id_salt(("page-list", tab.id))
                 .auto_shrink([false, false])
-                .show_rows(ui, 48.0, tab.status.info.page_count, |ui, pages| {
+                .show_rows(ui, 62.0, tab.status.info.page_count, |ui, pages| {
                     for page in pages {
                         let detail =
                             tab.status
@@ -49,7 +62,7 @@ impl EditorApp {
                                 });
                         if ui
                             .add_sized(
-                                [ui.available_width(), 44.0],
+                                [ui.available_width(), 54.0],
                                 egui::Button::new(format!("Page {}\n{detail}", page + 1))
                                     .selected(page == tab.page),
                             )
@@ -68,20 +81,31 @@ impl EditorApp {
     fn search_panel(&mut self, ui: &mut egui::Ui) {
         let mut selected_page = None;
         let mut stopped = false;
+        let request_focus = self.search_focus;
+        if self.selected().is_some() {
+            self.search_focus = false;
+        }
         if let Some(tab) = self.selected_mut() {
-            ui.label("Find literal text");
+            ui.label(egui::RichText::new("Search document").font(crate::style::medium(16.0)));
+            ui.add_space(4.0);
             let response = ui.add(
                 egui::TextEdit::singleline(&mut tab.search.draft)
                     .char_limit(MAX_QUERY_CHARS)
                     .hint_text("Search this document…")
                     .id_salt(("search-query", tab.id)),
             );
+            if request_focus {
+                response.request_focus();
+            }
             ui.checkbox(&mut tab.search.match_case, "Match case");
             let mut start =
                 response.lost_focus() && ui.input(|input| input.key_pressed(egui::Key::Enter));
             ui.horizontal(|ui| {
                 start |= ui
-                    .add_enabled(!tab.search.draft.is_empty(), egui::Button::new("Search"))
+                    .add_enabled(
+                        !tab.search.draft.is_empty(),
+                        crate::style::primary("Search", ui.visuals().dark_mode),
+                    )
                     .clicked();
                 if ui
                     .add_enabled(tab.search.running, egui::Button::new("Stop"))
@@ -93,6 +117,7 @@ impl EditorApp {
             });
             if start {
                 tab.search.start(tab.id, tab.status.revision);
+                response.request_focus();
             }
             ui.small(format!(
                 "{} matching page(s) · scanned {} / {}",
@@ -115,17 +140,24 @@ impl EditorApp {
                 .auto_shrink([false, false])
                 .show(ui, |ui| {
                     for hit in &tab.search.hits {
-                        if ui
-                            .selectable_label(
-                                tab.page == hit.page,
-                                format!("Page {}", hit.page + 1),
-                            )
-                            .clicked()
-                        {
-                            selected_page = Some(hit.page);
-                        }
-                        ui.label(egui::RichText::new(&hit.excerpt).small());
-                        ui.separator();
+                        let colors = crate::style::palette(ui.visuals().dark_mode);
+                        egui::Frame::new()
+                            .fill(colors.inset)
+                            .corner_radius(5)
+                            .inner_margin(10)
+                            .show(ui, |ui| {
+                                if ui
+                                    .selectable_label(
+                                        tab.page == hit.page,
+                                        format!("Page {}", hit.page + 1),
+                                    )
+                                    .clicked()
+                                {
+                                    selected_page = Some(hit.page);
+                                }
+                                ui.label(egui::RichText::new(&hit.excerpt).small());
+                            });
+                        ui.add_space(6.0);
                     }
                     if !tab.search.running && tab.search.key.is_some() && tab.search.hits.is_empty()
                     {
@@ -142,12 +174,30 @@ impl EditorApp {
     }
 
     pub(super) fn inspector(&mut self, ui: &mut egui::Ui) {
-        ui.heading("Inspector");
+        let colors = crate::style::palette(ui.visuals().dark_mode);
+        ui.label(egui::RichText::new("Document").font(crate::style::medium(16.0)));
         ui.separator();
+        ui.add_space(8.0);
         if let Some(tab) = self.selected() {
-            ui.strong(tab.title());
-            ui.small(tab.path.display().to_string());
-            ui.add_space(12.0);
+            ui.add(
+                egui::Label::new(egui::RichText::new(tab.title()).font(crate::style::medium(14.0)))
+                    .truncate(),
+            )
+            .on_hover_text(tab.path.display().to_string());
+            ui.label(
+                egui::RichText::new(if tab.status.dirty {
+                    "Unsaved changes"
+                } else {
+                    "No unsaved changes"
+                })
+                .small()
+                .color(if tab.status.dirty {
+                    colors.copper
+                } else {
+                    colors.muted
+                }),
+            );
+            ui.add_space(16.0);
             egui::Grid::new("document-details")
                 .num_columns(2)
                 .spacing([12.0, 8.0])
@@ -157,9 +207,6 @@ impl EditorApp {
                     ui.end_row();
                     ui.label("Pages");
                     ui.label(tab.status.info.page_count.to_string());
-                    ui.end_row();
-                    ui.label("Objects");
-                    ui.label(tab.status.info.object_count.to_string());
                     ui.end_row();
                     ui.label("Encrypted");
                     ui.label(if tab.status.info.encrypted {
@@ -171,35 +218,49 @@ impl EditorApp {
                     ui.label("Signature fields");
                     ui.label(tab.status.info.signature_fields.to_string());
                     ui.end_row();
-                    ui.label("Changes");
-                    ui.label(if tab.status.dirty { "Unsaved" } else { "Saved" });
-                    ui.end_row();
                 });
-            ui.add_space(16.0);
-            ui.strong(format!("Current page {}", tab.page + 1));
+            ui.add_space(20.0);
+            ui.separator();
+            ui.add_space(8.0);
+            ui.label(
+                egui::RichText::new(format!("Page {}", tab.page + 1))
+                    .font(crate::style::medium(16.0)),
+            );
             if let Some(page) = tab.status.info.pages.get(tab.page) {
                 ui.label(format!(
-                    "{:.1} × {:.1} PDF points",
+                    "{:.1} × {:.1} pt · media size",
                     page.media_box[2] - page.media_box[0],
                     page.media_box[3] - page.media_box[1]
                 ));
+                ui.label(format!(
+                    "{:.1} × {:.1} pt · crop size",
+                    page.crop_box[2] - page.crop_box[0],
+                    page.crop_box[3] - page.crop_box[1]
+                ));
                 ui.label(format!("Rotation: {}°", page.rotation));
-                ui.small(format!(
-                    "MediaBox: [{:.1}, {:.1}, {:.1}, {:.1}]",
-                    page.media_box[0], page.media_box[1], page.media_box[2], page.media_box[3]
-                ));
-                ui.small(format!(
-                    "CropBox: [{:.1}, {:.1}, {:.1}, {:.1}]",
-                    page.crop_box[0], page.crop_box[1], page.crop_box[2], page.crop_box[3]
-                ));
+                ui.add_space(8.0);
+                egui::CollapsingHeader::new("Page boxes and file details").show(ui, |ui| {
+                    ui.small(format!(
+                        "MediaBox: [{:.1}, {:.1}, {:.1}, {:.1}]",
+                        page.media_box[0], page.media_box[1], page.media_box[2], page.media_box[3]
+                    ));
+                    ui.small(format!(
+                        "CropBox: [{:.1}, {:.1}, {:.1}, {:.1}]",
+                        page.crop_box[0], page.crop_box[1], page.crop_box[2], page.crop_box[3]
+                    ));
+                    ui.small(format!("{} PDF objects", tab.status.info.object_count));
+                });
             }
             if !tab.editable() {
                 ui.label("Read only: protected or signed documents are preserved.");
             }
-            ui.separator();
-            ui.small("Preview may omit unsupported PDF features. Text search finds matching pages; canvas highlighting is not available yet.");
+            ui.add_space(12.0);
+            egui::CollapsingHeader::new("About previews").show(ui, |ui| {
+                ui.small("Preview may omit unsupported PDF features. Text search finds matching pages; canvas highlighting is not available yet.");
+            });
         }
-        ui.add_space(12.0);
+        ui.add_space(16.0);
+        ui.separator();
         ui.checkbox(&mut self.show_page_text, "Show extracted page text");
         if self.show_page_text
             && let Some(tab) = self.selected()
@@ -210,7 +271,10 @@ impl EditorApp {
 }
 
 fn page_text(ui: &mut egui::Ui, tab: &Tab) {
-    ui.strong(format!("Text · page {}", tab.page + 1));
+    ui.label(
+        egui::RichText::new(format!("Text · page {}", tab.page + 1))
+            .font(crate::style::medium(14.0)),
+    );
     if let Some(error) = &tab.text_error {
         ui.colored_label(ui.visuals().error_fg_color, error);
     } else if let Some(page) = &tab.text {
