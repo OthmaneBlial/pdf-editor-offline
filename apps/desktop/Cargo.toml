@@ -9,7 +9,7 @@ description = "Native offline PDF viewer and page rotation editor"
 
 [dependencies]
 eframe = { version = "0.36.2", default-features = false, features = ["default_fonts", "glow", "x11", "wayland", "accesskit"] }
-rfd = "0.15.4"
+rfd = "0.17.2"
 pdf-core = { path = "../../crates/pdf-core" }
 pdf-render = { path = "../../crates/pdf-render" }
 pdf-convert = { path = "../../crates/pdf-convert" }
