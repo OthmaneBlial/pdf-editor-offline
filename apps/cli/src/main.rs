@@ -33,6 +33,28 @@ enum Command {
     Info { input: PathBuf },
     /// Inventory metadata, attachments, forms and actions; not a privacy proof.
     InspectSecurity { input: PathBuf },
+    /// List sticky Text notes, including hidden notes and their flags.
+    ListNotes {
+        input: PathBuf,
+        #[arg(long)]
+        pages: Option<String>,
+    },
+    /// Add a sticky Text note with a vector icon, saving a new copy.
+    AddNote {
+        input: PathBuf,
+        #[arg(long)]
+        page: u32,
+        #[arg(long, required = true, num_args = 4, value_names = ["X0", "Y0", "X1", "Y1"], allow_hyphen_values = true)]
+        rectangle: Vec<f32>,
+        #[arg(long)]
+        contents: String,
+        #[arg(long, default_value = "")]
+        author: String,
+        #[arg(short, long)]
+        output: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Extract encoded text; scanned documents require OCR (not yet migrated).
     ExtractText {
         input: PathBuf,
@@ -164,6 +186,31 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
     match &cli.command {
         Command::Info { input } => Ok(json!(open(input)?.info()?)),
         Command::InspectSecurity { input } => Ok(json!(open(input)?.inspect_security()?)),
+        Command::ListNotes { input, pages } => {
+            let document = open(input)?;
+            let pages = selection::parse(pages.as_deref(), document.page_count())?;
+            Ok(json!({"pages": pages, "notes": document.list_notes(&pages)?}))
+        }
+        Command::AddNote {
+            input,
+            page,
+            rectangle,
+            contents,
+            author,
+            output,
+            dry_run,
+        } => {
+            let mut document = open(input)?;
+            let rectangle = rectangle
+                .as_slice()
+                .try_into()
+                .map_err(|_| Error::Pages("note needs exactly four coordinates"))?;
+            let note = document.add_note(*page, rectangle, contents, author)?;
+            if !dry_run {
+                document.save_new(output)?;
+            }
+            Ok(json!({"operation": "add-note", "note": note, "output": output, "dry_run": dry_run}))
+        }
         Command::ExtractText { input, pages } => {
             let document = open(input)?;
             let pages = selection::parse(pages.as_deref(), document.page_count())?;
@@ -359,7 +406,8 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
         }
         Command::Capabilities => Ok(
             json!({ "runtime": "rust-native", "version": env!("CARGO_PKG_VERSION"), "migration_preview": true,
-            "commands": ["info", "inspect-security", "extract-text", "render-page", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
+            "commands": ["info", "inspect-security", "list-notes", "add-note", "extract-text", "render-page", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
+            "annotations": "sticky_text_notes_add_and_list_with_vector_appearance",
             "saving": "verified_new_copy_no_clobber", "signed_inputs": "read_only", "encrypted_inputs": "read_only",
             "unmigrated": ["complete_page_organization", "existing_content_editing", "forms", "cryptographic_signing", "secure_redaction", "sanitization", "ocr", "office_conversion", "recovery", "wasm"] }),
         ),

@@ -7,6 +7,8 @@ development to avoid running an older installed version with the same name.
 cargo build --release -p pdf-editor-offline-cli
 ./target/release/pdf-editor-offline info examples/sample_pdfs/demo-basic.pdf --json
 ./target/release/pdf-editor-offline inspect-security input.pdf --json
+./target/release/pdf-editor-offline add-note input.pdf --page 1 --rectangle 50 60 74 84 --contents "Review this paragraph" --author "Reviewer" -o noted.pdf
+./target/release/pdf-editor-offline list-notes noted.pdf --pages 1 --json
 ./target/release/pdf-editor-offline extract-text examples/sample_pdfs/demo-basic.pdf
 ./target/release/pdf-editor-offline render-page input.pdf --page 1 --scale 1.5 -o page.png
 ./target/release/pdf-editor-offline rotate input.pdf --pages 1-3 --degrees 90 -o rotated.pdf
@@ -29,6 +31,32 @@ numbers. Duplicate pages in rotation/extraction text selections are deduplicated
 in caller order. Degrees are additive (90, -90, 180, etc.). Saves always require
 a new output path, retain originals, and refuse signed/encrypted inputs.
 Dry-run validates the document edit without creating output.
+
+`add-note` creates a real sticky Text annotation with UTF-16BE comment/author
+strings and a self-contained vector note icon. Rectangle coordinates are unrotated
+PDF user-space points (bottom-left origin), ordered `X0 Y0 X1 Y1`, and must fit
+inside the intersection of CropBox and MediaBox. The native icon follows the page's
+rotation and crop. Poppler treats sticky icons as upright around their upper-left
+anchor, so rotated-page icon orientation/footprints differ between these renderers;
+icons close to crop edges can consequently be clipped differently. This slice is
+a beta annotation feature and does not claim cross-renderer visual parity. Contents are limited to
+64 KiB of UTF-8 and author to 1 KiB;
+author defaults to empty. Existing annotations and shared annotation arrays remain
+intact. `--dry-run` validates the addition without publishing a file; actual saves
+use the same verified new-copy/no-clobber policy as other edits.
+
+`list-notes` returns Text annotations on selected pages in selection order,
+including hidden notes, their flags and actual comment/author strings. Direct
+annotations have a null object ID. Listing permits read-only signed inputs and
+successfully decrypted inputs; adding notes refuses both. Listing caps each page
+at 10,000 annotations, all selected annotations at 100,000 and returned comment
+text at 16 MiB, with explicit errors for malformed strings/references.
+Comment text is metadata and is not included in page extraction/search. This
+slice does not implement popup interaction, note editing/deletion, highlights,
+replies, arbitrary annotation appearances or desktop note controls. It does not
+edit existing page text. Independent icon placement/preservation is checked with
+the optional Poppler 26.10.0 gate:
+`PDF_REFERENCE_BIN_DIR=/path/to/poppler/bin cargo test -p pdf-editor-offline-cli --test notes -- --ignored`.
 
 `reorder --order` requires every page exactly once, in the supplied order; it does
 not sort or silently remove duplicates. `extract-pages` also preserves supplied

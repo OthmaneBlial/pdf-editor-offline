@@ -5,6 +5,7 @@ mod error;
 mod input;
 mod inspect;
 mod merge;
+mod notes;
 mod pages;
 mod save;
 mod structure;
@@ -14,6 +15,7 @@ pub use error::{Error, Result};
 pub use input::read_pdf_bytes;
 pub use inspect::*;
 use lopdf::{Document, LoadOptions, Object, ObjectId};
+pub use notes::*;
 use serde::Serialize;
 use std::path::Path;
 

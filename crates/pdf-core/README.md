@@ -1,6 +1,6 @@
 # pdf-core
 
-Native Rust document processing for PDF Editor Offline. No network, Python,
+Native Rust document processing for PDF Editor Offline. No network,
 HTTP service or GUI dependency. API page numbers are one-based.
 
 ```rust,no_run
@@ -32,6 +32,25 @@ unsupported symbolic glyphs fail explicitly. Invoked page Form XObjects and spli
 content streams share the bounded interpreter; uninvoked resources are excluded.
 Appearance clipping/geometry and complex reading order remain fidelity work. Appearance
 interpretation has separate stream, recursion, work and text budgets.
+
+`add_note(page, rectangle, contents, author)` adds a real sticky Text annotation
+with UTF-16BE metadata and an explicit vector icon appearance. Coordinates are
+unrotated PDF points and must fit inside the visible CropBox/MediaBox intersection.
+Contents/author are capped at 64 KiB/1 KiB of UTF-8. The edit is transactional,
+checks object capacity and preserves existing direct/indirect/shared annotation
+arrays; annotation arrays are not inherited. Signed/encrypted inputs are read-only.
+`list_notes(pages)` includes hidden Text notes and their flags, allowing inspection
+of signed or successfully decrypted documents. It decodes PDFDocEncoding and
+Unicode strings with explicit malformed/reference-cycle errors. Limits are 10,000
+annotations per page, 100,000 selected annotations and 16 MiB returned comment
+text. Comment contents are not page extraction/search text. Popup interaction,
+editing/deleting notes, highlights, replies and desktop annotation controls remain
+unimplemented. Rust rendering tests and an optional pinned Poppler gate check
+actual icon placement across crop, rotation and nonzero page origins.
+Hayro rotates these appearances with the page; Poppler forces upright sticky icons
+around the annotation's upper-left anchor. Rotated footprints therefore differ;
+the reference test validates each renderer's behavior and preserved pixels outside
+its icon, without claiming cross-renderer visual parity.
 
 Saving refuses encrypted inputs and signature fields, including empty fields.
 It creates and fsyncs a same-directory temporary copy, reopens it and verifies
