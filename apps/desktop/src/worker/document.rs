@@ -23,6 +23,23 @@ pub(super) struct WorkingDocument {
     pub path: Option<PathBuf>,
 }
 
+fn validate_selection(pages: &[u32], count: usize) -> Result<(), String> {
+    if pages.is_empty() || pages.len() > count || pages.len() > pdf_core::MAX_PAGES {
+        return Err("Select between one and the document's page count.".into());
+    }
+    let mut seen = vec![false; count];
+    for &page in pages {
+        let index = (page as usize)
+            .checked_sub(1)
+            .filter(|index| *index < count)
+            .ok_or("Selected page is outside the document")?;
+        if std::mem::replace(&mut seen[index], true) {
+            return Err("Page selection contains a duplicate".into());
+        }
+    }
+    Ok(())
+}
+
 impl Snapshot {
     fn as_ref(&self) -> SnapshotRef<'_> {
         SnapshotRef {
@@ -269,6 +286,43 @@ impl WorkingDocument {
                 .sum::<usize>()
     }
 
+    pub fn extract_pages(&self, revision: u64, pages: Vec<u32>) -> Result<Self, String> {
+        if revision != self.current.revision {
+            return Err("Page selection is stale. Select pages again.".into());
+        }
+        validate_selection(&pages, self.current.info.page_count)?;
+        let expected_pages = pages.len();
+        let (result, reply) = execute(Operation::ExtractPages { pages }, &self.current.bytes)?;
+        let DocumentResult::Document {
+            info,
+            selected_page,
+        } = result
+        else {
+            return Err("Unexpected extracted document response".into());
+        };
+        validate_info(&info)?;
+        if reply.kind != PayloadKind::Pdf
+            || reply.payload.is_empty()
+            || reply.payload.len() > HISTORY_BYTES
+            || info.page_count != expected_pages
+            || selected_page != Some(0)
+        {
+            return Err("Invalid extracted document payload or selection".into());
+        }
+        Ok(Self {
+            current: Snapshot {
+                bytes: reply.payload,
+                info,
+                revision: 0,
+            },
+            undo: Vec::new(),
+            redo: Vec::new(),
+            saved_revision: None,
+            next_revision: 1,
+            path: None,
+        })
+    }
+
     pub fn metadata(&self) -> Result<pdf_core::DocumentMetadata, String> {
         let (result, reply) = execute(Operation::Metadata, &self.current.bytes)?;
         let DocumentResult::Metadata { metadata } = result else {
@@ -344,6 +398,20 @@ impl WorkingDocument {
             return Ok(None);
         }
         let mutation = match edit {
+            Edit::DeletePages {
+                revision,
+                pages,
+                page,
+            } => {
+                if revision != self.current.revision {
+                    return Err("Page selection is stale. Select pages again.".into());
+                }
+                validate_selection(&pages, self.current.info.page_count)?;
+                if page == 0 || page as usize > self.current.info.page_count {
+                    return Err("Current page is outside the document".into());
+                }
+                Mutation::DeletePages { pages, page }
+            }
             Edit::Rotate(page, degrees) => Mutation::Rotate { page, degrees },
             Edit::Move { page, earlier } => Mutation::Move { page, earlier },
             Edit::Reverse { page } => Mutation::Reverse { page },

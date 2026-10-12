@@ -12,6 +12,17 @@ On 2026-10-13, desktop document processing moved into bounded subprocesses. The 
 
 The table retains the narrower evidence scopes recorded at earlier milestones.
 
+The later desktop page-range milestone adds extraction into a new unsaved tab and
+confirmed deletion with durable history. Local validation passed **297 workspace
+tests** (12 independent/artifact gates ignored in that ordinary command), plus
+**81 desktop tests** with the artifact gates explicitly enabled. The typed child
+document suite passed **11 tests**, including actual isolated subset execution.
+Workspace Clippy and the production desktop build passed. See [range controls and
+limits](DESKTOP_PAGE_RANGES.md); real interaction with the new dialogs remains open.
+The preceding recovery commit's Windows CI exposed a private-file ownership
+regression; correction and native Windows revalidation are required before claiming
+that milestone is green across platforms.
+
 | Milestone | Implementation | Evidence | Remaining gate |
 | --- | --- | --- | --- |
 | Document foundation | `crates/pdf-core`: strict bounded opening, structure/geometry, extraction, rotation, compression, verified new-copy save | `cargo test -p pdf-core`: 7 integration cases; Trust Lab bookmark/form/attachment/layer references retained on rotation | independent reader checks, encrypted corpus, broad fuzzing, save durability/recovery |

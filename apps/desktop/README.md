@@ -1,5 +1,7 @@
 # Native desktop milestone
 
+The Organize menu now offers [page-range extraction and deletion](../../docs/DESKTOP_PAGE_RANGES.md), including confirmation, unsaved extracted tabs and durable undo/redo.
+
 ```sh
 cargo run -p pdf-editor-offline-native
 ```

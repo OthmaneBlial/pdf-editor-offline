@@ -34,6 +34,11 @@ const TEST_BLUE_PNG: &[u8] = &[
 ];
 
 pub enum Edit {
+    DeletePages {
+        revision: u64,
+        pages: Vec<u32>,
+        page: u32,
+    },
     Rotate(u32, i64),
     Move {
         page: u32,
@@ -60,6 +65,12 @@ pub enum Edit {
 }
 
 pub enum Command {
+    ExtractPages {
+        id: u64,
+        new_id: u64,
+        revision: u64,
+        pages: Vec<u32>,
+    },
     ResolveSave {
         id: u64,
     },
@@ -107,6 +118,7 @@ impl Command {
         match self {
             Self::RecoveryList | Self::RestoreSession { .. } | Self::DiscardSession { .. } => 0,
             Self::Load { id, .. }
+            | Self::ExtractPages { id, .. }
             | Self::Images { id, .. }
             | Self::Edit { id, .. }
             | Self::Save { id, .. }
@@ -132,6 +144,11 @@ pub enum TaskKey {
 }
 
 pub enum Event {
+    Extracted {
+        id: u64,
+        path: PathBuf,
+        status: DocumentStatus,
+    },
     SavePending {
         id: u64,
         path: PathBuf,
@@ -282,6 +299,8 @@ impl Worker {
 
 mod document;
 mod recovery;
+#[cfg(test)]
+mod subset_tests;
 use document::WorkingDocument;
 pub use recovery::{RecoveredDocument, RecoverySession};
 
@@ -329,6 +348,42 @@ fn process_with_journal(
     command: Command,
     mut journal: Option<&mut Journal>,
 ) -> Result<Event, String> {
+    if let Command::ExtractPages {
+        id,
+        new_id,
+        revision,
+        pages,
+    } = command
+    {
+        if documents.len() >= MAX_TABS {
+            return Err("Close a PDF before extracting pages; at most 16 tabs can be open.".into());
+        }
+        if documents.contains_key(&new_id) {
+            return Err("Extracted document identifier is already open".into());
+        }
+        let source = documents.get(&id).ok_or("Source document is unavailable")?;
+        let extracted = source.extract_pages(revision, pages)?;
+        check_snapshot_budget(documents, &extracted)?;
+        let mut label = source
+            .path
+            .as_deref()
+            .and_then(std::path::Path::file_stem)
+            .unwrap_or(std::ffi::OsStr::new("Document"))
+            .to_os_string();
+        label.push(" — extracted.pdf");
+        let path = PathBuf::from(label);
+        let status = extracted.status()?;
+        persist(
+            journal.as_deref_mut(),
+            &extracted.as_ref(&new_id.to_string()),
+        )?;
+        documents.insert(new_id, extracted);
+        return Ok(Event::Extracted {
+            id: new_id,
+            path,
+            status,
+        });
+    }
     if let Command::Images { id, paths } = command {
         if documents.len() >= MAX_TABS {
             return Err(
@@ -568,7 +623,10 @@ fn process_with_journal(
                 selected_page: None,
             })
         }
-        Command::Load { .. } | Command::Images { .. } | Command::Close(_) => {
+        Command::Load { .. }
+        | Command::Images { .. }
+        | Command::ExtractPages { .. }
+        | Command::Close(_) => {
             unreachable!("load and close handled before lookup")
         }
         Command::RecoveryList | Command::RestoreSession { .. } | Command::DiscardSession { .. } => {

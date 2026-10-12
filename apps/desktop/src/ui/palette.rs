@@ -45,6 +45,16 @@ impl EditorApp {
                     ),
                     ("Search document text", Action::Search, has_document),
                     ("Read extracted page text", Action::PageText, has_document),
+                    (
+                        "Extract page range",
+                        Action::ExtractPages,
+                        editable && self.tabs.len() < crate::worker::MAX_TABS,
+                    ),
+                    (
+                        "Delete page range",
+                        Action::DeletePages,
+                        editable && selected.is_some_and(|tab| tab.status.info.page_count > 1),
+                    ),
                     ("Rotate current page left", Action::Rotate(-90), editable),
                     ("Rotate current page right", Action::Rotate(90), editable),
                     (

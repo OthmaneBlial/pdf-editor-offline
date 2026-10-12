@@ -7,6 +7,7 @@ mod dialogs;
 mod metadata;
 mod navigation;
 mod organizer;
+mod pages;
 mod palette;
 mod recovery;
 mod sidebar;
@@ -46,6 +47,8 @@ enum Action {
     Theme,
     Quit,
     Recovery,
+    ExtractPages,
+    DeletePages,
 }
 
 #[derive(Default, Clone, Copy, PartialEq, Eq)]
@@ -80,6 +83,7 @@ pub struct EditorApp {
     organizer_dialog: Option<organizer::Dialog>,
     metadata_dialog: Option<metadata::Dialog>,
     metadata_generation: u64,
+    pages_dialog: Option<pages::Dialog>,
     recovery: recovery::State,
     discard_quit: bool,
     pending_saves: std::collections::BTreeMap<u64, recovery::PendingSave>,
@@ -113,6 +117,7 @@ impl EditorApp {
             organizer_dialog: None,
             metadata_dialog: None,
             metadata_generation: 0,
+            pages_dialog: None,
             recovery: Default::default(),
             discard_quit: false,
             pending_saves: Default::default(),
@@ -173,6 +178,30 @@ impl EditorApp {
                         self.close_target = None;
                     }
                 }
+                Event::Extracted { id, path, status } => {
+                    if self
+                        .pages_dialog
+                        .as_ref()
+                        .is_some_and(|dialog| dialog.submitting && dialog.expected_id == Some(id))
+                        && id != 0
+                        && id != u64::MAX
+                        && !self.tabs.iter().any(|tab| tab.id == id)
+                        && self.tabs.len() < crate::worker::MAX_TABS
+                    {
+                        let mut tab = Tab::new(id, path, status);
+                        tab.set_device_ratio(context.pixels_per_point());
+                        self.next_id = self.next_id.max(id + 1);
+                        self.tabs.push(tab);
+                        self.active = Some(id);
+                        self.pages_dialog = None;
+                        self.message =
+                            "Pages extracted into a new unsaved PDF. Source document preserved."
+                                .into();
+                    } else {
+                        self.message =
+                            "Unexpected extraction result ignored. Existing PDFs retained.".into();
+                    }
+                }
                 Event::Loaded { id, path, status } => {
                     let mut tab = Tab::new(id, path, status);
                     tab.set_device_ratio(context.pixels_per_point());
@@ -187,6 +216,11 @@ impl EditorApp {
                     status,
                     selected_page,
                 } => {
+                    if self.pages_dialog.as_ref().is_some_and(|dialog| {
+                        dialog.mode == pages::Mode::Delete && dialog.tab == id && dialog.submitting
+                    }) {
+                        self.pages_dialog = None;
+                    }
                     let save_cancelled = self
                         .pending_saves
                         .get(&id)
@@ -333,6 +367,19 @@ impl EditorApp {
                     self.message = "PDF closed.".into();
                 }
                 Event::Error { id, task, message } => {
+                    if task.is_none()
+                        && self.pages_dialog.as_ref().is_some_and(|dialog| {
+                            dialog.submitting
+                                && (dialog.tab == id || dialog.expected_id == Some(id))
+                        })
+                    {
+                        if let Some(dialog) = self.pages_dialog.as_mut() {
+                            dialog.submitting = false;
+                            dialog.error = Some(message.clone());
+                        }
+                        self.message = message;
+                        continue;
+                    }
                     if let Some(pending) = self.pending_saves.get_mut(&id) {
                         pending.submitting = false;
                         pending.message = message.clone();
@@ -416,6 +463,7 @@ impl EditorApp {
             || self.close_target.is_some()
             || self.recovery.open
             || !self.pending_saves.is_empty()
+            || self.pages_dialog.is_some()
         {
             return;
         }
@@ -719,6 +767,8 @@ impl EditorApp {
             }
             Action::Quit => self.request_exit(context),
             Action::Recovery => self.open_recovery(),
+            Action::ExtractPages => self.open_page_ranges(pages::Mode::Extract),
+            Action::DeletePages => self.open_page_ranges(pages::Mode::Delete),
         }
     }
 
@@ -784,7 +834,11 @@ impl eframe::App for EditorApp {
         if context.input(|input| input.viewport().close_requested()) && !self.allow_exit {
             self.request_exit(&context);
         }
-        if self.organizer_dialog.is_none() && self.metadata_dialog.is_none() && !self.recovery.open
+        if self.organizer_dialog.is_none()
+            && self.metadata_dialog.is_none()
+            && !self.recovery.open
+            && self.pages_dialog.is_none()
+            && self.pending_saves.is_empty()
         {
             self.shortcuts(&context);
         } else if context
@@ -798,7 +852,8 @@ impl eframe::App for EditorApp {
                 && self.organizer_dialog.is_none()
                 && self.metadata_dialog.is_none()
                 && !self.recovery.open
-                && self.pending_saves.is_empty(),
+                && self.pending_saves.is_empty()
+                && self.pages_dialog.is_none(),
             |ui| self.workstation(ui),
         );
         self.command_palette(&context);
@@ -807,6 +862,7 @@ impl eframe::App for EditorApp {
         self.metadata_dialog_ui(&context);
         self.recovery_dialog(&context);
         self.pending_save_dialog(&context);
+        self.page_ranges_dialog(&context);
     }
 }
 

@@ -82,7 +82,7 @@ app with the instructions below.
 | Task | Native desktop | Rust CLI |
 | --- | --- | --- |
 | Read and find | Tabs, zoom, visible-page thumbnails, text sidebar, literal search, light/dark themes | Document info, text extraction, literal search, limited text/geometry comparison |
-| Organize pages | Move/reverse pages, rotate, insert blank pages, crop, undo/redo | Reorder/reverse/rotate/crop, insert blank pages, guarded extract/delete, simple-catalog merge |
+| Organize pages | Move/reverse pages, rotate, insert blank pages, crop, guarded range extraction/deletion, undo/redo | Reorder/reverse/rotate/crop, insert blank pages, guarded extract/delete, simple-catalog merge |
 | Document properties | Read/edit six standard fields, including Unicode | Read/set/remove Title, Author, Subject, Keywords, Creator and Producer |
 | Images | Create PDF pages from supported PNG/JPEG files | Restricted images-to-PDF conversion; export one PDF page as PNG |
 | Comments | Existing supported appearances can be displayed | Add/list sticky Text notes; guarded editing/removal of basic notes |
@@ -158,6 +158,23 @@ This is an active native rewrite. Follow the [release notes](CHANGELOG.md),
 the [next milestones](ROADMAP.md) and the [implementation status](docs/RUST_STATUS.md)
 to see what has shipped and what still needs work. The screenshots above show
 the app; the status documents describe its current limits.
+
+<details>
+<summary>How the Rust pieces fit together</summary>
+
+```mermaid
+flowchart LR
+    Desktop[Native desktop] --> Children[Bounded local child processes]
+    Children --> Engine[Rust PDF engine]
+    CLI[Native CLI] --> Engine
+    Desktop --> Recovery[Private local recovery journal]
+```
+
+The desktop isolates document processing in local children. The CLI currently
+uses the same libraries in its own process. No document upload service is used.
+[Architecture](docs/ARCHITECTURE.md) · [Public Rust API](crates/pdf-core/README.md)
+
+</details>
 
 Useful contributions include reproducible PDF issues with synthetic fixtures,
 renderer comparisons, accessibility testing, translation corrections and small

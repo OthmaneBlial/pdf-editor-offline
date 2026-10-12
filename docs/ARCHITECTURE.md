@@ -1,13 +1,10 @@
 # Native architecture
 
 ```text
-apps/desktop             apps/cli
-       │                    │
-       ├── pdf-render ──────┤
-       ├── pdf-convert ─────┤
-       └────── pdf-core ────┘
-
-pdf-worker: bounded child transport, typed document operations, recovery journal
+apps/desktop ── pdf-worker bounded children ─┬─ pdf-render
+     │                                     ├─ pdf-convert
+     └─ private recovery journal           └─ pdf-core
+apps/cli ──────────────────────────────────┴─ same document libraries in-process
 tools/native-evidence: independent checks and measured CLI evidence
 tests/fixtures/pdfs: immutable synthetic corpus
 ```
