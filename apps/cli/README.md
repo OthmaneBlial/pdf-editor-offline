@@ -1,13 +1,14 @@
 # Native Rust CLI preview
 
-Build with Rust 1.95+ from the repository root. The legacy installed Python CLI
-uses the same executable name; explicit paths avoid ambiguity during migration.
+Build with Rust 1.95+ from the repository root. Use explicit binary paths during
+development to avoid running an older installed version with the same name.
 
 ```sh
 cargo build --release -p pdf-editor-offline-cli
 ./target/release/pdf-editor-offline info examples/sample_pdfs/demo-basic.pdf --json
 ./target/release/pdf-editor-offline inspect-security input.pdf --json
 ./target/release/pdf-editor-offline extract-text examples/sample_pdfs/demo-basic.pdf
+./target/release/pdf-editor-offline render-page input.pdf --page 1 --scale 1.5 -o page.png
 ./target/release/pdf-editor-offline rotate input.pdf --pages 1-3 --degrees 90 -o rotated.pdf
 ./target/release/pdf-editor-offline compress input.pdf -o compressed.pdf --dry-run
 ./target/release/pdf-editor-offline reverse input.pdf -o reversed.pdf
@@ -43,6 +44,22 @@ are not safely remapped by the current core. They are not privacy operations:
 unreachable content may remain in the saved copy. Deleting every page is refused.
 All six organization commands support `--dry-run`, `--json` and the global
 `--password-stdin` policy; every actual save requires a fresh output path.
+
+`render-page` exports exactly one one-based page as an opaque RGBA8 PNG. Scale
+is finite positive pixels per PDF point (default 1); CropBox and page rotation
+affect output dimensions. It renders locally with the existing Rust renderer,
+then fsyncs a same-directory temporary PNG, reopens it with strict CRC/Adler-32
+checking, and verifies dimensions, format and every pixel before publishing
+without overwriting any existing path or symlink. Dry-run performs rendering
+and reports dimensions but creates no file. Signed PDFs may be rendered read-only;
+encrypted rendering is explicitly unsupported even when a password is supplied.
+
+Input is capped at 128 MiB; output at 8192 pixels per dimension and 16,777,216
+pixels. Those caps do not bound renderer decompression, internal allocations or
+execution time. Ordinary dependency panics are caught by the renderer; process
+aborts and allocation failure are not. Hostile PDFs still require an isolated
+worker with OS memory/time limits. This is one-page PNG export, not Office,
+HTML, SVG, batch conversion or OCR parity.
 
 `--password-stdin` reads at most 4096 UTF-8 bytes and strips one trailing newline;
 keep passwords out of arguments, shell history and environment variables.

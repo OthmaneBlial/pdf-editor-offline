@@ -14,12 +14,15 @@ path = "src/main.rs"
 
 [dependencies]
 pdf-core = { path = "../../crates/pdf-core" }
+pdf-render = { path = "../../crates/pdf-render" }
+png = "=0.18.1"
+tempfile.workspace = true
 clap = { version = "4.6", features = ["derive"] }
 clap_complete = "4.6"
 serde_json.workspace = true
 
 [dev-dependencies]
-tempfile.workspace = true
+lopdf.workspace = true
 
 [lints]
 workspace = true

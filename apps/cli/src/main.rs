@@ -1,3 +1,4 @@
+mod render;
 mod selection;
 
 use clap::{CommandFactory, Parser, Subcommand};
@@ -37,6 +38,23 @@ enum Command {
         input: PathBuf,
         #[arg(long)]
         pages: Option<String>,
+    },
+    /// Render one page to a verified opaque RGBA PNG without external services.
+    RenderPage {
+        input: PathBuf,
+        #[arg(long)]
+        page: u32,
+        #[arg(
+            long,
+            default_value_t = 1.0,
+            allow_hyphen_values = true,
+            help = "Pixels per PDF point"
+        )]
+        scale: f32,
+        #[arg(short, long)]
+        output: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
     },
     /// Add a rotation to selected pages and save a new copy.
     Rotate {
@@ -142,6 +160,13 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
             let pages = selection::parse(pages.as_deref(), document.page_count())?;
             Ok(json!({ "pages": pages, "text": document.extract_text(&pages)? }))
         }
+        Command::RenderPage {
+            input,
+            page,
+            scale,
+            output,
+            dry_run,
+        } => render::render_png(input, output, *page, *scale, *dry_run, password),
         Command::Rotate {
             input,
             pages,
@@ -300,7 +325,7 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
         }
         Command::Capabilities => Ok(
             json!({ "runtime": "rust-native", "version": env!("CARGO_PKG_VERSION"), "migration_preview": true,
-            "commands": ["info", "inspect-security", "extract-text", "rotate", "compress", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
+            "commands": ["info", "inspect-security", "extract-text", "render-page", "rotate", "compress", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
             "saving": "verified_new_copy_no_clobber", "signed_inputs": "read_only", "encrypted_inputs": "read_only",
             "unmigrated": ["complete_page_organization", "existing_content_editing", "forms", "cryptographic_signing", "secure_redaction", "sanitization", "ocr", "office_conversion", "recovery", "wasm"] }),
         ),

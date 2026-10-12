@@ -2687,7 +2687,10 @@ version = "3.0.0"
 dependencies = [
  "clap",
  "clap_complete",
+ "lopdf",
  "pdf-core",
+ "pdf-render",
+ "png",
  "serde_json",
  "tempfile",
 ]
