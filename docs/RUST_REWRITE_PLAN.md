@@ -2,7 +2,12 @@
 
 The Rust migration is active alongside the working 3.0.0 legacy product. It is
 not yet a feature-complete replacement. The repository, authorship, version
-history, Python CLI, React application and Tauri distribution remain intact.
+history and existing distribution remain intact during feature replacement.
+The user's 2026-10-12 clarification requires removal of all Python source,
+backend/sidecar wiring, dependencies, build/test/benchmark scripts and obsolete
+documentation from the final working project. Native runtime independence alone
+does not satisfy that requirement. Replacement validation tooling must also run
+without Python.
 
 ## Evidence and gates
 
@@ -32,6 +37,10 @@ user-facing integration are tested.
    benchmarks, platform builds and output fidelity.
 9. **Public release:** genuine screenshots/demos, native installers, checksums,
    provenance, website and docs. Never label unsigned artifacts signed.
+10. **Remove superseded stack:** remove replaced legacy source, manifests,
+    launchers, CI and documentation after validating their native replacements;
+    scan tracked files and packaged artifacts for remaining obsolete runtime
+    requirements. Keep every supported capability reviewable through migration.
 
 Each verified milestone gets a conventional commit pushed to `main`. No force
 pushes, empty commits, deletion of working legacy features or artificial commit
@@ -40,7 +49,11 @@ splitting. Before destructive migration, create a recovery ref.
 ## Completion criteria
 
 The default desktop has no Python, FastAPI, Node runtime or sidecar. Rust owns
-document logic. Every existing working capability has a tested equivalent and
+document logic, and the completed repository contains no Python implementation,
+dependencies or Python-based development tooling. The native UI must pass actual
+visual review for typography, contrast, spacing, hierarchy and coherent light/dark
+themes, using genuine working-document captures rather than mockups.
+Every existing working capability has a tested equivalent and
 GUI/CLI integration; remaining limitations are explicitly reported. Release
 gates include cross-platform CI, security/license checks, Trust Lab output,
 signed-input tests, privacy verification, reproducible measured performance and
