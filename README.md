@@ -36,10 +36,10 @@
 The **native Rust rewrite is in progress** alongside the working 3.0.0 app.
 The native preview opens and renders PDFs locally in an ivory/forest workstation,
 with tabs, Retina-aware zoom, visible-page thumbnails, search, a command palette,
-page organization, document properties, undo/redo and verified Save As. Offline
+page organization, document properties, PNG/JPEG import, undo/redo and verified Save As. Offline
 fonts include tested Chinese, Japanese and Korean glyphs.
 Its independent Rust CLI provides inspection, text/search, compression, guarded
-page organization, basic sticky notes and metadata editing. Neither native runtime
+page organization, basic sticky notes, metadata edits and restricted images-to-PDF conversion. Neither native runtime
 launches Python or a server. Advanced editing, secure redaction, OCR, forms,
 broader conversion and full platform distribution remain migration work.
 

@@ -14,6 +14,7 @@ path = "src/main.rs"
 
 [dependencies]
 pdf-core = { path = "../../crates/pdf-core" }
+pdf-convert = { path = "../../crates/pdf-convert" }
 pdf-render = { path = "../../crates/pdf-render" }
 png = "=0.18.1"
 tempfile.workspace = true

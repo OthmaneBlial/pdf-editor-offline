@@ -2716,6 +2716,7 @@ dependencies = [
  "clap",
  "clap_complete",
  "lopdf",
+ "pdf-convert",
  "pdf-core",
  "pdf-render",
  "png",
@@ -2729,6 +2730,7 @@ version = "3.0.0"
 dependencies = [
  "eframe",
  "lopdf",
+ "pdf-convert",
  "pdf-core",
  "pdf-render",
  "rfd",

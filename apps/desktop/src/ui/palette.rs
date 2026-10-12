@@ -31,6 +31,11 @@ impl EditorApp {
                 let editable = !self.busy && selected.is_some_and(Tab::editable);
                 let commands = [
                     ("Open PDF", Action::Open, !self.busy && self.tabs.len() < 16),
+                    (
+                        "Images to PDF",
+                        Action::Images,
+                        !self.busy && self.tabs.len() < crate::worker::MAX_TABS,
+                    ),
                     ("Save As new PDF", Action::Save, editable),
                     (
                         "Document properties",

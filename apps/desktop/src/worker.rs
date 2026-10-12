@@ -12,6 +12,21 @@ use std::sync::mpsc::{self, Receiver, SyncSender};
 
 const HISTORY_LIMIT: usize = 8;
 const HISTORY_BYTES: usize = 256 * 1024 * 1024;
+pub const MAX_TABS: usize = 16;
+
+// Tiny noninterlaced RGB fixtures: a solid red 2×3 image and a solid blue 3×2 image.
+#[cfg(test)]
+pub(crate) const TEST_RED_PNG: &[u8] = &[
+    137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 2, 0, 0, 0, 3, 8, 2, 0,
+    0, 0, 54, 136, 73, 214, 0, 0, 0, 16, 73, 68, 65, 84, 120, 156, 99, 248, 207, 192, 0, 68, 12,
+    40, 20, 0, 68, 208, 5, 251, 164, 207, 222, 128, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130,
+];
+#[cfg(test)]
+const TEST_BLUE_PNG: &[u8] = &[
+    137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 3, 0, 0, 0, 2, 8, 2, 0,
+    0, 0, 18, 22, 241, 77, 0, 0, 0, 15, 73, 68, 65, 84, 120, 156, 99, 96, 96, 248, 15, 67, 48, 22,
+    0, 53, 222, 5, 251, 226, 150, 96, 158, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130,
+];
 
 pub enum Edit {
     Rotate(u32, i64),
@@ -40,6 +55,10 @@ pub enum Edit {
 }
 
 pub enum Command {
+    Images {
+        id: u64,
+        paths: Vec<PathBuf>,
+    },
     Load {
         id: u64,
         path: PathBuf,
@@ -69,6 +88,7 @@ impl Command {
     fn id(&self) -> u64 {
         match self {
             Self::Load { id, .. }
+            | Self::Images { id, .. }
             | Self::Edit { id, .. }
             | Self::Save { id, .. }
             | Self::Close(id) => *id,
@@ -205,11 +225,44 @@ struct WorkingDocument {
     current: Snapshot,
     undo: Vec<Snapshot>,
     redo: Vec<Snapshot>,
-    saved_revision: u64,
+    saved_revision: Option<u64>,
     next_revision: u64,
 }
 
 impl WorkingDocument {
+    fn from_images(paths: &[PathBuf]) -> Result<Self, String> {
+        if paths.is_empty() || paths.len() > pdf_core::MAX_PAGES {
+            return Err("Select 1–20,000 PNG/JPEG images.".into());
+        }
+        let mut sources = Vec::with_capacity(paths.len());
+        let mut total = 0usize;
+        for path in paths {
+            let limit = pdf_core::MAX_STREAM_BYTES.min(pdf_core::MAX_INPUT_BYTES - total);
+            let bytes = pdf_core::read_input_bytes(path, limit).map_err(|error| {
+                format!(
+                    "{}: {error}. Image inputs allow 32 MiB per file and 128 MiB total.",
+                    path.display()
+                )
+            })?;
+            total += bytes.len();
+            sources.push(bytes);
+        }
+        let refs: Vec<_> = sources.iter().map(Vec::as_slice).collect();
+        let converted=pdf_convert::images_to_pdf(&refs).map_err(|error| format!("{error}. Images to PDF supports PNG/JPEG; unsupported orientation or color metadata must be resolved before importing."))?;
+        let bytes = converted.document.to_bytes().map_err(|e| e.to_string())?;
+        Ok(Self {
+            current: Snapshot {
+                document: converted.document,
+                bytes,
+                revision: 0,
+            },
+            undo: vec![],
+            redo: vec![],
+            saved_revision: None,
+            next_revision: 1,
+        })
+    }
+
     fn load(path: &PathBuf) -> Result<Self, String> {
         let bytes = pdf_core::read_pdf_bytes(path).map_err(|e| e.to_string())?;
         let document = PdfDocument::from_bytes(&bytes, None).map_err(|e| e.to_string())?;
@@ -221,7 +274,7 @@ impl WorkingDocument {
             },
             undo: vec![],
             redo: vec![],
-            saved_revision: 0,
+            saved_revision: Some(0),
             next_revision: 1,
         })
     }
@@ -230,7 +283,7 @@ impl WorkingDocument {
         Ok(DocumentStatus {
             info: self.current.document.info().map_err(|e| e.to_string())?,
             revision: self.current.revision,
-            dirty: self.current.revision != self.saved_revision,
+            dirty: Some(self.current.revision) != self.saved_revision,
             can_undo: !self.undo.is_empty(),
             can_redo: !self.redo.is_empty(),
         })
@@ -341,7 +394,7 @@ impl WorkingDocument {
             .document
             .save_new(path)
             .map_err(|e| e.to_string())?;
-        self.saved_revision = self.current.revision;
+        self.saved_revision = Some(self.current.revision);
         Ok(())
     }
 }
@@ -350,6 +403,24 @@ fn process(
     documents: &mut HashMap<u64, WorkingDocument>,
     command: Command,
 ) -> Result<Event, String> {
+    if let Command::Images { id, paths } = command {
+        if documents.len() >= MAX_TABS {
+            return Err(
+                "Close a PDF before creating another document; at most 16 tabs can be open.".into(),
+            );
+        }
+        if documents.contains_key(&id) {
+            return Err("New document identifier is already open".into());
+        }
+        let document = WorkingDocument::from_images(&paths)?;
+        let status = document.status()?;
+        documents.insert(id, document);
+        return Ok(Event::Loaded {
+            id,
+            path: PathBuf::from("Images — unsaved.pdf"),
+            status,
+        });
+    }
     if let Command::Load { id, path } = command {
         let document = WorkingDocument::load(&path)?;
         let status = document.status()?;
@@ -467,7 +538,7 @@ fn process(
                 status: document.status()?,
             })
         }
-        Command::Load { .. } | Command::Close(_) => {
+        Command::Load { .. } | Command::Images { .. } | Command::Close(_) => {
             unreachable!("load and close handled before lookup")
         }
     }
@@ -540,6 +611,178 @@ mod tests {
         pdf.trailer.set("Root", catalog);
         pdf.save(&path).expect("save fixture");
         (directory, path)
+    }
+
+    #[test]
+    fn image_conversion_creates_an_unsaved_tab_with_real_pixels_history_and_verified_save() {
+        let (directory, path) = fixture();
+        let red = directory.path().join("red.png");
+        let blue = directory.path().join("blue.png");
+        std::fs::write(&red, TEST_RED_PNG).expect("red fixture");
+        std::fs::write(&blue, TEST_BLUE_PNG).expect("blue fixture");
+        let mut documents = HashMap::new();
+        process(&mut documents, Command::Load { id: 1, path }).expect("previous PDF");
+        documents
+            .get_mut(&1)
+            .expect("previous")
+            .edit(Edit::Rotate(1, 90))
+            .expect("existing edit");
+        let previous = documents[&1].current.bytes.clone();
+        let Event::Loaded { id, status, .. } = process(
+            &mut documents,
+            Command::Images {
+                id: 2,
+                paths: vec![blue.clone(), red.clone()],
+            },
+        )
+        .expect("convert") else {
+            panic!("new tab event");
+        };
+        assert_eq!(id, 2);
+        assert!(status.dirty && !status.can_undo);
+        assert_eq!(status.info.page_count, 2);
+        assert_eq!(status.info.pages[0].media_box, [0.0, 0.0, 3.0, 2.0]);
+        assert_eq!(status.info.pages[1].media_box, [0.0, 0.0, 2.0, 3.0]);
+        assert_eq!(
+            std::fs::read_dir(directory.path())
+                .expect("directory")
+                .count(),
+            3
+        ); // No PDF was written by conversion.
+        let mut tab = crate::state::Tab::new(2, "Images — unsaved.pdf".into(), status);
+        for (page, expected) in [(0, [0, 0, 255, 255]), (1, [255, 0, 0, 255])] {
+            tab.set_page(page);
+            let image = render(&documents[&2], tab.key().expect("render key"), tab.scale)
+                .expect("real preview");
+            assert!(image.rgba.chunks_exact(4).all(|pixel| pixel == expected));
+        }
+        assert!(
+            process(
+                &mut documents,
+                Command::Images {
+                    id: 3,
+                    paths: vec![directory.path().join("missing.png")]
+                }
+            )
+            .is_err()
+        );
+        assert_eq!(documents.len(), 2);
+        assert_eq!(documents[&1].current.bytes, previous);
+        assert!(documents[&1].status().expect("previous").dirty);
+        let working = documents.get_mut(&2).expect("converted");
+        working
+            .edit(Edit::Rotate(1, 90))
+            .expect("edit generated PDF");
+        working.edit(Edit::Undo).expect("undo");
+        assert!(working.status().expect("unsaved origin").dirty);
+        assert!(working.save(&red).is_err());
+        assert_eq!(std::fs::read(&red).expect("image preserved"), TEST_RED_PNG);
+        let output = directory.path().join("images.pdf");
+        working.save(&output).expect("verified save");
+        assert!(!working.status().expect("saved").dirty);
+        assert!(working.save(&output).is_err());
+        assert_eq!(
+            PdfDocument::open(output, None)
+                .expect("reopen")
+                .page_count(),
+            2
+        );
+        assert_eq!(std::fs::read(blue).expect("image preserved"), TEST_BLUE_PNG);
+    }
+
+    #[test]
+    fn image_input_preflight_bounds_regular_files_and_aggregate_before_decoding() {
+        let directory = tempfile::tempdir().expect("directory");
+        assert!(WorkingDocument::from_images(&[directory.path().to_path_buf()]).is_err());
+        let oversized = directory.path().join("oversized.png");
+        std::fs::File::create(&oversized)
+            .expect("sparse file")
+            .set_len(pdf_core::MAX_STREAM_BYTES as u64 + 1)
+            .expect("size");
+        assert!(
+            WorkingDocument::from_images(&[oversized])
+                .err()
+                .expect("limit")
+                .contains("32 MiB")
+        );
+        let mut paths = vec![];
+        for index in 0..5 {
+            let path = directory.path().join(format!("aggregate-{index}.png"));
+            let length = if index == 4 {
+                1
+            } else {
+                pdf_core::MAX_STREAM_BYTES as u64
+            };
+            std::fs::File::create(&path)
+                .expect("sparse file")
+                .set_len(length)
+                .expect("size");
+            paths.push(path);
+        }
+        let error = WorkingDocument::from_images(&paths)
+            .err()
+            .expect("aggregate refusal");
+        assert!(error.contains("aggregate-4.png") && error.contains("128 MiB")); // Decode would reject the zero-filled first file instead.
+    }
+
+    #[test]
+    fn image_conversion_refuses_tab_capacity_collisions_and_invalid_formats() {
+        let (_directory, path) = fixture();
+        let mut documents = HashMap::new();
+        process(
+            &mut documents,
+            Command::Load {
+                id: 1,
+                path: path.clone(),
+            },
+        )
+        .expect("load");
+        let original = documents[&1].current.bytes.clone();
+        assert!(
+            process(
+                &mut documents,
+                Command::Images {
+                    id: 1,
+                    paths: vec![path.clone()]
+                }
+            )
+            .is_err()
+        );
+        let error = process(
+            &mut documents,
+            Command::Images {
+                id: 2,
+                paths: vec![path.clone()],
+            },
+        )
+        .err()
+        .expect("format refusal");
+        assert!(error.contains("PNG/JPEG"));
+        assert_eq!(documents[&1].current.bytes, original);
+        for id in 2..=MAX_TABS as u64 {
+            process(
+                &mut documents,
+                Command::Load {
+                    id,
+                    path: path.clone(),
+                },
+            )
+            .expect("load tab");
+        }
+        assert!(
+            process(
+                &mut documents,
+                Command::Images {
+                    id: 17,
+                    paths: vec![path]
+                }
+            )
+            .err()
+            .expect("capacity")
+            .contains("16 tabs")
+        );
+        assert_eq!(documents.len(), MAX_TABS);
+        assert_eq!(documents[&1].current.bytes, original);
     }
 
     #[test]

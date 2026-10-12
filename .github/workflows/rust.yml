@@ -77,6 +77,7 @@ jobs:
           PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" PDF_REFERENCE_QPDF="$RUNNER_TEMP/reference-qpdf/bin/qpdf" cargo test --locked -p pdf-editor-offline-cli --test metadata -- --ignored
           PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" PDF_REFERENCE_QPDF="$RUNNER_TEMP/reference-qpdf/bin/qpdf" cargo test --locked -p pdf-editor-offline-cli --test note_updates -- --ignored
           PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" QPDF="$RUNNER_TEMP/reference-qpdf/bin/qpdf" cargo test --locked -p pdf-convert --test images -- --ignored
+          PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" PDF_REFERENCE_QPDF="$RUNNER_TEMP/reference-qpdf/bin/qpdf" cargo test --locked -p pdf-editor-offline-cli --test images -- --ignored
           PATH="$RUNNER_TEMP/reference-poppler/bin:$PATH" cargo test --locked -p pdf-core --test merge -- --ignored
       - name: Preserve independent evidence
         if: always()

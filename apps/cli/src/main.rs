@@ -130,6 +130,15 @@ enum Command {
         #[arg(long)]
         dry_run: bool,
     },
+    /// Restricted PNG/JPEG pages in caller order; one source pixel equals one PDF point.
+    ImagesToPdf {
+        #[arg(required=true,num_args=1..)]
+        inputs: Vec<PathBuf>,
+        #[arg(short, long)]
+        output: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Add a rotation to selected pages and save a new copy.
     Rotate {
         input: PathBuf,
@@ -344,6 +353,11 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
             output,
             dry_run,
         } => render::render_png(input, output, *page, *scale, *dry_run, password),
+        Command::ImagesToPdf {
+            inputs,
+            output,
+            dry_run,
+        } => images_to_pdf(inputs, output, *dry_run),
         Command::Rotate {
             input,
             pages,
@@ -527,7 +541,8 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
         }
         Command::Capabilities => Ok(
             json!({ "runtime": "rust-native", "version": env!("CARGO_PKG_VERSION"), "migration_preview": true,
-            "commands": ["info", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
+            "commands": ["info", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "images-to-pdf", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
+            "image_conversion":"restricted_png_jpeg_color_metadata_orientation_tier_one_pixel_one_pdf_point",
             "metadata":"six_standard_trailer_info_keys_custom_entries_and_xmp_preserved_no_sync_or_secure_erasure",
             "annotations": "sticky_text_notes_add_list_guarded_edit_remove_with_preserved_appearance",
             "saving": "verified_new_copy_no_clobber", "signed_inputs": "read_only", "encrypted_inputs": "read_only",
@@ -554,6 +569,69 @@ fn read_password() -> pdf_core::Result<String> {
         }
     }
     Ok(password)
+}
+
+fn images_to_pdf(inputs: &[PathBuf], output: &PathBuf, dry_run: bool) -> pdf_core::Result<Value> {
+    if inputs.is_empty() {
+        return Err(Error::Refused("select at least one image"));
+    }
+    if inputs.len() > pdf_core::MAX_PAGES {
+        return Err(Error::Limit("more than 20000 image pages"));
+    }
+    let mut preflight_total = 0u64;
+    for input in inputs {
+        let metadata = std::fs::metadata(input)?;
+        if !metadata.is_file() {
+            return Err(Error::Refused("image input must be a regular file"));
+        }
+        if metadata.len() > pdf_core::MAX_STREAM_BYTES as u64 {
+            return Err(Error::Limit("one encoded image exceeds 32 MiB"));
+        }
+        preflight_total = preflight_total
+            .checked_add(metadata.len())
+            .ok_or(Error::Limit("image input size overflow"))?;
+        if preflight_total > pdf_core::MAX_INPUT_BYTES as u64 {
+            return Err(Error::Limit("encoded image inputs exceed 128 MiB"));
+        }
+    }
+    let mut images = Vec::with_capacity(inputs.len());
+    let mut input_bytes = 0usize;
+    for input in inputs {
+        let remaining = pdf_core::MAX_INPUT_BYTES - input_bytes;
+        let bound = remaining.min(pdf_core::MAX_STREAM_BYTES);
+        let bytes = pdf_core::read_input_bytes(input, bound).map_err(|error| match error {
+            Error::Limit(_) => Error::Limit(if bound < pdf_core::MAX_STREAM_BYTES {
+                "encoded image inputs exceed 128 MiB"
+            } else {
+                "one encoded image exceeds 32 MiB"
+            }),
+            error => error,
+        })?;
+        input_bytes = input_bytes
+            .checked_add(bytes.len())
+            .ok_or(Error::Limit("image input size overflow"))?;
+        if input_bytes > pdf_core::MAX_INPUT_BYTES {
+            return Err(Error::Limit("encoded image inputs exceed 128 MiB"));
+        }
+        images.push(bytes);
+    }
+    let slices = images.iter().map(Vec::as_slice).collect::<Vec<_>>();
+    let conversion = pdf_convert::images_to_pdf(&slices).map_err(|error| match error {
+        pdf_convert::Error::Invalid(message) | pdf_convert::Error::Decode(message) => {
+            Error::Invalid(message)
+        }
+        pdf_convert::Error::Unsupported(message) => Error::Refused(message),
+        pdf_convert::Error::Limit(message) => Error::Limit(message),
+        pdf_convert::Error::Pdf(error) => Error::Pdf(error),
+        pdf_convert::Error::Core(error) => error,
+        pdf_convert::Error::Io(error) => Error::Io(error),
+    })?;
+    if !dry_run {
+        conversion.document.save_new(output)?;
+    }
+    Ok(
+        json!({"operation":"images-to-pdf","inputs":inputs,"input_bytes":input_bytes,"pages":conversion.pages,"page_count":conversion.document.page_count(),"sizing":"one_source_pixel_equals_one_pdf_point","scope":"restricted_png_jpeg_color_metadata_orientation_tier","output":output,"dry_run":dry_run,"metadata_sanitized":false}),
+    )
 }
 
 fn finish_output(result: io::Result<()>, code: u8) -> ExitCode {

@@ -86,6 +86,9 @@ impl EditorApp {
             ui.separator();
             ui.menu_button("File", |ui| {
                 if ui.add_enabled(!self.busy && self.tabs.len() < 16, egui::Button::new("Open PDF…")).clicked() { action = Some(Action::Open); ui.close(); }
+                if ui.add_enabled(!self.busy && self.tabs.len()<crate::worker::MAX_TABS,egui::Button::new("Images to PDF…"))
+                    .on_hover_text("Create an unsaved PDF from PNG/JPEG images. Unsupported orientation/color metadata is refused. One pixel becomes one PDF point.")
+                    .clicked() { action=Some(Action::Images); ui.close(); }
                 if ui.add_enabled(!self.busy && self.selected().is_some_and(Tab::editable), egui::Button::new("Save As new PDF…")).clicked() { action = Some(Action::Save); ui.close(); }
                 if ui.add_enabled(!self.busy && self.selected().is_some(), egui::Button::new("Close current PDF")).clicked() { action = Some(Action::Close); ui.close(); }
                 if ui.add_enabled(!self.busy && self.selected().is_some(), egui::Button::new("Document properties…")).clicked() { action = Some(Action::Metadata); ui.close(); }

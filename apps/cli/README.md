@@ -16,6 +16,7 @@ cargo build --release -p pdf-editor-offline-cli
 ./target/release/pdf-editor-offline remove-note edited-note.pdf --page 1 --annotation 1 -o removed-note.pdf --json
 ./target/release/pdf-editor-offline extract-text examples/sample_pdfs/demo-basic.pdf
 ./target/release/pdf-editor-offline render-page input.pdf --page 1 --scale 1.5 -o page.png
+./target/release/pdf-editor-offline images-to-pdf first.png second.jpg -o images.pdf --json
 ./target/release/pdf-editor-offline rotate input.pdf --pages 1-3 --degrees 90 -o rotated.pdf
 ./target/release/pdf-editor-offline compress input.pdf -o compressed.pdf --dry-run
 ./target/release/pdf-editor-offline merge first.pdf second.pdf third.pdf -o merged.pdf
@@ -36,6 +37,34 @@ numbers. Duplicate pages in rotation/extraction text selections are deduplicated
 in caller order. Degrees are additive (90, -90, 180, etc.). Saves always require
 a new output path, retain originals, and refuse signed/encrypted inputs.
 Dry-run validates the document edit without creating output.
+
+`images-to-pdf` creates one page per PNG/JPEG in caller order, with one source
+pixel equal to one PDF point; print density is ignored. Inputs must be regular
+files (symlinks to regular files are accepted). Every encoded image is read with
+a true 32 MiB bound and the entire input set is capped at 128 MiB before
+conversion. Dimensions are capped at 8192 per axis and 8 megapixels per image;
+decoded streams, stored payloads, page/object counts and output have additional
+converter limits. These are data/work limits, not strict OS memory/time bounds.
+Dry-run performs conversion and validation without writing. Actual publication
+uses a verified fresh copy and refuses an existing destination.
+
+This restricted conversion tier supports validated baseline/progressive 8-bit
+gray/RGB JPEG and supported noninterlaced PNG samples, palettes/transparency and
+standard sRGB. JPEG DCT bytes are preserved; PNG samples and alpha masks are
+lossless. Unsupported color/metadata/orientation structures are explicitly
+refused: examples include JPEG CMYK, EXIF/XMP/ICC, PNG custom ICC/gamma/chromaticity,
+animation, interlace and higher bit depths. EXIF orientation is not applied.
+See the [converter scope](../../crates/pdf-convert/README.md) for exact boundaries.
+Reports return `metadata_sanitized: false`; conversion is not a privacy proof.
+Unsupported inputs return JSON `refused` (exit 4), resource limits
+`resource_limit` (5), malformed/decode inputs `document` (1), and filesystem
+failures `filesystem` (3).
+
+The optional independent CLI gate checks qpdf 12.4.2 page inventory and exact
+decoded PNG/alpha streams/original JPEG bytes, Poppler 26.10.0 geometry and
+density-8 pixel interiors with a one-level tolerance. It does not establish
+identical alpha-edge sampling across viewers. Use an image-enabled Poppler build:
+`PDF_REFERENCE_BIN_DIR=/path/to/poppler/bin PDF_REFERENCE_QPDF=/path/to/qpdf cargo test -p pdf-editor-offline-cli --test images -- --ignored`.
 
 `metadata` reads six standard trailer Info fields; `set-metadata` and
 `remove-metadata` accept lowercase `title`, `author`, `subject`, `keywords`,

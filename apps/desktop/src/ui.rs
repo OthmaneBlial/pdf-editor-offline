@@ -22,6 +22,7 @@ enum CloseTarget {
 #[derive(Clone, Copy)]
 enum Action {
     Open,
+    Images,
     Save,
     Rotate(i64),
     Move(bool),
@@ -152,7 +153,9 @@ impl EditorApp {
                     tab.set_device_ratio(context.pixels_per_point());
                     self.tabs.push(tab);
                     self.active = Some(id);
-                    self.message = "PDF opened locally.".into();
+                    self.message = if self.tabs.last().is_some_and(|tab|tab.status.dirty) {
+                        "Images converted locally. Save As creates a verified PDF. Page size uses one point per source pixel."
+                    } else { "PDF opened locally." }.into();
                 }
                 Event::Updated {
                     id,
@@ -438,6 +441,38 @@ impl EditorApp {
         }
     }
 
+    fn import_images(&mut self) {
+        if self.busy || self.tabs.len() >= crate::worker::MAX_TABS {
+            return;
+        }
+        if let Some(paths) = rfd::FileDialog::new()
+            .add_filter("PNG / JPEG images", &["png", "jpg", "jpeg"])
+            .pick_files()
+        {
+            self.start_image_conversion(paths);
+        }
+    }
+
+    fn start_image_conversion(&mut self, paths: Vec<std::path::PathBuf>) -> bool {
+        if self.busy || self.tabs.len() >= crate::worker::MAX_TABS || paths.is_empty() {
+            return false;
+        }
+        if paths.len() > pdf_core::MAX_PAGES {
+            self.message = "Select at most 20,000 image pages.".into();
+            return false;
+        }
+        let id = self.next_id;
+        if self.send(
+            Command::Images { id, paths },
+            "Converting PNG/JPEG images locally…",
+        ) {
+            self.next_id += 1;
+            true
+        } else {
+            false
+        }
+    }
+
     fn save_as(&mut self, id: u64, close_after: bool) {
         if self.busy {
             return;
@@ -498,6 +533,7 @@ impl EditorApp {
     fn perform(&mut self, action: Action, context: &egui::Context) {
         match action {
             Action::Open => self.open(),
+            Action::Images => self.import_images(),
             Action::Save => {
                 if let Some(id) = self.active {
                     self.save_as(id, false);
@@ -746,6 +782,109 @@ mod tests {
         app.busy = true;
         app.allow_exit = true;
         assert!(!app.needs_exit_guard());
+    }
+
+    #[test]
+    fn image_conversion_ui_adds_real_unsaved_preview_without_replacing_existing_work() {
+        let context = eframe::CreationContext::_new_kittest(egui::Context::default());
+        let mut app = EditorApp::new(&context);
+        let mut previous = Tab::new(
+            9,
+            "previous.pdf".into(),
+            DocumentStatus {
+                info: DocumentInfo {
+                    version: "1.7".into(),
+                    page_count: 1,
+                    object_count: 5,
+                    encrypted: false,
+                    signature_fields: 0,
+                    pages: vec![],
+                },
+                revision: 3,
+                dirty: true,
+                can_undo: true,
+                can_redo: false,
+            },
+        );
+        previous.needs_render = false;
+        app.tabs.push(previous);
+        app.active = Some(9);
+        let directory = tempfile::tempdir().expect("directory");
+        let image = directory.path().join("red.png");
+        std::fs::write(&image, crate::worker::TEST_RED_PNG).expect("fixture");
+        assert!(app.start_image_conversion(vec![image]));
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+        while app.busy && std::time::Instant::now() < deadline {
+            app.poll(&context.egui_ctx);
+            std::thread::yield_now();
+        }
+        assert!(!app.busy);
+        assert_eq!(app.tabs.len(), 2);
+        assert_eq!(app.tabs[0].status.revision, 3);
+        assert!(app.tabs[0].status.dirty);
+        let generated = app.tabs.last().expect("new tab");
+        assert!(generated.status.dirty);
+        assert_eq!(generated.status.info.page_count, 1);
+        assert_eq!(
+            generated.texture.as_ref().expect("real preview").size(),
+            [2, 3]
+        );
+        assert_eq!(app.active, Some(generated.id));
+        assert_eq!(
+            std::fs::read_dir(directory.path()).expect("files").count(),
+            1
+        );
+        let id = generated.id;
+        app.request_close(id);
+        assert_eq!(app.close_target, Some(CloseTarget::Tab(id)));
+    }
+
+    #[test]
+    fn failed_image_conversion_and_ui_capacity_guards_leave_tabs_and_selection_intact() {
+        let context = eframe::CreationContext::_new_kittest(egui::Context::default());
+        let mut app = EditorApp::new(&context);
+        let directory = tempfile::tempdir().expect("directory");
+        let invalid = directory.path().join("invalid.png");
+        std::fs::write(&invalid, b"not an image").expect("invalid fixture");
+        let status = || DocumentStatus {
+            info: DocumentInfo {
+                version: "1.7".into(),
+                page_count: 1,
+                object_count: 5,
+                encrypted: false,
+                signature_fields: 0,
+                pages: vec![],
+            },
+            revision: 2,
+            dirty: true,
+            can_undo: true,
+            can_redo: false,
+        };
+        let mut previous = Tab::new(9, "previous.pdf".into(), status());
+        previous.needs_render = false;
+        app.tabs.push(previous);
+        app.active = Some(9);
+        assert!(!app.start_image_conversion(vec![]));
+        assert!(app.start_image_conversion(vec![invalid.clone()]));
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+        while app.busy && std::time::Instant::now() < deadline {
+            app.poll(&context.egui_ctx);
+            std::thread::yield_now();
+        }
+        assert!(!app.busy);
+        assert_eq!(app.tabs.len(), 1);
+        assert_eq!(app.active, Some(9));
+        assert!(app.tabs[0].status.dirty);
+        assert!(app.message.contains("PNG/JPEG"));
+        for id in 10..25 {
+            app.tabs.push(Tab::new(id, "other.pdf".into(), status()));
+        }
+        assert_eq!(app.tabs.len(), crate::worker::MAX_TABS);
+        let next_id = app.next_id;
+        assert!(!app.start_image_conversion(vec![invalid]));
+        assert_eq!(app.next_id, next_id);
+        assert_eq!(app.active, Some(9));
+        assert!(!app.busy);
     }
 
     #[test]
