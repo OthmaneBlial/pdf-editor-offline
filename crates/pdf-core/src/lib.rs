@@ -6,6 +6,7 @@ mod input;
 mod inspect;
 mod merge;
 mod metadata;
+mod note_updates;
 mod notes;
 mod pages;
 mod save;

@@ -14,6 +14,8 @@ const MAX_LIST_TEXT_BYTES: usize = 16 * 1024 * 1024;
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Note {
     pub page: u32,
+    /// One-based physical occurrence in this page's /Annots array; shifts after removal.
+    pub annotation_index: u32,
     pub object_id: Option<ObjectId>,
     pub rectangle: [f32; 4],
     pub contents: String,
@@ -90,6 +92,7 @@ impl PdfDocument {
             "AP" => dictionary! {"N" => appearance},
         });
         entries.push(id.into());
+        let annotation_index = entries.len() as u32;
         // Replacing this page's value leaves any shared indirect array unchanged.
         candidate
             .document
@@ -97,6 +100,7 @@ impl PdfDocument {
             .set("Annots", entries);
         let note = Note {
             page,
+            annotation_index,
             object_id: Some(id),
             rectangle,
             contents: contents.to_owned(),
@@ -120,7 +124,10 @@ impl PdfDocument {
             .copied()
             .filter(|page| seen_pages.insert(*page))
         {
-            for entry in annotation_entries(&self.document, self.pages[page as usize - 1])? {
+            for (index, entry) in annotation_entries(&self.document, self.pages[page as usize - 1])?
+                .iter()
+                .enumerate()
+            {
                 visited += 1;
                 if visited > MAX_LIST_ANNOTATIONS {
                     return Err(Error::Limit("more than 100000 selected annotations"));
@@ -167,6 +174,7 @@ impl PdfDocument {
                 }
                 notes.push(Note {
                     page,
+                    annotation_index: index as u32 + 1,
                     object_id: id,
                     rectangle,
                     contents,
@@ -191,13 +199,13 @@ fn validate_rectangle(rectangle: [f32; 4]) -> Result<()> {
     Ok(())
 }
 
-fn unicode_string(text: &str) -> Object {
+pub(crate) fn unicode_string(text: &str) -> Object {
     let mut encoded = Vec::new();
     lopdf::encode_utf16_be(text, &mut encoded);
     Object::String(encoded, StringFormat::Hexadecimal)
 }
 
-fn resolve<'a>(
+pub(crate) fn resolve<'a>(
     document: &'a Document,
     mut object: &'a Object,
 ) -> Result<(Option<ObjectId>, &'a Object)> {
@@ -222,7 +230,7 @@ fn resolve<'a>(
     Ok((id, object))
 }
 
-fn annotation_entries(document: &Document, page: ObjectId) -> Result<&[Object]> {
+pub(crate) fn annotation_entries(document: &Document, page: ObjectId) -> Result<&[Object]> {
     let dictionary = document.get_dictionary(page)?;
     if !dictionary.has(b"Annots") {
         return Ok(&[]);
@@ -236,7 +244,7 @@ fn annotation_entries(document: &Document, page: ObjectId) -> Result<&[Object]> 
     Ok(entries)
 }
 
-fn annotation<'a>(
+pub(crate) fn annotation<'a>(
     document: &'a Document,
     entry: &'a Object,
 ) -> Result<(Option<ObjectId>, &'a Dictionary)> {

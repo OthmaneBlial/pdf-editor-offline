@@ -65,9 +65,28 @@ of signed or successfully decrypted documents. It decodes PDFDocEncoding and
 Unicode strings with explicit malformed/reference-cycle errors. Limits are 10,000
 annotations per page, 100,000 selected annotations and 16 MiB returned comment
 text. Comment contents are not page extraction/search text. Popup interaction,
-editing/deleting notes, highlights, replies and desktop annotation controls remain
+highlights, replies and desktop annotation controls remain
 unimplemented. Rust rendering tests and an optional pinned Poppler gate check
 actual icon placement across crop, rotation and nonzero page origins.
+`Note.annotation_index` identifies the one-based physical occurrence in the page's
+Annots array, including non-Text entries; indices shift after removal.
+`edit_note(page, index, contents, author)` changes only supplied comment/author
+fields, preserving rectangle, flags, appearance and other supported basic fields.
+It creates a new note object and selected-page annotation array; shared arrays,
+other page occurrences and original objects remain unchanged. `remove_note(page,
+index)` removes only that occurrence, retaining old values in the graph. Both are
+transactional and refuse signed/encrypted inputs, ReadOnly/Locked/LockedContents
+flags, popup/reply/action/tag/unique-name/custom note structures, and incoming
+references outside supported page annotation occurrences (including alias chains).
+Incoming-link checks apply to live trailer-reachable objects; harmless retained
+orphan containers do not block sequential edits. Orphans remain untouched, and
+external links that keep an old container live are still refused.
+This is partial existing-note editing and ordinary removal, not secure erasure.
+Appearances are not regenerated. Direct copying is capped at 100,000 values and
+1 MiB of string/name/key payload; reference analysis caps 100,000 page annotation
+occurrences, 10,000 incoming aliases, depth 128 and 2 million scanned values.
+These caps are not strict OS memory/time bounds. Source copies and unrelated
+annotations remain intact on failure.
 The patched native renderer and Poppler keep sticky icons upright around the
 annotation's upper-left anchor. The reference test validates that defined footprint
 and preserved pixels outside it, without claiming identical antialiasing.

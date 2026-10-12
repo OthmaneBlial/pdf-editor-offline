@@ -79,6 +79,34 @@ enum Command {
         #[arg(long)]
         dry_run: bool,
     },
+    /// Edit one physical Text annotation occurrence; linked/locked structures may be refused.
+    EditNote {
+        input: PathBuf,
+        #[arg(long)]
+        page: u32,
+        #[arg(long, help = "One-based physical Annots index from list-notes")]
+        annotation: u32,
+        #[arg(long, required_unless_present = "author", allow_hyphen_values = true)]
+        contents: Option<String>,
+        #[arg(long, allow_hyphen_values = true)]
+        author: Option<String>,
+        #[arg(short, long)]
+        output: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Remove one physical Text annotation occurrence; old values may remain recoverable.
+    RemoveNote {
+        input: PathBuf,
+        #[arg(long)]
+        page: u32,
+        #[arg(long, help = "One-based physical Annots index from list-notes")]
+        annotation: u32,
+        #[arg(short, long)]
+        output: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Extract encoded text; scanned documents require OCR (not yet migrated).
     ExtractText {
         input: PathBuf,
@@ -268,6 +296,41 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
                 document.save_new(output)?;
             }
             Ok(json!({"operation": "add-note", "note": note, "output": output, "dry_run": dry_run}))
+        }
+        Command::EditNote {
+            input,
+            page,
+            annotation,
+            contents,
+            author,
+            output,
+            dry_run,
+        } => {
+            let mut document = open(input)?;
+            let note =
+                document.edit_note(*page, *annotation, contents.as_deref(), author.as_deref())?;
+            if !dry_run {
+                document.save_new(output)?;
+            }
+            Ok(
+                json!({"operation":"edit-note","note":note,"output":output,"dry_run":dry_run,"secure_erasure":false,"appearance_regenerated":false}),
+            )
+        }
+        Command::RemoveNote {
+            input,
+            page,
+            annotation,
+            output,
+            dry_run,
+        } => {
+            let mut document = open(input)?;
+            let removed = document.remove_note(*page, *annotation)?;
+            if !dry_run {
+                document.save_new(output)?;
+            }
+            Ok(
+                json!({"operation":"remove-note","removed":removed,"output":output,"dry_run":dry_run,"secure_erasure":false}),
+            )
         }
         Command::ExtractText { input, pages } => {
             let document = open(input)?;
@@ -464,9 +527,9 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
         }
         Command::Capabilities => Ok(
             json!({ "runtime": "rust-native", "version": env!("CARGO_PKG_VERSION"), "migration_preview": true,
-            "commands": ["info", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "extract-text", "render-page", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
+            "commands": ["info", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
             "metadata":"six_standard_trailer_info_keys_custom_entries_and_xmp_preserved_no_sync_or_secure_erasure",
-            "annotations": "sticky_text_notes_add_and_list_with_vector_appearance",
+            "annotations": "sticky_text_notes_add_list_guarded_edit_remove_with_preserved_appearance",
             "saving": "verified_new_copy_no_clobber", "signed_inputs": "read_only", "encrypted_inputs": "read_only",
             "unmigrated": ["complete_page_organization", "existing_content_editing", "forms", "cryptographic_signing", "secure_redaction", "sanitization", "ocr", "office_conversion", "recovery", "wasm"] }),
         ),

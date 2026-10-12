@@ -12,6 +12,8 @@ cargo build --release -p pdf-editor-offline-cli
 ./target/release/pdf-editor-offline inspect-security input.pdf --json
 ./target/release/pdf-editor-offline add-note input.pdf --page 1 --rectangle 50 60 74 84 --contents "Review this paragraph" --author "Reviewer" -o noted.pdf
 ./target/release/pdf-editor-offline list-notes noted.pdf --pages 1 --json
+./target/release/pdf-editor-offline edit-note noted.pdf --page 1 --annotation 1 --contents "Updated comment" --author "Reviewer" -o edited-note.pdf --json
+./target/release/pdf-editor-offline remove-note edited-note.pdf --page 1 --annotation 1 -o removed-note.pdf --json
 ./target/release/pdf-editor-offline extract-text examples/sample_pdfs/demo-basic.pdf
 ./target/release/pdf-editor-offline render-page input.pdf --page 1 --scale 1.5 -o page.png
 ./target/release/pdf-editor-offline rotate input.pdf --pages 1-3 --degrees 90 -o rotated.pdf
@@ -75,11 +77,34 @@ successfully decrypted inputs; adding notes refuses both. Listing caps each page
 at 10,000 annotations, all selected annotations at 100,000 and returned comment
 text at 16 MiB, with explicit errors for malformed strings/references.
 Comment text is metadata and is not included in page extraction/search. This
-slice does not implement popup interaction, note editing/deletion, highlights,
+slice does not implement popup interaction, highlights,
 replies, arbitrary annotation appearances or desktop note controls. It does not
 edit existing page text. Independent icon placement/preservation is checked with
 the optional Poppler 26.10.0 gate:
 `PDF_REFERENCE_BIN_DIR=/path/to/poppler/bin cargo test -p pdf-editor-offline-cli --test notes -- --ignored`.
+
+`edit-note` and `remove-note` select a page and the **physical one-based
+`annotation_index`** returned by `list-notes`. This includes intervening non-Text
+annotations; indices shift after a removal. Editing requires `--contents` and/or
+`--author`; omitted fields remain unchanged, and empty strings are allowed.
+The selected occurrence gets a new note object while its rectangle, flags and
+appearance remain unchanged. Shared arrays, other page occurrences and original
+objects are preserved. Removal drops only the selected array entry; old comments
+can remain recoverable. Reports explicitly return `secure_erasure: false`.
+
+This is partial existing-note editing: popup/reply/action/tag/unique-name (`NM`)
+and custom structures, incoming links through indirect aliases, and ReadOnly,
+Locked or LockedContents notes are refused. Signed/decrypted inputs remain
+read-only. Both commands support dry-run and verified new-copy/no-clobber saves.
+Live incoming references are checked; harmless old orphan containers remain
+unchanged and do not block later edits/removals after saving and reopening.
+Live external links to old containers still refuse the operation.
+Direct copies are bounded by 100,000 values and 1 MiB of string/name/key payload;
+reference analysis has explicit occurrence/alias/depth/work caps. These are not
+strict OS memory/time limits. The independent gate checks preserved qpdf logical
+objects, identical Poppler pixels after editing and baseline page pixels after
+ordinary removal:
+`PDF_REFERENCE_BIN_DIR=/path/to/poppler/bin PDF_REFERENCE_QPDF=/path/to/qpdf cargo test -p pdf-editor-offline-cli --test note_updates -- --ignored`.
 
 `reorder --order` requires every page exactly once, in the supplied order; it does
 not sort or silently remove duplicates. `extract-pages` also preserves supplied

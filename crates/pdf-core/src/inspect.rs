@@ -367,7 +367,7 @@ fn filename(document: &Document, value: &Object) -> Result<String> {
     Ok(lopdf::decode_text_string(value)?)
 }
 
-fn reachable_objects(document: &Document) -> Result<BTreeSet<ObjectId>> {
+pub(crate) fn reachable_objects(document: &Document) -> Result<BTreeSet<ObjectId>> {
     let mut reachable = BTreeSet::new();
     let mut pending = document
         .trailer
