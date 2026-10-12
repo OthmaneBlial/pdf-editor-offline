@@ -7,8 +7,9 @@ for the product overview and `docs.html` for builds, feature boundaries and
 measured evidence. Serving these files requires no application service or build.
 
 There are no document uploads, application controls, installer claims or generated
-native screenshots on this site. Release links are labeled as project history;
-source builds are the primary way to try the native preview.
+native screenshots on this site. Desktop use remains a source build. The official
+`v4.0.0-preview.1` prerelease supplies five unsigned standalone native CLI assets,
+linked directly from the download section with release records and hashes.
 
 Local links and assets must resolve relative to this folder so a subfolder deploy
 works. Keep the original screenshot pixels and their meaningful alternative text.
@@ -17,7 +18,8 @@ hashes remain in `assets/fonts/PROVENANCE.md`.
 The header and SVG favicon use the original `docs/assets/logo.svg` artwork,
 copied unchanged to `assets/logo.svg`.
 
-The dated CLI evidence is 44 operation records over 11 fixtures. The separate
+The 2026-10-13 CLI evidence is 44 passing operation records over 11 fixtures at
+clean source `ab0b24b`, with zero failures/skips in 7.973 seconds locally. The separate
 229 normal tests and 10 explicitly run reference/helper tests belong to source
 49bd559 on 2026-10-12, and are not current counters or raster-parity claims.
 Review feature scope against the repository before publication. Local inspection
@@ -38,9 +40,9 @@ with the keyboard inside its named focusable region. Local HTML/font
 references resolve; repository-document targets exist. Five copied native images
 match their originals byte for byte. Command snippets remain readable without
 JavaScript; their copy buttons report successful copying or a manual-copy fallback.
-Mouse-copy of release commands and Enter-key copying of the CLI operations were
+Mouse-copy of release build commands and Enter-key copying of the CLI operations were
 checked in Chrome; the resulting clipboard text exactly matched the command
-snippets, including line breaks. Four buttons have distinct accessible names
+snippets, including line breaks. Command buttons have distinct accessible names
 and polite status messages. Serving SVG and script assets requires their normal
 `image/svg+xml` and JavaScript content types.
 The site contains no obsolete stack references. This is local review evidence, not live deployment or
