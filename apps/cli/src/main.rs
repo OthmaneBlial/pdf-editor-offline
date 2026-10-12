@@ -76,6 +76,15 @@ enum Command {
         #[arg(long)]
         dry_run: bool,
     },
+    /// Beta: merge simple PDFs in caller order, requiring matching inert metadata.
+    Merge {
+        #[arg(required = true, num_args = 2..)]
+        inputs: Vec<PathBuf>,
+        #[arg(short, long)]
+        output: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Reverse every page while retaining document-level structures.
     Reverse {
         input: PathBuf,
@@ -196,6 +205,31 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
             }
             Ok(
                 json!({ "operation": "compress", "output": output, "dry_run": dry_run, "lossless_stream_compression": true }),
+            )
+        }
+        Command::Merge {
+            inputs,
+            output,
+            dry_run,
+        } => {
+            let (first, remaining) = inputs
+                .split_first()
+                .ok_or(Error::Pages("merge requires at least two inputs"))?;
+            let mut merged = open(first)?;
+            merged.ensure_editable()?;
+            if remaining.is_empty() {
+                return Err(Error::Pages("merge requires at least two inputs"));
+            }
+            for input in remaining {
+                let incoming = open(input)?;
+                merged.append(&incoming)?;
+            }
+            if !dry_run {
+                merged.save_new(output)?;
+            }
+            Ok(
+                json!({"operation": "merge", "inputs": inputs, "page_count": merged.page_count(),
+                "scope": "simple_documents_matching_inert_metadata", "output": output, "dry_run": dry_run}),
             )
         }
         Command::Reverse {
@@ -325,7 +359,7 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
         }
         Command::Capabilities => Ok(
             json!({ "runtime": "rust-native", "version": env!("CARGO_PKG_VERSION"), "migration_preview": true,
-            "commands": ["info", "inspect-security", "extract-text", "render-page", "rotate", "compress", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
+            "commands": ["info", "inspect-security", "extract-text", "render-page", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
             "saving": "verified_new_copy_no_clobber", "signed_inputs": "read_only", "encrypted_inputs": "read_only",
             "unmigrated": ["complete_page_organization", "existing_content_editing", "forms", "cryptographic_signing", "secure_redaction", "sanitization", "ocr", "office_conversion", "recovery", "wasm"] }),
         ),

@@ -213,6 +213,11 @@ fn native_page_outputs_match_independent_text_geometry_and_pixels() {
             .all(|channel| *channel == 255)
     );
     let retained = std::fs::read(&inserted).unwrap();
+    let merged = directory.path().join("merged.pdf");
+    cli(&input, &merged, "merge", &[input.to_str().unwrap()], 0);
+    for number in 1..=6 {
+        assert_eq!(page(&merged, number), pages[(number - 1) % 3]);
+    }
     cli(&input, &inserted, "reverse", &[], 3);
     assert_eq!(std::fs::read(&inserted).unwrap(), retained);
     let dry = directory.path().join("dry.pdf");

@@ -11,6 +11,7 @@ cargo build --release -p pdf-editor-offline-cli
 ./target/release/pdf-editor-offline render-page input.pdf --page 1 --scale 1.5 -o page.png
 ./target/release/pdf-editor-offline rotate input.pdf --pages 1-3 --degrees 90 -o rotated.pdf
 ./target/release/pdf-editor-offline compress input.pdf -o compressed.pdf --dry-run
+./target/release/pdf-editor-offline merge first.pdf second.pdf third.pdf -o merged.pdf
 ./target/release/pdf-editor-offline reverse input.pdf -o reversed.pdf
 ./target/release/pdf-editor-offline reorder input.pdf --order 3,1-2 -o reordered.pdf
 ./target/release/pdf-editor-offline crop input.pdf --pages 1 --rectangle 10 20 500 700 -o cropped.pdf
@@ -44,6 +45,17 @@ are not safely remapped by the current core. They are not privacy operations:
 unreachable content may remain in the saved copy. Deleting every page is refused.
 All six organization commands support `--dry-run`, `--json` and the global
 `--password-stdin` policy; every actual save requires a fresh output path.
+
+`merge` requires at least two inputs and appends pages in caller order. It is a
+restricted beta for simple PDFs with matching inert string metadata; conflicting
+metadata, unsupported catalog/trailer structures, annotations, forms, bookmarks,
+tags, layers, object streams, linearization and unresolved references are refused.
+Signed or encrypted inputs are refused in any position. A shared password can
+be read through `--password-stdin` for opening, but does not permit exporting an
+encrypted input. All inputs are read-only; the output is published once, after
+every append succeeds. `--dry-run` validates all appends without creating output.
+Existing output files/symlinks are never overwritten. Merge remaps object IDs;
+it is not a privacy operation or a claim of general document-merging parity.
 
 `render-page` exports exactly one one-based page as an opaque RGBA8 PNG. Scale
 is finite positive pixels per PDF point (default 1); CropBox and page rotation
