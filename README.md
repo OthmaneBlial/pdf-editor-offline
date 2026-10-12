@@ -15,11 +15,11 @@ Open a PDF, find the page you need, organize it and save a new copy. PDF Editor
 Offline is a free, open-source desktop app and command-line tool for local PDF
 work. No account, subscription or document upload is required.
 
-**This is the native Rust preview.** Build from source to try the current app.
-macOS, Windows and Linux are target platforms; actual desktop interaction evidence
-is primarily from macOS. Native installers and full PDF editing are still in
-progress. The [release archive](https://github.com/OthmaneBlial/pdf-editor-offline/releases)
-contains earlier builds and does not establish the current native feature set.
+**Try the native Rust preview.** The CLI is released for macOS, Windows and Linux;
+the desktop app builds from source. Actual desktop interaction evidence is
+primarily from macOS. Native desktop installers and full PDF editing remain in
+progress. [Download the native CLI](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.1);
+historical desktop releases have a different feature set.
 
 ![Actual native PDF editor on macOS: local search, page canvas and document inspector in the light theme](screenshots/native/editorial-light-2026-10-12.png)
 
@@ -44,6 +44,22 @@ The screenshot is a real app window using a public synthetic PDF.
 These are real macOS captures with synthetic public documents.
 
 </details>
+
+## Try the native CLI
+
+```sh
+npm install --global pdf-editor-offline
+pdf-editor-offline --help
+```
+
+The npm package installs and launches the native Rust CLI; PDF processing stays
+local. Its installer and launcher need Node.js 22+. Prefer a standalone binary?
+[Download one for your platform](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.1)
+and run it directly, without Node.js or a Rust toolchain.
+
+Version **4.0.0-preview.1** passed real binary and global-install checks on macOS
+ARM64/Intel, Windows x64 and Linux x64/ARM64. It installs the CLI; build the desktop
+app with the instructions below.
 
 ## What works today
 
