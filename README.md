@@ -49,6 +49,10 @@ and JSON inspection. Preview a supported change with `--dry-run` before writing.
 
 ![Actual native page thumbnails and reading canvas](screenshots/native/thumbnails-light-2026-10-12.png)
 
+**Put the pages in order.** Open the organizer to rotate, reorder or crop supported documents.
+
+![Actual native page organizer with crop controls](screenshots/native/organizer-crop-2026-10-12.png)
+
 **Keep the details right.** Edit document properties, including tested Chinese, Japanese and Korean text, then save a verified copy.
 
 ![Actual native document properties with Unicode text](screenshots/native/properties-cjk-2026-10-12.png)
@@ -68,6 +72,17 @@ npm install --global pdf-editor-offline
 pdf-editor-offline --help
 ```
 
+**Start with one file.** Replace `input.pdf` with a local PDF:
+
+```sh
+pdf-editor-offline info input.pdf --json
+pdf-editor-offline rotate input.pdf --pages 1 --degrees 90 -o rotated.pdf --dry-run --json
+pdf-editor-offline rotate input.pdf --pages 1 --degrees 90 -o rotated.pdf --json
+```
+
+The first command inspects the document. The next previews a rotation; the last
+writes a new copy. Pick an unused output name: existing files are not overwritten.
+
 The npm package installs and launches the native Rust CLI; PDF processing stays
 local. Its installer and launcher need Node.js 22+. Prefer a standalone binary?
 [Download one for your platform](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.1)
@@ -76,6 +91,19 @@ and run it directly, without Node.js or a Rust toolchain.
 Version **4.0.0-preview.1** passed real binary and global-install checks on macOS
 ARM64/Intel, Windows x64 and Linux x64/ARM64. It installs the CLI; build the desktop
 app with the instructions below.
+
+<details>
+<summary>Three more things to try with your own PDF</summary>
+
+| You want to… | Run this |
+| --- | --- |
+| Read document properties | `pdf-editor-offline metadata input.pdf --json` |
+| See which operations are supported | `pdf-editor-offline capabilities --json` |
+| Check extraction options before choosing pages | `pdf-editor-offline extract-pages --help` |
+
+[Full command guide and examples](apps/cli/README.md)
+
+</details>
 
 ## What works today
 
@@ -158,6 +186,30 @@ This is an active native rewrite. Follow the [release notes](CHANGELOG.md),
 the [next milestones](ROADMAP.md) and the [implementation status](docs/RUST_STATUS.md)
 to see what has shipped and what still needs work. The screenshots above show
 the app; the status documents describe its current limits.
+
+**Choose a starting point:** [use the CLI](apps/cli/README.md),
+[run the desktop](apps/desktop/README.md),
+[contribute a fix](.github/CONTRIBUTING.md) or
+[improve a translation](docs/languages/).
+
+<details>
+<summary>Find your way around the repository</summary>
+
+| Directory | What belongs here |
+| --- | --- |
+| `apps/` | Native desktop and CLI entry points |
+| `crates/` | Shared Rust PDF processing, rendering, conversion and workers |
+| `docs/` | Guides, translations, architecture and recorded evidence |
+| `tests/`, `examples/` | Test fixtures and public demonstration files |
+| `distribution/` | Optional npm installer for the native CLI |
+| `site/`, `screenshots/` | Project website and real app captures |
+| `tools/`, `scripts/` | Validation and release tooling |
+| `vendor/` | Reviewed dependency sources used by this workspace |
+
+`target/` is a local Cargo build cache, ignored by Git. Workspace manifests,
+the lockfile, license and project overview stay at the root.
+
+</details>
 
 <details>
 <summary>How the Rust pieces fit together</summary>

@@ -35,6 +35,16 @@ npm install --global pdf-editor-offline
 pdf-editor-offline --help
 ```
 
+### 自分の PDF で試す
+
+`input.pdf` をローカルのファイルに置き換えてください。最初のコマンドは情報を読み取り、次は書き込まずに回転を検証し、最後は新しいコピーを作成します。出力には、まだ存在しないファイル名を指定してください。
+
+```sh
+pdf-editor-offline info input.pdf --json
+pdf-editor-offline rotate input.pdf --pages 1 --degrees 90 -o rotated.pdf --dry-run --json
+pdf-editor-offline rotate input.pdf --pages 1 --degrees 90 -o rotated.pdf --json
+```
+
 ## ビルドと起動
 
 Rust 1.95 以降と各 OS のネイティブビルド用ライブラリをインストールしてください。依存関係を初めてダウンロードする際は接続が必要です。Linux のパッケージは[ネイティブ CI](../../.github/workflows/rust.yml)を参照してください。

@@ -35,6 +35,16 @@ npm install --global pdf-editor-offline
 pdf-editor-offline --help
 ```
 
+### جرّب ملف PDF الخاص بك
+
+استبدل `input.pdf` بملف محلي. يقرأ الأمر الأول معلوماته، ويتحقق الثاني من التدوير دون كتابة، وينشئ الثالث نسخة جديدة. اختر اسمًا لملف الإخراج غير موجود مسبقًا.
+
+```sh
+pdf-editor-offline info input.pdf --json
+pdf-editor-offline rotate input.pdf --pages 1 --degrees 90 -o rotated.pdf --dry-run --json
+pdf-editor-offline rotate input.pdf --pages 1 --degrees 90 -o rotated.pdf --json
+```
+
 ## البناء والتشغيل
 
 ثبّت Rust 1.95 أو أحدث ومكتبات البناء الأصلية لمنصتك. تنزيل الاعتماديات لأول مرة يحتاج اتصالًا. على Linux، راجع [حزم البناء في CI](../../.github/workflows/rust.yml).

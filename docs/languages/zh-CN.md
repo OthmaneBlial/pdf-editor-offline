@@ -35,6 +35,16 @@ npm install --global pdf-editor-offline
 pdf-editor-offline --help
 ```
 
+### 用自己的 PDF 试一试
+
+将 `input.pdf` 替换为本地文件。第一条命令读取文档信息，第二条验证旋转操作但不写入，第三条创建新副本。请选择尚不存在的输出文件名。
+
+```sh
+pdf-editor-offline info input.pdf --json
+pdf-editor-offline rotate input.pdf --pages 1 --degrees 90 -o rotated.pdf --dry-run --json
+pdf-editor-offline rotate input.pdf --pages 1 --degrees 90 -o rotated.pdf --json
+```
+
 ## 构建与运行
 
 安装 Rust 1.95+ 以及平台所需的原生构建库。首次下载依赖需要联网。Linux 系统包请参考[原生 CI 配置](../../.github/workflows/rust.yml)。

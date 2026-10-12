@@ -35,6 +35,16 @@ npm install --global pdf-editor-offline
 pdf-editor-offline --help
 ```
 
+### Mit deiner PDF ausprobieren
+
+Ersetze `input.pdf` durch eine lokale Datei. Der erste Befehl liest die Informationen; der zweite prüft die Drehung ohne zu schreiben; der dritte erstellt eine neue Kopie. Wähle einen noch nicht vorhandenen Ausgabenamen.
+
+```sh
+pdf-editor-offline info input.pdf --json
+pdf-editor-offline rotate input.pdf --pages 1 --degrees 90 -o rotated.pdf --dry-run --json
+pdf-editor-offline rotate input.pdf --pages 1 --degrees 90 -o rotated.pdf --json
+```
+
 ## Bauen und starten
 
 Installiere Rust 1.95+ und die nativen Bibliotheken deiner Plattform. Der erste Download der Abhängigkeiten braucht eine Verbindung. Für Linux stehen die Systempakete in der [nativen CI](../../.github/workflows/rust.yml).
