@@ -14,14 +14,17 @@ eligible for removal at this milestone.
 | Family | Current status | Verified Rust scope | Remaining gate |
 | --- | --- | --- | --- |
 | Open/inspect | Partial | strict bounded parser, structural/geometry inspection, nested signature detection; native GUI + `info` | broader encrypted/malformed corpus and isolation |
-| Render/navigate | Partial | Hayro vectors/crop/rotation, native tabs/zoom/navigation; 6 renderer tests and actual macOS window | full font/fidelity corpus, tiled/cache behavior and all platform UI |
+| Render/navigate | Partial | Hayro vectors/crop/rotation and pinned annotation geometry; native DPI-aware navigation and bounded visible-page thumbnails; 17 renderer tests and earlier actual macOS window | full font/fidelity corpus, thumbnail runtime review, tiled rendering and all platform UI |
 | Save As | Partial | verified new-copy/no-clobber core/CLI/GUI; independent copy inspection | overwrite policy, recovery, locking and power-loss durability |
-| Undo/redo | Partial | native rotation snapshots, dirty/saved revision behavior; 7 desktop tests | every editing workflow and recovery integration |
-| Page organization | Partial | 11 core tests for reorder/reverse/crop/blank and guarded subset operations; GUI/CLI rotation | merge/split/import/duplicate, indexed structures and full organizer UI/CLI |
+| Undo/redo | Partial | native rotation/organization/properties snapshots, dirty/saved revisions and rejected-edit preservation | every editing workflow and recovery integration |
+| Page organization | Partial | guarded core/CLI reorder/reverse/crop/blank/subsets and simple merge; GUI move/reverse/blank/crop with history | organizer runtime review, GUI subsets/merge, split/import/duplicate and indexed structures |
 | Compression | Partial | lossless stream compression + verified new copy; CLI and cross-reader preservation | repair, images/lossy tiers and native tool workflow |
-| Text/search | Partial | bounded fonts/content/appearances/Form XObjects; literal CLI search; 7 text regressions | geometry, broad Unicode/RTL/CJK, general clipping/reading order and native search UI |
+| Text/search | Partial | bounded fonts/content/appearances/Form XObjects; literal CLI and native incremental search; 7 text regressions and actual focused native search | coordinate highlights, broad Unicode/RTL/CJK and general clipping/reading order |
+| Comments | Partial | native core/CLI basic sticky-note add/list/edit/ordinary removal; upright appearances and independent preservation gates | native controls, linked/locked/unique-name policies, markup and broader annotation types |
+| Metadata | Partial | bounded Unicode Info edits through core/CLI/native properties, aliases/XMP retained, undo and stale-draft guards | properties runtime review, dates, XMP synchronization and secure cleanup |
+| Images to PDF | Partial | restricted native PNG/JPEG library; exact PNG samples/masks, sRGB ICC, original JPEG streams; independent qpdf/Poppler gate | CLI/native controls, orientation and wider color/metadata tiers |
 | CLI/capabilities | Partial | independent Rust commands, JSON reports, exit codes, dry-run and completions | all legacy behaviors, batch/cancellation/progress and versioned schema compatibility |
-| UI usability | Partial | themes, dialogs, tabs, rotation, history, unsaved guards; actual macOS smoke captures | full workstation layout, organizer, text accessibility and advanced tools |
+| UI usability | Partial | ivory/forest workstation, offline IBM Plex/CJK glyphs, palette/search, organization/properties and unsaved guards; earlier actual macOS captures | latest dialogues/runtime review, complete screen-reader audit and advanced tools |
 | Trust Lab/performance | Partial | 44 strict independent cases including a generated 1,000-page document, release timings and hashes | large real corpus, rendering/memory/scroll/OCR and legacy-runtime baseline |
 | Rust library | Partial | reusable documented core/render crates, library tests, rustdoc | complete operation APIs, WASM and publication |
 | CI/distribution | Partial | locked cross-platform workflow, local RustSec/license/source checks | inspect actual target runs, installed GUI smoke, native installers/signing/provenance |

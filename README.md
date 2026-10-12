@@ -34,12 +34,14 @@
 ## Why PDF Editor Offline?
 
 The **native Rust rewrite is in progress** alongside the working 3.0.0 app.
-The native preview opens and renders PDFs locally, with tabs, Retina-aware zoom,
-page/text search, a command palette, rotation, undo/redo and verified Save As.
-Its independent Rust CLI provides inspection, text extraction, search, rotation,
-compression and guarded page organization. Neither runtime
+The native preview opens and renders PDFs locally in an ivory/forest workstation,
+with tabs, Retina-aware zoom, visible-page thumbnails, search, a command palette,
+page organization, document properties, undo/redo and verified Save As. Offline
+fonts include tested Chinese, Japanese and Korean glyphs.
+Its independent Rust CLI provides inspection, text/search, compression, guarded
+page organization, basic sticky notes and metadata editing. Neither native runtime
 launches Python or a server. Advanced editing, secure redaction, OCR, forms,
-conversion and full platform distribution remain migration work.
+broader conversion and full platform distribution remain migration work.
 
 ```sh
 cargo run -p pdf-editor-offline-native
