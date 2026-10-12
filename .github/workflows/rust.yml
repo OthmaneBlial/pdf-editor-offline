@@ -10,6 +10,8 @@ on:
       - 'deny.toml'
       - '.github/workflows/rust.yml'
       - 'scripts/benchmark_rust.py'
+      - 'scripts/install_reference_poppler.sh'
+      - 'scripts/verify_rust_pages.py'
   pull_request:
     paths:
       - 'Cargo.*'
@@ -18,6 +20,8 @@ on:
       - 'deny.toml'
       - '.github/workflows/rust.yml'
       - 'scripts/benchmark_rust.py'
+      - 'scripts/install_reference_poppler.sh'
+      - 'scripts/verify_rust_pages.py'
   workflow_dispatch:
 
 permissions:
@@ -66,12 +70,15 @@ jobs:
           cargo build --release -p pdf-editor-offline-cli --locked
           "$RUNNER_TEMP/pdf-parity/bin/python" scripts/benchmark_rust.py --self-check
           "$RUNNER_TEMP/pdf-parity/bin/python" scripts/benchmark_rust.py --binary target/release/pdf-editor-offline --pdftotext "$RUNNER_TEMP/reference-poppler/bin/pdftotext" --output "$RUNNER_TEMP/rust-baseline.json"
+          "$RUNNER_TEMP/pdf-parity/bin/python" scripts/verify_rust_pages.py --binary target/release/pdf-editor-offline --output "$RUNNER_TEMP/rust-pages-parity.json"
       - name: Preserve independent evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: rust-independent-baseline
-          path: ${{ runner.temp }}/rust-baseline.json
+          path: |
+            ${{ runner.temp }}/rust-baseline.json
+            ${{ runner.temp }}/rust-pages-parity.json
           if-no-files-found: warn
 
   platforms:
