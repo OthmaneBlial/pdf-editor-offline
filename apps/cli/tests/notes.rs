@@ -135,7 +135,9 @@ fn note_dry_run_invalid_arguments_geometry_limits_and_no_clobber_are_atomic() {
         }
         assert!(!output.exists());
     }
-    let oversized = "x".repeat(pdf_core::MAX_NOTE_CONTENT_BYTES + 1);
+    // Exceed the UTF-8 byte limit while fitting Windows' UTF-16 command line.
+    let oversized = "界".repeat(pdf_core::MAX_NOTE_CONTENT_BYTES / 3 + 1);
+    assert!(oversized.len() > pdf_core::MAX_NOTE_CONTENT_BYTES);
     let result = cli(&[
         "add-note",
         input.to_str().unwrap(),
@@ -153,6 +155,10 @@ fn note_dry_run_invalid_arguments_geometry_limits_and_no_clobber_are_atomic() {
         "--json",
     ]);
     assert_eq!(result.status.code(), Some(5));
+    assert_eq!(
+        serde_json::from_slice::<serde_json::Value>(&result.stdout).unwrap()["error"]["kind"],
+        "resource_limit"
+    );
     assert!(!output.exists());
     assert_eq!(
         cli(&[
