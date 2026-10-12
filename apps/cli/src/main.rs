@@ -31,6 +31,30 @@ struct Cli {
 enum Command {
     /// Inspect pages, geometry and signature/encryption flags.
     Info { input: PathBuf },
+    /// Read six standard trailer Info fields; XMP is preserved separately.
+    Metadata { input: PathBuf },
+    /// Set a standard metadata field, retaining custom entries and XMP.
+    SetMetadata {
+        input: PathBuf,
+        #[arg(long,value_parser=["title","author","subject","keywords","creator","producer"])]
+        key: String,
+        #[arg(long, allow_hyphen_values = true)]
+        value: String,
+        #[arg(short, long)]
+        output: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Remove a standard Info key; old values can remain in the saved graph.
+    RemoveMetadata {
+        input: PathBuf,
+        #[arg(long,value_parser=["title","author","subject","keywords","creator","producer"])]
+        key: String,
+        #[arg(short, long)]
+        output: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Inventory metadata, attachments, forms and actions; not a privacy proof.
     InspectSecurity { input: PathBuf },
     /// List sticky Text notes, including hidden notes and their flags.
@@ -185,6 +209,40 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
     let open = |input: &PathBuf| PdfDocument::open(input, password);
     match &cli.command {
         Command::Info { input } => Ok(json!(open(input)?.info()?)),
+        Command::Metadata { input } => Ok(json!(open(input)?.metadata()?)),
+        Command::SetMetadata {
+            input,
+            key,
+            value,
+            output,
+            dry_run,
+        } => {
+            let mut document = open(input)?;
+            let metadata =
+                document.update_metadata(&[(pdf_core::MetadataKey::parse(key)?, Some(value))])?;
+            if !dry_run {
+                document.save_new(output)?;
+            }
+            Ok(
+                json!({"operation":"set-metadata","key":key,"metadata":metadata,"output":output,"dry_run":dry_run}),
+            )
+        }
+        Command::RemoveMetadata {
+            input,
+            key,
+            output,
+            dry_run,
+        } => {
+            let mut document = open(input)?;
+            let metadata =
+                document.update_metadata(&[(pdf_core::MetadataKey::parse(key)?, None)])?;
+            if !dry_run {
+                document.save_new(output)?;
+            }
+            Ok(
+                json!({"operation":"remove-metadata","key":key,"metadata":metadata,"output":output,"dry_run":dry_run}),
+            )
+        }
         Command::InspectSecurity { input } => Ok(json!(open(input)?.inspect_security()?)),
         Command::ListNotes { input, pages } => {
             let document = open(input)?;
@@ -406,7 +464,8 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
         }
         Command::Capabilities => Ok(
             json!({ "runtime": "rust-native", "version": env!("CARGO_PKG_VERSION"), "migration_preview": true,
-            "commands": ["info", "inspect-security", "list-notes", "add-note", "extract-text", "render-page", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
+            "commands": ["info", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "extract-text", "render-page", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
+            "metadata":"six_standard_trailer_info_keys_custom_entries_and_xmp_preserved_no_sync_or_secure_erasure",
             "annotations": "sticky_text_notes_add_and_list_with_vector_appearance",
             "saving": "verified_new_copy_no_clobber", "signed_inputs": "read_only", "encrypted_inputs": "read_only",
             "unmigrated": ["complete_page_organization", "existing_content_editing", "forms", "cryptographic_signing", "secure_redaction", "sanitization", "ocr", "office_conversion", "recovery", "wasm"] }),
