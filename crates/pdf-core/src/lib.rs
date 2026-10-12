@@ -4,6 +4,7 @@
 mod error;
 mod input;
 mod inspect;
+mod merge;
 mod pages;
 mod save;
 mod structure;

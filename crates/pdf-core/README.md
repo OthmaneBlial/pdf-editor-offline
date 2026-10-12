@@ -53,6 +53,23 @@ on subset operations; other catalog `Info` values are refused.
 Direct inherited resource dictionaries are moved into a shared indirect object
 before rebuilding page trees, avoiding one large resource copy per page.
 
+`append(&other)` provides **beta simple-catalog merging**, preserving page order,
+inherited resources/geometry and logical orphan graphs. Both inputs are preserved
+on failure. Output object IDs change, and the output uses a fresh page tree and
+xref table; source file identity arrays and previous revision chains are not
+carried into the new document. This is not secure deletion or full legacy merge
+parity. Catalog/trailer string metadata must match exactly. Conflicting metadata,
+XMP, bookmarks, forms, attachments, labels, tags, layers, actions, annotations,
+templates, custom trailer semantics, encrypted/signed inputs, object streams and
+linearization are explicitly refused until their combining policy is implemented.
+Aggregate limits are 20,000 pages, one million stored objects, two million direct
+structural values and 128 MiB of raw payload/key/name bytes. Output export retains
+its separate verified size limit; OS process isolation remains necessary.
+The independent development gate compares extraction, boxes/rotation and exact
+page raster pixels through Poppler's `pdftotext`, `pdfinfo` and `pdftoppm`:
+`cargo test -p pdf-core --test merge -- --include-ignored --test-threads=1`.
+These optional reference tools are not application runtime dependencies.
+
 Save verification permits re-encoding xref/object-stream containers and stream
 length representation while comparing logical objects, stream bytes and document
 trailer references. References to discarded containers are refused. Numeric/string

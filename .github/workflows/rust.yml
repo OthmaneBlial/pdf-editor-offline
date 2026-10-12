@@ -69,6 +69,7 @@ jobs:
           "$RUNNER_TEMP/pdf-parity/bin/python" scripts/benchmark_rust.py --self-check
           "$RUNNER_TEMP/pdf-parity/bin/python" scripts/benchmark_rust.py --binary target/release/pdf-editor-offline --pdftotext "$RUNNER_TEMP/reference-poppler/bin/pdftotext" --output "$RUNNER_TEMP/rust-baseline.json"
           PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" cargo test --locked -p pdf-editor-offline-cli --test native_pages_reference -- --ignored
+          PATH="$RUNNER_TEMP/reference-poppler/bin:$PATH" cargo test --locked -p pdf-core --test merge -- --ignored
       - name: Preserve independent evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
