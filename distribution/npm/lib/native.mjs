@@ -4,9 +4,10 @@ import { constants } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import packageMetadata from '../package.json' with { type: 'json' };
 
 export const PACKAGE_DIRECTORY = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-export const VERSION = '4.0.0-preview.1';
+export const VERSION = packageMetadata.version;
 export const MAX_BINARY_BYTES = 128 * 1024 * 1024;
 export const PLATFORMS = Object.freeze({
   'darwin-arm64': 'pdf-editor-offline-darwin-arm64',
