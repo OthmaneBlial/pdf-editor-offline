@@ -12,11 +12,14 @@ pub use limits::allocation_probe;
 pub use protocol::{PayloadKind, Reply, Request};
 use std::io::{self, Write};
 use std::time::Duration;
-pub use transport::execute;
+pub use transport::{execute, execute_cli};
 
 pub const MAX_CONTROL_BYTES: usize = 8 * 1024 * 1024;
 pub const MAX_PDF_BYTES: usize = 128 * 1024 * 1024;
 pub const MAX_RGBA_BYTES: usize = 64 * 1024 * 1024;
+pub const MAX_TEXT_BYTES: usize = 128 * 1024 * 1024;
+// Preserve the core text tier even when JSON escapes every byte, plus bounded metadata.
+pub const MAX_JSON_BYTES: usize = MAX_TEXT_BYTES * 6 + MAX_CONTROL_BYTES;
 pub const MAX_STDERR_BYTES: usize = 64 * 1024;
 pub const MEMORY_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 pub const CPU_SECONDS: u64 = 30;
@@ -80,6 +83,8 @@ pub fn serve_once(
 ) -> Result<()> {
     let configured = limits::child_configuration()?;
     limits::install_child(configured)?;
+    #[cfg(unix)]
+    let _parent = limits::watch_parent()?;
     let mut output = io::stdout().lock();
     protocol::write_ready(&mut output, configured)?;
     output.flush()?;

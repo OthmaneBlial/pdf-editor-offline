@@ -4,6 +4,104 @@ use pdf_worker::{Error, Limits, PayloadKind, Request, execute};
 use std::path::Path;
 use std::time::{Duration, Instant};
 
+fn run_cli(mode: &str, limits: Limits) -> pdf_worker::Result<pdf_worker::Reply> {
+    pdf_worker::execute_cli(
+        Path::new(env!("CARGO_BIN_EXE_pdf-worker-test-helper")),
+        &[mode.into()],
+        Request {
+            control: serde_json::json!({"nonce":42}),
+            payload: Vec::new(),
+        },
+        limits,
+    )
+}
+
+#[test]
+fn cli_output_domain_preserves_large_replies_and_shared_process_failure_guards() {
+    for (mode, kind) in [("json", PayloadKind::Json), ("text", PayloadKind::Text)] {
+        let reply = run_cli(mode, Limits::default()).unwrap();
+        assert_eq!(reply.kind, kind);
+        assert!(reply.payload.len() > pdf_worker::MAX_CONTROL_BYTES);
+        assert_eq!(reply.control["nonce"], 42);
+        assert!(run(mode, Limits::default()).is_err());
+    }
+    for mode in [
+        "echo",
+        "abort",
+        "malformed",
+        "truncated",
+        "oversize",
+        "cli-oversize",
+        "cli-text-oversize",
+        "cli-checksum",
+        "trailing",
+        "stderr",
+    ] {
+        let limits =
+            Limits::for_test(pdf_worker::MEMORY_BYTES, 30, Duration::from_secs(3)).unwrap();
+        assert!(
+            run_cli(mode, limits).is_err(),
+            "unexpected CLI success: {mode}"
+        );
+    }
+    let short = Limits::for_test(pdf_worker::MEMORY_BYTES, 30, Duration::from_millis(200)).unwrap();
+    assert!(matches!(run_cli("timeout", short), Err(Error::Timeout)));
+    assert!(run_cli("text", Limits::default()).is_ok());
+}
+
+#[cfg(unix)]
+#[test]
+fn abrupt_supervisor_death_terminates_the_document_child() {
+    let temporary = tempfile::tempdir().unwrap();
+    let marker = temporary.path().join("child-pid");
+    let mut supervisor = std::process::Command::new(env!("CARGO_BIN_EXE_pdf-worker-test-helper"))
+        .arg("supervisor")
+        .arg(&marker)
+        .spawn()
+        .unwrap();
+    let started = Instant::now();
+    let pid = loop {
+        if let Ok(value) = std::fs::read_to_string(&marker) {
+            if let Ok(pid) = value.parse::<i32>() {
+                break rustix::process::Pid::from_raw(pid).unwrap();
+            }
+        }
+        if started.elapsed() > Duration::from_secs(5) {
+            let _ = supervisor.kill();
+            let _ = supervisor.wait();
+            panic!("child never accepted the supervised request");
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    };
+    supervisor.kill().unwrap();
+    supervisor.wait().unwrap();
+    let deadline = Instant::now();
+    while rustix::process::test_kill_process(pid).is_ok() {
+        if deadline.elapsed() > Duration::from_secs(5) {
+            let _ = rustix::process::kill_process(pid, rustix::process::Signal::KILL);
+            panic!("child survived abrupt supervisor death");
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    assert!(deadline.elapsed() < Duration::from_secs(5));
+}
+
+#[cfg(unix)]
+#[test]
+fn invalid_or_disappeared_supervisor_fails_before_readiness_or_input() {
+    for expected in ["0", "not-a-pid"] {
+        let output = std::process::Command::new(env!("CARGO_BIN_EXE_pdf-worker-test-helper"))
+            .arg("echo")
+            .env("PDF_WORKER_PARENT", expected)
+            .output()
+            .unwrap();
+        assert!(!output.status.success());
+        assert!(output.stdout.is_empty());
+        let diagnostic = String::from_utf8(output.stderr).unwrap();
+        assert!(diagnostic.contains("parent"));
+    }
+}
+
 fn run(mode: &str, limits: Limits) -> pdf_worker::Result<pdf_worker::Reply> {
     execute(
         Path::new(env!("CARGO_BIN_EXE_pdf-worker-test-helper")),

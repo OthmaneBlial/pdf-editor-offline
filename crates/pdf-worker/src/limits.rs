@@ -93,6 +93,7 @@ pub(crate) fn install_child(_: Limits) -> Result<()> {
 pub(crate) fn configure(command: &mut Command, limits: Limits) {
     command
         .env_clear()
+        .env("PDF_WORKER_PARENT", std::process::id().to_string())
         .env("PDF_WORKER_MEMORY", limits.memory.to_string())
         .env("PDF_WORKER_CPU", limits.cpu.to_string());
     #[cfg(unix)]
@@ -105,6 +106,67 @@ pub(crate) fn configure(command: &mut Command, limits: Limits) {
         use std::os::windows::process::CommandExt;
         command.creation_flags(0x08000000);
     }
+}
+
+#[cfg(unix)]
+pub(crate) struct ParentWatch {
+    stopped: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    thread: Option<std::thread::JoinHandle<()>>,
+}
+
+#[cfg(unix)]
+impl Drop for ParentWatch {
+    fn drop(&mut self) {
+        self.stopped
+            .store(true, std::sync::atomic::Ordering::Release);
+        if let Some(thread) = self.thread.take() {
+            let _ = thread.join();
+        }
+    }
+}
+
+#[cfg(unix)]
+pub(crate) fn watch_parent() -> Result<ParentWatch> {
+    use std::sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    };
+    let parent = rustix::process::getppid().ok_or(Error::Limits("worker has no parent".into()))?;
+    if let Ok(expected) = std::env::var("PDF_WORKER_PARENT") {
+        let expected = expected
+            .parse::<u32>()
+            .map_err(|_| Error::Protocol("invalid worker parent"))?;
+        if expected != parent.as_raw_nonzero().get() as u32 {
+            return Err(Error::Limits(
+                "worker parent disappeared before startup".into(),
+            ));
+        }
+    }
+    let stopped = Arc::new(AtomicBool::new(false));
+    let stopping = Arc::clone(&stopped);
+    let thread = std::thread::Builder::new()
+        .name("pdf-parent-watch".into())
+        .stack_size(256 * 1024)
+        .spawn(move || {
+            while !stopping.load(Ordering::Acquire) {
+                if rustix::process::getppid() != Some(parent) {
+                    // The supervisor can die without running Drop; never leave document work orphaned.
+                    let pid = rustix::process::getpid();
+                    if rustix::process::getpgrp() == pid {
+                        let _ =
+                            rustix::process::kill_process_group(pid, rustix::process::Signal::KILL);
+                    }
+                    let _ = rustix::process::kill_process(pid, rustix::process::Signal::KILL);
+                    std::process::abort();
+                }
+                std::thread::sleep(std::time::Duration::from_millis(10));
+            }
+        })
+        .map_err(|error| Error::Limits(format!("parent watchdog setup failed: {error}")))?;
+    Ok(ParentWatch {
+        stopped,
+        thread: Some(thread),
+    })
 }
 
 #[cfg(windows)]

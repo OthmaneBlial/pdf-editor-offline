@@ -35,6 +35,32 @@ pub fn execute(
     request: Request,
     limits: Limits,
 ) -> Result<Reply> {
+    execute_with_policy(
+        helper,
+        args,
+        request,
+        limits,
+        protocol::ReplyPolicy::Document,
+    )
+}
+
+/// Execute a CLI worker, accepting bounded UTF-8 text/JSON replies rather than PDF/raster data.
+pub fn execute_cli(
+    helper: &Path,
+    args: &[OsString],
+    request: Request,
+    limits: Limits,
+) -> Result<Reply> {
+    execute_with_policy(helper, args, request, limits, protocol::ReplyPolicy::Cli)
+}
+
+fn execute_with_policy(
+    helper: &Path,
+    args: &[OsString],
+    request: Request,
+    limits: Limits,
+    policy: protocol::ReplyPolicy,
+) -> Result<Reply> {
     if !helper.is_absolute() {
         return Err(Error::Protocol("worker executable must be absolute"));
     }
@@ -119,7 +145,7 @@ pub fn execute(
             input.flush()?;
             drop(request);
             drop(input);
-            let reply = protocol::read_reply(&mut output)?;
+            let reply = protocol::read_reply(&mut output, policy)?;
             let mut extra = [0];
             if output.read(&mut extra)? != 0 {
                 return Err(Error::Protocol("trailing worker output"));

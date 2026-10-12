@@ -5,6 +5,19 @@ use std::io::Write;
 
 fn main() {
     let mode = std::env::args().nth(1).unwrap_or_default();
+    if mode == "supervisor" {
+        let marker = std::env::args().nth(2).unwrap();
+        let result = pdf_worker::execute(
+            &std::env::current_exe().unwrap(),
+            &["watch-parent".into()],
+            Request {
+                control: serde_json::json!({"marker":marker}),
+                payload: Vec::new(),
+            },
+            pdf_worker::Limits::default(),
+        );
+        std::process::exit(if result.is_ok() { 0 } else { 1 });
+    }
     // Reserve without touching before Darwin's VM baseline is captured. This
     // fixture proves the parent watchdog catches commits within reservations.
     let mut resident = if mode == "resident" {
@@ -33,6 +46,44 @@ fn main() {
         return;
     }
     let result = pdf_worker::serve_once(|request: Request| match mode.as_str() {
+        "json" | "text" => {
+            let mut payload = vec![b'a'; pdf_worker::MAX_CONTROL_BYTES + 4096];
+            let kind = if mode == "json" {
+                payload.insert(0, b'"');
+                payload.push(b'"');
+                PayloadKind::Json
+            } else {
+                PayloadKind::Text
+            };
+            Ok(Reply {
+                control: request.control,
+                payload,
+                kind,
+            })
+        }
+        "cli-oversize" | "cli-text-oversize" => {
+            let mut frame = [0u8; 54];
+            frame[..8].copy_from_slice(b"PDFWRK01");
+            frame[8] = 3;
+            let (kind, limit) = if mode == "cli-oversize" {
+                (3, pdf_worker::MAX_JSON_BYTES)
+            } else {
+                (4, pdf_worker::MAX_TEXT_BYTES)
+            };
+            frame[9] = kind;
+            frame[14..22].copy_from_slice(&(limit as u64 + 1).to_be_bytes());
+            std::io::stdout().write_all(&frame).unwrap();
+            std::io::stdout().flush().unwrap();
+            std::thread::sleep(std::time::Duration::from_secs(1));
+            std::process::exit(0);
+        }
+        "watch-parent" => {
+            let marker = request.control["marker"].as_str().unwrap();
+            std::fs::write(marker, std::process::id().to_string()).unwrap();
+            loop {
+                std::thread::sleep(std::time::Duration::from_secs(1));
+            }
+        }
         "resident" => {
             resident.resize(96 * 1024 * 1024, 42);
             std::hint::black_box(&resident);
@@ -62,12 +113,12 @@ fn main() {
                 kind: PayloadKind::None,
             })
         }
-        "checksum" => {
+        "checksum" | "cli-checksum" => {
             let json = b"{}";
             let mut frame = [0u8; 54];
             frame[..8].copy_from_slice(b"PDFWRK01");
             frame[8] = 3;
-            frame[9] = 1;
+            frame[9] = if mode == "cli-checksum" { 3 } else { 1 };
             frame[10..14].copy_from_slice(&2u32.to_be_bytes());
             frame[14..22].copy_from_slice(&1u64.to_be_bytes());
             let mut out = std::io::stdout().lock();
