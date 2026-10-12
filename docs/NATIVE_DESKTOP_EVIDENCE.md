@@ -5,10 +5,11 @@ PDF raster pixels, bounded texture-cache eviction, visible-only thousand-page
 scheduling and foreground priority. A one-shot initial visibility command avoids
 eframe's hidden-window first-paint cycle. Temporary diagnostics confirmed the
 constructor, logic and UI callbacks run; no logging remains in source.
-The computer-use surface currently fails to acquire this build's window
+The computer-use surface initially failed to acquire this build's window
 (`cgWindowNotFound`), including a fresh temporary bundle and control-session reset.
-Consequently no new thumbnail screenshot or click/scroll runtime success is claimed.
-The captures below document the earlier visual workstation build.
+Window acquisition later recovered. The additional review below records actual
+thumbnail, properties and image/blank-page interactions; older captures remain
+evidence for their earlier workstation build.
 
 The organizer milestone raises the native test count to 36: move/reverse, blank
 insertion, numeric crop, verified save/reopen and complete undo are tested on an
@@ -21,6 +22,45 @@ updates preserve aliases, dates and XMP through save/reopen and undo; failed or
 stale drafts remain copyable, including actual small/large headless UI passes.
 Actual font-atlas tests verify common Chinese, Japanese and Korean glyphs. These
 checks do not replace runtime properties-dialog review or a screen-reader audit.
+
+## Subsequent real-window review
+
+The debug binary reviewed for properties, image import and organization has
+SHA-256 `e18bd263d8958562a40c03223fd883a78a4c98085dfb546892a73ceab7e82c26`.
+Its application sources were subsequently committed as `e0062d3` and `7ee8d52`.
+The earlier thumbnail capture uses the reviewed properties/CJK binary with
+SHA-256 `38469031469e883df9a41c1571cae9870c2a71d3ec69ae10a4ea189a67533543`.
+Both were run in a temporary native macOS bundle; neither is a signed installer.
+
+- Opened the public `demo-basic.pdf` through the native file picker and observed
+  a real thumbnail matching its page. [Actual thumbnail capture](../screenshots/native/thumbnails-light-2026-10-12.png)
+  has SHA-256 `cd60e3056c1c0b1e7599930ccbbe378490acf0c3f7ddf66a8fba9a9e94890ff7`.
+- Entered `Résumé 中文 東京 한국 ✓` in Document properties. The glyphs render,
+  Apply/Cancel remain visible and the loaded-status message clears the earlier
+  reading message. [Actual properties capture](../screenshots/native/properties-cjk-2026-10-12.png)
+  has SHA-256 `7affbed46a0aeb6dfe9891c53c3588fc1298457ba1f459234e9da86e4ed1c53c`.
+  Applied the title and saved `/tmp/pdf-editor-properties-cjk-20261012.pdf` using
+  the native save panel. Both the native CLI and pinned Poppler read the exact
+  title back; the source fixture has no Git diff.
+- Imported a synthetic red 2×3 PNG using File → Images to PDF. A new unsaved tab
+  appeared beside the preserved previous document. Inserted a 300×420-point blank
+  page using actual numeric entry, moved it after the image and saved
+  `/tmp/pdf-editor-native-images-organized-20261012.pdf`. qpdf 12.4.2 reports no
+  syntax/stream encoding errors; Poppler 26.10.0 reports the two expected page
+  boxes in that order. Independently decoded image samples are exactly six red
+  RGB pixels. [Actual blank-page dialog](../screenshots/native/organizer-blank-2026-10-12.png)
+  has SHA-256 `d3e14fec544480e2ffcfba14d967738b0dba267f0713295a1eea935899adb847`.
+- Undo restored the earlier blank/image order and marked the document dirty.
+  Redo restored the saved image/blank order and the clean state.
+
+Accessibility value assignment did not change numeric steppers; physical double
+click, typing and Return did. A focused title field supported actual paste and
+text selection. Multiple file selection was not achieved through the automation
+keyboard, so only single-image picker import is claimed. Ordered multi-image
+conversion has automated tests. Crop/reverse dialogs, thousand-page scrolling,
+latest dark/compact properties review and other-platform interaction remain open.
+The current native suite has 49 passing tests, including a regression that checks
+actual painted action labels against clipping at 640×420 and 1260×718.
 
 Tested a locally compiled debug native application on macOS Apple Silicon using
 real native window and file-dialog interactions. This is a development preview,
