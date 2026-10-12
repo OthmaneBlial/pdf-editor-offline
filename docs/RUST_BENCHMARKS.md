@@ -1,5 +1,17 @@
 # Native CLI evidence
 
+## Latest recorded run
+
+The [13 October 2026 report](benchmarks/rust-baseline-2026-10-13.json) records
+**44 passed, zero failed, zero skipped** on clean source commit `ab0b24b`.
+The native CLI reports version `4.0.0-preview.1`; the full runner took 7.973 seconds
+on the recorded macOS host. No source files changed during measurement.
+The [Cargo artifact record](benchmarks/native-cli-build-2026-10-13.json) identifies
+the optimized executable and cache status; the report records its actual hash.
+These measurements cover CLI cases, not desktop responsiveness or a speedup claim.
+
+## Method
+
 [`tools/native-evidence`](../tools/native-evidence/README.md) is a standalone Rust
 runner for the release CLI. Its deterministic 1,000-page fixture uses handwritten
 PDF syntax, independently of the application parser and writer. The fixed public
