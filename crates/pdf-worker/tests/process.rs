@@ -61,10 +61,10 @@ fn abrupt_supervisor_death_terminates_the_document_child() {
         .unwrap();
     let started = Instant::now();
     let pid = loop {
-        if let Ok(value) = std::fs::read_to_string(&marker) {
-            if let Ok(pid) = value.parse::<i32>() {
-                break rustix::process::Pid::from_raw(pid).unwrap();
-            }
+        if let Ok(value) = std::fs::read_to_string(&marker)
+            && let Ok(pid) = value.parse::<i32>()
+        {
+            break rustix::process::Pid::from_raw(pid).unwrap();
         }
         if started.elapsed() > Duration::from_secs(5) {
             let _ = supervisor.kill();
