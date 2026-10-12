@@ -47,15 +47,37 @@ fn rewrite(directory: &Path, value: &Value) {
 }
 
 fn write_private(path: &Path, bytes: &[u8]) {
-    let mut options = std::fs::OpenOptions::new();
-    options.write(true).create_new(true);
+    #[cfg(windows)]
+    {
+        // Use an actual app-created blob: the elevated Windows default owner can be Administrators.
+        let temporary = tempfile::tempdir().unwrap();
+        let mut journal = Journal::open(temporary.path().join("private-fixture")).unwrap();
+        journal
+            .commit_document(&state("fixture", 0, bytes))
+            .unwrap();
+        let blob = std::fs::read_dir(journal.directory())
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .find(|entry| {
+                entry
+                    .extension()
+                    .is_some_and(|extension| extension == "blob")
+            })
+            .unwrap();
+        std::fs::rename(blob, path).unwrap();
+    }
     #[cfg(unix)]
     {
-        use std::os::unix::fs::OpenOptionsExt;
-        options.mode(0o600);
+        let mut options = std::fs::OpenOptions::new();
+        options.write(true).create_new(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            options.mode(0o600);
+        }
+        use std::io::Write;
+        options.open(path).unwrap().write_all(bytes).unwrap();
     }
-    use std::io::Write;
-    options.open(path).unwrap().write_all(bytes).unwrap();
 }
 
 #[test]

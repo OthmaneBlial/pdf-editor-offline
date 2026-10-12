@@ -20,8 +20,10 @@ document suite passed **11 tests**, including actual isolated subset execution.
 Workspace Clippy and the production desktop build passed. See [range controls and
 limits](DESKTOP_PAGE_RANGES.md); real interaction with the new dialogs remains open.
 The preceding recovery commit's Windows CI exposed a private-file ownership
-regression; correction and native Windows revalidation are required before claiming
-that milestone is green across platforms.
+regression. New journal files now receive explicit private owner/DACL descriptors;
+existing files remain strictly validated. Windows cross-compilation and targeted
+security regressions pass locally, but actual native Windows revalidation is still
+required before claiming that milestone is green across platforms.
 
 | Milestone | Implementation | Evidence | Remaining gate |
 | --- | --- | --- | --- |

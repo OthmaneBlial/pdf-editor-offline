@@ -2,6 +2,7 @@
 
 ## Unreleased — native Rust preview
 
+- Corrected Windows private-journal file creation after actual CI exposed an owner/DACL mismatch. Added explicit owner/private permissions at creation, unchanged-file refusal checks and embedded-NUL path rejection.
 - Added guarded desktop page-range extraction into a new unsaved tab and confirmed deletion with durable history, stale-selection refusal and failure preservation. CLI and desktop now share bounded range parsing.
 - Added durable desktop document/history recovery, explicit retained-session restore/discard controls, and retry/cancel handling for interrupted save acknowledgements. Originals and exported copies are never deleted by journal cleanup.
 - Brought the original vector logo into the native header and moved community guidance into `.github/` to keep the root focused on the Rust workspace.

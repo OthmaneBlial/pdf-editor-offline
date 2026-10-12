@@ -238,9 +238,17 @@ impl Journal {
         {
             return Err(JournalError::Invalid("lock path must be a regular file"));
         }
-        let mut options = private_options();
-        options.read(true).write(true).create(true);
-        let lock = options.open(lock_path)?;
+        #[cfg(unix)]
+        let lock = {
+            let mut options = private_options();
+            options
+                .read(true)
+                .write(true)
+                .create(true)
+                .open(lock_path)?
+        };
+        #[cfg(windows)]
+        let lock = windows::create_private_file(&lock_path, false)?;
         validate_handle(&lock, 1024)?;
         match lock.try_lock() {
             Ok(()) => {}
@@ -1017,13 +1025,11 @@ fn open_private_relative(
     #[cfg(windows)]
     {
         let _ = handle;
-        let mut options = private_options();
         if create {
-            options.write(true).create_new(true);
-        } else {
-            options.read(true);
+            return Ok(windows::create_private_file(&directory.join(name), true)?);
         }
-        Ok(options.open(directory.join(name))?)
+        let mut options = private_options();
+        Ok(options.read(true).open(directory.join(name))?)
     }
 }
 

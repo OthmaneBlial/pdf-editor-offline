@@ -7,7 +7,7 @@ use std::fs::{File, OpenOptions};
 use std::io;
 use std::os::windows::ffi::OsStrExt;
 use std::os::windows::fs::OpenOptionsExt;
-use std::os::windows::io::AsRawHandle;
+use std::os::windows::io::{AsRawHandle, FromRawHandle};
 use std::path::Path;
 use std::ptr;
 use windows_sys::Win32::Foundation::{CloseHandle, HANDLE, LocalFree};
@@ -43,6 +43,18 @@ impl Drop for LocalAllocation {
 }
 fn rejected(message: &'static str) -> io::Error {
     io::Error::new(io::ErrorKind::PermissionDenied, message)
+}
+
+fn terminated_path(path: &Path) -> io::Result<Vec<u16>> {
+    let mut units: Vec<u16> = path.as_os_str().encode_wide().collect();
+    if units.contains(&0) {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "journal path contains a NUL unit",
+        ));
+    }
+    units.push(0);
+    Ok(units)
 }
 
 struct CurrentSid {
@@ -212,6 +224,56 @@ pub(super) fn verify_path_identity(file: &File, path: &Path) -> io::Result<()> {
 }
 
 pub(super) fn create_directory(path: &Path) -> io::Result<()> {
+    let security = private_descriptor()?;
+    let attributes = SECURITY_ATTRIBUTES {
+        nLength: size_of::<SECURITY_ATTRIBUTES>() as u32,
+        lpSecurityDescriptor: security.0,
+        bInheritHandle: 0,
+    };
+    let path = terminated_path(path)?;
+    // SAFETY: both structures remain live, path is NUL-terminated. DACL/owner are private at creation.
+    if unsafe { CreateDirectoryW(path.as_ptr(), &attributes) } == 0 {
+        return Err(io::Error::last_os_error());
+    }
+    Ok(())
+}
+
+pub(super) fn create_private_file(path: &Path, exclusive: bool) -> io::Result<File> {
+    use windows_sys::Win32::Foundation::{GENERIC_READ, GENERIC_WRITE, INVALID_HANDLE_VALUE};
+    use windows_sys::Win32::Storage::FileSystem::{
+        CREATE_NEW, CreateFileW, FILE_ATTRIBUTE_NORMAL, FILE_SHARE_DELETE, FILE_SHARE_READ,
+        FILE_SHARE_WRITE, OPEN_ALWAYS,
+    };
+    let security = private_descriptor()?;
+    let attributes = SECURITY_ATTRIBUTES {
+        nLength: size_of::<SECURITY_ATTRIBUTES>() as u32,
+        lpSecurityDescriptor: security.0,
+        bInheritHandle: 0,
+    };
+    let path = terminated_path(path)?;
+    // SAFETY: valid live security descriptor, NUL-terminated native path, no handle inheritance.
+    // OPEN_ALWAYS ignores the descriptor on existing files; callers still validate their owner/DACL.
+    let raw = unsafe {
+        CreateFileW(
+            path.as_ptr(),
+            GENERIC_READ | GENERIC_WRITE,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            &attributes,
+            if exclusive { CREATE_NEW } else { OPEN_ALWAYS },
+            FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT,
+            ptr::null_mut(),
+        )
+    };
+    if raw == INVALID_HANDLE_VALUE {
+        return Err(io::Error::last_os_error());
+    }
+    // SAFETY: successful CreateFileW returned the exclusively owned, non-inheritable handle.
+    let file = unsafe { File::from_raw_handle(raw) };
+    validate_private(&file, false)?;
+    Ok(file)
+}
+
+fn private_descriptor() -> io::Result<LocalAllocation> {
     let sid = current_sid()?;
     let mut text = ptr::null_mut();
     // SAFETY: SID storage is live, writable output pointer receives LocalAlloc string.
@@ -246,18 +308,7 @@ pub(super) fn create_directory(path: &Path) -> io::Result<()> {
     {
         return Err(io::Error::last_os_error());
     }
-    let _security_owner = LocalAllocation(security);
-    let attributes = SECURITY_ATTRIBUTES {
-        nLength: size_of::<SECURITY_ATTRIBUTES>() as u32,
-        lpSecurityDescriptor: security,
-        bInheritHandle: 0,
-    };
-    let path: Vec<u16> = path.as_os_str().encode_wide().chain([0]).collect();
-    // SAFETY: both structures remain live, path is NUL-terminated. DACL is private at creation.
-    if unsafe { CreateDirectoryW(path.as_ptr(), &attributes) } == 0 {
-        return Err(io::Error::last_os_error());
-    }
-    Ok(())
+    Ok(LocalAllocation(security))
 }
 
 pub(super) fn validate_directory(path: &Path) -> io::Result<()> {
@@ -315,10 +366,14 @@ pub(super) fn validate_private(file: &File, directory: bool) -> io::Result<()> {
         || acl.is_null()
         || unsafe { IsValidSecurityDescriptor(descriptor) } == 0
         || unsafe { IsValidSid(owner) } == 0
-        || unsafe { EqualSid(owner, current.pointer()) } == 0
         || unsafe { IsValidAcl(acl) } == 0
     {
         return Err(rejected("journal owner/DACL is not private"));
+    }
+    // TokenOwner may be the Administrators group, even though TokenUser remains the account SID.
+    // Files we create explicitly use TokenUser; never accept or relabel an existing foreign owner.
+    if unsafe { EqualSid(owner, current.pointer()) } == 0 {
+        return Err(rejected("journal owner differs from current process user"));
     }
     let mut control = 0u16;
     let mut revision = 0;
@@ -377,4 +432,104 @@ pub(super) fn validate_private(file: &File, directory: bool) -> io::Result<()> {
         return Err(rejected("current user lacks journal full access"));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    #![allow(clippy::unwrap_used)]
+    use super::*;
+    use std::io::Write;
+
+    #[test]
+    fn embedded_nul_creation_refuses_without_creating_truncated_file_or_directory() {
+        use std::os::windows::ffi::OsStringExt;
+        let temporary = tempfile::tempdir().unwrap();
+        let directory = temporary.path().join("private-parent");
+        create_directory(&directory).unwrap();
+        let units: Vec<u16> = "truncated\0suffix".encode_utf16().collect();
+        let invalid = directory.join(std::ffi::OsString::from_wide(&units));
+        assert_eq!(
+            create_directory(&invalid).unwrap_err().kind(),
+            io::ErrorKind::InvalidInput
+        );
+        for exclusive in [false, true] {
+            assert_eq!(
+                create_private_file(&invalid, exclusive).unwrap_err().kind(),
+                io::ErrorKind::InvalidInput
+            );
+        }
+        assert!(!directory.join("truncated").exists());
+        assert_eq!(std::fs::read_dir(directory).unwrap().count(), 0);
+    }
+
+    #[test]
+    fn lock_blob_and_manifest_files_receive_explicit_user_owner_and_protected_dacl() {
+        let temporary = tempfile::tempdir().unwrap();
+        let directory = temporary.path().join("private-session");
+        create_directory(&directory).unwrap();
+        validate_directory(&directory).unwrap();
+        for name in ["session.lock", "opaque.blob", "manifest.json.tmp"] {
+            let path = directory.join(name);
+            let mut file = create_private_file(&path, true).unwrap();
+            file.write_all(b"private test bytes").unwrap();
+            file.sync_all().unwrap();
+            // true additionally demands protected DACL; it does not relax owner/ACE identity checks.
+            validate_private(&file, true).unwrap();
+            drop(file);
+            validate_private(&create_private_file(&path, false).unwrap(), true).unwrap();
+            assert!(create_private_file(&path, true).is_err());
+        }
+    }
+
+    #[test]
+    fn opening_an_existing_untrusted_file_never_relabels_its_security_descriptor() {
+        use windows_sys::Win32::Foundation::{GENERIC_READ, GENERIC_WRITE, INVALID_HANDLE_VALUE};
+        use windows_sys::Win32::Storage::FileSystem::{
+            CREATE_NEW, CreateFileW, FILE_ATTRIBUTE_NORMAL, FILE_SHARE_DELETE, FILE_SHARE_READ,
+            FILE_SHARE_WRITE,
+        };
+        let temporary = tempfile::tempdir().unwrap();
+        let path = temporary.path().join("existing-untrusted.lock");
+        let descriptor: Vec<u16> = "D:P(A;;FA;;;WD)".encode_utf16().chain([0]).collect();
+        let mut security = ptr::null_mut();
+        // SAFETY: test-only Everyone ACL, valid NUL-terminated descriptor and writable output.
+        assert_ne!(
+            unsafe {
+                ConvertStringSecurityDescriptorToSecurityDescriptorW(
+                    descriptor.as_ptr(),
+                    1,
+                    &mut security,
+                    ptr::null_mut(),
+                )
+            },
+            0
+        );
+        let _security = LocalAllocation(security);
+        let attributes = SECURITY_ATTRIBUTES {
+            nLength: size_of::<SECURITY_ATTRIBUTES>() as u32,
+            lpSecurityDescriptor: security,
+            bInheritHandle: 0,
+        };
+        let wide_path: Vec<u16> = path.as_os_str().encode_wide().chain([0]).collect();
+        // SAFETY: local test fixture, live explicit untrusted ACL/path, new non-inheritable handle.
+        let raw = unsafe {
+            CreateFileW(
+                wide_path.as_ptr(),
+                GENERIC_READ | GENERIC_WRITE,
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                &attributes,
+                CREATE_NEW,
+                FILE_ATTRIBUTE_NORMAL,
+                ptr::null_mut(),
+            )
+        };
+        assert_ne!(raw, INVALID_HANDLE_VALUE);
+        // SAFETY: successful CreateFileW returned an exclusively owned fixture handle.
+        let mut fixture = unsafe { File::from_raw_handle(raw) };
+        fixture.write_all(b"must remain unchanged").unwrap();
+        drop(fixture);
+        // OPEN_ALWAYS must ignore our private descriptor for this existing world-accessible file.
+        assert!(create_private_file(&path, false).is_err());
+        assert_eq!(std::fs::read(path).unwrap(), b"must remain unchanged");
+    }
 }
