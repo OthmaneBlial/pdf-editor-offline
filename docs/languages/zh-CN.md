@@ -8,7 +8,7 @@
 
 打开 PDF，找到需要的页面，调整文档，然后保存一份新副本。PDF Editor Offline 提供免费、开源的桌面应用和命令行工具，无需账号、订阅或上传文档。
 
-目前是原生 Rust 预览版。请从源码构建以体验当前应用。目标平台为 macOS、Windows 和 Linux；实际桌面交互验证主要在 macOS 上进行。原生安装包和完整 PDF 编辑功能仍在开发。[历史发行版本](https://github.com/OthmaneBlial/pdf-editor-offline/releases)属于早期构建。
+目前是原生 Rust 预览版。请从源码构建桌面应用以体验当前版本。目标平台为 macOS、Windows 和 Linux；实际桌面交互验证主要在 macOS 上进行。桌面安装包和完整 PDF 编辑功能仍在开发。[原生 CLI 预发布版 4.0.0-preview.1](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.1)现已提供；[历史桌面发行版本](https://github.com/OthmaneBlial/pdf-editor-offline/releases)属于早期构建。
 
 ![macOS 上真实的原生应用窗口，显示本地搜索、PDF 页面和文档属性](../../screenshots/native/editorial-light-2026-10-12.png)
 
@@ -25,6 +25,15 @@
 合并、页面子集、便笺编辑和图像转换均有明确限制。不支持的结构会被拒绝，详见 [CLI 指南](../../apps/cli/README.md)。压缩不保证文件变小。裁剪只是隐藏内容；删除元数据或便笺可能留下旧值，不等于安全擦除。预览版尚不支持 OCR、表单填写、数字签名、任意页面文本编辑或通用文档转换。渲染器可能遗漏不支持的内容，请检查导出的文档。已签名及成功解密的输入仅可读取。
 
 界面目前为英语。这些说明文档翻译不代表 GUI 已本地化，也不代表完整支持从右到左的布局。离线字体包含已测试的中文、日文和韩文字形，但不能覆盖所有文字系统。
+
+## 安装原生 CLI（可选）
+
+通过 npm 安装及使用其启动器需要 Node.js 22+。独立的 CLI 可执行文件不需要 Node.js。桌面应用仍需从 Rust 源码构建。
+
+```sh
+npm install --global pdf-editor-offline
+pdf-editor-offline --help
+```
 
 ## 构建与运行
 

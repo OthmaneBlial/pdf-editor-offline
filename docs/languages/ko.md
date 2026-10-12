@@ -8,7 +8,7 @@
 
 PDF를 열고 필요한 페이지를 찾은 뒤 문서를 정리하고 새 복사본으로 저장하세요. PDF Editor Offline은 무료 오픈 소스 데스크톱 앱과 명령줄 도구입니다. 계정, 구독, 문서 업로드가 필요하지 않습니다.
 
-현재는 네이티브 Rust 미리보기 버전입니다. 최신 앱을 사용하려면 소스에서 빌드하세요. 대상 플랫폼은 macOS, Windows, Linux이며 실제 데스크톱 조작 검증은 주로 macOS에서 진행했습니다. 네이티브 설치 프로그램과 완전한 PDF 편집 기능은 개발 중입니다. [이전 릴리스 모음](https://github.com/OthmaneBlial/pdf-editor-offline/releases)은 과거 빌드입니다.
+현재는 네이티브 Rust 미리보기 버전입니다. 데스크톱 앱을 사용하려면 소스에서 빌드하세요. 대상 플랫폼은 macOS, Windows, Linux이며 실제 데스크톱 조작 검증은 주로 macOS에서 진행했습니다. 데스크톱 설치 프로그램과 완전한 PDF 편집 기능은 개발 중입니다. [네이티브 CLI 사전 릴리스 4.0.0-preview.1](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.1)이 공개되어 있으며, [이전 데스크톱 릴리스 모음](https://github.com/OthmaneBlial/pdf-editor-offline/releases)은 과거 빌드입니다.
 
 ![macOS에서 실행 중인 실제 네이티브 앱: 로컬 검색, PDF 페이지, 문서 속성](../../screenshots/native/editorial-light-2026-10-12.png)
 
@@ -25,6 +25,15 @@ PDF를 열고 필요한 페이지를 찾은 뒤 문서를 정리하고 새 복�
 병합, 페이지 부분 선택, 메모 수정, 이미지 변환에는 명확한 제한이 있습니다. 지원하지 않는 구조는 거부합니다. [CLI 안내](../../apps/cli/README.md)를 참고하세요. 압축해도 파일이 작아진다는 보장은 없습니다. 자르기는 내용을 숨길 뿐이며 메타데이터나 메모를 제거해도 이전 값이 남을 수 있습니다. 안전한 데이터 삭제가 아닙니다. OCR, 양식 작성, 디지털 서명, 자유로운 본문 편집, 일반적인 문서 변환은 구현되지 않았습니다. 지원하지 않는 내용이 렌더링에서 빠질 수 있으므로 내보낸 문서를 확인하세요. 서명된 파일과 정상적으로 복호화한 입력은 읽기 전용입니다.
 
 현재 UI는 영어입니다. 이 문서 번역이 GUI 현지화나 완전한 오른쪽에서 왼쪽 방향 레이아웃 지원을 뜻하지는 않습니다. 오프라인 글꼴에는 검증된 중국어·일본어·한국어 글리프가 포함되지만 모든 문자 체계를 지원하지는 않습니다.
+
+## 네이티브 CLI 설치 (선택)
+
+npm 설치와 런처에는 Node.js 22 이상이 필요합니다. 독립적인 CLI 실행 파일은 Node.js가 필요하지 않습니다. 데스크톱 앱은 계속 Rust 소스에서 빌드해야 합니다.
+
+```sh
+npm install --global pdf-editor-offline
+pdf-editor-offline --help
+```
 
 ## 빌드와 실행
 

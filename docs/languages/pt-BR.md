@@ -8,7 +8,7 @@
 
 Abra um PDF, encontre a página desejada, organize o documento e salve uma nova cópia. PDF Editor Offline é um aplicativo de desktop e uma ferramenta de linha de comando gratuitos e de código aberto. Não exige conta, assinatura ou envio de documentos.
 
-Esta é a prévia nativa em Rust. Compile o código-fonte para testar o aplicativo atual. macOS, Windows e Linux são as plataformas previstas; a interação real no desktop foi verificada principalmente no macOS. Instaladores nativos e edição completa ainda estão em desenvolvimento. O [arquivo de versões](https://github.com/OthmaneBlial/pdf-editor-offline/releases) contém versões anteriores.
+Esta é a prévia nativa em Rust. Compile o aplicativo de desktop a partir do código-fonte para testá-lo. macOS, Windows e Linux são as plataformas previstas; a interação real no desktop foi verificada principalmente no macOS. Instaladores de desktop e edição completa ainda estão em desenvolvimento. A [prévia da CLI nativa 4.0.0-preview.1](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.1) está disponível; o [arquivo de versões de desktop](https://github.com/OthmaneBlial/pdf-editor-offline/releases) contém versões anteriores.
 
 ![Janela real do aplicativo nativo no macOS com busca local, página PDF e propriedades](../../screenshots/native/editorial-light-2026-10-12.png)
 
@@ -25,6 +25,15 @@ Esta é a prévia nativa em Rust. Compile o código-fonte para testar o aplicati
 União, subconjuntos de páginas, notas e conversão de imagens têm restrições explícitas. Estruturas não suportadas são recusadas; veja o [guia da CLI](../../apps/cli/README.md). A compressão não garante um arquivo menor. Recortar esconde conteúdo; remover metadados ou notas pode deixar valores antigos. Isso não é apagamento seguro. OCR, preenchimento de formulários, assinatura digital, edição livre do texto e conversão geral não estão disponíveis. O renderizador pode omitir conteúdo não suportado. Confira os documentos exportados. Arquivos assinados e os descriptografados com sucesso são somente leitura.
 
 A interface está em inglês. Estas traduções não significam que o aplicativo esteja localizado ou que tenha suporte completo a layouts da direita para a esquerda. As fontes offline incluem caracteres chineses, japoneses e coreanos testados, sem cobrir todos os sistemas de escrita.
+
+## Instalar a CLI nativa (opcional)
+
+A instalação pelo npm e seu inicializador precisam de Node.js 22+. O executável independente da CLI não precisa de Node.js. O aplicativo de desktop continua sendo compilado a partir do código-fonte Rust.
+
+```sh
+npm install --global pdf-editor-offline
+pdf-editor-offline --help
+```
 
 ## Compilar e executar
 

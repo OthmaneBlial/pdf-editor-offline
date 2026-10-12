@@ -10,6 +10,10 @@ There are no document uploads, application controls, installer claims or generat
 native screenshots on this site. Desktop use remains a source build. The official
 `v4.0.0-preview.1` prerelease supplies five unsigned standalone native CLI assets,
 linked directly from the download section with release records and hashes.
+The optional global npm install is published as `4.0.0-preview.1` on the latest
+tag. Its installer/launcher requires Node.js 22+ according to the published
+package's engine metadata; direct standalone CLI downloads do not require Node.
+Neither installation route installs the graphical desktop.
 
 Local links and assets must resolve relative to this folder so a subfolder deploy
 works. Keep the original screenshot pixels and their meaningful alternative text.
