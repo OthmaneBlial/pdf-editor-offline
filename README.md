@@ -33,6 +33,25 @@
 
 ## Why PDF Editor Offline?
 
+The **native Rust rewrite is in progress** alongside the working 3.0.0 app.
+The first native preview opens and renders PDFs locally, supports tabs, zoom,
+page rotation, undo/redo and verified Save As. Its independent Rust CLI provides
+inspection, text extraction, search, rotation and compression. Neither runtime
+launches Python or a server. Advanced editing, secure redaction, OCR, forms,
+conversion and full platform distribution remain migration work.
+
+```sh
+cargo run -p pdf-editor-offline-native
+cargo run -p pdf-editor-offline-cli -- info examples/sample_pdfs/demo-basic.pdf --json
+```
+
+Requires Rust 1.95+. See [native status](docs/RUST_STATUS.md),
+[migration matrix](docs/MIGRATION_MATRIX.md), [Rust CLI](apps/cli/README.md) and
+[native desktop](apps/desktop/README.md). Existing download links above still
+refer to the legacy desktop preview.
+
+![Actual native desktop rotation and Save As](screenshots/native/rotation-save-2026-10-12.png)
+
 Most PDF tools ask you to upload your document, create an account, or start a
 subscription. PDF Editor Offline is built for the opposite workflow: open a PDF
 on your own machine, make the changes you need, and export a new copy without
