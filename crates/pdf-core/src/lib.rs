@@ -10,6 +10,7 @@ mod note_updates;
 mod notes;
 mod pages;
 mod save;
+pub mod selection;
 mod structure;
 mod text;
 

@@ -69,6 +69,202 @@ fn edit(bytes: &[u8], mutation: Mutation) -> Reply {
 }
 
 #[test]
+fn subsets_preserve_order_geometry_metadata_and_original_bytes() {
+    let bytes = fixture(false);
+    let extracted = run(Operation::ExtractPages { pages: vec![2, 1] }, &bytes);
+    assert_eq!(extracted.kind, PayloadKind::Pdf);
+    let DocumentResult::Document {
+        info,
+        selected_page,
+    } = result(&extracted)
+    else {
+        panic!("document result")
+    };
+    assert_eq!(selected_page, Some(0));
+    assert_eq!(info.pages[0].media_box, [0.0, 0.0, 120.0, 90.0]);
+    let pdf = PdfDocument::from_bytes(&extracted.payload, None)
+        .expect("valid synthetic selection fixture");
+    assert!(
+        pdf.extract_text(&[1])
+            .expect("valid synthetic selection fixture")
+            .contains("Page Two")
+    );
+    assert!(
+        pdf.extract_text(&[2])
+            .expect("valid synthetic selection fixture")
+            .contains("Page One")
+    );
+    assert_eq!(
+        pdf.metadata()
+            .expect("valid synthetic selection fixture")
+            .fields[&MetadataKey::Title],
+        "Original"
+    );
+    let deleted = edit(
+        &bytes,
+        Mutation::DeletePages {
+            pages: vec![1],
+            page: 2,
+        },
+    );
+    let DocumentResult::Document {
+        info,
+        selected_page,
+    } = result(&deleted)
+    else {
+        panic!("document result")
+    };
+    assert_eq!(info.page_count, 1);
+    assert_eq!(selected_page, Some(0));
+    assert!(
+        PdfDocument::from_bytes(&deleted.payload, None)
+            .expect("valid synthetic selection fixture")
+            .extract_text(&[1])
+            .expect("valid synthetic selection fixture")
+            .contains("Page Two")
+    );
+    assert_eq!(bytes, fixture(false));
+    let original =
+        PdfDocument::from_bytes(&bytes, None).expect("valid synthetic selection fixture");
+    assert_eq!(original.page_count(), 2);
+    assert!(
+        original
+            .extract_text(&[1])
+            .expect("valid synthetic selection fixture")
+            .contains("Page One")
+    );
+}
+
+#[test]
+fn invalid_or_unsafe_subsets_refuse_without_a_successful_payload() {
+    for signed in [false, true] {
+        let bytes = fixture(signed);
+        for pages in [vec![], vec![0], vec![3], vec![1, 1]] {
+            assert!(
+                execute_document(Request {
+                    control: serde_json::to_value(Operation::ExtractPages {
+                        pages: pages.clone()
+                    })
+                    .expect("valid synthetic selection fixture"),
+                    payload: bytes.clone()
+                })
+                .is_err()
+            );
+            assert!(
+                execute_document(Request {
+                    control: serde_json::to_value(Operation::Edit {
+                        mutation: Mutation::DeletePages { pages, page: 1 }
+                    })
+                    .expect("valid synthetic selection fixture"),
+                    payload: bytes.clone()
+                })
+                .is_err()
+            );
+        }
+        assert!(
+            execute_document(Request {
+                control: serde_json::to_value(Operation::Edit {
+                    mutation: Mutation::DeletePages {
+                        pages: vec![1, 2],
+                        page: 1
+                    }
+                })
+                .expect("valid synthetic selection fixture"),
+                payload: bytes.clone()
+            })
+            .is_err()
+        );
+        if signed {
+            assert!(
+                execute_document(Request {
+                    control: serde_json::to_value(Operation::ExtractPages { pages: vec![1] })
+                        .expect("valid synthetic selection fixture"),
+                    payload: bytes
+                })
+                .is_err()
+            );
+        }
+    }
+    for name in [
+        "forms.pdf",
+        "bookmarks.pdf",
+        "layers-transparency.pdf",
+        "attachment.pdf",
+    ] {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../tests/fixtures/pdfs")
+            .join(name);
+        let bytes = std::fs::read(path).expect("immutable corpus fixture");
+        for operation in [
+            Operation::ExtractPages { pages: vec![1] },
+            Operation::Edit {
+                mutation: Mutation::DeletePages {
+                    pages: vec![1],
+                    page: 1,
+                },
+            },
+        ] {
+            assert!(
+                execute_document(Request {
+                    control: serde_json::to_value(operation)
+                        .expect("valid synthetic selection fixture"),
+                    payload: bytes.clone()
+                })
+                .is_err(),
+                "unsafe subset: {name}"
+            );
+        }
+    }
+}
+
+#[test]
+fn deletion_tracks_retained_or_nearest_surviving_page() {
+    let mut document =
+        PdfDocument::from_bytes(&fixture(false), None).expect("valid synthetic selection fixture");
+    for page in 3..=5 {
+        document
+            .insert_blank(page, (100 + page * 10) as f32, 90.0)
+            .expect("valid synthetic selection fixture");
+    }
+    let bytes = document
+        .verified_bytes()
+        .expect("valid synthetic selection fixture");
+    for (pages, page, expected_index, expected_width) in [
+        (vec![1, 3], 5, 2, 150.0),
+        (vec![1, 3], 3, 1, 140.0),
+        (vec![1, 3], 1, 0, 120.0),
+        (vec![4, 5], 5, 2, 130.0),
+        (vec![4, 5], 2, 1, 120.0),
+    ] {
+        let deleted = edit(&bytes, Mutation::DeletePages { pages, page });
+        let DocumentResult::Document {
+            info,
+            selected_page,
+        } = result(&deleted)
+        else {
+            panic!("document result")
+        };
+        assert_eq!(selected_page, Some(expected_index));
+        assert_eq!(info.pages[expected_index].media_box[2], expected_width);
+    }
+    for page in [0, 6] {
+        assert!(
+            execute_document(Request {
+                control: serde_json::to_value(Operation::Edit {
+                    mutation: Mutation::DeletePages {
+                        pages: vec![1],
+                        page
+                    }
+                })
+                .expect("valid synthetic selection fixture"),
+                payload: bytes.clone()
+            })
+            .is_err()
+        );
+    }
+}
+
+#[test]
 fn info_text_metadata_and_prepare_save_are_real_typed_operations() {
     let bytes = fixture(false);
     let info = run(Operation::Info, &bytes);
@@ -444,6 +640,32 @@ fn production_child_roundtrips_real_operations_and_retains_input_after_rejection
         control: serde_json::to_value(operation).expect("control"),
         payload,
     };
+    for operation in [
+        Operation::ExtractPages { pages: vec![2] },
+        Operation::Edit {
+            mutation: Mutation::DeletePages {
+                pages: vec![1],
+                page: 2,
+            },
+        },
+    ] {
+        let subset = pdf_worker::execute(
+            helper,
+            &[],
+            request(operation, bytes.clone()),
+            pdf_worker::Limits::default(),
+        )
+        .expect("isolated subset");
+        assert_eq!(subset.kind, PayloadKind::Pdf);
+        let pdf = PdfDocument::from_bytes(&subset.payload, None)
+            .expect("valid synthetic selection fixture");
+        assert_eq!(pdf.page_count(), 1);
+        assert!(
+            pdf.extract_text(&[1])
+                .expect("valid synthetic selection fixture")
+                .contains("Page Two")
+        );
+    }
     let changed = pdf_worker::execute(
         helper,
         &[],

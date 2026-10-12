@@ -22,6 +22,9 @@ pub enum Operation {
         mutation: Mutation,
     },
     PrepareSave,
+    ExtractPages {
+        pages: Vec<u32>,
+    },
     Images {
         lengths: Vec<usize>,
     },
@@ -30,6 +33,10 @@ pub enum Operation {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "mutation", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Mutation {
+    DeletePages {
+        pages: Vec<u32>,
+        page: u32,
+    },
     Rotate {
         page: u32,
         degrees: i64,
@@ -214,6 +221,15 @@ fn execute(request: Request) -> Result<Reply, String> {
             document_reply(document, selected_page)
         }
         Operation::PrepareSave => document_reply(document, None),
+        Operation::ExtractPages { pages } => {
+            if pages.len() > pdf_core::MAX_PAGES {
+                return Err("Page selection exceeds the supported page count".into());
+            }
+            let extracted = document
+                .extract_pages(&pages)
+                .map_err(|error| error.to_string())?;
+            document_reply(extracted, Some(0))
+        }
         Operation::Images { .. } => unreachable!("images handled before PDF parsing"),
     }
 }
@@ -255,6 +271,20 @@ fn document_reply(document: PdfDocument, selected_page: Option<usize>) -> Result
 
 fn apply(document: &mut PdfDocument, mutation: Mutation) -> Result<Option<usize>, String> {
     let selected = match mutation {
+        Mutation::DeletePages { pages, page } => {
+            let index = (page as usize)
+                .checked_sub(1)
+                .filter(|index| *index < document.page_count())
+                .ok_or("Current page is outside the document")?;
+            if pages.len() > pdf_core::MAX_PAGES {
+                return Err("Page selection exceeds the supported page count".into());
+            }
+            document
+                .delete_pages(&pages)
+                .map_err(|error| error.to_string())?;
+            let removed_before = pages.iter().filter(|removed| **removed < page).count();
+            Some((index - removed_before).min(document.page_count() - 1))
+        }
         Mutation::Rotate { page, degrees } => {
             document
                 .rotate(&[page], degrees)
