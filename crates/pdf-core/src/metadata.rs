@@ -1,6 +1,6 @@
 use crate::{Error, MAX_OBJECTS, PdfDocument, Result};
 use lopdf::{Dictionary, Document, Object, ObjectId, StringFormat};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const MAX_METADATA_VALUE_BYTES: usize = 64 * 1024;
@@ -9,7 +9,7 @@ const MAX_INFO_COPY_BYTES: usize = 1024 * 1024;
 const MAX_INFO_COPY_VALUES: usize = 10_000;
 
 /// Standard text fields in the trailer /Info dictionary. Dates and XMP are separate.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum MetadataKey {
     Title,
@@ -54,7 +54,7 @@ const KEYS: [MetadataKey; 6] = [
     MetadataKey::Producer,
 ];
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DocumentMetadata {
     pub fields: BTreeMap<MetadataKey, String>,
     pub info_present: bool,

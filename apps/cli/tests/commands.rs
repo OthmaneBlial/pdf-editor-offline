@@ -12,7 +12,7 @@ fn cli(args: &[&str]) -> Output {
 }
 fn fixture(name: &str) -> std::path::PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../trust_lab/corpus/v1")
+        .join("../../tests/fixtures/pdfs")
         .join(name)
 }
 fn json(output: &Output) -> Value {

@@ -30,8 +30,7 @@ body:
       label: Required processing boundary
       options:
         - Entirely on the user's device
-        - Self-hosted server is acceptable
-        - CLI or Python automation only
+        - Native CLI or Rust library automation
         - No preference
     validations:
       required: true

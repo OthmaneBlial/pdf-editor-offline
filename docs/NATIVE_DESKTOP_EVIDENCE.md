@@ -77,7 +77,7 @@ raster, rotation right, dirty-tab marker, Undo restoring the clean state, Redo
 restoring the edit, and Save As to `/tmp/pdf-editor-native-cua-20261012.pdf`.
 The UI reported successful reopened saving and cleared the dirty marker.
 
-Independent PyMuPDF inspection asserted: original rotation 0°, output rotation
+Recorded independent inspection asserted: original rotation 0°, output rotation
 90°, unchanged extracted text, and one page in both. A subsequent edit and Close
 displayed an unsaved-change prompt, disabled background controls, and Keep editing
 retained the tab and dirty state. Undo returned to the saved state.
@@ -97,7 +97,7 @@ crash recovery, total hostile-input memory/time isolation or release packaging.
 ## Workstation, search and Retina check
 
 The redesigned native preview was exercised on the same macOS host with the
-actual `trust_lab/corpus/v1/forms.pdf`. Literal `Synthetic` search found page 1,
+actual `tests/fixtures/pdfs/forms.pdf` (the corpus path before cleanup was different). Literal `Synthetic` search found page 1,
 reported scanning 1/1, disabled Stop after completion and showed
 `Search complete: 1 matching page.` The result excerpt and accessibility tree
 contained the visible `✓`; the embedded fallback displayed the actual glyph.

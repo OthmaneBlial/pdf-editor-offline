@@ -201,7 +201,7 @@ fn signed_and_decrypted_v2_inputs_allow_listing_but_refuse_note_export() {
     use std::io::Write;
     let directory = tempfile::tempdir().unwrap();
     let output = directory.path().join("note.pdf");
-    let signed = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../trust_lab/corpus/v1/signed.pdf");
+    let signed = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/fixtures/pdfs/signed.pdf");
     let original = std::fs::read(&signed).unwrap();
     assert!(
         cli(&["list-notes", signed.to_str().unwrap(), "--json"])

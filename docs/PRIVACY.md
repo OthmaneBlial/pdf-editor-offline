@@ -1,58 +1,13 @@
-# Privacy and data-flow contract
+# Privacy contract
 
-PDF Editor Offline is designed for local document processing. This document states what that means in each deployment mode.
+Current native document operations run on the user's device. The desktop and CLI implement no upload service, account system, remote processing, document telemetry, or automatic download of fonts. Licensed fonts are bundled.
 
-## Data the application does not collect
+Open files and edit snapshots reside in application memory. Save As creates a temporary file beside the chosen destination and publishes a verified new copy. A crash can leave a temporary file; desktop recovery and cleanup controls remain unfinished. Closing a tab does not promise erasure from swap, filesystem history, backups, or storage hardware.
 
-The application has no telemetry endpoint and does not intentionally collect document bytes, text, images, annotations, metadata, filenames, paths, usage history, device identifiers, or analytics events.
+The standalone worker's journal stores private local document bytes and manifest information. It is infrastructure, not yet an enabled desktop autosave workflow. Do not claim a desktop recovery retention or deletion policy before its integration is tested.
 
-Do not add analytics, crash uploads, remote fonts, CDNs, AI APIs, update pings, or error reporting without an explicit privacy review and an opt-in design.
+Project pages, dependency downloads, release downloads, and the optional npm installer use the network. These are distribution resources, separate from PDF processing. The npm wrapper downloads a native CLI binary; it does not process documents.
 
-## Local data
+Future OCR, converters, certificate handling, and collaboration must publish their local data lifecycle and prerequisites before they become supported workflows. No cloud fallback is permitted silently.
 
-| Data | Purpose | Lifetime | User control |
-| --- | --- | --- | --- |
-| Session PDF copy | Non-destructive editing | Session TTL or app cleanup | Delete session, clean stale data, or use **Delete all local workspace data** |
-| Temporary inputs/outputs | Conversion and export | Operation cleanup or stale-file cleanup | Runtime health panel cleanup; source mode defaults to the app-owned `pdf-editor-offline` OS temp subdirectory |
-| Recent-file record | Convenience | Until removed | Remove one, clear all, or use **Delete all local workspace data** |
-| Visual signature asset | Typed, drawn, or imported image mark; never a certificate | Browser-profile storage, maximum eight assets | Delete each asset in **Fill & Sign** or use **Delete all local workspace data** |
-| Certificate identity and passphrase | One certificate-backed signed-copy request | Bounded app temp file and request memory only; deleted after success or failure | File input and passphrase are cleared automatically; no key library exists |
-| Explicit validation trust root | Establish trust for one offline validation request | Bounded app temp file only; deleted after the response | Omit the root to perform integrity checks without claiming trust |
-| UI preferences | Theme and local username | Browser/app storage | Clear application storage |
-| Content-free redaction report | Audit evidence: fixed check names, counts, version, size, and output hash | Lifetime of the verified-copy session | Delete the verified-copy session / clean stale local data |
-| Content-bearing OCR index | Local search, word confidence/bounds, correction, and removable-stream tracking for a searchable copy | Lifetime of the OCR-copy session | Remove the OCR layer to erase recognized words and streams while retaining content-free removal counts; delete the session or all local workspace data to delete the index file |
-| Recovery copy and journal | Continue after interruption; journal contains stage, time, counts, and sizes only | Seven days by default | Preview/restore locally, explicit two-step deletion, or delete all local workspace data |
-
-The runtime health panel reports only content-free counts and byte totals for session PDFs, audit reports, content-bearing OCR indexes, inactive recovery copies, drafts, temporary outputs, and recent-file references. It never exposes OCR text, filenames, or absolute paths. **Delete all local workspace data** requires an explicit checkbox, closes the current document, and removes every app-owned session, OCR index, report, draft/recovery file, temporary output, browser-profile visual signature asset, and browser/desktop recent-file reference. Unrelated files in the operating-system temp directory are outside its scope and are preserved. The [recovery contract](RECOVERY.md) documents autosave timing, retention, preview, restoration, and interruption boundaries.
-
-Visual signature assets are local image data, limited to eight entries. Imported assets are limited to PNG, JPEG, or WebP files of at most 750 KB in the UI. When an asset is placed, the browser sends it only to the token-protected loopback API; the bounded temporary image is removed after the operation. Do not import a private key or certificate: this workflow creates a visible image mark only.
-
-The separate Certificate lab accepts a P12/PFX identity only for one signed-copy request. The backend never writes the passphrase, never creates a key library, never includes key material in recovery data, and removes the bounded certificate upload in a `finally` cleanup path. Explicit PEM/DER trust roots follow the same request-only lifecycle. Certificate summaries returned by validation contain only the subject/issuer common names, serial, validity window, algorithm facts, and SHA-256 fingerprint needed to explain the result.
-
-The visible **Processed on this device** control opens this inspector and explains the data flow: workspace → token-protected loopback → local API → app-owned storage. Diagnostics must scrub absolute paths and document-derived values.
-
-The Redact & Prove UI submits target text in a local POST body, not a URL query, so it does not appear in the HTTP access-log URL. Review summaries and exported reports omit targets, filenames, paths, extracted text, OCR text, parser errors, and document metadata values.
-
-OCR & Search follows the same rule: search text is sent to the local API in a
-POST body, never a query string. The request logger records the route and status
-but not recognized words, corrections, or search terms.
-
-## Network behavior
-
-- Desktop and `./start.sh` communicate only with a token-protected API on `127.0.0.1`.
-- Tailwind styles and the Syne, JetBrains Mono, and Instrument Serif fonts are bundled with the frontend; the workspace does not load a CDN or remote font service.
-- Core processing does not require an internet connection after dependencies and the application are installed.
-- Digital-signature validation disables certificate/revocation fetching. It never falls back to OS/TLS trust roots; revocation remains explicitly unchecked offline.
-- The application does not silently fall back to a remote service when LibreOffice, Tesseract, Ghostscript, or a language pack is missing.
-- OCR invokes the local Tesseract executable with fixed arguments, processes one temporary page image at a time, and never fetches trained data.
-- Docker/self-hosted browser use sends documents to the configured host. The operator owns that privacy boundary.
-- Project documentation and release downloads are normal web resources; they are separate from document processing.
-- The optional scheduled launch-metrics workflow reads aggregate GitHub repository, traffic, referrer, path, contributor-count, and release-download APIs. It has no app runtime connection, receives no PDF/session data, archives no individual visitor identity, and records unavailable traffic as `null`.
-
-## Local subprocesses
-
-Depending on the selected operation, the API may invoke LibreOffice, Tesseract, or Ghostscript installed on the same host. The runtime capability screen lists availability before a task begins.
-
-## Verification
-
-Follow the reproducible [network-inspection recipe](NETWORK_INSPECTION.md) to verify the no-egress claim manually and in CI. See the [threat model](THREAT_MODEL.md) for adversarial assumptions.
+The source behavior is inspectable, but comprehensive automated no-egress verification for every platform remains a release gate. See the [threat model](THREAT_MODEL.md) and [known limitations](KNOWN_LIMITATIONS.md).

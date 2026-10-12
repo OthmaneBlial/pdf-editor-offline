@@ -14,17 +14,15 @@ body:
       label: Product mode
       options:
         - Desktop
-        - Local source web app
-        - Docker or self-hosted
         - CLI
-        - Python API
+        - Rust library
     validations:
       required: true
   - type: input
     id: version
     attributes:
       label: Version and operating system
-      placeholder: 2.1.0 on macOS 15.6 arm64
+      placeholder: Native preview 3.0.0 on macOS arm64
     validations:
       required: true
   - type: textarea

@@ -129,7 +129,7 @@ fn failed_late_merge_and_advanced_or_signed_inputs_never_publish_partial_output(
     );
     save(conflicting, &conflict);
     let output = directory.path().join("output.pdf");
-    let corpus = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../trust_lab/corpus/v1");
+    let corpus = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/fixtures/pdfs");
     for inputs in [
         vec![first.clone(), second.clone(), conflict.clone()],
         vec![first.clone(), corpus.join("bookmarks.pdf")],
@@ -213,7 +213,7 @@ fn first_input_read_only_policy_precedes_later_loading_and_late_io_failure_is_at
     let output = directory.path().join("output.pdf");
     save(fixture("PLAIN", "Helvetica", [255, 0, 0], 0), &plain);
     let original = std::fs::read(&plain).unwrap();
-    let signed = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../trust_lab/corpus/v1/signed.pdf");
+    let signed = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/fixtures/pdfs/signed.pdf");
     let result = cli(&[
         "merge",
         signed.to_str().unwrap(),

@@ -1,8 +1,8 @@
 # Native Rust migration status
 
-This is a tested native preview alongside version 3.0.0, not complete parity.
-No legacy implementation has been removed and the distributed default remains
-the existing application until the replacement passes the migration gates.
+The source now builds the native Rust preview. The previous source is preserved
+under `recovery-before-native-cleanup-20261012`; old release assets remain in
+release history. The native replacement is incomplete: see the gates below.
 
 | Milestone | Implementation | Evidence | Remaining gate |
 | --- | --- | --- | --- |
@@ -27,4 +27,4 @@ Full plan and feature gates: [rewrite plan](RUST_REWRITE_PLAN.md),
 Performance evidence: [reproducible native baseline](RUST_BENCHMARKS.md) records
 44 independent checks, including a generated 1,000-page synthetic PDF, with real
 release-process timings and hashes. These measurements do not establish a
-Python speedup, peak-memory bounds, scrolling responsiveness or all-document fidelity.
+runtime speedup, peak-memory bounds, scrolling responsiveness or all-document fidelity.

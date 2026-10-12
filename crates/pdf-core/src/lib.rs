@@ -19,7 +19,8 @@ pub use inspect::*;
 use lopdf::{Document, LoadOptions, Object, ObjectId};
 pub use metadata::*;
 pub use notes::*;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::Path;
 
 pub const MAX_INPUT_BYTES: usize = 128 * 1024 * 1024;
@@ -27,7 +28,7 @@ pub const MAX_STREAM_BYTES: usize = 32 * 1024 * 1024;
 pub const MAX_PAGES: usize = 20_000;
 pub const MAX_OBJECTS: usize = 1_000_000;
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct PageInfo {
     pub number: u32,
     pub media_box: [f32; 4],
@@ -35,7 +36,7 @@ pub struct PageInfo {
     pub rotation: i64,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DocumentInfo {
     pub version: String,
     pub page_count: usize,
@@ -208,12 +209,21 @@ impl PdfDocument {
     }
 
     pub fn to_bytes(&self) -> Result<Vec<u8>> {
+        self.verified_bytes()
+    }
+
+    /// Serialize within the 128 MiB output cap and verify the reopened page/object graph.
+    /// Signed and encrypted inputs remain read-only; this does not sanitize private data.
+    pub fn verified_bytes(&self) -> Result<Vec<u8>> {
         self.ensure_editable()?;
-        let mut bytes = Vec::new();
-        self.document.clone().save_to(&mut bytes)?;
-        if bytes.len() > MAX_INPUT_BYTES {
-            return Err(Error::Limit("output exceeds 128 MiB"));
+        let bytes = save::serialize_bounded(&self.document, MAX_INPUT_BYTES)?;
+        let reopened = Self::from_bytes(&bytes, None)?;
+        if reopened.info()?.pages != self.info()?.pages || reopened.pages != self.pages {
+            return Err(Error::Verification(
+                "page structure changed during serialization",
+            ));
         }
+        save::verify_objects(&self.document, &reopened.document)?;
         Ok(bytes)
     }
 
@@ -229,16 +239,25 @@ impl PdfDocument {
             .parent()
             .filter(|path| !path.as_os_str().is_empty())
             .unwrap_or(Path::new("."));
+        let bytes = self.verified_bytes()?;
         let mut temporary = tempfile::NamedTempFile::new_in(parent)?;
-        self.document.clone().save_to(temporary.as_file_mut())?;
+        temporary.as_file_mut().write_all(&bytes)?;
         temporary.as_file().sync_all()?;
-        let reopened = Self::open(temporary.path(), None)?;
-        if reopened.info()?.pages != self.info()?.pages || reopened.pages != self.pages {
-            return Err(Error::Verification(
-                "page structure changed during serialization",
-            ));
+        temporary.as_file_mut().seek(SeekFrom::Start(0))?;
+        let mut buffer = [0u8; 64 * 1024];
+        for expected in bytes.chunks(buffer.len()) {
+            temporary
+                .as_file_mut()
+                .read_exact(&mut buffer[..expected.len()])?;
+            if &buffer[..expected.len()] != expected {
+                return Err(Error::Verification(
+                    "written output differs from verified bytes",
+                ));
+            }
         }
-        save::verify_objects(&self.document, &reopened.document)?;
+        if temporary.as_file_mut().read(&mut buffer[..1])? != 0 {
+            return Err(Error::Verification("written output exceeds verified bytes"));
+        }
         temporary.persist_noclobber(output).map_err(|error| {
             if error.error.kind() == std::io::ErrorKind::AlreadyExists {
                 Error::OutputExists(output.to_owned())

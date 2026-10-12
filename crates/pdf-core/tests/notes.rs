@@ -362,7 +362,7 @@ fn legacy_pdfdoc_utf8_and_utf16_notes_decode_and_structural_operations_preserve_
 #[test]
 fn signed_and_encrypted_inputs_allow_listing_but_refuse_addition() {
     let signed = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../trust_lab/corpus/v1/signed.pdf");
+        .join("../../tests/fixtures/pdfs/signed.pdf");
     let mut document = PdfDocument::open(signed, None).unwrap();
     document.list_notes(&[1]).unwrap();
     assert!(matches!(

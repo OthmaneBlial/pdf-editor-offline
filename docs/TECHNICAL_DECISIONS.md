@@ -4,7 +4,7 @@ Decision date: 2026-10-12. This document records initial engineering choices and
 
 ## Decision 1: a Rust engine shared by headless and native clients
 
-Use a root Cargo workspace with a reusable document core, a CLI, and a native desktop client. Keep parsing, validation, PDF changes, and save policy in the core. GUI state and textures belong in the desktop client. CLI JSON/error behavior belongs in the CLI. Neither client should need Python, FastAPI, React, Tauri, a browser runtime, or an HTTP loopback server for migrated operations.
+Use a root Cargo workspace with a reusable document core, CLI and native desktop client. Parsing, validation, PDF changes and verified serialization belong in the core. GUI state and textures belong in the desktop client. CLI JSON/error behavior belongs in the CLI. Both native clients operate without a browser runtime or local HTTP server.
 
 Keep the legacy implementation available as a clearly labeled compatibility reference until each workflow has an implemented Rust replacement and regression evidence. Do not relabel an unsupported action as complete or remove a useful workflow merely to achieve a smaller Rust-only demo.
 
@@ -63,7 +63,7 @@ Primary metadata endpoint form: `https://crates.io/api/v1/crates/<crate>`. The i
 
 [Tesseract](https://github.com/tesseract-ocr/tesseract) can be an optional installed local process, with capability discovery, fixed argument construction, private temporary files, language/model discovery, cancellation/timeout, and cleanup. Report exactly which engine/language is available. Never imply bundled OCR when the executable or traineddata is absent.
 
-Office/HTML conversion, certificate signing, trust-chain validation, XFA, and exact complex-text rewriting remain separate migrations. A local external tool can be an honest compatibility capability; it must not disguise dependence on the old Python server. No background cloud services, telemetry, remote document processing, or mandatory login should enter the native core.
+Office/HTML conversion, certificate signing, trust-chain validation, XFA and exact complex-text rewriting remain separate migrations. Optional local converters must be explicit capabilities. No background cloud services, telemetry, remote document processing or mandatory login should enter the native core.
 
 ## Decision 7: evidence requirements
 

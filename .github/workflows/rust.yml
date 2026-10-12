@@ -11,6 +11,7 @@ on:
       - '.github/workflows/rust.yml'
       - 'tools/**'
       - 'vendor/**'
+      - 'tests/fixtures/**'
       - 'scripts/install_reference_poppler.sh'
       - 'scripts/install_reference_qpdf.sh'
   pull_request:
@@ -22,6 +23,7 @@ on:
       - '.github/workflows/rust.yml'
       - 'tools/**'
       - 'vendor/**'
+      - 'tests/fixtures/**'
       - 'scripts/install_reference_poppler.sh'
       - 'scripts/install_reference_qpdf.sh'
   workflow_dispatch:
@@ -56,6 +58,7 @@ jobs:
       - name: Rust tests and API documentation
         run: |
           cargo test --workspace --locked
+          cargo test -p pdf-worker --features test-helper --locked
           RUSTDOCFLAGS='-D warnings' cargo doc --workspace --no-deps --locked
       - name: Audit locked dependencies and licenses
         run: |
@@ -111,6 +114,7 @@ jobs:
       - name: Cross-platform tests and desktop build
         run: |
           cargo test --workspace --locked
+          cargo test -p pdf-worker --features test-helper --locked
           cargo build -p pdf-editor-offline-cli -p pdf-editor-offline-native --locked
       - name: Linux desktop startup smoke
         if: runner.os == 'Linux'

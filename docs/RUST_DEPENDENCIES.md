@@ -21,8 +21,8 @@ replace those obligations. No PdfCraft code, branded imagery or models are copie
 
 RustSec checks establish absence of known advisories at check time, not universal
 security. Resource budgets, hostile-font/image corpora, fuzzing and worker-process
-isolation remain separate requirements. Native dependency security checks do not
-prove the legacy npm/Python distribution has no vulnerabilities.
+isolation remain separate requirements. Dependency checks do not prove that
+document parsing or rendering is universally safe.
 
 The Native Rust workflow builds/tests on macOS ARM/Intel, Windows x64, Linux x64
 and Linux ARM64. Its job configuration is not evidence those builds have passed;

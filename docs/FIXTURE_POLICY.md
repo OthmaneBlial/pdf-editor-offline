@@ -23,6 +23,7 @@ limits or suspicious metadata rather than gigabytes of expanded data. Any
 future real-world malicious sample belongs in access-controlled security
 research storage, not this public repository.
 
-The versioned public compatibility set, generation command, coverage table,
-and visual/semantic comparison tolerance are documented in
-[Synthetic compatibility corpus](TRUST_LAB_CORPUS.md).
+The reviewed compatibility fixtures live in `tests/fixtures/pdfs`, with a pinned
+manifest and independent [reference checks](RUST_BENCHMARKS.md). Source bytes and
+hashes are preserved when reorganizing the repository. New fixtures are generated
+in Rust; test data is never executed as scripts or embedded actions.

@@ -1,6 +1,5 @@
 [workspace]
-members = ["crates/pdf-core", "crates/pdf-render", "crates/pdf-convert", "apps/cli", "apps/desktop", "tools/native-evidence"]
-exclude = ["desktop/src-tauri"]
+members = ["crates/pdf-core", "crates/pdf-render", "crates/pdf-convert", "crates/pdf-worker", "apps/cli", "apps/desktop", "tools/native-evidence"]
 resolver = "3"
 
 [workspace.package]

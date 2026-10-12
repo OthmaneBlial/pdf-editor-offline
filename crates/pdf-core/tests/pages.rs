@@ -335,7 +335,7 @@ fn crop_failure_on_later_page_rolls_back_earlier_changes() {
 
 #[test]
 fn real_corpus_catalog_objects_remain_intact_after_reversal() {
-    let corpus = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../trust_lab/corpus/v1");
+    let corpus = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/fixtures/pdfs");
     for name in [
         "bookmarks.pdf",
         "forms.pdf",

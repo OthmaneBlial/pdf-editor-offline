@@ -1,33 +1,12 @@
 version: 2
 updates:
-  - package-ecosystem: pip
+  - package-ecosystem: cargo
     directory: /
     schedule:
       interval: weekly
       day: monday
-    open-pull-requests-limit: 5
-    labels: [dependencies, python]
-  - package-ecosystem: npm
-    directory: /frontend
-    schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 5
-    labels: [dependencies, frontend]
-  - package-ecosystem: npm
-    directory: /desktop
-    schedule:
-      interval: weekly
-      day: monday
     open-pull-requests-limit: 3
-    labels: [dependencies, desktop]
-  - package-ecosystem: cargo
-    directory: /desktop/src-tauri
-    schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 3
-    labels: [dependencies, desktop]
+    labels: [dependencies, rust]
   - package-ecosystem: github-actions
     directory: /
     schedule:

@@ -1,68 +1,19 @@
-# Rust rewrite execution plan
+# Rust rewrite plan
 
-The Rust migration is active alongside the working 3.0.0 legacy product. It is
-not yet a feature-complete replacement. The repository, authorship, version
-history and existing distribution remain intact during feature replacement.
-The user's 2026-10-12 clarification requires removal of all Python source,
-backend/sidecar wiring, dependencies, build/test/benchmark scripts and obsolete
-documentation from the final working project. Native runtime independence alone
-does not satisfy that requirement. Replacement validation tooling must also run
-without Python.
+The current source tree is native Rust. The previous implementation was archived before the owner-authorized cleanup at [recovery-before-native-cleanup-20261012](https://github.com/OthmaneBlial/pdf-editor-offline/tree/recovery-before-native-cleanup-20261012). Repository identity, authorship, and history remain intact.
 
-## Evidence and gates
+Removing the old source does not establish feature parity. [The migration matrix](MIGRATION_MATRIX.md) retains the full acceptance inventory. [PdfCraft research](PDFCRAFT_RESEARCH.md), [technical decisions](TECHNICAL_DECISIONS.md), and [native evidence](RUST_STATUS.md) explain actual choices and results.
 
-Audit the implementation, not marketing claims: [legacy audit](LEGACY_AUDIT.md),
-[migration matrix](MIGRATION_MATRIX.md), [PdfCraft research](PDFCRAFT_RESEARCH.md),
-and [decisions](TECHNICAL_DECISIONS.md). These inventories are living migration
-records; a row is complete only after behavior, output preservation and the
-user-facing integration are tested.
+## Delivery order
 
-1. **Audit and baseline:** inventory core/API/CLI/UI/tests/packaging and reference
-   engines. Record source commits, dependencies, licenses and inherited defects.
-2. **Rust foundation:** bounded document opening, typed errors, structural
-   inspection, text extraction, safe new-copy saving and an independent CLI.
-3. **Native viewer:** Hayro rendering, eframe desktop, background work, tabs,
-   thumbnails, zoom, search, keyboard operation and accessible controls.
-4. **Pages:** rotation, crop, reorder, insertion, duplication, extraction, split
-   and merge, with structure-preservation tests and explicit refusals.
-5. **Editing:** annotations, text/image overlays, selection and history before
-   guarded existing-content changes; make overlay semantics visible.
-6. **Security/forms:** encrypted opening/export policy, AcroForms, signatures,
-   sanitization, redaction with independent proof. No secure-deletion claim from
-   object removal or white overlays. Signed inputs require compatible saving or
-   a clear refusal before modification.
-7. **OCR/conversion:** local OCR and quality-tiered conversions, with optional
-   external tools explicit. Fail conversions whose claimed format is unproved.
-8. **Hardening:** crash recovery, atomic saves, hostile corpora, fuzzing,
-   benchmarks, platform builds and output fidelity.
-9. **Public release:** genuine screenshots/demos, native installers, checksums,
-   provenance, website and docs. Never label unsigned artifacts signed.
-10. **Remove superseded stack:** remove replaced legacy source, manifests,
-    launchers, CI and documentation after validating their native replacements;
-    scan tracked files and packaged artifacts for remaining obsolete runtime
-    requirements. Keep every supported capability reviewable through migration.
+1. Complete isolated processing and desktop recovery without losing edits or originals.
+2. Finish page organization, rendering fidelity, navigation, and coordinate-aware search.
+3. Integrate annotations, images, text overlays, and guarded existing-content changes.
+4. Add forms, encryption, certificate workflows, verified redaction, and sanitization.
+5. Add local OCR and quality-tested conversions with explicit prerequisites.
+6. Broaden hostile/fidelity corpora, fuzzing, memory/latency benchmarks, and platform checks.
+7. Publish verified native distribution, installation evidence, documentation, and real demonstrations.
 
-Each verified milestone gets a conventional commit pushed to `main`. No force
-pushes, empty commits, deletion of working legacy features or artificial commit
-splitting. Before destructive migration, create a recovery ref.
+Each milestone needs implementation, meaningful tests, independent PDF checks where relevant, user-facing integration, and truthful limitations. Small coherent commits go directly to main; no force pushes or artificial empty commits.
 
-## Completion criteria
-
-The default desktop has no Python, FastAPI, Node runtime or sidecar. Rust owns
-document logic, and the completed repository contains no Python implementation,
-dependencies or Python-based development tooling. The native UI must pass actual
-visual review for typography, contrast, spacing, hierarchy and coherent light/dark
-themes, using genuine working-document captures rather than mockups.
-Every existing working capability has a tested equivalent and
-GUI/CLI integration; remaining limitations are explicitly reported. Release
-gates include cross-platform CI, security/license checks, Trust Lab output,
-signed-input tests, privacy verification, reproducible measured performance and
-real desktop interaction evidence. A green foundation test is not parity proof.
-
-## Baseline environment
-
-Audit began at legacy commit `47ef9e3` on 2026-10-12, macOS with Rust/Cargo 1.95.
-The default `python3` cannot import PyMuPDF and no project `.venv` exists at audit
-start. Legacy runtime comparisons require an isolated installed environment;
-no Python/Rust speedup has been established. Existing synthetic fixtures and
-Trust Lab corpus are retained and reused where appropriately licensed.
+The rewrite is complete only when the full inventory has tested native equivalents, real desktop and CLI workflows, applicable security/privacy and fidelity evidence, and verified target-platform releases. A passing foundation suite is not completion.

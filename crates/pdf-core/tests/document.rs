@@ -152,7 +152,7 @@ fn signature_fields_block_mutation_and_saving() {
 
 #[test]
 fn existing_trust_lab_pages_reopen_without_losing_catalog_features() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../trust_lab/corpus/v1");
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/fixtures/pdfs");
     for name in [
         "bookmarks.pdf",
         "forms.pdf",

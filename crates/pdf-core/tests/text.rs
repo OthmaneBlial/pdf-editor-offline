@@ -118,7 +118,7 @@ fn trust_lab_forms_and_signature_appearances_are_read_without_modification() {
         ("signed", "Cryptographically signed synthetic fixture SIGN"),
     ] {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join(format!("../../trust_lab/corpus/v1/{name}.pdf"));
+            .join(format!("../../tests/fixtures/pdfs/{name}.pdf"));
         let before = std::fs::read(&path).unwrap();
         let parsed = PdfDocument::open(&path, None).unwrap();
         assert_eq!(normalized(&parsed.extract_text(&[1]).unwrap()), expected);

@@ -171,7 +171,7 @@ fn invalid_keys_limits_and_clobber_have_typed_errors_and_preserve_files() {
 
 #[test]
 fn signed_metadata_is_readable_but_edits_are_refused() {
-    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../trust_lab/corpus/v1/signed.pdf");
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/fixtures/pdfs/signed.pdf");
     let dir = tempfile::tempdir().unwrap();
     let output = dir.path().join("output.pdf");
     assert!(data(&cli(&["metadata", input.to_str().unwrap(), "--json"]))["fields"].is_object());
@@ -383,7 +383,7 @@ fn independent_unicode_and_full_logical_graph_preservation() {
     let dir = tempfile::tempdir().unwrap();
     let synthetic = dir.path().join("synthetic.pdf");
     save(fixture(), &synthetic);
-    let corpus = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../trust_lab/corpus/v1");
+    let corpus = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/fixtures/pdfs");
     let mut sources = vec![synthetic];
     for filename in [
         "forms.pdf",

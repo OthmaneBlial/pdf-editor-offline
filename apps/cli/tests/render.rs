@@ -197,7 +197,7 @@ fn png_export_never_follows_an_existing_output_symlink() {
 #[test]
 fn signed_pdf_can_be_rendered_read_only_and_malformed_pdf_is_refused() {
     let directory = tempfile::tempdir().unwrap();
-    let corpus = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../trust_lab/corpus/v1");
+    let corpus = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/fixtures/pdfs");
     let signed = corpus.join("signed.pdf");
     let before = std::fs::read(&signed).unwrap();
     let output = directory.path().join("signed.png");

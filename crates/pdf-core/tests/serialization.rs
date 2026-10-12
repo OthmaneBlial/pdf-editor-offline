@@ -1,7 +1,7 @@
 #![allow(clippy::unwrap_used)]
 
 use lopdf::{Document, Object, Stream, dictionary};
-use pdf_core::PdfDocument;
+use pdf_core::{DocumentInfo, DocumentMetadata, Error, MetadataKey, PdfDocument};
 
 fn fixture() -> Document {
     let mut document = Document::with_version("1.7");
@@ -63,4 +63,51 @@ fn expanded_object_streams_survive_verified_new_copy_saving() {
             .rotation,
         90
     );
+}
+
+#[test]
+fn verified_bytes_reopen_preserves_geometry_objects_and_worker_reply_types() {
+    let mut source = fixture();
+    let orphan =
+        source.add_object(dictionary! { "Custom" => Object::string_literal("retain orphan") });
+    let mut bytes = Vec::new();
+    source.save_to(&mut bytes).unwrap();
+    let mut document = PdfDocument::from_bytes(&bytes, None).unwrap();
+    document.rotate(&[1], 90).unwrap();
+    document
+        .update_metadata(&[(MetadataKey::Title, Some("Révision 中文"))])
+        .unwrap();
+    let verified = document.verified_bytes().unwrap();
+    let reopened = PdfDocument::from_bytes(&verified, None).unwrap();
+    assert_eq!(
+        reopened.info().unwrap().pages,
+        document.info().unwrap().pages
+    );
+    assert_eq!(
+        Document::load_mem(&verified)
+            .unwrap()
+            .get_object(orphan)
+            .unwrap(),
+        source.get_object(orphan).unwrap()
+    );
+    let info = document.info().unwrap();
+    let decoded: DocumentInfo =
+        serde_json::from_slice(&serde_json::to_vec(&info).unwrap()).unwrap();
+    assert_eq!(decoded.pages, info.pages);
+    let metadata = document.metadata().unwrap();
+    let decoded: DocumentMetadata =
+        serde_json::from_slice(&serde_json::to_vec(&metadata).unwrap()).unwrap();
+    assert_eq!(decoded, metadata);
+    assert_eq!(document.metadata().unwrap(), reopened.metadata().unwrap());
+}
+
+#[test]
+fn verified_bytes_refuses_signed_input_without_mutation() {
+    let mut source = fixture();
+    source.add_object(dictionary! { "FT" => "Sig" });
+    let mut bytes = Vec::new();
+    source.save_to(&mut bytes).unwrap();
+    let document = PdfDocument::from_bytes(&bytes, None).unwrap();
+    assert!(matches!(document.verified_bytes(), Err(Error::Refused(_))));
+    assert_eq!(document.info().unwrap().signature_fields, 1);
 }

@@ -10,10 +10,9 @@ Describe the user-visible problem and the result of this change.
 
 ## Evidence
 
-- [ ] Python tests
-- [ ] Frontend lint, type-check, tests, and build
-- [ ] Rust/Tauri checks when desktop code changes
-- [ ] Browser E2E when a user workflow changes
+- [ ] Cargo formatting, Clippy and relevant tests
+- [ ] Real native-window review when a desktop workflow changes
+- [ ] Independent reader checks when document bytes change
 - [ ] Output reopened and independently inspected when PDF bytes change
 
 List exact commands and results:

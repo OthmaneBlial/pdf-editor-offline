@@ -300,7 +300,7 @@ fn benchmark(options: &Options, runner: &Runner, report: &mut Value) -> Result<(
     report["reference_tools"] = json!(tools);
     let temporary = tempfile::tempdir().map_err(|e| e.to_string())?;
     let manifest: Value = serde_json::from_slice(
-        &fs::read("trust_lab/corpus/v1/manifest.json").map_err(|e| e.to_string())?,
+        &fs::read("tests/fixtures/pdfs/manifest.json").map_err(|e| e.to_string())?,
     )
     .map_err(|e| e.to_string())?;
     validate_manifest(&manifest)?;
@@ -314,7 +314,7 @@ fn benchmark(options: &Options, runner: &Runner, report: &mut Value) -> Result<(
         if Path::new(filename).components().count() != 1 {
             return Err("corpus filename must be a basename".into());
         }
-        let path = Path::new("trust_lab/corpus/v1").join(filename);
+        let path = Path::new("tests/fixtures/pdfs").join(filename);
         if fs::metadata(&path).map_err(|e| e.to_string())?.len()
             != case["bytes"].as_u64().ok_or("missing fixture byte count")?
         {

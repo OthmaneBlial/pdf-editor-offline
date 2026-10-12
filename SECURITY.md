@@ -1,28 +1,17 @@
 # Security policy
 
-## Supported versions
+Report vulnerabilities through [GitHub private vulnerability reporting](https://github.com/OthmaneBlial/pdf-editor-offline/security/advisories/new). Include the commit or version, operating system, reproducible steps, and a synthetic fixture. Never submit confidential documents.
 
-| Version | Security updates |
-| --- | --- |
-| Latest minor release | Yes |
-| Older releases | Best effort; upgrade first |
-| Source snapshots | No guarantee |
+The native source is a technical preview. Older published releases are separate historical implementations; do not assume their behavior or security fixes apply to this source.
 
-## Report a vulnerability privately
+## Current boundaries
 
-Use [GitHub private vulnerability reporting](https://github.com/OthmaneBlial/pdf-editor-offline/security/advisories/new). Do not open a public issue for an unpatched vulnerability.
+- PDFs and images are hostile input. File, structure, decompression, text, and raster limits are enforced, but these do not prove complete isolation.
+- The desktop currently processes documents in a background thread. The standalone bounded worker and journal are not yet integrated into every desktop operation.
+- Originals are preserved. Save As refuses an existing destination and verifies a separately written PDF.
+- Signed or encrypted inputs are refused for unsupported mutations.
+- Embedded actions are inspected, never executed.
+- Permanent redaction, sanitization, certificate signing, and OCR are not shipped native workflows.
+- No document telemetry or remote processing is implemented.
 
-Include the affected version, operating system, deployment mode, minimal reproduction, expected impact, and whether a malicious PDF is required. Use a synthetic file. Never attach a confidential, customer, legal, medical, identity, or employment document.
-
-The maintainer aims to acknowledge a complete report within seven days. Timelines for validation and repair depend on severity, reproducibility, and upstream dependencies. Coordinated disclosure is preferred.
-
-## Security boundaries
-
-- Desktop and `start.sh` bind to loopback, choose a free port, and use a per-launch API token.
-- Docker is a server deployment and must be protected by the operator before exposure beyond a trusted network.
-- PDF files are hostile input. Parser and external-tool updates are security relevant.
-- A visual signature is not cryptographic signing.
-- A black rectangle is not sufficient redaction. Use only the documented redaction flow and verify the exported copy.
-- No telemetry is enabled. Diagnostic reports must not contain document content, extracted text, filenames, or absolute paths.
-
-Read the full [threat model](docs/THREAT_MODEL.md), [privacy contract](docs/PRIVACY.md), and [dependency security policy](docs/DEPENDENCY_SECURITY.md).
+Read the [threat model](docs/THREAT_MODEL.md), [privacy contract](docs/PRIVACY.md), and [dependency inventory](docs/RUST_DEPENDENCIES.md).

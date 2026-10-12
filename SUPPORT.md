@@ -1,19 +1,7 @@
 # Support
 
-## Questions and ideas
+Use [Discussions](https://github.com/OthmaneBlial/pdf-editor-offline/discussions) for setup questions and ideas. Bug reports should include the version or commit, operating system, desktop or CLI mode, exact steps, expected result, and content-free diagnostics.
 
-Use [GitHub Discussions](https://github.com/OthmaneBlial/pdf-editor-offline/discussions) for setup questions, ideas, and workflow help. Search existing discussions first.
+Never upload a private PDF. Create a minimal synthetic reproduction instead. Security reports belong in [private vulnerability reporting](SECURITY.md).
 
-## Bugs
-
-Use the bug-report issue form and include the app version, operating system, deployment mode, capability-screen status, exact steps, expected result, and sanitized logs. The maintainer aims to acknowledge complete reports within seven days.
-
-Never upload a private PDF. Reproduce the problem with a synthetic document or a minimal file whose content and metadata you created specifically for public sharing.
-
-## Security
-
-Do not report vulnerabilities publicly. Follow [SECURITY.md](SECURITY.md).
-
-## Scope
-
-Support covers the latest release and documented source setup. Complex PDF fidelity, unsupported XFA forms, certificate workflows, and third-party packaging may require a minimized fixture before they can be investigated.
+Support follows the documented native preview scope. Check [known limitations](docs/KNOWN_LIMITATIONS.md) before relying on an advanced workflow. Historical release downloads and the current source have different capabilities.

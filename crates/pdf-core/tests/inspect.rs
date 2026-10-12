@@ -250,7 +250,7 @@ fn reference_cycles_missing_targets_and_oversized_filenames_fail_safely() {
 
 #[test]
 fn trust_lab_forms_attachments_layers_and_signed_markers_are_real_evidence() {
-    let corpus = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../trust_lab/corpus/v1");
+    let corpus = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/fixtures/pdfs");
     let forms = PdfDocument::open(corpus.join("forms.pdf"), None)
         .unwrap()
         .inspect_security()

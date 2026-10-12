@@ -1,117 +1,31 @@
-# Architecture
-
-## Native Rust migration
-
-The Rust workspace is being introduced alongside the legacy 3.0.0 runtime.
-`crates/pdf-core` owns bounded opening, structural inspection, text extraction,
-rotation and verified new-copy saves. It uses stock `lopdf` 0.45 with strict
-loading and stream decompression limits. The independent Rust CLI and native
-renderer build on this workspace; they are not yet a full legacy replacement.
-
-Input is capped at 128 MiB, each loader/text stream at 32 MiB, page trees at 128
-levels and 20,000 pages. These are explicit application limits, not proof of a
-complete memory/CPU sandbox. Parsing still occurs in-process; fuzzing and worker
-process isolation remain hardening gates. Rendering has independent pixel limits.
-
-New-copy saves use a same-directory temporary file, file fsync, strict reopening
-and page/logical-object-graph verification before no-clobber publication. Existing paths
-are never overwritten. Power-loss durability of directory entries and crash
-recovery are not yet established. Full rewrites of signed or encrypted inputs
-are refused until signature-safe saving and encrypted export are implemented.
-No JavaScript or embedded action is executed. No redaction is claimed.
-
-Modern object/xref streams are serialization carriers, so their replacement is
-allowed while logical object IDs/content and document trailer references must
-survive. Stream length and numeric/string representation may normalize without
-semantic loss; references to a discarded carrier cause refusal. Reopened page
-information includes CropBox as well as MediaBox and rotation. Tests include
-modern object streams, crop round trips and same-count content corruption.
-
-Page-tree validation checks every branch's declared count, parent identity,
-cycles and shared leaves. The signature scan includes nested direct dictionaries,
-arrays and stream dictionaries, with 128-level/two-million-value budgets after
-parsing. Extraction processes one page at a time and caps accumulated UTF-8 text
-at 128 MiB. Flattening page trees preserves inherited indirect resource sharing;
-directly inherited resource dictionaries are moved once into shared indirect
-objects before rebuilding, avoiding per-page resource amplification. Regression
-fixtures exercise real compressed content, ToUnicode,
-object and xref streams against the 32 MiB limit. These cases do not establish
-universal hostile-input isolation or total allocator bounds.
-
-The Rust dependency direction is applications → operation/render crates → core.
-UI code must call reusable document operations rather than manipulate PDF objects.
-Create crate boundaries when a real capability needs them, not empty placeholders.
-The Tauri crate stays excluded from the new workspace so its frozen sidecar and
-existing release jobs keep their own lockfile. WASM is a later separate target.
-
-See [rewrite plan](RUST_REWRITE_PLAN.md) and [migration matrix](MIGRATION_MATRIX.md).
-The rest of this document describes the retained legacy runtime.
+# Native architecture
 
 ```text
-frontend/ (React + PDF.js + Fabric)
-          │ HTTP on loopback, per-launch token
-          ▼
-api/ (FastAPI sessions, validation, capability discovery)
-          │
-          ├── pdf_editor_offline/ (PyMuPDF editing, conversion, CLI)
-          ├── bounded OCR workers (local Tesseract, two concurrent jobs)
-          ├── local session/temp storage
-          └── optional local tools (LibreOffice, Tesseract, Ghostscript)
+apps/desktop             apps/cli
+       │                    │
+       ├── pdf-render ──────┤
+       ├── pdf-convert ─────┤
+       └────── pdf-core ────┘
 
-desktop/ (Tauri)
-          ├── hosts the built React frontend
-          ├── starts the packaged Python sidecar on a random loopback port
-          └── provides native open/save and recent-file storage
+pdf-worker: bounded child transport, typed document operations, recovery journal
+tools/native-evidence: independent checks and measured CLI evidence
+tests/fixtures/pdfs: immutable synthetic corpus
 ```
 
-## Ownership
+The desktop uses eframe/egui and bundled licensed fonts. Hayro renders PDF content; the local interpreter patch preserves tested note appearance geometry. The core owns inspection, text, page operations, notes, properties, and verified serialization. The converter owns the supported PNG/JPEG image-to-PDF subset.
 
-| Area | Responsibility | Smallest validation |
-| --- | --- | --- |
-| `pdf_editor_offline/core/` | PDF transformations and inspection | `python -m pytest pdf_editor_offline/tests` |
-| `api/` | HTTP models, sessions, validation, safe errors | `python -m pytest tests/test_api_smoke.py tests/test_security.py` |
-| `frontend/src/` | Task workflows and local editor UI | `cd frontend && npm test` |
-| `desktop/src-tauri/` | Local sidecar lifecycle and native filesystem UX | `cargo check --manifest-path desktop/src-tauri/Cargo.toml` |
-| `tests/e2e/` | Browser-level workflow evidence | `RUN_E2E_SMOKE=1 ./run_ci.sh` |
-| `examples/sample_pdfs/` | Synthetic public fixtures | `python -m pytest tests/test_sample_pdfs.py` |
-| `.github/workflows/` | Clean-runner quality and release gates | Pull request checks |
+The current desktop uses a background document thread. The worker crate provides separately tested subprocess and journal infrastructure; desktop integration remains unfinished. The CLI also parses locally in-process. Do not infer a complete hostile-input sandbox from bounded reads.
 
-## Invariants
+## Integrity boundaries
 
-- The desktop and `start.sh` API bind to loopback and require a per-launch token.
-- Document operations never silently call a cloud service.
-- Stable capability claims map to tests and documentation.
-- Destructive operations save or export a copy unless the user explicitly chooses otherwise.
-- Errors never expose absolute paths or document-derived secrets.
-- Version numbers across Python, React, Tauri, Docker, and release metadata remain synchronized.
+Inputs are regular files capped at 128 MiB. The parser enforces stream, object, page-tree, and structural budgets. Text and raster outputs have separate caps. Unsupported signed/encrypted mutations fail before publication.
 
-## OCR data flow
+Edits create immutable history snapshots. Save As writes a same-directory temporary file, syncs and verifies bytes and the reopened logical document, then publishes without overwriting an existing path. Metadata edits preserve XMP and unrelated aliases; they are not secure cleanup. Ordinary note removal may retain unreachable objects.
 
-OCR jobs take an app-owned snapshot of the source session, then process one page
-at a time with a fixed-argument local Tesseract subprocess. Rendered page images
-are temporary and deleted after each page. The successful result is imported as
-a new session, so the original session and its visual scan are never overwritten.
+The standalone worker uses framed, size-limited, checksummed IPC and process time/resource controls. The journal owns private immutable byte snapshots, atomic manifests, locking, and save intents. These interfaces accept opaque bytes in the parent; their existence alone does not establish desktop recovery.
 
-The searchable copy adds an invisible, removable optional-content layer. Its
-content-bearing local sidecar stores recognized words, confidence, bounding
-boxes, and stream references needed for inspection and correction. Search terms
-travel in authenticated request bodies rather than URL query strings. Runtime
-health and job records expose counts and status only; deleting the result session
-also deletes the OCR sidecar. See [OCR & Search](OCR_SEARCH.md) for the complete
-workflow, bounds, and API contract.
+## Extending the product
 
-## Adding a feature
+Implement reusable document behavior in the appropriate crate, then expose it through the CLI and desktop. Keep errors, bounds, history, preservation, accessibility, and independent output verification with the feature. Create a crate boundary only when a real capability needs it.
 
-1. Put the PDF behavior in the core when it is reusable outside HTTP.
-2. Add typed request/response models and safe errors in the API.
-3. Add a task-oriented UI with progress, cancel/retry where applicable, and explicit preservation warnings.
-4. Add a synthetic fixture and regression at core/API/UI levels proportional to risk.
-5. Update the capability matrix, threat model, privacy contract, limitations, and changelog when affected.
-
-## Architecture experiments
-
-Browser/WASM, touch/pen-first tablet support, and LAN/folder collaboration are
-not shipped capabilities. Their RFCs, entry gates, security boundaries, and
-machine-readable disabled state live in
-[Architecture experiments](ARCHITECTURE_EXPERIMENTS.md). Unsupported experiments
-must not alter the loopback-only, fully offline solo runtime.
+See [current status](RUST_STATUS.md), [dependency/licensing inventory](RUST_DEPENDENCIES.md), and [migration gates](MIGRATION_MATRIX.md).

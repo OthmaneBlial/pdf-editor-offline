@@ -365,7 +365,7 @@ fn view_zoom_validation_and_signed_read_only_rendering_remain_controlled() {
             Err(RenderError::InvalidViewZoom)
         );
     }
-    let signed = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../trust_lab/corpus/v1/signed.pdf");
+    let signed = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/fixtures/pdfs/signed.pdf");
     let original = std::fs::read(&signed).expect("signed corpus");
     render_view_page(&original, 0, 0.25, 2.0).expect("read-only signed rendering");
     assert_eq!(
