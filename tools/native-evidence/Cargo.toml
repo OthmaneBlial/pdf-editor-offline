@@ -1,0 +1,15 @@
+[package]
+name = "native-evidence"
+description = "Bounded independent reference checks and native CLI process measurements"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+serde_json.workspace = true
+sha2 = "0.11"
+tempfile.workspace = true
+
+[lints]
+workspace = true
