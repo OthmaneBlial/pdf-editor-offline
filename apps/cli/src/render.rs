@@ -123,7 +123,7 @@ pub(crate) fn render_png(
     Ok(
         json!({"operation": "render-page", "page": page, "scale": scale,
         "format": "png", "width": image.width, "height": image.height,
-        "pixel_format": "rgba8_opaque", "output": output, "dry_run": dry_run,
+        "pixel_format": "rgba8_opaque", "output": super::json_path(output), "dry_run": dry_run,
         "output_verified": !dry_run}),
     )
 }

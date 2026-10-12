@@ -2720,7 +2720,9 @@ dependencies = [
  "pdf-convert",
  "pdf-core",
  "pdf-render",
+ "pdf-worker",
  "png",
+ "serde",
  "serde_json",
  "tempfile",
 ]

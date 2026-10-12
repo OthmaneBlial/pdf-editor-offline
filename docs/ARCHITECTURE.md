@@ -4,14 +4,16 @@
 apps/desktop ── pdf-worker bounded children ─┬─ pdf-render
      │                                     ├─ pdf-convert
      └─ private recovery journal           └─ pdf-core
-apps/cli ──────────────────────────────────┴─ same document libraries in-process
+apps/cli ── pdf-worker bounded command child ─ same document libraries
 tools/native-evidence: independent checks and measured CLI evidence
 tests/fixtures/pdfs: immutable synthetic corpus
 ```
 
 The desktop uses eframe/egui and bundled licensed fonts. Hayro renders PDF content; the local interpreter patch preserves tested note appearance geometry. The core owns inspection, text, page operations, notes, properties, and verified serialization. The converter owns the supported PNG/JPEG image-to-PDF subset.
 
-The desktop's background coordinator sends opaque bytes and typed operations to its own executable's `--pdf-worker` mode. Parsing, rendering, text, metadata, edits, image conversion, and save preparation run in bounded subprocesses; the parent validates replies before committing state. Successful state changes are journaled before their UI acknowledgement. The CLI still parses in-process. Process limits are not a filesystem or network sandbox.
+The desktop's background coordinator sends opaque bytes and typed operations to its own executable's `--pdf-worker` mode. Parsing, rendering, text, metadata, edits, image conversion, and save preparation run in bounded subprocesses; the parent validates replies before committing state. Successful state changes are journaled before their UI acknowledgement.
+
+The CLI self-hosts its document worker too. Its parent parses arguments and reads bounded password stdin; every document command runs the existing engine in a resource-limited child. The child accesses user-authorized native paths and performs verified no-clobber publication. Help, version, completions and capabilities stay local. Native arguments and non-Unicode response paths retain their OS units. [CLI isolation](CLI_ISOLATION.md) describes output validation, cancellation and uncertain acknowledgements. Process limits are not a filesystem or network sandbox; direct Rust library callers remain responsible for isolation.
 
 ## Integrity boundaries
 

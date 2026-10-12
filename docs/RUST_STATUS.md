@@ -10,7 +10,16 @@ release history. The native replacement is incomplete: see the gates below.
 
 On 2026-10-13, desktop document processing moved into bounded subprocesses. The later recovery integration records document/history changes before acknowledgement, restores beside existing tabs and retains interrupted save artifacts until explicit resolution. All **69 desktop tests** passed locally, including production self-hosting/fault gates, recovery rollback and headless UI confirmation/error cases. The worker feature suite passed **38 tests**, and strict workspace Clippy passed. An inherited-descriptor regression verifies immediate session-lock release while a concurrent child waits before exec. Actual GUI interaction with the new recovery controls and logo remains unverified because native window acquisition currently returns `cgWindowNotFound`; earlier captures remain evidence for their recorded builds. The CLI remains in-process. [Recovery lifecycle](DESKTOP_RECOVERY.md) documents private storage, explicit discard and remaining expiry/power-loss/platform gates.
 
-The table retains the narrower evidence scopes recorded at earlier milestones.
+Current CLI source now runs every document command in a bounded self-hosted child.
+Local validation passed **311 workspace tests**, **81 desktop tests** with their
+artifact gates explicitly enabled, and **47 worker feature tests**. A genuine
+9 MiB encrypted-text invocation exercises the real CLI parent/child and password
+transport. [CLI isolation](CLI_ISOLATION.md) records output budgets, native paths,
+abrupt supervisor termination and remaining target-platform proof. The released
+CLI `4.0.0-preview.1` predates this source milestone.
+
+The table retains the narrower evidence scopes recorded at earlier milestones;
+the earlier in-process CLI description below is historical.
 
 The later desktop page-range milestone adds extraction into a new unsaved tab and
 confirmed deletion with durable history. Local validation passed **297 workspace
@@ -19,11 +28,13 @@ tests** (12 independent/artifact gates ignored in that ordinary command), plus
 document suite passed **11 tests**, including actual isolated subset execution.
 Workspace Clippy and the production desktop build passed. See [range controls and
 limits](DESKTOP_PAGE_RANGES.md); real interaction with the new dialogs remains open.
-The preceding recovery commit's Windows CI exposed a private-file ownership
-regression. New journal files now receive explicit private owner/DACL descriptors;
-existing files remain strictly validated. Windows cross-compilation and targeted
-security regressions pass locally, but actual native Windows revalidation is still
-required before claiming that milestone is green across platforms.
+The recovery commit's Windows ownership fix passed the three native security
+unit cases and all 81 desktop tests on the actual runner. Its job log also exposed
+a CLI metadata test failure masked by PowerShell continuing after a failed Cargo
+command. The cross-platform step now uses fail-fast Bash; the oversize fixture
+still exceeds the 64 KiB UTF-8 metadata limit while fitting Windows' UTF-16
+command-line budget. Fresh full-CI evidence is required for the corrected step and
+new CLI isolation before claiming platform-wide success.
 
 | Milestone | Implementation | Evidence | Remaining gate |
 | --- | --- | --- | --- |

@@ -166,12 +166,13 @@ the app; the status documents describe its current limits.
 flowchart LR
     Desktop[Native desktop] --> Children[Bounded local child processes]
     Children --> Engine[Rust PDF engine]
-    CLI[Native CLI] --> Engine
+    CLI[Native CLI] --> Children
     Desktop --> Recovery[Private local recovery journal]
 ```
 
-The desktop isolates document processing in local children. The CLI currently
-uses the same libraries in its own process. No document upload service is used.
+Current source builds isolate desktop and CLI document processing in local
+children. No document upload service is used. The released CLI
+`4.0.0-preview.1` predates this milestone; see [CLI controls](docs/CLI_ISOLATION.md).
 [Architecture](docs/ARCHITECTURE.md) · [Public Rust API](crates/pdf-core/README.md)
 
 </details>

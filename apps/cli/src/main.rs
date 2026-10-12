@@ -1,3 +1,4 @@
+mod isolation;
 mod render;
 mod selection;
 
@@ -261,7 +262,7 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
                 document.save_new(output)?;
             }
             Ok(
-                json!({"operation":"set-metadata","key":key,"metadata":metadata,"output":output,"dry_run":dry_run}),
+                json!({"operation":"set-metadata","key":key,"metadata":metadata,"output":json_path(output),"dry_run":dry_run}),
             )
         }
         Command::RemoveMetadata {
@@ -277,7 +278,7 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
                 document.save_new(output)?;
             }
             Ok(
-                json!({"operation":"remove-metadata","key":key,"metadata":metadata,"output":output,"dry_run":dry_run}),
+                json!({"operation":"remove-metadata","key":key,"metadata":metadata,"output":json_path(output),"dry_run":dry_run}),
             )
         }
         Command::InspectSecurity { input } => Ok(json!(open(input)?.inspect_security()?)),
@@ -304,7 +305,9 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
             if !dry_run {
                 document.save_new(output)?;
             }
-            Ok(json!({"operation": "add-note", "note": note, "output": output, "dry_run": dry_run}))
+            Ok(
+                json!({"operation": "add-note", "note": note, "output": json_path(output), "dry_run": dry_run}),
+            )
         }
         Command::EditNote {
             input,
@@ -322,7 +325,7 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
                 document.save_new(output)?;
             }
             Ok(
-                json!({"operation":"edit-note","note":note,"output":output,"dry_run":dry_run,"secure_erasure":false,"appearance_regenerated":false}),
+                json!({"operation":"edit-note","note":note,"output":json_path(output),"dry_run":dry_run,"secure_erasure":false,"appearance_regenerated":false}),
             )
         }
         Command::RemoveNote {
@@ -338,7 +341,7 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
                 document.save_new(output)?;
             }
             Ok(
-                json!({"operation":"remove-note","removed":removed,"output":output,"dry_run":dry_run,"secure_erasure":false}),
+                json!({"operation":"remove-note","removed":removed,"output":json_path(output),"dry_run":dry_run,"secure_erasure":false}),
             )
         }
         Command::ExtractText { input, pages } => {
@@ -372,7 +375,7 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
                 document.save_new(output)?;
             }
             Ok(
-                json!({ "operation": "rotate", "pages": pages, "degrees": degrees, "output": output, "dry_run": dry_run }),
+                json!({ "operation": "rotate", "pages": pages, "degrees": degrees, "output": json_path(output), "dry_run": dry_run }),
             )
         }
         Command::Compress {
@@ -386,7 +389,7 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
                 document.save_new(output)?;
             }
             Ok(
-                json!({ "operation": "compress", "output": output, "dry_run": dry_run, "lossless_stream_compression": true }),
+                json!({ "operation": "compress", "output": json_path(output), "dry_run": dry_run, "lossless_stream_compression": true }),
             )
         }
         Command::Merge {
@@ -410,8 +413,8 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
                 merged.save_new(output)?;
             }
             Ok(
-                json!({"operation": "merge", "inputs": inputs, "page_count": merged.page_count(),
-                "scope": "simple_documents_matching_inert_metadata", "output": output, "dry_run": dry_run}),
+                json!({"operation": "merge", "inputs": inputs.iter().map(|path| json_path(path)).collect::<Vec<_>>(), "page_count": merged.page_count(),
+                "scope": "simple_documents_matching_inert_metadata", "output": json_path(output), "dry_run": dry_run}),
             )
         }
         Command::Reverse {
@@ -425,7 +428,7 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
                 document.save_new(output)?;
             }
             Ok(
-                json!({"operation": "reverse", "page_count": document.page_count(), "output": output, "dry_run": dry_run}),
+                json!({"operation": "reverse", "page_count": document.page_count(), "output": json_path(output), "dry_run": dry_run}),
             )
         }
         Command::Reorder {
@@ -441,7 +444,7 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
                 document.save_new(output)?;
             }
             Ok(
-                json!({"operation": "reorder", "order": order, "output": output, "dry_run": dry_run}),
+                json!({"operation": "reorder", "order": order, "output": json_path(output), "dry_run": dry_run}),
             )
         }
         Command::Crop {
@@ -462,7 +465,7 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
                 document.save_new(output)?;
             }
             Ok(
-                json!({"operation": "crop", "pages": pages, "rectangle": rectangle, "underlying_content_retained": true, "output": output, "dry_run": dry_run}),
+                json!({"operation": "crop", "pages": pages, "rectangle": rectangle, "underlying_content_retained": true, "output": json_path(output), "dry_run": dry_run}),
             )
         }
         Command::InsertBlank {
@@ -479,7 +482,7 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
                 document.save_new(output)?;
             }
             Ok(
-                json!({"operation": "insert-blank", "position": position, "width": width, "height": height, "page_count": document.page_count(), "output": output, "dry_run": dry_run}),
+                json!({"operation": "insert-blank", "position": position, "width": width, "height": height, "page_count": document.page_count(), "output": json_path(output), "dry_run": dry_run}),
             )
         }
         Command::ExtractPages {
@@ -495,7 +498,7 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
                 extracted.save_new(output)?;
             }
             Ok(
-                json!({"operation": "extract-pages", "pages": pages, "output": output, "dry_run": dry_run, "privacy_operation": false}),
+                json!({"operation": "extract-pages", "pages": pages, "output": json_path(output), "dry_run": dry_run, "privacy_operation": false}),
             )
         }
         Command::DeletePages {
@@ -511,7 +514,7 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
                 document.save_new(output)?;
             }
             Ok(
-                json!({"operation": "delete-pages", "pages": pages, "page_count": document.page_count(), "output": output, "dry_run": dry_run, "secure_deletion": false}),
+                json!({"operation": "delete-pages", "pages": pages, "page_count": document.page_count(), "output": json_path(output), "dry_run": dry_run, "secure_deletion": false}),
             )
         }
         Command::Compare { before, after } => {
@@ -630,7 +633,7 @@ fn images_to_pdf(inputs: &[PathBuf], output: &PathBuf, dry_run: bool) -> pdf_cor
         conversion.document.save_new(output)?;
     }
     Ok(
-        json!({"operation":"images-to-pdf","inputs":inputs,"input_bytes":input_bytes,"pages":conversion.pages,"page_count":conversion.document.page_count(),"sizing":"one_source_pixel_equals_one_pdf_point","scope":"restricted_png_jpeg_color_metadata_orientation_tier","output":output,"dry_run":dry_run,"metadata_sanitized":false}),
+        json!({"operation":"images-to-pdf","inputs":inputs.iter().map(|path| json_path(path)).collect::<Vec<_>>(),"input_bytes":input_bytes,"pages":conversion.pages,"page_count":conversion.document.page_count(),"sizing":"one_source_pixel_equals_one_pdf_point","scope":"restricted_png_jpeg_color_metadata_orientation_tier","output":json_path(output),"dry_run":dry_run,"metadata_sanitized":false}),
     )
 }
 
@@ -671,12 +674,55 @@ fn error_envelope(kind: &str, message: &str) -> Value {
     json!({ "ok": false, "error": { "kind": kind, "message": message } })
 }
 
+fn json_path(path: &std::path::Path) -> Value {
+    match path.to_str() {
+        Some(path) => Value::String(path.to_owned()),
+        None => json!(path.as_os_str()),
+    }
+}
+
+fn error_class(error: &Error) -> (u8, &'static str) {
+    match error {
+        Error::Refused(_) => (4, "refused"),
+        Error::Limit(_) => (5, "resource_limit"),
+        Error::Io(_) | Error::OutputExists(_) => (3, "filesystem"),
+        _ => (1, "document"),
+    }
+}
+
+fn display_result(cli: &Cli, result: pdf_core::Result<Value>) -> ExitCode {
+    match result {
+        Ok(data) => {
+            if cli.json {
+                output_json(&json!({ "ok": true, "data": data }), false, 0)
+            } else if let Some(text) = data.get("text").and_then(Value::as_str) {
+                output_stdout(text.as_bytes(), 0)
+            } else {
+                output_json(&data, true, 0)
+            }
+        }
+        Err(error) => {
+            let (code, kind) = error_class(&error);
+            if cli.json {
+                output_json(&error_envelope(kind, &error.to_string()), false, code)
+            } else {
+                finish_output(writeln!(io::stderr().lock(), "Error: {error}"), code)
+            }
+        }
+    }
+}
+
 fn main() -> ExitCode {
-    let json_requested = std::env::args_os()
+    let arguments: Vec<_> = std::env::args_os().collect();
+    if arguments.len() == 2 && arguments[1] == isolation::CHILD_FLAG {
+        return isolation::serve();
+    }
+    let json_requested = arguments
+        .iter()
         .skip(1)
-        .take_while(|argument| argument != "--")
+        .take_while(|argument| *argument != "--")
         .any(|argument| argument == "--json");
-    let cli = match Cli::try_parse() {
+    let cli = match Cli::try_parse_from(&arguments) {
         Ok(cli) => cli,
         Err(error) => {
             let code = error.exit_code() as u8;
@@ -697,37 +743,16 @@ fn main() -> ExitCode {
         );
         return output_stdout(&script, 0);
     }
-    let result = (|| {
-        let password = if cli.password_stdin {
-            Some(read_password()?)
-        } else {
-            None
-        };
-        run(&cli, password.as_deref())
-    })();
-    match result {
-        Ok(data) => {
-            if cli.json {
-                output_json(&json!({ "ok": true, "data": data }), false, 0)
-            } else if let Some(text) = data.get("text").and_then(Value::as_str) {
-                output_stdout(text.as_bytes(), 0)
-            } else {
-                output_json(&data, true, 0)
-            }
+    let password = if cli.password_stdin {
+        match read_password() {
+            Ok(password) => Some(password),
+            Err(error) => return display_result(&cli, Err(error)),
         }
-        Err(error) => {
-            let (code, kind) = match error {
-                Error::Refused(_) => (4, "refused"),
-                Error::Limit(_) => (5, "resource_limit"),
-                Error::Io(_) | Error::OutputExists(_) => (3, "filesystem"),
-                _ => (1, "document"),
-            };
-            if cli.json {
-                let envelope = error_envelope(kind, &error.to_string());
-                output_json(&envelope, false, code)
-            } else {
-                finish_output(writeln!(io::stderr().lock(), "Error: {error}"), code)
-            }
-        }
+    } else {
+        None
+    };
+    if matches!(cli.command, Command::Capabilities) {
+        return display_result(&cli, run(&cli, password.as_deref()));
     }
+    isolation::execute(arguments, password, cli.json)
 }

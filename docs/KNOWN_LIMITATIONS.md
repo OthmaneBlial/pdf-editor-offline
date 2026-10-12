@@ -16,8 +16,9 @@ feature set; their capabilities do not describe this Rust implementation.
 - Merge, subsets, notes and image import support restricted structures. See the
   [CLI guide](../apps/cli/README.md) for refusal boundaries. Indexed page labels
   prevent unsupported reordering/insertion rather than being silently dropped.
-- Desktop document processing uses bounded subprocesses. The CLI still parses
-  in-process. Resource limits do not provide a filesystem or network sandbox.
+- Current desktop and CLI source builds use bounded document subprocesses.
+  The published CLI `4.0.0-preview.1` predates CLI isolation. Resource limits do
+  not provide a filesystem or network sandbox. See [CLI limits](CLI_ISOLATION.md).
 - [Desktop recovery](DESKTOP_RECOVERY.md) retains private PDF bytes and paths on
   disk. No automatic expiry, encryption or secure deletion is provided. Unapplied
   property drafts and presentation state are not restored.

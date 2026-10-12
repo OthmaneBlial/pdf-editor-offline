@@ -1,5 +1,10 @@
 # Native Rust CLI preview
 
+Current source builds run every document command in a bounded self-hosted child.
+Help, version, completions and capabilities remain local. [Processing controls](../../docs/CLI_ISOLATION.md)
+describe password stdin, native paths, output budgets and interrupted writes.
+The published CLI `4.0.0-preview.1` predates this isolation milestone.
+
 Build with Rust 1.95+ from the repository root. Use explicit binary paths during
 development to avoid running an older installed version with the same name.
 
