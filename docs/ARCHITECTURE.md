@@ -1,5 +1,34 @@
 # Architecture
 
+## Native Rust migration
+
+The Rust workspace is being introduced alongside the legacy 3.0.0 runtime.
+`crates/pdf-core` owns bounded opening, structural inspection, text extraction,
+rotation and verified new-copy saves. It uses stock `lopdf` 0.45 with strict
+loading and stream decompression limits. The independent Rust CLI and native
+renderer build on this workspace; they are not yet a full legacy replacement.
+
+Input is capped at 128 MiB, each loader/text stream at 32 MiB, page trees at 128
+levels and 20,000 pages. These are explicit application limits, not proof of a
+complete memory/CPU sandbox. Parsing still occurs in-process; fuzzing and worker
+process isolation remain hardening gates. Rendering has independent pixel limits.
+
+New-copy saves use a same-directory temporary file, file fsync, strict reopening
+and page/object-count verification before no-clobber publication. Existing paths
+are never overwritten. Power-loss durability of directory entries and crash
+recovery are not yet established. Full rewrites of signed or encrypted inputs
+are refused until signature-safe saving and encrypted export are implemented.
+No JavaScript or embedded action is executed. No redaction is claimed.
+
+The Rust dependency direction is applications → operation/render crates → core.
+UI code must call reusable document operations rather than manipulate PDF objects.
+Create crate boundaries when a real capability needs them, not empty placeholders.
+The Tauri crate stays excluded from the new workspace so its frozen sidecar and
+existing release jobs keep their own lockfile. WASM is a later separate target.
+
+See [rewrite plan](RUST_REWRITE_PLAN.md) and [migration matrix](MIGRATION_MATRIX.md).
+The rest of this document describes the retained legacy runtime.
+
 ```text
 frontend/ (React + PDF.js + Fabric)
           │ HTTP on loopback, per-launch token
