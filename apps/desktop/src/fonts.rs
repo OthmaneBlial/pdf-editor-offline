@@ -2,6 +2,7 @@ use eframe::egui;
 
 const SYMBOL_FONT: &str = "Noto Sans Symbols 2";
 const BODY_FONT: &str = "IBM Plex Sans Regular";
+const CJK_FONT: &str = "Noto Sans CJK SC";
 pub const MEDIUM_FAMILY: &str = "IBM Plex Sans Medium";
 
 fn definitions() -> egui::FontDefinitions {
@@ -27,9 +28,17 @@ fn definitions() -> egui::FontDefinitions {
         ))
         .into(),
     );
+    fonts.font_data.insert(
+        CJK_FONT.into(),
+        egui::FontData::from_static(include_bytes!(
+            "../assets/fonts/noto-cjk/NotoSansCJKsc-Regular.otf"
+        ))
+        .into(),
+    );
     let mut medium = fonts.families[&egui::FontFamily::Proportional].clone();
     medium.insert(0, MEDIUM_FAMILY.into());
     medium.push(SYMBOL_FONT.into());
+    medium.push(CJK_FONT.into());
     fonts
         .families
         .insert(egui::FontFamily::Name(MEDIUM_FAMILY.into()), medium);
@@ -43,7 +52,7 @@ fn definitions() -> egui::FontDefinitions {
             .families
             .entry(family)
             .or_default()
-            .push(SYMBOL_FONT.into());
+            .extend([SYMBOL_FONT.into(), CJK_FONT.into()]);
     }
     fonts
 }
@@ -63,8 +72,9 @@ mod tests {
         for family in [egui::FontFamily::Proportional, egui::FontFamily::Monospace] {
             let list = &fonts.families[&family];
             let skip = usize::from(family == egui::FontFamily::Proportional);
-            assert_eq!(&list[skip..list.len() - 1], defaults.families[&family]);
-            assert_eq!(list.last().map(String::as_str), Some(SYMBOL_FONT));
+            assert_eq!(&list[skip..list.len() - 2], defaults.families[&family]);
+            assert_eq!(list[list.len() - 2], SYMBOL_FONT);
+            assert_eq!(list.last().map(String::as_str), Some(CJK_FONT));
         }
         assert_eq!(
             fonts.families[&egui::FontFamily::Proportional][0],
@@ -100,6 +110,44 @@ mod tests {
                 }
             });
         });
+        output.textures_delta.clear();
+    }
+
+    #[test]
+    fn cjk_names_and_properties_use_real_glyphs_in_all_ui_families() {
+        let context = egui::Context::default();
+        configure(&context);
+        let mut output = context.run_ui(Default::default(), |ui| {
+            ui.ctx().fonts_mut(|fonts| {
+                for font in [
+                    egui::FontId::proportional(14.0),
+                    egui::FontId::monospace(14.0),
+                    egui::FontId::new(14.0, egui::FontFamily::Name(MEDIUM_FAMILY.into())),
+                ] {
+                    let missing = fonts.layout_no_wrap(
+                        "\u{10ffff}".into(),
+                        font.clone(),
+                        egui::Color32::WHITE,
+                    );
+                    for character in "中文東京かなカナ한국".chars() {
+                        let glyph = fonts.layout_no_wrap(
+                            character.to_string(),
+                            font.clone(),
+                            egui::Color32::WHITE,
+                        );
+                        assert_ne!(
+                            glyph.rows[0].row.glyphs[0].uv_rect.min,
+                            missing.rows[0].row.glyphs[0].uv_rect.min,
+                            "missing {character} in {font:?}"
+                        );
+                    }
+                }
+            });
+        });
+        assert!(
+            !output.textures_delta.set.is_empty(),
+            "glyphs must upload actual atlas pixels"
+        );
         output.textures_delta.clear();
     }
 }

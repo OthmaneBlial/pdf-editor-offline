@@ -1,7 +1,7 @@
 use crate::search::{
     MAX_QUERY_CHARS, PageText, SearchHit, SearchKey, limit_page_text, literal_excerpt,
 };
-use crate::state::{DocumentStatus, RenderKey, TextKey};
+use crate::state::{DocumentStatus, MetadataReadKey, RenderKey, TextKey};
 use crate::thumbnails::ThumbnailKey;
 use eframe::egui;
 use pdf_core::PdfDocument;
@@ -31,6 +31,10 @@ pub enum Edit {
         page: u32,
         rectangle: [f32; 4],
     },
+    Metadata {
+        key: MetadataReadKey,
+        changes: Vec<(pdf_core::MetadataKey, Option<String>)>,
+    },
     Undo,
     Redo,
 }
@@ -43,6 +47,7 @@ pub enum Command {
     Render(RenderKey),
     Thumbnail(ThumbnailKey),
     Text(TextKey),
+    Metadata(MetadataReadKey),
     Search {
         key: SearchKey,
         page: usize,
@@ -70,6 +75,7 @@ impl Command {
             Self::Render(key) => key.tab,
             Self::Thumbnail(key) => key.tab,
             Self::Text(key) => key.tab,
+            Self::Metadata(key) => key.tab,
             Self::Search { key, .. } => key.tab,
         }
     }
@@ -80,6 +86,7 @@ pub enum TaskKey {
     Render(RenderKey),
     Thumbnail(ThumbnailKey),
     Text(TextKey),
+    Metadata(MetadataReadKey),
     Search(SearchKey),
 }
 
@@ -108,6 +115,10 @@ pub enum Event {
         image: RenderedPage,
     },
     Text(PageText),
+    Metadata {
+        key: MetadataReadKey,
+        values: pdf_core::DocumentMetadata,
+    },
     Searched {
         key: SearchKey,
         page: usize,
@@ -139,6 +150,11 @@ impl Worker {
                     Command::Render(key) => Some(TaskKey::Render(*key)),
                     Command::Thumbnail(key) => Some(TaskKey::Thumbnail(*key)),
                     Command::Text(key) => Some(TaskKey::Text(*key)),
+                    Command::Metadata(key) => Some(TaskKey::Metadata(*key)),
+                    Command::Edit {
+                        edit: Edit::Metadata { key, .. },
+                        ..
+                    } => Some(TaskKey::Metadata(*key)),
                     Command::Search { key, .. } => Some(TaskKey::Search(*key)),
                     _ => None,
                 };
@@ -278,6 +294,21 @@ impl WorkingDocument {
                             .crop(&[page], rectangle)
                             .map_err(|e| e.to_string())?;
                     }
+                    Edit::Metadata { key, changes } => {
+                        if key.revision != self.current.revision {
+                            return Err(
+                                "Metadata draft is stale. Read the document properties again."
+                                    .into(),
+                            );
+                        }
+                        let changes: Vec<_> = changes
+                            .iter()
+                            .map(|(key, value)| (*key, value.as_deref()))
+                            .collect();
+                        document
+                            .update_metadata(&changes)
+                            .map_err(|e| e.to_string())?;
+                    }
                     Edit::Undo | Edit::Redo => unreachable!("history handled above"),
                 }
                 let bytes = document.to_bytes().map_err(|e| e.to_string())?;
@@ -380,6 +411,19 @@ fn process(
                 truncated,
             }))
         }
+        Command::Metadata(key) => {
+            if key.revision != document.current.revision {
+                return Err("Metadata request is stale".into());
+            }
+            Ok(Event::Metadata {
+                key,
+                values: document
+                    .current
+                    .document
+                    .metadata()
+                    .map_err(|e| e.to_string())?,
+            })
+        }
         Command::Search {
             key,
             page,
@@ -403,6 +447,11 @@ fn process(
             })
         }
         Command::Edit { edit, .. } => {
+            if let Edit::Metadata { key, .. } = &edit
+                && key.tab != id
+            {
+                return Err("Metadata draft belongs to another document".into());
+            }
             let selected_page = document.edit(edit)?;
             Ok(Event::Updated {
                 id,
@@ -491,6 +540,246 @@ mod tests {
         pdf.trailer.set("Root", catalog);
         pdf.save(&path).expect("save fixture");
         (directory, path)
+    }
+
+    #[test]
+    fn metadata_worker_preserves_unicode_aliases_dates_xmp_and_history() {
+        let (directory, path) = fixture();
+        let mut pdf = Document::load(&path).expect("load fixture");
+        let info=pdf.add_object(dictionary! { "Title"=>Object::string_literal("Original"),"Author"=>Object::string_literal("Ada"),"CreationDate"=>Object::string_literal("D:20261012090000Z"),"Custom"=>Object::string_literal("keep-custom") });
+        let xmp = pdf.add_object(Stream::new(
+            dictionary! { "Type"=>"Metadata","Subtype"=>"XML" },
+            b"<x:xmpmeta>original packet</x:xmpmeta>".to_vec(),
+        ));
+        pdf.trailer.set("Info", info);
+        let catalog = pdf
+            .trailer
+            .get(b"Root")
+            .expect("root")
+            .as_reference()
+            .expect("root ref");
+        pdf.get_dictionary_mut(catalog)
+            .expect("catalog")
+            .set("Metadata", xmp);
+        pdf.get_dictionary_mut(catalog)
+            .expect("catalog")
+            .set("Info", info);
+        pdf.save(&path).expect("metadata fixture");
+        let original = std::fs::read(&path).expect("original");
+        let mut documents = HashMap::new();
+        process(
+            &mut documents,
+            Command::Load {
+                id: 1,
+                path: path.clone(),
+            },
+        )
+        .expect("load");
+        let key = MetadataReadKey {
+            tab: 1,
+            revision: 0,
+            generation: 1,
+        };
+        let Event::Metadata {
+            key: returned,
+            values,
+        } = process(&mut documents, Command::Metadata(key)).expect("read")
+        else {
+            panic!("metadata event");
+        };
+        assert_eq!(returned, key);
+        assert_eq!(values.fields[&pdf_core::MetadataKey::Title], "Original");
+        assert!(
+            values.xmp_present
+                && values.catalog_info_present
+                && !values.xmp_synchronized
+                && !values.secure_erasure
+        );
+        process(
+            &mut documents,
+            Command::Edit {
+                id: 1,
+                edit: Edit::Metadata {
+                    key,
+                    changes: vec![
+                        (pdf_core::MetadataKey::Title, Some("Résumé 東京 ✓".into())),
+                        (pdf_core::MetadataKey::Author, None),
+                    ],
+                },
+            },
+        )
+        .expect("edit");
+        let working = documents.get_mut(&1).expect("working");
+        assert_eq!(working.undo.len(), 1);
+        let edited = working.current.document.metadata().expect("metadata");
+        assert_eq!(
+            edited.fields[&pdf_core::MetadataKey::Title],
+            "Résumé 東京 ✓"
+        );
+        assert!(!edited.fields.contains_key(&pdf_core::MetadataKey::Author));
+        working.edit(Edit::Undo).expect("undo");
+        assert_eq!(working.current.bytes, original);
+        working.edit(Edit::Redo).expect("redo");
+        let output = directory.path().join("metadata.pdf");
+        working.save(&output).expect("save");
+        assert_eq!(
+            PdfDocument::open(&output, None)
+                .expect("reopen")
+                .metadata()
+                .expect("metadata")
+                .fields[&pdf_core::MetadataKey::Title],
+            "Résumé 東京 ✓"
+        );
+        let saved = Document::load(&output).expect("saved raw");
+        let active = saved
+            .trailer
+            .get(b"Info")
+            .expect("info")
+            .as_reference()
+            .expect("info ref");
+        assert_ne!(active, info);
+        let new_info = saved.get_dictionary(active).expect("new info");
+        assert_eq!(
+            new_info
+                .get(b"CreationDate")
+                .expect("date")
+                .as_str()
+                .expect("date bytes"),
+            b"D:20261012090000Z"
+        );
+        assert_eq!(
+            new_info
+                .get(b"Custom")
+                .expect("custom")
+                .as_str()
+                .expect("custom bytes"),
+            b"keep-custom"
+        );
+        assert_eq!(
+            saved
+                .catalog()
+                .expect("catalog")
+                .get(b"Info")
+                .expect("catalog info")
+                .as_reference()
+                .expect("alias"),
+            info
+        );
+        assert_eq!(
+            saved
+                .get_dictionary(info)
+                .expect("old alias")
+                .get(b"Title")
+                .expect("old title")
+                .as_str()
+                .expect("old title bytes"),
+            b"Original"
+        );
+        assert_eq!(
+            saved
+                .get_object(xmp)
+                .expect("xmp")
+                .as_stream()
+                .expect("stream")
+                .content,
+            b"<x:xmpmeta>original packet</x:xmpmeta>"
+        );
+        assert_eq!(std::fs::read(path).expect("original remains"), original);
+    }
+
+    #[test]
+    fn metadata_worker_rejects_stale_invalid_and_read_only_changes_atomically() {
+        let (_directory, path) = fixture();
+        let mut documents = HashMap::new();
+        process(
+            &mut documents,
+            Command::Load {
+                id: 1,
+                path: path.clone(),
+            },
+        )
+        .expect("load");
+        let key = MetadataReadKey {
+            tab: 1,
+            revision: 0,
+            generation: 1,
+        };
+        let original = documents[&1].current.bytes.clone();
+        for changes in [
+            vec![],
+            vec![(pdf_core::MetadataKey::Title, Some("NUL\0".into()))],
+            vec![(
+                pdf_core::MetadataKey::Title,
+                Some("é".repeat(pdf_core::MAX_METADATA_VALUE_BYTES)),
+            )],
+            vec![
+                (pdf_core::MetadataKey::Title, None),
+                (pdf_core::MetadataKey::Title, None),
+            ],
+        ] {
+            assert!(
+                process(
+                    &mut documents,
+                    Command::Edit {
+                        id: 1,
+                        edit: Edit::Metadata { key, changes }
+                    }
+                )
+                .is_err()
+            );
+            assert_eq!(documents[&1].current.bytes, original);
+            assert!(documents[&1].undo.is_empty());
+        }
+        let stale = MetadataReadKey { revision: 9, ..key };
+        assert!(process(&mut documents, Command::Metadata(stale)).is_err());
+        assert!(
+            process(
+                &mut documents,
+                Command::Edit {
+                    id: 1,
+                    edit: Edit::Metadata {
+                        key: stale,
+                        changes: vec![(pdf_core::MetadataKey::Title, Some("Stale".into()))]
+                    }
+                }
+            )
+            .is_err()
+        );
+        let wrong_tab = MetadataReadKey { tab: 2, ..key };
+        assert!(
+            process(
+                &mut documents,
+                Command::Edit {
+                    id: 1,
+                    edit: Edit::Metadata {
+                        key: wrong_tab,
+                        changes: vec![(pdf_core::MetadataKey::Title, Some("Other tab".into()))]
+                    }
+                }
+            )
+            .is_err()
+        );
+        let mut signed = Document::load(&path).expect("load raw");
+        signed.add_object(dictionary! { "FT"=>"Sig" });
+        signed.save(&path).expect("signed fixture");
+        process(&mut documents, Command::Load { id: 1, path }).expect("signed load");
+        assert!(process(&mut documents, Command::Metadata(key)).is_ok());
+        let original = documents[&1].current.bytes.clone();
+        assert!(
+            process(
+                &mut documents,
+                Command::Edit {
+                    id: 1,
+                    edit: Edit::Metadata {
+                        key,
+                        changes: vec![(pdf_core::MetadataKey::Title, Some("Blocked".into()))]
+                    }
+                }
+            )
+            .is_err()
+        );
+        assert_eq!(documents[&1].current.bytes, original);
+        assert!(documents[&1].undo.is_empty());
     }
 
     #[test]

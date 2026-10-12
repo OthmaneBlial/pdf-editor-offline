@@ -16,6 +16,12 @@ actual three-page PDF, including signature and failed-edit guards. The render
 worker also tests fixed-size sticky notes at zoom 2 and DPR 1/2. These are automated
 behavior checks; organizer dialog and thumbnail runtime review remain pending.
 
+The properties and CJK fallback milestone has 43 passing native tests. Metadata
+updates preserve aliases, dates and XMP through save/reopen and undo; failed or
+stale drafts remain copyable, including actual small/large headless UI passes.
+Actual font-atlas tests verify common Chinese, Japanese and Korean glyphs. These
+checks do not replace runtime properties-dialog review or a screen-reader audit.
+
 Tested a locally compiled debug native application on macOS Apple Silicon using
 real native window and file-dialog interactions. This is a development preview,
 not a signed/notarized installer or full feature-parity claim.

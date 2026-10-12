@@ -32,6 +32,11 @@ impl EditorApp {
                 let commands = [
                     ("Open PDF", Action::Open, !self.busy && self.tabs.len() < 16),
                     ("Save As new PDF", Action::Save, editable),
+                    (
+                        "Document properties",
+                        Action::Metadata,
+                        !self.busy && has_document,
+                    ),
                     ("Search document text", Action::Search, has_document),
                     ("Read extracted page text", Action::PageText, has_document),
                     ("Rotate current page left", Action::Rotate(-90), editable),

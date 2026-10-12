@@ -4,6 +4,7 @@ use eframe::egui;
 
 mod canvas;
 mod dialogs;
+mod metadata;
 mod navigation;
 mod organizer;
 mod palette;
@@ -27,6 +28,7 @@ enum Action {
     Reverse,
     InsertBlank,
     Crop,
+    Metadata,
     Undo,
     Redo,
     Previous,
@@ -73,6 +75,8 @@ pub struct EditorApp {
     visible_thumbnails: Vec<crate::thumbnails::ThumbnailKey>,
     initial_window_show: bool,
     organizer_dialog: Option<organizer::Dialog>,
+    metadata_dialog: Option<metadata::Dialog>,
+    metadata_generation: u64,
 }
 
 impl EditorApp {
@@ -101,6 +105,8 @@ impl EditorApp {
             visible_thumbnails: vec![],
             initial_window_show: true,
             organizer_dialog: None,
+            metadata_dialog: None,
+            metadata_generation: 0,
         }
     }
 
@@ -153,6 +159,21 @@ impl EditorApp {
                     status,
                     selected_page,
                 } => {
+                    if self
+                        .metadata_dialog
+                        .as_ref()
+                        .is_some_and(|dialog| dialog.key.tab == id)
+                    {
+                        if self
+                            .metadata_dialog
+                            .as_ref()
+                            .is_some_and(|dialog| dialog.submitting)
+                        {
+                            self.metadata_dialog = None;
+                        } else if let Some(dialog) = self.metadata_dialog.as_mut() {
+                            dialog.stale = true;
+                        }
+                    }
                     if let Some(tab) = self.tabs.iter_mut().find(|tab| tab.id == id) {
                         tab.update(status);
                         if let Some(page) = selected_page {
@@ -238,6 +259,9 @@ impl EditorApp {
                         tab.text_error = None;
                     }
                 }
+                Event::Metadata { key, values } => {
+                    self.accept_metadata(key, values);
+                }
                 Event::Searched {
                     key,
                     page,
@@ -267,6 +291,17 @@ impl EditorApp {
                     self.message = "PDF closed.".into();
                 }
                 Event::Error { id, task, message } => {
+                    if let Some(TaskKey::Metadata(key)) = task {
+                        if let Some(dialog) = self
+                            .metadata_dialog
+                            .as_mut()
+                            .filter(|dialog| dialog.key == key)
+                        {
+                            dialog.error = Some(message);
+                            dialog.submitting = false;
+                        }
+                        continue;
+                    }
                     if let Some(TaskKey::Thumbnail(key)) = task {
                         if self.thumbnail_is_current(key) {
                             self.thumbnails.insert(key, None, Some(message));
@@ -440,7 +475,13 @@ impl EditorApp {
     }
 
     fn needs_exit_guard(&self) -> bool {
-        !self.allow_exit && (self.busy || self.tabs.iter().any(|tab| tab.status.dirty))
+        !self.allow_exit
+            && (self.busy
+                || self.tabs.iter().any(|tab| tab.status.dirty)
+                || self
+                    .metadata_dialog
+                    .as_ref()
+                    .is_some_and(metadata::Dialog::has_changes))
     }
 
     fn request_exit(&mut self, context: &egui::Context) {
@@ -527,6 +568,7 @@ impl EditorApp {
             }
             Action::InsertBlank => self.open_organizer_dialog(false),
             Action::Crop => self.open_organizer_dialog(true),
+            Action::Metadata => self.open_metadata(),
             Action::Undo => {
                 if let Some(tab) = self.selected().filter(|tab| tab.status.can_undo) {
                     self.send(
@@ -635,7 +677,7 @@ impl eframe::App for EditorApp {
         if context.input(|input| input.viewport().close_requested()) && !self.allow_exit {
             self.request_exit(&context);
         }
-        if self.organizer_dialog.is_none() {
+        if self.organizer_dialog.is_none() && self.metadata_dialog.is_none() {
             self.shortcuts(&context);
         } else if context
             .input_mut(|input| input.consume_key(egui::Modifiers::COMMAND, egui::Key::Q))
@@ -643,12 +685,16 @@ impl eframe::App for EditorApp {
             self.request_exit(&context);
         }
         ui.add_enabled_ui(
-            self.close_target.is_none() && !self.palette_open && self.organizer_dialog.is_none(),
+            self.close_target.is_none()
+                && !self.palette_open
+                && self.organizer_dialog.is_none()
+                && self.metadata_dialog.is_none(),
             |ui| self.workstation(ui),
         );
         self.command_palette(&context);
         self.close_dialog(&context);
         self.organizer_dialog_ui(&context);
+        self.metadata_dialog_ui(&context);
     }
 }
 

@@ -4,6 +4,13 @@ use pdf_core::DocumentInfo;
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MetadataReadKey {
+    pub tab: u64,
+    pub revision: u64,
+    pub generation: u64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TextKey {
     pub tab: u64,
     pub revision: u64,

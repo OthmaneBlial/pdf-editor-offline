@@ -1,6 +1,6 @@
 # Noto Sans Symbols 2 fallback
 
-The unmodified `NotoSansSymbols2-Regular.ttf` is embedded as the final proportional and monospace fallback. Existing UI fonts retain precedence. It supplies symbol glyphs such as U+2713 CHECK MARK (`✓`) without downloading fonts or depending on proprietary platform fonts.
+The unmodified `NotoSansSymbols2-Regular.ttf` is embedded after the primary proportional and monospace fonts, before the [CJK fallback](noto-cjk/PROVENANCE.md). Existing UI fonts retain precedence. It supplies symbol glyphs such as U+2713 CHECK MARK (`✓`) without downloading fonts or depending on proprietary platform fonts.
 
 - Official distribution: [Google Fonts / Noto Sans Symbols 2](https://github.com/google/fonts/tree/7b6724ac7ececc713e9ba93af309f7520c9a80a3/ofl/notosanssymbols2).
 - Pinned upstream commit: `7b6724ac7ececc713e9ba93af309f7520c9a80a3` (2023-10-13).

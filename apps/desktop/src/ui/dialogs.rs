@@ -24,11 +24,13 @@ impl EditorApp {
                         }
                         CloseTarget::Exit => {
                             let dirty = self.tabs.iter().filter(|tab| tab.status.dirty).count();
-                            if dirty == 0 { ui.label("The operation finished. There are no unsaved edits."); }
+                            let properties_draft=self.metadata_dialog.as_ref().is_some_and(super::metadata::Dialog::has_changes);
+                            if properties_draft { ui.label("Document properties contain unapplied changes. Return to editing to apply them and Save As, or discard the changes and quit."); }
+                            else if dirty == 0 { ui.label("The operation finished. There are no unsaved edits."); }
                             else { ui.label(format!("{dirty} PDF(s) have unsaved edits. Return to editing to Save As, or discard all edits and quit.")); }
                             ui.horizontal(|ui| {
                                 if ui.button("Return to editing").clicked() { self.close_target = None; }
-                                if ui.button(if dirty == 0 { "Quit" } else { "Discard edits and quit" }).clicked() {
+                                if ui.button(if dirty == 0 && !properties_draft { "Quit" } else { "Discard edits and quit" }).clicked() {
                                     self.allow_exit = true; context.send_viewport_cmd(egui::ViewportCommand::Close);
                                 }
                             });
