@@ -1892,6 +1892,8 @@ dependencies = [
  "num-traits",
  "png",
  "tiff",
+ "zune-core",
+ "zune-jpeg",
 ]
 
 [[package]]
@@ -2675,6 +2677,25 @@ dependencies = [
  "redox_syscall 0.5.18",
  "smallvec",
  "windows-link",
+]
+
+[[package]]
+name = "pdf-convert"
+version = "3.0.0"
+dependencies = [
+ "crc32fast",
+ "image",
+ "lopdf",
+ "moxcms",
+ "pdf-core",
+ "pdf-render",
+ "png",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+ "zune-core",
+ "zune-jpeg",
 ]
 
 [[package]]

@@ -1,0 +1,29 @@
+[package]
+name = "pdf-convert"
+description = "Bounded native PNG/JPEG image pages with verified PDF output"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+pdf-core = { path = "../pdf-core" }
+lopdf.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+png = "=0.18.1"
+crc32fast = "=1.5.2"
+zune-jpeg = "=0.5.15"
+zune-core = "=0.5.3"
+moxcms = { version = "=0.8.1", default-features = false }
+
+[dev-dependencies]
+pdf-render = { path = "../pdf-render" }
+image = { version = "=0.25.10", default-features = false, features = ["jpeg"] }
+tempfile.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true
