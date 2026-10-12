@@ -65,7 +65,7 @@ jobs:
           cargo deny check licenses sources
       - name: Independent PDF output and measured CLI baseline
         run: |
-          sudo apt-get install --yes --no-install-recommends build-essential cmake pkg-config curl unzip xz-utils gnupg libfreetype-dev libfontconfig1-dev zlib1g-dev libbrotli-dev libharfbuzz-dev poppler-data
+          sudo apt-get install --yes --no-install-recommends build-essential cmake pkg-config curl unzip xz-utils gnupg libfreetype-dev libfontconfig1-dev zlib1g-dev libbrotli-dev libharfbuzz-dev libjpeg-dev liblcms2-dev poppler-data
           bash scripts/install_reference_poppler.sh "$RUNNER_TEMP/reference-poppler"
           bash scripts/install_reference_qpdf.sh "$RUNNER_TEMP/reference-qpdf"
           cargo build --release -p pdf-editor-offline-cli --locked --message-format=json > "$RUNNER_TEMP/native-cli-build.json"
@@ -75,6 +75,7 @@ jobs:
           PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" cargo test --locked -p pdf-editor-offline-cli --test notes -- --ignored
           PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" cargo test --locked -p pdf-render --test annotations -- --ignored
           PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" PDF_REFERENCE_QPDF="$RUNNER_TEMP/reference-qpdf/bin/qpdf" cargo test --locked -p pdf-editor-offline-cli --test metadata -- --ignored
+          PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" PDF_REFERENCE_QPDF="$RUNNER_TEMP/reference-qpdf/bin/qpdf" cargo test --locked -p pdf-editor-offline-cli --test note_updates -- --ignored
           PATH="$RUNNER_TEMP/reference-poppler/bin:$PATH" cargo test --locked -p pdf-core --test merge -- --ignored
       - name: Preserve independent evidence
         if: always()

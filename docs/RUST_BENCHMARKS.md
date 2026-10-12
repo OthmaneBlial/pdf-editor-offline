@@ -41,8 +41,12 @@ The Poppler installer verifies the official source archive checksum and detached
 signature in a temporary GPG home. The qpdf installer verifies pinned official
 binary archive checksums and the installed version. Neither reference is linked
 or bundled with the PDF application. Ubuntu build prerequisites include CMake,
-FreeType, Fontconfig, Brotli, HarfBuzz, zlib, curl, unzip, xz, GnuPG and poppler-data;
+FreeType, Fontconfig, Brotli, HarfBuzz, libjpeg, Little CMS 2, zlib, curl, unzip, xz, GnuPG and poppler-data;
 the exact CI installation is in [the native workflow](../.github/workflows/rust.yml).
+
+JPEG and ICC color support are enabled in the reference renderer. A renderer's
+successful exit alone does not prove that an image was decoded: the image gate
+also rejects diagnostics and verifies independently rendered pixel interiors.
 
 Keep the Cargo compiler JSON beside the report. The runner requires a matching
 successful release artifact, optimization level 3 and disabled assertions. It

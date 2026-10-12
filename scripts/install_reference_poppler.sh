@@ -14,7 +14,7 @@ Usage: bash scripts/install_reference_poppler.sh EMPTY_ABSOLUTE_PREFIX
 Builds pinned Poppler 26.10.0 pdftotext, pdfinfo and pdftoppm into a private prefix.
 Ubuntu 24.04 prerequisites (install separately):
   build-essential cmake pkg-config curl xz-utils gnupg poppler-data
-  libfreetype-dev libfontconfig1-dev zlib1g-dev libbrotli-dev libharfbuzz-dev
+  libfreetype-dev libfontconfig1-dev zlib1g-dev libbrotli-dev libharfbuzz-dev libjpeg-dev liblcms2-dev
 --verify-only checks the official archive checksum and signature without compiling.
 EOF
 }
@@ -89,7 +89,7 @@ cmake -S "$work/poppler-$version" -B "$work/build" \
   -DBUILD_MANUAL_TESTS=OFF -DBUILD_GTK_TESTS=OFF -DBUILD_CPP_TESTS=OFF \
   -DBUILD_QT5_TESTS=OFF -DBUILD_QT6_TESTS=OFF -DENABLE_BOOST=OFF \
   -DENABLE_LIBCURL=OFF -DENABLE_NSS3=OFF -DENABLE_GPGME=OFF \
-  -DENABLE_LIBOPENJPEG=OFF -DENABLE_LIBJPEG=OFF -DENABLE_LCMS=OFF \
+  -DENABLE_LIBOPENJPEG=OFF -DENABLE_LIBJPEG=ON -DENABLE_LCMS=ON \
   -DENABLE_LIBTIFF=OFF -DENABLE_BROTLI=ON -DENABLE_HARFBUZZ=ON
 cmake --build "$work/build" --target pdftotext pdfinfo pdftoppm --parallel 2
 mkdir -p "$prefix/bin" "$prefix/share/licenses/poppler"
