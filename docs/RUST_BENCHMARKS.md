@@ -2,13 +2,23 @@
 
 ## Latest recorded run
 
-The [13 October 2026 report](benchmarks/rust-baseline-2026-10-13.json) records
-**44 passed, zero failed, zero skipped** on clean source commit `ab0b24b`.
-The native CLI reports version `4.0.0-preview.1`; the full runner took 7.973 seconds
-on the recorded macOS host. No source files changed during measurement.
-The [Cargo artifact record](benchmarks/native-cli-build-2026-10-13.json) identifies
-the optimized executable and cache status; the report records its actual hash.
-These measurements cover CLI cases, not desktop responsiveness or a speedup claim.
+The [isolated CLI report](benchmarks/rust-cli-isolation-2026-10-13.json) records
+**44 passed, zero failed, zero skipped** on clean source commit `447c0b9`.
+The full runner took 9.991 seconds on the recorded macOS host. Each measured
+document command includes its supervisor and bounded self-hosted child. No source
+files changed during measurement. The report includes the optimized Cargo
+artifact record, actual executable hash, reference-tool hashes and all samples.
+
+This is a current-source build reporting version `4.0.0-preview.1`, not the older
+published binary with that version. Its executable SHA-256 is
+`28248a0db5b833bafa3e248926ed7f86719947672c86cbd26fecf12254ed0b51`.
+These measurements cover CLI cases, not desktop responsiveness, peak memory or
+a speedup claim. Cross-platform release validation remains separate.
+
+The earlier [13 October baseline](benchmarks/rust-baseline-2026-10-13.json)
+recorded 44 passes in 7.973 seconds on clean source `ab0b24b`, before CLI isolation.
+Its [Cargo artifact record](benchmarks/native-cli-build-2026-10-13.json) is retained.
+The two complete-run timings are observations, not a controlled overhead study.
 
 ## Method
 

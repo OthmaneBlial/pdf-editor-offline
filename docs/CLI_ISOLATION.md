@@ -49,6 +49,13 @@ beside the destination. The CLI does not implement the desktop recovery journal.
 
 ## Evidence and open gates
 
+The [independent isolated-CLI matrix](benchmarks/rust-cli-isolation-2026-10-13.json)
+passes all 44 operation records on clean source `447c0b9`, including the generated
+1,000-page fixture and typed signed/malformed-input refusals. Poppler 26.10.0 and
+qpdf 12.4.2 check supported saved outputs; the complete run took 9.991 seconds.
+This proves those recorded CLI cases, not all-document fidelity or a published
+five-platform isolated release.
+
 Local macOS tests observe the actual self-hosted child during a normal 9 MiB
 encrypted-text command, confirm password isolation, and check complete text and
 unchanged source bytes. Tests also cover native argument encoding, structured
