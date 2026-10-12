@@ -1,218 +1,40 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Docs · PDF Editor Offline</title>
-    <meta name="description" content="Documentation for the free, private PDF editor that runs locally on your computer.">
-    <link rel="stylesheet" href="styles.css?v=20260824-mobile-4">
-  </head>
-  <body class="docs-body">
-    <a class="skip-link" href="#docs-main">Skip to content</a>
-    <header class="site-header">
-      <a class="brand" href="index.html">
-        <span class="brand-mark">PDF</span>
-        <span>PDF Editor Offline</span>
-      </a>
-      <button class="site-menu-toggle" type="button" aria-controls="site-navigation" aria-expanded="false" data-menu-toggle>
-        <span class="menu-glyph" aria-hidden="true"><span></span><span></span><span></span></span>
-        <span>Menu</span>
-      </button>
-      <nav id="site-navigation" class="site-nav" aria-label="Primary navigation" data-site-nav>
-        <a href="index.html#features">What it does</a>
-        <a href="index.html#privacy">Privacy</a>
-        <a href="index.html#proof">Screens</a>
-        <a href="trust-lab.html">Trust Lab</a>
-        <a href="index.html#install">Run</a>
-        <a href="docs.html">Docs</a>
-        <a href="https://github.com/OthmaneBlial/pdf-editor-offline">GitHub</a>
-      </nav>
-    </header>
-
-    <main id="docs-main" class="docs-layout">
-      <aside class="docs-sidebar" aria-label="Documentation sections">
-        <label for="doc-filter">Filter docs</label>
-        <input id="doc-filter" type="search" placeholder="Search sections">
-        <nav>
-          <a href="#overview">Overview</a>
-          <a href="#architecture">Architecture</a>
-          <a href="#tools">Tool map</a>
-          <a href="#api">API surface</a>
-          <a href="#cli">CLI and Python</a>
-          <a href="#privacy">Security and privacy</a>
-          <a href="#samples">Samples</a>
-          <a href="#checks">Verification</a>
-          <a href="#copied-docs">Copied docs</a>
-        </nav>
-      </aside>
-
-      <div class="docs-content">
-        <section id="overview" class="doc-section">
-          <p class="eyebrow">Private, local-first PDF editing</p>
-          <h1>PDF Editor Offline documentation</h1>
-          <p>
-            PDF Editor Offline lets you edit, sign, organize, convert, redact, and clean PDFs on your own computer. This page documents the local web app, API, CLI, Python modules, privacy boundary, examples, and release checks.
-          </p>
-          <dl class="fact-list">
-            <div><dt>Package</dt><dd><code>pdf-editor-offline</code> version <code>3.0.0</code></dd></div>
-            <div><dt>Backend</dt><dd>FastAPI with PyMuPDF-powered core modules</dd></div>
-            <div><dt>Frontend</dt><dd>React, TypeScript, Vite, Tailwind-style utility classes, Fabric.js, pdf.js</dd></div>
-            <div><dt>CLI</dt><dd>Typer command app exposed as <code>pdf-editor-offline</code></dd></div>
-          </dl>
-        </section>
-
-        <section id="architecture" class="doc-section">
-          <h2>Architecture</h2>
-          <div class="doc-grid">
-            <article>
-              <h3><code>api/</code></h3>
-              <p>FastAPI app with upload/session storage, tool routes, document routes, security headers, logging, rate limiting, CORS for local development, and sanitized user-facing errors.</p>
-            </article>
-            <article>
-              <h3><code>frontend/</code></h3>
-              <p>React workspace with editor, thumbnails, navigation, recent files, history, tool panels, upload flow, PDF viewer, and UI tests.</p>
-            </article>
-            <article>
-              <h3><code>pdf_editor_offline/</code></h3>
-              <p>Reusable Python package containing converter, manipulator, editor, text, rich text, navigation, annotation, image, metadata, privacy, and object inspection modules.</p>
-            </article>
-            <article>
-              <h3><code>tests/</code> and <code>frontend/tests/</code></h3>
-              <p>Backend, API, Phase 4, Phase 5, smoke, frontend component, and lifecycle coverage. The repository currently contains more than 400 test definitions.</p>
-            </article>
-          </div>
-        </section>
-
-        <section id="tools" class="doc-section">
-          <h2>Tool map</h2>
-          <div class="tool-table" role="table" aria-label="Tool categories">
-            <div role="row"><strong role="cell">Editing</strong><span role="cell">Text insertion, rich text, page text, metadata, images, drawings, annotations, stamps, freehand highlights, and signatures.</span></div>
-            <div role="row"><strong role="cell">Manipulation</strong><span role="cell">Merge, split, extract, insert, duplicate, resize, crop, organize, flatten annotations, remove blanks, numbering, headers, and footers.</span></div>
-            <div role="row"><strong role="cell">Conversion</strong><span role="cell">PDF to Word, PowerPoint, Excel, JPG, Markdown, TXT, EPUB, SVG, PDF/A, plus Word, PowerPoint, Excel, HTML, Markdown, TXT, CSV, JSON, and images to PDF.</span></div>
-            <div role="row"><strong role="cell">Security</strong><span role="cell">Protect, unlock, granular permissions, strict upload validation, safe errors, metadata cleanup, hidden data cleanup, and permanent redaction.</span></div>
-            <div role="row"><strong role="cell">Advanced structure</strong><span role="cell">TOC, bookmarks, page links, font extraction, quad search, image extraction metadata, replacement, insertion, and optimization.</span></div>
-            <div role="row"><strong role="cell">Automation</strong><span role="cell">FastAPI routes, Typer CLI, Python classes, batch conversion, auto-merge folder, and template processing.</span></div>
-          </div>
-        </section>
-
-        <section id="api" class="doc-section">
-          <h2>API surface</h2>
-          <p>The FastAPI app registers document-scoped routes and file-based tool routes. The codebase currently exposes more than 100 route decorators across `api/routes/documents.py` and `api/routes/tools.py`.</p>
-          <div class="endpoint-groups">
-            <article>
-              <h3>Document sessions</h3>
-              <p>Upload, inspect, download, delete, page render, metadata, privacy cleanup, page transforms, annotations, images, TOC, bookmarks, links, optimization, and maintenance cleanup.</p>
-            </article>
-            <article>
-              <h3>File tools</h3>
-              <p>Merge, split, compress, convert, sign, watermark, rotate, protect, unlock, repair, OCR, compare, batch convert, auto-merge folder, and template processing.</p>
-            </article>
-          </div>
-          <div class="code-card">
-            <div class="code-card-head">
-              <span>Secure source-mode startup</span>
-              <button class="copy-code" type="button" data-copy-target="code-api-start">Copy</button>
-            </div>
-            <pre id="code-api-start"><code>./start.sh</code></pre>
-          </div>
-        </section>
-
-        <section id="cli" class="doc-section">
-          <h2>CLI and Python usage</h2>
-          <p>The Typer CLI exposes content-free Trust Lab reports alongside extract, edit, inspect, and add command groups. The Python package exposes reusable converter and manipulator classes.</p>
-          <div class="code-card">
-            <div class="code-card-head">
-              <span>CLI commands</span>
-              <button class="copy-code" type="button" data-copy-target="code-doc-cli">Copy</button>
-            </div>
-            <pre id="code-doc-cli"><code>pdf-editor-offline verify-redaction redacted.pdf --target "removed text"
-pdf-editor-offline inspect-privacy input.pdf
-pdf-editor-offline inspect-accessibility input.pdf --output accessibility.json
-pdf-editor-offline content-edit-check input.pdf --page 1 --search "old" --replacement "new"
-pdf-editor-offline compare before.pdf after.pdf
-pdf-editor-offline safe-edit before.pdf candidate.pdf verified.pdf --report verified.audit.json
-pdf-editor-offline capabilities --json
-pdf-editor-offline extract text input.pdf
-pdf-editor-offline extract images input.pdf --output-dir ./images
-pdf-editor-offline edit metadata input.pdf title "Quarterly Report"
-pdf-editor-offline edit delete-page input.pdf 0 --output output.pdf
-pdf-editor-offline inspect object-tree input.pdf
-pdf-editor-offline add image input.pdf stamp.png 0 100 120 180 80 --output stamped.pdf</code></pre>
-          </div>
-          <div class="code-card">
-            <div class="code-card-head">
-              <span>Python API</span>
-              <button class="copy-code" type="button" data-copy-target="code-python-api">Copy</button>
-            </div>
-            <pre id="code-python-api"><code>from pdf_editor_offline import PDFConverter, PDFManipulator
-
-converter = PDFConverter()
-converter.pdf_to_word("input.pdf", "output.docx")
-
-manipulator = PDFManipulator()
-manipulator.merge_pdfs(["file1.pdf", "file2.pdf"], "merged.pdf")</code></pre>
-          </div>
-        </section>
-
-        <section id="privacy" class="doc-section">
-          <h2>Security and privacy</h2>
-          <ul class="check-list">
-            <li>AES-256 and AES-128 PDF protection with password length validation.</li>
-            <li>Separate PDF permissions for print, copy, edit, annotate, form fill, accessibility, assembly, and high-quality print.</li>
-            <li>Strict file validation for content type, PDF signature, size, extension, and unsafe filenames.</li>
-            <li>Metadata cleanup for document metadata and XML metadata.</li>
-            <li>Hidden data cleanup for hidden text, embedded files, JavaScript, thumbnails, links, annotations, and form data when requested.</li>
-            <li>Permanent redaction with garbage collection so removed text is not recoverable.</li>
-            <li>App-owned temp and stale-session cleanup.</li>
-          </ul>
-        </section>
-
-        <section id="samples" class="doc-section">
-          <h2>Sample PDFs</h2>
-          <p>The repository includes small fixture PDFs for demos, screenshots, and manual smoke tests.</p>
-          <div class="sample-list inline">
-            <a href="assets/samples/demo-basic.pdf"><strong>demo-basic.pdf</strong><span>Editing and export</span></a>
-            <a href="assets/samples/demo-redaction.pdf"><strong>demo-redaction.pdf</strong><span>Permanent redaction</span></a>
-            <a href="assets/samples/demo-privacy.pdf"><strong>demo-privacy.pdf</strong><span>Privacy cleanup</span></a>
-          </div>
-        </section>
-
-        <section id="checks" class="doc-section">
-          <h2>Verification and release checks</h2>
-          <p>The release checklist in the repository asks for backend tests, frontend tests, frontend build, formatting checks, Docker build, package build, and manual PDF smoke tests.</p>
-          <div class="code-card">
-            <div class="code-card-head">
-              <span>Full local check</span>
-              <button class="copy-code" type="button" data-copy-target="code-checks">Copy</button>
-            </div>
-            <pre id="code-checks"><code>python -m pytest -q
-cd frontend && npm test && npm run build
-python -m black --check api pdf_editor_offline tests
-git diff --check</code></pre>
-          </div>
-        </section>
-
-        <section id="copied-docs" class="doc-section">
-          <h2>Canonical project docs</h2>
-          <p>Portable pointers in <code>site/assets/docs/</code> link to the canonical, tested contracts in the repository so security and capability claims cannot silently drift.</p>
-          <ul class="doc-link-list">
-            <li><a href="assets/docs/project-readme.md">Project README</a></li>
-            <li><a href="assets/docs/features-roadmap.md">Features roadmap</a></li>
-            <li><a href="assets/docs/release-checklist.md">Release checklist</a></li>
-            <li><a href="assets/docs/contributing.md">Contributing guide</a></li>
-            <li><a href="assets/docs/examples-readme.md">Examples README</a></li>
-            <li><a href="assets/docs/sample-pdfs-readme.md">Sample PDFs README</a></li>
-            <li><a href="assets/docs/screenshots-readme.md">Screenshot proof manifest</a></li>
-          </ul>
-        </section>
-      </div>
-    </main>
-
-    <footer class="site-footer">
-      <span>PDF Editor Offline Docs</span>
-      <a href="index.html">Site home</a>
-      <a href="https://github.com/OthmaneBlial/pdf-editor-offline">Repository</a>
-    </footer>
-    <script src="app.js?v=20260824-mobile-4"></script>
-  </body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Documentation — PDF Editor Offline native preview</title>
+  <meta name="description" content="Build the native Rust preview, run its CLI, review feature boundaries, and inspect dated native evidence.">
+  <meta name="theme-color" content="#173b2e">
+  <link rel="canonical" href="https://othmaneblial.github.io/pdf-editor-offline/docs.html">
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="copy.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="header wrap"><a class="brand" href="index.html"><img class="brand-mark" src="assets/logo.svg" width="46" height="46" alt=""><span>PDF Editor<br><b>Offline</b></span></a><nav aria-label="Main navigation"><a href="index.html#workstation">Workstation</a><a href="index.html#scope">Scope</a><a href="docs.html" aria-current="page">Documentation</a><a class="nav-source" href="https://github.com/OthmaneBlial/pdf-editor-offline">Source <span aria-hidden="true">↗</span></a></nav></header>
+<main id="main" class="wrap">
+  <section class="docs-hero" aria-labelledby="docs-title"><p class="eyebrow">Native Rust preview / Documentation</p><h1 id="docs-title">Build, work,<br><em>check the result.</em></h1><p>The preview has a native workstation and a Rust CLI. These instructions describe current source capabilities, their limits and the evidence behind them.</p></section>
+  <div class="docs-layout"><nav class="docs-nav" aria-label="Documentation sections"><a href="#native-build">Native build</a><a href="#cli">CLI quick start</a><a href="#feature-status">Feature status</a><a href="#data-boundaries">Data boundaries</a><a href="#evidence">Dated evidence</a><a href="#project">Project &amp; contribution</a></nav><div class="docs-content">
+    <section id="native-build" aria-labelledby="native-build-title"><h2 id="native-build-title">Build the native preview</h2><p>Use Rust 1.95 or newer and the platform development tools required by eframe and native file dialogs. Clone the repository, then run from its root:</p><pre aria-label="Clone and start the native preview"><code>git clone https://github.com/OthmaneBlial/pdf-editor-offline.git
+cd pdf-editor-offline
+cargo run --locked -p pdf-editor-offline-native</code></pre><p>For a release build:</p><pre aria-label="Build and run a release native executable"><code>cargo build --release --locked -p pdf-editor-offline-native
+./target/release/pdf-editor-offline-native</code></pre><p>On Windows, the executable is <code>target\release\pdf-editor-offline-native.exe</code>. Platform build prerequisites and current checks are tracked in the <a href="https://github.com/OthmaneBlial/pdf-editor-offline/blob/main/apps/desktop/README.md">desktop README</a> and <a href="https://github.com/OthmaneBlial/pdf-editor-offline/blob/main/docs/RUST_STATUS.md">Rust status</a>.</p><p class="note">The macOS interface has been manually reviewed with real files and screenshots. Windows and Linux runtime validation remain open. This preview is primarily distributed as source; the <a href="https://github.com/OthmaneBlial/pdf-editor-offline/releases">release page records project history</a>.</p><h3>Working in the preview</h3><p>Open a local PDF, use Pages or Search to navigate, and choose real actions from Edit, Organize or the command palette. Save As creates a new verified file. Modified tabs and unapplied document-property drafts guard quitting. Password entry is unavailable; protected inputs that need a password are refused.</p><p>Command/Ctrl+O opens, Command/Ctrl+F focuses Search, Command/Ctrl+K opens Commands, Command/Ctrl+Z undoes, and Command/Ctrl+Q uses guarded quit. File → Images to PDF creates a new unsaved document from supported PNG/JPEG inputs.</p></section>
+    <section id="cli" aria-labelledby="cli-title"><h2 id="cli-title">CLI quick start</h2><p>Build once, then use the explicit executable path. Replace <code>input.pdf</code> and output names with your own paths; every output must be a new file.</p><pre aria-label="Build and inspect documents from the CLI"><code>cargo build --release --locked -p pdf-editor-offline-cli
+./target/release/pdf-editor-offline info input.pdf --json
+./target/release/pdf-editor-offline extract-text input.pdf
+./target/release/pdf-editor-offline metadata input.pdf --json
+./target/release/pdf-editor-offline inspect-security input.pdf --json</code></pre><pre aria-label="CLI preview rendering and page operations"><code>./target/release/pdf-editor-offline render-page input.pdf --page 1 --scale 1.5 -o page.png
+./target/release/pdf-editor-offline rotate input.pdf --pages 1-3 --degrees 90 -o rotated.pdf
+./target/release/pdf-editor-offline merge first.pdf second.pdf -o merged.pdf
+./target/release/pdf-editor-offline images-to-pdf first.png second.jpg -o images.pdf --json</code></pre><p>Page arguments are one-based. <code>--dry-run</code> is available on supported mutation commands to validate without publication. Signed and encrypted documents cannot be rewritten. Read the <a href="https://github.com/OthmaneBlial/pdf-editor-offline/blob/main/apps/cli/README.md">CLI command reference</a> for reorder, crop, extraction, notes, metadata changes and output error codes.</p><p>Security inspection reports detected structures. It does not verify signature trust, sanitize the PDF or establish PDF/A or PDF/UA conformance.</p></section>
+    <section id="feature-status" aria-labelledby="feature-status-title"><h2 id="feature-status-title">Current feature status</h2><p>Native interface and CLI capabilities have separate scopes. A core or CLI feature is not automatically a graphical tool.</p><div class="table-wrap" tabindex="0" role="region" aria-label="Scrollable native feature status table"><table><caption class="small">Native preview capabilities</caption><thead><tr><th scope="col">Area</th><th scope="col">Available in the native interface</th><th scope="col">Boundary</th></tr></thead><tbody><tr><td>Read &amp; search</td><td>Tabs, page navigation, zoom, thumbnails, literal text search, extracted text</td><td>No OCR or page-coordinate search highlights</td></tr><tr><td>Organize</td><td>Rotation, move earlier/later, reverse, blank insertion, crop, undo/redo</td><td>Crop preserves hidden content; some page-label structures are refused</td></tr><tr><td>Properties</td><td>Six standard fields, Unicode storage, guarded drafts</td><td>Dates/custom fields/XMP preserved; XMP remains unsynchronized</td></tr><tr><td>Images to PDF</td><td>Native PNG/JPEG picker, unsaved document, safe Save As</td><td>Restricted format tier; EXIF orientation and unsupported color metadata refused</td></tr><tr><td>Save</td><td>Verified new file, original preservation, unsaved-close/quit guard</td><td>Existing files, signed inputs and encrypted inputs are not rewritten</td></tr><tr><td>More advanced editing</td><td>Outside this native preview</td><td>Arbitrary content editing, forms, signing, secure redaction and OCR remain unavailable</td></tr></tbody></table></div><p>Bundled fonts include IBM Plex, Noto Symbols and a CJK fallback. Native CJK text has been exercised; complete Unicode shaping, right-to-left editing and screen-reader operation are separate validation work.</p><p>See the <a href="https://github.com/OthmaneBlial/pdf-editor-offline/blob/main/docs/MIGRATION_MATRIX.md">migration matrix</a> for the broader plan and the <a href="https://github.com/OthmaneBlial/pdf-editor-offline/blob/main/docs/KNOWN_LIMITATIONS.md">known limitations</a> for practical boundaries.</p></section>
+    <section id="data-boundaries" aria-labelledby="data-boundaries-title"><h2 id="data-boundaries-title">Data and output boundaries</h2><p>Rendering and document operations run locally. The native workflow does not require a web service or an account. Limits constrain inputs and output data; successful rendering alone does not establish document fidelity or safe handling of every hostile file.</p><ul><li>PDF input: at most 128 MiB. Main preview output: 8192 pixels per side and 16,777,216 pixels total.</li><li>Thumbnails: visible rows only, a shared 8 MiB pixel-payload cache and at most 128 entries. Driver allocations and transient copies are additional.</li><li>Search: literal query, at most 200 matching pages; extracted page text retained up to 1 MiB. Partial results are reported.</li><li>Standard metadata fields: at most 64 KiB of UTF-8 each. Clearing a field removes its active entry; earlier data can remain in the file.</li><li>Image conversion: 32 MiB per encoded input, 128 MiB total before conversion, 8192 pixels per side and 8,388,608 pixels per image. One source pixel equals one PDF point.</li></ul><p>PNG samples and alpha are preserved losslessly in the supported tier. JPEG codestreams are retained after bounded validation. Conversion is not a metadata sanitization operation, and different readers can sample transparency edges differently.</p><p>Read the <a href="https://github.com/OthmaneBlial/pdf-editor-offline/blob/main/crates/pdf-convert/README.md">converter boundaries</a>, <a href="https://github.com/OthmaneBlial/pdf-editor-offline/blob/main/docs/THREAT_MODEL.md">threat model</a> and <a href="https://github.com/OthmaneBlial/pdf-editor-offline/blob/main/docs/PRIVACY.md">privacy notes</a> before relying on a result.</p></section>
+    <section id="evidence" aria-labelledby="evidence-title"><h2 id="evidence-title">Dated evidence, precise scope</h2><p>The 12 October 2026 release-CLI report at source <code>49bd559</code> passes 44/44 operation records, with zero failed or skipped records, in 14.1201 seconds. It covers 11 fixtures, including a deterministic 1,000-page file, and four operation classes: info, text extraction, rotation and compression.</p><p>That clean-source checkpoint also recorded 229 normal workspace tests and 10 explicitly run reference/helper tests. Those 10 are additional tests, not a count of corpus documents. Later work changes the current test count; this is a dated checkpoint.</p><p>Pinned Poppler 26.10.0 and qpdf 12.4.2 validate defined geometry, text and structural boundaries. Reference work sits outside timed operation samples. The matrix does not measure native GUI responsiveness, peak process memory, comparative speedups, image conversion or complete raster fidelity.</p><p><a href="https://github.com/OthmaneBlial/pdf-editor-offline/blob/main/docs/RUST_BENCHMARKS.md">Benchmark method and report</a> · <a href="https://github.com/OthmaneBlial/pdf-editor-offline/blob/main/docs/benchmarks/rust-baseline-2026-10-12.json">Machine-readable CLI report</a> · <a href="https://github.com/OthmaneBlial/pdf-editor-offline/blob/main/docs/NATIVE_DESKTOP_EVIDENCE.md">Native runtime evidence</a></p><p>The screenshots on this site are actual macOS native captures from 12 October 2026. They show the workstation, thumbnails, editable metadata with CJK text, blank insertion and crop dialogs. They are not a complete product certification.</p></section>
+    <section id="project" aria-labelledby="project-title"><h2 id="project-title">Inspect and contribute</h2><p>The repository keeps the Rust workspace, native applications, supporting evidence and explicit feature boundaries together. Contributions should include validation appropriate to the change and preserve original documents.</p><p><a href="https://github.com/OthmaneBlial/pdf-editor-offline">Repository</a> · <a href="https://github.com/OthmaneBlial/pdf-editor-offline/blob/main/CONTRIBUTING.md">Contributing</a> · <a href="https://github.com/OthmaneBlial/pdf-editor-offline/blob/main/SECURITY.md">Security policy</a> · <a href="https://github.com/OthmaneBlial/pdf-editor-offline/blob/main/LICENSE">MIT license</a></p><p>This static site serves local fonts and actual screenshot assets. Its IBM Plex font files are distributed with the <a href="assets/fonts/OFL.txt">SIL Open Font License</a> and <a href="assets/fonts/PROVENANCE.md">pinned provenance</a>.</p></section>
+  </div></div>
+</main>
+<footer class="footer wrap"><p>PDF Editor Offline <span>Native Rust preview</span></p><nav aria-label="Footer"><a href="index.html">Workstation overview</a><a href="https://github.com/OthmaneBlial/pdf-editor-offline/releases">Release history</a><a href="https://github.com/OthmaneBlial/pdf-editor-offline">GitHub</a></nav></footer>
+</body>
 </html>
