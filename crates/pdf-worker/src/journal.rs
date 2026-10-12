@@ -158,10 +158,19 @@ struct Manifest {
 pub struct Journal {
     directory: PathBuf,
     directory_handle: File,
-    _lock: File,
+    _lock: SessionLock,
     manifest: Manifest,
     backup: Option<Manifest>,
     poisoned: bool,
+}
+
+struct SessionLock(File);
+impl Drop for SessionLock {
+    fn drop(&mut self) {
+        // A concurrent fork may still hold the shared file description before CLOEXEC closes it.
+        // Release our acquired lock explicitly rather than relying on the final descriptor close.
+        let _ = self.0.unlock();
+    }
 }
 
 impl Journal {
@@ -238,6 +247,7 @@ impl Journal {
             Err(std::fs::TryLockError::WouldBlock) => return Err(JournalError::Locked),
             Err(std::fs::TryLockError::Error(error)) => return Err(error.into()),
         }
+        let lock = SessionLock(lock);
         let directory_handle = session::open_directory(directory, true)?;
         // Bind the advisory lock to the pinned directory, even if its pathname changed during open.
         #[cfg(unix)]
@@ -245,14 +255,14 @@ impl Journal {
             use std::os::unix::fs::MetadataExt;
             let witness =
                 open_private_relative(&directory_handle, directory, "session.lock", false)?;
-            let original = lock.metadata()?;
+            let original = lock.0.metadata()?;
             let actual = witness.metadata()?;
             if original.dev() != actual.dev() || original.ino() != actual.ino() {
                 return Err(JournalError::Invalid("session lock directory was replaced"));
             }
         }
         #[cfg(windows)]
-        windows::verify_path_identity(&lock, &directory.join("session.lock"))?;
+        windows::verify_path_identity(&lock.0, &directory.join("session.lock"))?;
         let current = if read_manifests {
             read_private_manifest(&directory_handle, directory, "manifest.json")?
         } else {

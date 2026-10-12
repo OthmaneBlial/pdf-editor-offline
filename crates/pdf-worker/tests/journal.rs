@@ -450,6 +450,65 @@ fn concurrent_instances_create_private_parents_and_keep_distinct_active_locks() 
     assert!(store.discover().unwrap().is_empty());
 }
 
+#[cfg(unix)]
+#[test]
+#[allow(unsafe_code)]
+fn dropping_journal_unlocks_while_a_concurrent_child_still_holds_pre_exec_descriptor() {
+    use std::io::{Read, Write};
+    use std::os::unix::net::UnixStream;
+    use std::os::unix::process::CommandExt;
+    use std::process::{Command, Stdio};
+    use std::time::Duration;
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("session");
+    let mut journal = Journal::open(&path).unwrap();
+    journal
+        .commit_document(&state("tab", 0, b"parent-owned durable state"))
+        .unwrap();
+    let (mut parent, child) = UnixStream::pair().unwrap();
+    parent
+        .set_read_timeout(Some(Duration::from_secs(5)))
+        .unwrap();
+    child
+        .set_read_timeout(Some(Duration::from_secs(5)))
+        .unwrap();
+    let executable = std::env::current_exe().unwrap();
+    let spawning = std::thread::spawn(move || {
+        let mut command = Command::new(executable);
+        command
+            .args(["--exact", "journal_crash_child"])
+            .env_remove("PDF_JOURNAL_CRASH_TEST_DIRECTORY")
+            .stdout(Stdio::null())
+            .stderr(Stdio::null());
+        // SAFETY: the pre-exec hook only invokes async-signal-safe read/write syscalls on
+        // already-open sockets. It allocates nothing and touches no locks or Rust runtime state.
+        unsafe {
+            command.pre_exec(move || {
+                rustix::io::write(&child, b"r").map_err(std::io::Error::from)?;
+                let mut release = [0u8; 1];
+                if rustix::io::read(&child, &mut release).map_err(std::io::Error::from)? != 1 {
+                    return Err(std::io::Error::from_raw_os_error(5));
+                }
+                Ok(())
+            });
+        }
+        command.spawn().unwrap().wait().unwrap()
+    });
+    let mut ready = [0u8; 1];
+    parent.read_exact(&mut ready).unwrap();
+    assert_eq!(ready, *b"r");
+    assert!(matches!(Journal::open(&path), Err(JournalError::Locked)));
+    drop(journal);
+    let reopened = Journal::open(&path);
+    // Release/reap the child even if reopening failed, then assert the original regression.
+    parent.write_all(b"x").unwrap();
+    assert!(spawning.join().unwrap().success());
+    assert_eq!(
+        reopened.unwrap().recover().unwrap()[0].current.bytes,
+        b"parent-owned durable state"
+    );
+}
+
 #[cfg(windows)]
 #[test]
 fn windows_private_acl_cleanup_and_hardlink_refusal_run_on_native_ci() {
