@@ -82,11 +82,12 @@ It was visually inspected: page content rotates while the note icon stays uprigh
 This is rendered PDF output, not a desktop UI screenshot.
 
 The [2026-10-12 local report](benchmarks/rust-baseline-2026-10-12.json) passes
-**44/44 records, zero failures/skips**, in 13.8817 seconds with the default warmup
-and repeat counts. No source files changed during the measurement. It records HEAD
-`a7b254f` and the pending migration changes accurately; this is preview evidence,
-not a clean release build. The [compiler artifact](benchmarks/native-cli-build-2026-10-12.json)
+**44/44 records, zero failures/skips**, in 14.1201 seconds with the default warmup
+and repeat counts. No source files changed during measurement. It records clean HEAD
+`49bd559`; this is native CLI preview evidence, not a complete product release.
+Image conversion, annotation updates and GUI behavior have separate gates and
+are not timed by these 44 records. The [compiler artifact](benchmarks/native-cli-build-2026-10-12.json)
 matches the measured release executable, SHA-256
-`f308c85fd3dc78f52b3e12ee5d1a8f34b85d1a53cf89c641c47a433a093f7420`.
+`cb0ffd618905684130299605128131bc50f7979d1ccdac191b242e886503a45e`.
 The report SHA-256 is
-`5483ca8ef4f9205ae19d3a5c2d96e4b33d5709e667742b2d8fdc0f582330e657`.
+`83931e700fb9d33382bef23cfc25b892710afaba0e16125244f02a2e38d57b4c`.

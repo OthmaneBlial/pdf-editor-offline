@@ -52,12 +52,18 @@ Both were run in a temporary native macOS bundle; neither is a signed installer.
   has SHA-256 `d3e14fec544480e2ffcfba14d967738b0dba267f0713295a1eea935899adb847`.
 - Undo restored the earlier blank/image order and marked the document dirty.
   Redo restored the saved image/blank order and the clean state.
+- Applied a 280×400-point CropBox to the blank page while its MediaBox stayed
+  300×420. The inspector reflected both dimensions; Undo restored the saved
+  CropBox and clean state. [Actual crop dialog](../screenshots/native/organizer-crop-2026-10-12.png)
+  has SHA-256 `99720292b5debeab8b070a61b33fe124f30a401b0ee8f2e04b786596e86a0c2a`.
+  Its visible warning explains that cropping retains hidden content. This
+  blank-page check does not prove secure removal or clipping of real artwork.
 
 Accessibility value assignment did not change numeric steppers; physical double
 click, typing and Return did. A focused title field supported actual paste and
 text selection. Multiple file selection was not achieved through the automation
 keyboard, so only single-image picker import is claimed. Ordered multi-image
-conversion has automated tests. Crop/reverse dialogs, thousand-page scrolling,
+conversion has automated tests. Reverse-page interaction, thousand-page scrolling,
 latest dark/compact properties review and other-platform interaction remain open.
 The current native suite has 49 passing tests, including a regression that checks
 actual painted action labels against clipping at 640×420 and 1260×718.

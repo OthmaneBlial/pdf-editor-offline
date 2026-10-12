@@ -28,15 +28,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.003463708,
-          "median_wall_seconds": 0.003459167,
-          "min_wall_seconds": 0.00345075,
+          "max_wall_seconds": 0.003929167,
+          "median_wall_seconds": 0.00368925,
+          "min_wall_seconds": 0.00363675,
           "operation": "info",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.003463708,
-            0.003459167,
-            0.00345075
+            0.00368925,
+            0.003929167,
+            0.00363675
           ],
           "status": "passed"
         },
@@ -71,15 +71,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.003586,
-          "median_wall_seconds": 0.003584834,
-          "min_wall_seconds": 0.003583583,
+          "max_wall_seconds": 0.003760125,
+          "median_wall_seconds": 0.003672167,
+          "min_wall_seconds": 0.003572792,
           "operation": "extract-text",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.003583583,
-            0.003586,
-            0.003584834
+            0.003572792,
+            0.003672167,
+            0.003760125
           ],
           "status": "passed"
         },
@@ -118,15 +118,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.011515208,
-          "median_wall_seconds": 0.01139375,
-          "min_wall_seconds": 0.009282917,
+          "max_wall_seconds": 0.012348833,
+          "median_wall_seconds": 0.011653875,
+          "min_wall_seconds": 0.009914375,
           "operation": "rotate",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.01139375,
-            0.011515208,
-            0.009282917
+            0.009914375,
+            0.012348833,
+            0.011653875
           ],
           "status": "passed"
         },
@@ -165,15 +165,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.012798166,
-          "median_wall_seconds": 0.011166416,
-          "min_wall_seconds": 0.010633625,
+          "max_wall_seconds": 0.012356333,
+          "median_wall_seconds": 0.011367,
+          "min_wall_seconds": 0.011339167,
           "operation": "compress",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.010633625,
-            0.011166416,
-            0.012798166
+            0.011367,
+            0.012356333,
+            0.011339167
           ],
           "status": "passed"
         }
@@ -215,15 +215,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.003784333,
-          "median_wall_seconds": 0.003739417,
-          "min_wall_seconds": 0.00366275,
+          "max_wall_seconds": 0.003960333,
+          "median_wall_seconds": 0.00385125,
+          "min_wall_seconds": 0.003645416,
           "operation": "info",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.003784333,
-            0.003739417,
-            0.00366275
+            0.003645416,
+            0.003960333,
+            0.00385125
           ],
           "status": "passed"
         },
@@ -258,15 +258,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.003754125,
-          "median_wall_seconds": 0.003750125,
-          "min_wall_seconds": 0.003709917,
+          "max_wall_seconds": 0.0046115,
+          "median_wall_seconds": 0.004166416,
+          "min_wall_seconds": 0.00372675,
           "operation": "extract-text",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.003709917,
-            0.003754125,
-            0.003750125
+            0.00372675,
+            0.0046115,
+            0.004166416
           ],
           "status": "passed"
         },
@@ -305,15 +305,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.016630208,
-          "median_wall_seconds": 0.01646675,
-          "min_wall_seconds": 0.014067667,
+          "max_wall_seconds": 0.016820292,
+          "median_wall_seconds": 0.016686875,
+          "min_wall_seconds": 0.01498925,
           "operation": "rotate",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.014067667,
-            0.016630208,
-            0.01646675
+            0.016820292,
+            0.016686875,
+            0.01498925
           ],
           "status": "passed"
         },
@@ -352,15 +352,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.0163365,
-          "median_wall_seconds": 0.01549175,
-          "min_wall_seconds": 0.015436125,
+          "max_wall_seconds": 0.016513292,
+          "median_wall_seconds": 0.016087041,
+          "min_wall_seconds": 0.01443525,
           "operation": "compress",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.015436125,
-            0.0163365,
-            0.01549175
+            0.016513292,
+            0.016087041,
+            0.01443525
           ],
           "status": "passed"
         }
@@ -402,15 +402,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.003643209,
-          "median_wall_seconds": 0.003506,
-          "min_wall_seconds": 0.003454416,
+          "max_wall_seconds": 0.003650583,
+          "median_wall_seconds": 0.003612125,
+          "min_wall_seconds": 0.003490583,
           "operation": "info",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.003506,
-            0.003643209,
-            0.003454416
+            0.003650583,
+            0.003612125,
+            0.003490583
           ],
           "status": "passed"
         },
@@ -445,15 +445,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.003486125,
-          "median_wall_seconds": 0.003473125,
-          "min_wall_seconds": 0.003449416,
+          "max_wall_seconds": 0.003750167,
+          "median_wall_seconds": 0.003622875,
+          "min_wall_seconds": 0.003593625,
           "operation": "extract-text",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.003486125,
-            0.003473125,
-            0.003449416
+            0.003593625,
+            0.003622875,
+            0.003750167
           ],
           "status": "passed"
         },
@@ -492,15 +492,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.012274916,
-          "median_wall_seconds": 0.012255083,
-          "min_wall_seconds": 0.011836458,
+          "max_wall_seconds": 0.012511917,
+          "median_wall_seconds": 0.012343959,
+          "min_wall_seconds": 0.011782042,
           "operation": "rotate",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.012255083,
-            0.011836458,
-            0.012274916
+            0.012343959,
+            0.011782042,
+            0.012511917
           ],
           "status": "passed"
         },
@@ -539,15 +539,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.020973709,
-          "median_wall_seconds": 0.013458875,
-          "min_wall_seconds": 0.011201375,
+          "max_wall_seconds": 0.015160333,
+          "median_wall_seconds": 0.013038125,
+          "min_wall_seconds": 0.012938916,
           "operation": "compress",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.011201375,
-            0.013458875,
-            0.020973709
+            0.015160333,
+            0.013038125,
+            0.012938916
           ],
           "status": "passed"
         }
@@ -589,15 +589,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.00373875,
-          "median_wall_seconds": 0.003543083,
-          "min_wall_seconds": 0.003514625,
+          "max_wall_seconds": 0.003660834,
+          "median_wall_seconds": 0.003507291,
+          "min_wall_seconds": 0.003492708,
           "operation": "info",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.00373875,
-            0.003543083,
-            0.003514625
+            0.003660834,
+            0.003507291,
+            0.003492708
           ],
           "status": "passed"
         },
@@ -632,15 +632,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.003727,
-          "median_wall_seconds": 0.003634708,
-          "min_wall_seconds": 0.003630875,
+          "max_wall_seconds": 0.003498542,
+          "median_wall_seconds": 0.0034645,
+          "min_wall_seconds": 0.003439583,
           "operation": "extract-text",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.003727,
-            0.003634708,
-            0.003630875
+            0.0034645,
+            0.003439583,
+            0.003498542
           ],
           "status": "passed"
         },
@@ -679,15 +679,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.011918084,
-          "median_wall_seconds": 0.01027975,
-          "min_wall_seconds": 0.010263,
+          "max_wall_seconds": 0.011795625,
+          "median_wall_seconds": 0.01178375,
+          "min_wall_seconds": 0.011052084,
           "operation": "rotate",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.011918084,
-            0.01027975,
-            0.010263
+            0.01178375,
+            0.011795625,
+            0.011052084
           ],
           "status": "passed"
         },
@@ -726,15 +726,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.011987834,
-          "median_wall_seconds": 0.011621041,
-          "min_wall_seconds": 0.010926542,
+          "max_wall_seconds": 0.012471583,
+          "median_wall_seconds": 0.0110625,
+          "min_wall_seconds": 0.010887875,
           "operation": "compress",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.011987834,
-            0.010926542,
-            0.011621041
+            0.0110625,
+            0.010887875,
+            0.012471583
           ],
           "status": "passed"
         }
@@ -776,15 +776,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.003719583,
-          "median_wall_seconds": 0.003631959,
-          "min_wall_seconds": 0.003495542,
+          "max_wall_seconds": 0.00379325,
+          "median_wall_seconds": 0.003722708,
+          "min_wall_seconds": 0.0036605,
           "operation": "info",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.003719583,
-            0.003631959,
-            0.003495542
+            0.003722708,
+            0.00379325,
+            0.0036605
           ],
           "status": "passed"
         },
@@ -819,15 +819,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.003607167,
-          "median_wall_seconds": 0.003490625,
-          "min_wall_seconds": 0.003478709,
+          "max_wall_seconds": 0.003673541,
+          "median_wall_seconds": 0.003636,
+          "min_wall_seconds": 0.003627792,
           "operation": "extract-text",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.003478709,
-            0.003607167,
-            0.003490625
+            0.003673541,
+            0.003636,
+            0.003627792
           ],
           "status": "passed"
         },
@@ -866,15 +866,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.011489875,
-          "median_wall_seconds": 0.010951083,
-          "min_wall_seconds": 0.0101455,
+          "max_wall_seconds": 0.013146292,
+          "median_wall_seconds": 0.012413333,
+          "min_wall_seconds": 0.011636459,
           "operation": "rotate",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.010951083,
-            0.011489875,
-            0.0101455
+            0.013146292,
+            0.011636459,
+            0.012413333
           ],
           "status": "passed"
         },
@@ -913,15 +913,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.012186708,
-          "median_wall_seconds": 0.011048208,
-          "min_wall_seconds": 0.011016583,
+          "max_wall_seconds": 0.012850041,
+          "median_wall_seconds": 0.012128583,
+          "min_wall_seconds": 0.010919416,
           "operation": "compress",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.011048208,
-            0.011016583,
-            0.012186708
+            0.012850041,
+            0.012128583,
+            0.010919416
           ],
           "status": "passed"
         }
@@ -963,15 +963,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.003470625,
-          "median_wall_seconds": 0.003456333,
-          "min_wall_seconds": 0.003450625,
+          "max_wall_seconds": 0.003696917,
+          "median_wall_seconds": 0.003635917,
+          "min_wall_seconds": 0.003611791,
           "operation": "info",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.003470625,
-            0.003456333,
-            0.003450625
+            0.003696917,
+            0.003635917,
+            0.003611791
           ],
           "status": "passed"
         },
@@ -1006,15 +1006,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.003644542,
-          "median_wall_seconds": 0.003486125,
-          "min_wall_seconds": 0.003478417,
+          "max_wall_seconds": 0.003622583,
+          "median_wall_seconds": 0.003533041,
+          "min_wall_seconds": 0.003468167,
           "operation": "extract-text",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.003478417,
-            0.003644542,
-            0.003486125
+            0.003622583,
+            0.003533041,
+            0.003468167
           ],
           "status": "passed"
         },
@@ -1053,15 +1053,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.010367208,
-          "median_wall_seconds": 0.010103458,
-          "min_wall_seconds": 0.009750166,
+          "max_wall_seconds": 0.010345458,
+          "median_wall_seconds": 0.009867709,
+          "min_wall_seconds": 0.009018667,
           "operation": "rotate",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.010367208,
-            0.009750166,
-            0.010103458
+            0.009018667,
+            0.009867709,
+            0.010345458
           ],
           "status": "passed"
         },
@@ -1100,15 +1100,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.011296458,
-          "median_wall_seconds": 0.011002125,
-          "min_wall_seconds": 0.009727292,
+          "max_wall_seconds": 0.011395333,
+          "median_wall_seconds": 0.011172875,
+          "min_wall_seconds": 0.010953834,
           "operation": "compress",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.011002125,
-            0.011296458,
-            0.009727292
+            0.011172875,
+            0.011395333,
+            0.010953834
           ],
           "status": "passed"
         }
@@ -1150,15 +1150,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.003637375,
-          "median_wall_seconds": 0.003630208,
-          "min_wall_seconds": 0.0036105,
+          "max_wall_seconds": 0.003768792,
+          "median_wall_seconds": 0.003715167,
+          "min_wall_seconds": 0.003689291,
           "operation": "info",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.003637375,
-            0.0036105,
-            0.003630208
+            0.003715167,
+            0.003689291,
+            0.003768792
           ],
           "status": "passed"
         },
@@ -1193,15 +1193,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.003629125,
-          "median_wall_seconds": 0.003590208,
-          "min_wall_seconds": 0.00358,
+          "max_wall_seconds": 0.003714833,
+          "median_wall_seconds": 0.003604042,
+          "min_wall_seconds": 0.003585917,
           "operation": "extract-text",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.003629125,
-            0.00358,
-            0.003590208
+            0.003604042,
+            0.003585917,
+            0.003714833
           ],
           "status": "passed"
         },
@@ -1240,15 +1240,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.013472792,
-          "median_wall_seconds": 0.0128845,
-          "min_wall_seconds": 0.012666334,
+          "max_wall_seconds": 0.013495125,
+          "median_wall_seconds": 0.01330325,
+          "min_wall_seconds": 0.012535208,
           "operation": "rotate",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.013472792,
-            0.0128845,
-            0.012666334
+            0.01330325,
+            0.013495125,
+            0.012535208
           ],
           "status": "passed"
         },
@@ -1287,15 +1287,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.012769375,
-          "median_wall_seconds": 0.01206475,
-          "min_wall_seconds": 0.012039958,
+          "max_wall_seconds": 0.013931,
+          "median_wall_seconds": 0.013156875,
+          "min_wall_seconds": 0.012823084,
           "operation": "compress",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.01206475,
-            0.012769375,
-            0.012039958
+            0.012823084,
+            0.013931,
+            0.013156875
           ],
           "status": "passed"
         }
@@ -1337,15 +1337,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.003483042,
-          "median_wall_seconds": 0.00347025,
-          "min_wall_seconds": 0.003448167,
+          "max_wall_seconds": 0.003831459,
+          "median_wall_seconds": 0.003625208,
+          "min_wall_seconds": 0.003451542,
           "operation": "info",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.003483042,
-            0.00347025,
-            0.003448167
+            0.003831459,
+            0.003625208,
+            0.003451542
           ],
           "status": "passed"
         },
@@ -1380,15 +1380,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.003474791,
-          "median_wall_seconds": 0.00346075,
-          "min_wall_seconds": 0.003451917,
+          "max_wall_seconds": 0.00355225,
+          "median_wall_seconds": 0.003501209,
+          "min_wall_seconds": 0.003491,
           "operation": "extract-text",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.003474791,
-            0.00346075,
-            0.003451917
+            0.003501209,
+            0.00355225,
+            0.003491
           ],
           "status": "passed"
         },
@@ -1427,15 +1427,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.011152417,
-          "median_wall_seconds": 0.010588375,
-          "min_wall_seconds": 0.010309417,
+          "max_wall_seconds": 0.012173083,
+          "median_wall_seconds": 0.011935792,
+          "min_wall_seconds": 0.01115125,
           "operation": "rotate",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.010309417,
-            0.011152417,
-            0.010588375
+            0.012173083,
+            0.01115125,
+            0.011935792
           ],
           "status": "passed"
         },
@@ -1474,15 +1474,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.011261833,
-          "median_wall_seconds": 0.011145791,
-          "min_wall_seconds": 0.010381958,
+          "max_wall_seconds": 0.012046667,
+          "median_wall_seconds": 0.010531916,
+          "min_wall_seconds": 0.009394875,
           "operation": "compress",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.011145791,
-            0.010381958,
-            0.011261833
+            0.009394875,
+            0.010531916,
+            0.012046667
           ],
           "status": "passed"
         }
@@ -1529,15 +1529,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.004012,
-          "median_wall_seconds": 0.003965792,
-          "min_wall_seconds": 0.003854667,
+          "max_wall_seconds": 0.004069625,
+          "median_wall_seconds": 0.004048584,
+          "min_wall_seconds": 0.003876875,
           "operation": "info",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.004012,
-            0.003854667,
-            0.003965792
+            0.004048584,
+            0.004069625,
+            0.003876875
           ],
           "status": "passed"
         },
@@ -1572,15 +1572,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.004452583,
-          "median_wall_seconds": 0.004274958,
-          "min_wall_seconds": 0.004258625,
+          "max_wall_seconds": 0.004520291,
+          "median_wall_seconds": 0.004444333,
+          "min_wall_seconds": 0.004422083,
           "operation": "extract-text",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.004452583,
-            0.004258625,
-            0.004274958
+            0.004444333,
+            0.004422083,
+            0.004520291
           ],
           "status": "passed"
         },
@@ -1623,15 +1623,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.003852417,
-          "median_wall_seconds": 0.003837041,
-          "min_wall_seconds": 0.00383575,
+          "max_wall_seconds": 0.004009084,
+          "median_wall_seconds": 0.003930791,
+          "min_wall_seconds": 0.003879334,
           "operation": "rotate",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.00383575,
-            0.003837041,
-            0.003852417
+            0.004009084,
+            0.003879334,
+            0.003930791
           ],
           "status": "passed"
         },
@@ -1674,15 +1674,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.004052875,
-          "median_wall_seconds": 0.003872792,
-          "min_wall_seconds": 0.003837417,
+          "max_wall_seconds": 0.004087166,
+          "median_wall_seconds": 0.003999958,
+          "min_wall_seconds": 0.003938542,
           "operation": "compress",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.003837417,
-            0.003872792,
-            0.004052875
+            0.003999958,
+            0.003938542,
+            0.004087166
           ],
           "status": "passed"
         }
@@ -1740,15 +1740,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.003340709,
-          "median_wall_seconds": 0.003333083,
-          "min_wall_seconds": 0.003330417,
+          "max_wall_seconds": 0.003558375,
+          "median_wall_seconds": 0.003394083,
+          "min_wall_seconds": 0.00337625,
           "operation": "info",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.003340709,
-            0.003330417,
-            0.003333083
+            0.003558375,
+            0.00337625,
+            0.003394083
           ],
           "status": "passed"
         },
@@ -1791,15 +1791,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.003377958,
-          "median_wall_seconds": 0.003334416,
-          "min_wall_seconds": 0.003270042,
+          "max_wall_seconds": 0.003556625,
+          "median_wall_seconds": 0.003488459,
+          "min_wall_seconds": 0.003373958,
           "operation": "extract-text",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.003334416,
-            0.003270042,
-            0.003377958
+            0.003556625,
+            0.003373958,
+            0.003488459
           ],
           "status": "passed"
         },
@@ -1842,15 +1842,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.003330833,
-          "median_wall_seconds": 0.003323209,
-          "min_wall_seconds": 0.003318792,
+          "max_wall_seconds": 0.00346175,
+          "median_wall_seconds": 0.003352875,
+          "min_wall_seconds": 0.003343709,
           "operation": "rotate",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.003330833,
-            0.003318792,
-            0.003323209
+            0.003352875,
+            0.00346175,
+            0.003343709
           ],
           "status": "passed"
         },
@@ -1893,15 +1893,15 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.00348,
-          "median_wall_seconds": 0.003471667,
-          "min_wall_seconds": 0.003415917,
+          "max_wall_seconds": 0.003612042,
+          "median_wall_seconds": 0.003344542,
+          "min_wall_seconds": 0.003306625,
           "operation": "compress",
           "repeat_count": 3,
           "samples_wall_seconds": [
-            0.003471667,
-            0.003415917,
-            0.00348
+            0.003306625,
+            0.003612042,
+            0.003344542
           ],
           "status": "passed"
         }
@@ -1953,17 +1953,17 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.018906416,
-          "median_wall_seconds": 0.018734042,
-          "min_wall_seconds": 0.018568167,
+          "max_wall_seconds": 0.01908275,
+          "median_wall_seconds": 0.018880708,
+          "min_wall_seconds": 0.018760291,
           "operation": "info",
           "repeat_count": 5,
           "samples_wall_seconds": [
-            0.018734042,
-            0.018806375,
-            0.018906416,
-            0.018568167,
-            0.018572584
+            0.018880708,
+            0.018760291,
+            0.018998791,
+            0.01908275,
+            0.018867459
           ],
           "status": "passed"
         },
@@ -2012,17 +2012,17 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.020536959,
-          "median_wall_seconds": 0.020219625,
-          "min_wall_seconds": 0.019680625,
+          "max_wall_seconds": 0.019341667,
+          "median_wall_seconds": 0.019230458,
+          "min_wall_seconds": 0.018881917,
           "operation": "extract-text",
           "repeat_count": 5,
           "samples_wall_seconds": [
-            0.019680625,
-            0.020536959,
-            0.020219625,
-            0.019908,
-            0.0204475
+            0.019325709,
+            0.019047,
+            0.018881917,
+            0.019341667,
+            0.019230458
           ],
           "status": "passed"
         },
@@ -2077,17 +2077,17 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.34828325,
-          "median_wall_seconds": 0.341628875,
-          "min_wall_seconds": 0.335108334,
+          "max_wall_seconds": 0.678740666,
+          "median_wall_seconds": 0.551569916,
+          "min_wall_seconds": 0.35881275,
           "operation": "rotate",
           "repeat_count": 5,
           "samples_wall_seconds": [
-            0.34828325,
-            0.343352208,
-            0.341628875,
-            0.340317,
-            0.335108334
+            0.557355958,
+            0.35881275,
+            0.678740666,
+            0.551569916,
+            0.394787417
           ],
           "status": "passed"
         },
@@ -2142,17 +2142,17 @@
               "warmup": false
             }
           ],
-          "max_wall_seconds": 0.356295208,
-          "median_wall_seconds": 0.3514675,
-          "min_wall_seconds": 0.348677375,
+          "max_wall_seconds": 0.520774042,
+          "median_wall_seconds": 0.48999275,
+          "min_wall_seconds": 0.3711735,
           "operation": "compress",
           "repeat_count": 5,
           "samples_wall_seconds": [
-            0.354857292,
-            0.348677375,
-            0.3514675,
-            0.356295208,
-            0.350022541
+            0.48999275,
+            0.510122042,
+            0.520774042,
+            0.3711735,
+            0.374649833
           ],
           "status": "passed"
         }
@@ -2190,8 +2190,8 @@
   "provenance": {
     "binary": {
       "build_artifact": {
-        "artifact_file_sha256": "62eb9edb0f1c42a074691c51c8b58be33d37769d06f8588d04b0f4acd6dcb158",
-        "artifact_modified_unix_seconds": 1791834453,
+        "artifact_file_sha256": "bca1e04471aeea76fd751f821b8abe40dad843811e1cfb87e84fd653acb480a4",
+        "artifact_modified_unix_seconds": 1791838843,
         "binding_limit": "Cargo reports this executable path and profile; current binary hash recorded separately. No reproducible-build/source-to-binary identity claim.",
         "fresh": false,
         "package_id": "path+file:///Users/othmane/Projects/GITHUB_PROJECTS/pdf-editor-offline/apps/cli#pdf-editor-offline-cli@3.0.0",
@@ -2217,10 +2217,10 @@
           "test": true
         }
       },
-      "bytes": 9434848,
-      "modified_unix_seconds": 1791834453,
+      "bytes": 9776944,
+      "modified_unix_seconds": 1791838843,
       "path": "target/release/pdf-editor-offline",
-      "sha256": "f308c85fd3dc78f52b3e12ee5d1a8f34b85d1a53cf89c641c47a433a093f7420"
+      "sha256": "cb0ffd618905684130299605128131bc50f7979d1ccdac191b242e886503a45e"
     },
     "environment": {
       "architecture": "aarch64",
@@ -2228,75 +2228,188 @@
       "logical_cpus": 8,
       "os": "macos"
     },
-    "git_status_porcelain": " M .github/workflows/rust.yml\n M Cargo.lock\n M Cargo.toml\n M apps/desktop/README.md\n M apps/desktop/src/main.rs\n M apps/desktop/src/ui.rs\n M apps/desktop/src/ui/sidebar.rs\n M apps/desktop/src/worker.rs\n M docs/RUST_BENCHMARKS.md\n D scripts/benchmark_rust.py\n?? apps/desktop/src/thumbnails.rs\n?? tools/native-evidence/Cargo.toml\n?? tools/native-evidence/README.md\n?? tools/native-evidence/corpus-contract.json\n?? tools/native-evidence/src/fixture.rs\n?? tools/native-evidence/src/main.rs\n?? tools/native-evidence/src/process.rs\n?? tools/native-evidence/src/reference.rs\n",
-    "source_commit": "a7b254fd404f6759d7069a3a36b7b06a40b50bdc",
+    "git_status_porcelain": "",
+    "source_commit": "49bd559964dcb7d27e0a38d2fe6abda4614bb942",
     "source_sha256": {
-      "Cargo.lock": "82db4017b20211757ee6a25b74e4f62a220712bd43ca5fbf0994b110d5fa1fb4",
-      "Cargo.toml": "3a7357aea6ff655657e47797ebca12eb65048291034f770b159d3625360c1d15",
-      "apps/cli/Cargo.toml": "e02823b2510a1ec7d7935756eadb7860173b3a97b68b54ac70b977cab4769b94",
-      "apps/cli/src/main.rs": "b83c81210cf3a5db56d343c50ba9845164b63dd8e7a86807fedd925bd81563ad",
-      "apps/cli/src/render.rs": "0e2118290bb40328f1f4ac9236c4d6d37468e8a71e83e442f483ea36bd7253e0",
+      "Cargo.lock": "4b5fea974886ceefde3892de399889f44ff72986a5112c1c2f5e519a6b99fde2",
+      "Cargo.toml": "d6bb7987177b7293c57c1bcc90239c091fd9d7d60833c3435e8bece9a42f6c3e",
+      "apps/cli/Cargo.toml": "dfd74e9815f5f2c0cfe9cfccba39702c959f1c64f0c58880116441b3ff1e3a37",
+      "apps/cli/src/main.rs": "7f98bd9f01aed2dc11fc04178fee20905694b241fb841894597ab27e8c799d26",
+      "apps/cli/src/render.rs": "61375a6472d7267618414fc0bf1499079e703e36d608e0257e33712cca1de476",
       "apps/cli/src/selection.rs": "538060fdd98392eea3c1d4161c07fdfdcf1b81281f682717690dfe6419ba455f",
       "apps/cli/tests/commands.rs": "e3b7f1eedb5d9b3daa6743d8155b0227523dcbd90839eb0d7389da2cf7f558a6",
+      "apps/cli/tests/images.rs": "db0b2ac0d5178758ec5173284ceb3e15af4352f5d2b515fa9789800bf0ee09b5",
       "apps/cli/tests/merge.rs": "c00706804108d9361930d6588ec8d21695e97350130d495de36dbf0832c52c4c",
+      "apps/cli/tests/metadata.rs": "4e6f157d1d3304b271531bfc761aca449714d9ccb811e9290ec30de8e107f470",
       "apps/cli/tests/native_pages_reference.rs": "d662329dcd503117c8c6d54f84eff9b8ac2ebfa1efddebec2715638f4d249e1a",
-      "apps/cli/tests/notes.rs": "dbf191315aac22b4a51d6d5bd58f0ad590fc0b4c348a1ad3be587b055354faad",
+      "apps/cli/tests/note_updates.rs": "4a355668204745e988313f54284efe74f07fe159d5736f68bb0f6040dae3f879",
+      "apps/cli/tests/notes.rs": "c72265a111898cb48e057fc78762d7d51c794dd73c652998c40178a9e7238b65",
       "apps/cli/tests/render.rs": "3b1b91c89f2c866733a5fc33543a376e93582b0412cbdbe12ea2bd1c48a177a7",
-      "apps/desktop/Cargo.toml": "eb2be74b382a5abe4000aab634fee7f291e2d2370b7dab680a0f6a759a9dd846",
-      "apps/desktop/src/fonts.rs": "ef7dde4eeae319571808b4676755920fa5d5166db4cd5ccf1872479b025c1c38",
+      "apps/desktop/Cargo.toml": "6758462965b42b54a80494f8939989cf4ad391ff498b2bc1ade1c5783b4500ca",
+      "apps/desktop/assets/fonts/NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21",
+      "apps/desktop/assets/fonts/OFL.txt": "b118dd41337806a5d4797052c77caf3bd096aed783e5eb21b4d11154351e1ac0",
+      "apps/desktop/assets/fonts/PROVENANCE.md": "ba387c8987c4281e8f7e7d94d0f4f51c9a872c70d79f0181233fc653a0e55c57",
+      "apps/desktop/assets/fonts/ibm-plex/IBMPlexSans-Medium.ttf": "331c8639d7598b2cde62a911a71db195e30cb655cd6bdf2e324a7e984955f907",
+      "apps/desktop/assets/fonts/ibm-plex/IBMPlexSans-Regular.ttf": "975dcda37d80f038dcd143c22e33ca2d97a0cc5a929aace1c749153b0fe1afa5",
+      "apps/desktop/assets/fonts/ibm-plex/OFL.txt": "91c25c350d3cac39da2736d74f7ba37ef648f5237a4e330a240615bc8d8c4360",
+      "apps/desktop/assets/fonts/ibm-plex/PROVENANCE.md": "4bf034f2596a83203f1602bfb879a20596c75744a94bbeb88fc20553476ce8be",
+      "apps/desktop/assets/fonts/noto-cjk/LICENSE": "6a73f9541c2de74158c0e7cf6b0a58ef774f5a780bf191f2d7ec9cc53efe2bf2",
+      "apps/desktop/assets/fonts/noto-cjk/NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+      "apps/desktop/assets/fonts/noto-cjk/PROVENANCE.md": "b1350a19a98073199d04a7ed0ac4ca0ab2a1f5f2c66e5dcf86a0f22d4cf710f9",
+      "apps/desktop/src/fonts.rs": "3321f0e5da7f68246650ef084e003ec38405dff368fe682b0b39b775f3a41803",
       "apps/desktop/src/main.rs": "3f31591187b877ecb84f93a8ea12662ff427cf9c2dff91e192239d21750626ec",
       "apps/desktop/src/raster.rs": "7f6edfd4cac17e16c01d60a314c4f7777f0ed71ca7132041ddc854f878a8fc5a",
       "apps/desktop/src/search.rs": "80ef488af75879afca04dadad1cd11052ee784fe59a7fb86241ef09fdd0fbfcb",
-      "apps/desktop/src/state.rs": "620f550b90169e69fff072d18d4d3a66602e55587a2e6d644faaf06a4079ed2c",
+      "apps/desktop/src/state.rs": "7ede411db123e2bc05fb5fdd4325cd4e58dc86f3f3690523f9918f0364b0a420",
       "apps/desktop/src/style.rs": "ee8c4013eacaab413d6d85ad30576adc359d50c495275d4b0adacc4f46121b1c",
       "apps/desktop/src/thumbnails.rs": "cfac02ae36d2ac5453707b7adebd3f11da98436b8c07d51d7609512c8ad91a51",
-      "apps/desktop/src/ui.rs": "0db2102a64a5ceebd9bd4c3152caa0819f14e3ea65021b3ece9e00098478518f",
+      "apps/desktop/src/ui.rs": "ceeee4e47df91ce54ba167d43d5f141c172d9e3dcd5e34c4369cd3760ae43b0e",
       "apps/desktop/src/ui/canvas.rs": "e53d73c211f5c5097a35f17c1cf393b225b30420667ee9bb6435b75d42990fe8",
-      "apps/desktop/src/ui/dialogs.rs": "4760214271066550e66c87ea9af5f115dcb00a6cb7336d2a77432de04c77b49d",
-      "apps/desktop/src/ui/navigation.rs": "99fdd22f1fa4b7d2376b2b07ecd4f8e75eaf740bd2625a92edf64ec45d7b4d7d",
-      "apps/desktop/src/ui/palette.rs": "13044bd9c7fc34c0e48429849266ca44ec49ad7b9c9a18c9779012c556d1a4f1",
-      "apps/desktop/src/ui/sidebar.rs": "f7e991dff891a7d2740a121e47c0d60ee1d798de26f1b3b0380aa4439f29c31b",
-      "apps/desktop/src/worker.rs": "c60210ff5b755bccdebe733247e84d6d3cc45ae0d8158e054e876fb60e068c11",
+      "apps/desktop/src/ui/dialogs.rs": "69ce2f001a6f483da917a5d83f3c6891d92afc2027553e3da42187be9c32f3f4",
+      "apps/desktop/src/ui/metadata.rs": "e42557d15007a4cd3077253e5f1809d6afdc766a1344eabc74f78b6bf7e0fb67",
+      "apps/desktop/src/ui/navigation.rs": "854f85d58aacdcc8bbc0031ef3d2828a44f0f0f3deb93cc77743fdfe0a52086d",
+      "apps/desktop/src/ui/organizer.rs": "dc57bb440b11f4e1e7748b855a3da4601b2a2d7e7ef9008648bb10c33d9cb3ee",
+      "apps/desktop/src/ui/palette.rs": "e9b628177d0de39a754e1e782d5e7a2547e74940686df4b4368558b765f7abfd",
+      "apps/desktop/src/ui/sidebar.rs": "3d84f8fdaf52fcd1db5fc6ef1aab6dcaa31cb70da1af89cefe6c760d651a06ec",
+      "apps/desktop/src/worker.rs": "1f126fab3002666b051722f360d3b754ec61f87f46e2ea0b5ceb14e709dce6a6",
+      "crates/pdf-convert/Cargo.toml": "4b5537d4d5c6f4a7dd4931e6573c873eef8a67b7443d116d8041b302427b03b7",
+      "crates/pdf-convert/src/jpeg.rs": "b162cd5a7bb84f72112c53994321aa6c2cb8417f5b7c832fe42eee1a9475aa4d",
+      "crates/pdf-convert/src/lib.rs": "7714b5eea4ecf4d1e91b0f8f9e1dd371e0e6c75dbf115afd908e115e9dc69cba",
+      "crates/pdf-convert/src/png_image.rs": "f5557bfd4905de444858f75daffee5671a835c7c09abb47ca2de57fca9e34c72",
+      "crates/pdf-convert/tests/images.rs": "3fbaab961cc024af81e6994ba87cd011f2f9eeb0613a8856ae798dec839664b6",
       "crates/pdf-core/Cargo.toml": "c4e4335793b1ddd62816c225d64f1f258e7ba843e8bf019aeca01c04c2a17104",
       "crates/pdf-core/src/error.rs": "19da1ce18b0087009408eff0411df903cdb4476a46e942784f6c10bb34aeff43",
-      "crates/pdf-core/src/input.rs": "e87117f2796197b990aeaebe7d5598334754305f7704a7bc04511f9d8cfe9f7d",
-      "crates/pdf-core/src/inspect.rs": "0e0d35f61b2f547e6f18c0ef21e3b2e1fdc2dd0e3abc7ce893daa0b9aa6cffc2",
-      "crates/pdf-core/src/lib.rs": "d2b7914a9349ee35f07c9e7210dd2654b9a57ba6cdc00d4d7a0ddbed61e0c6fe",
+      "crates/pdf-core/src/input.rs": "bdd44f9af6bcbd89132244c61ed4ede8401f248594df3c2d0957de407e87b81e",
+      "crates/pdf-core/src/inspect.rs": "53f454932e0d6c6b1dd86501d92fe4191c7b92a05ddf56432bdfc040fd4fede1",
+      "crates/pdf-core/src/lib.rs": "a99dfebe4db29df50fa2319a50263aa9bcc3c14d931f103af2c2372f0df67d69",
       "crates/pdf-core/src/merge.rs": "6a7d8f2f73c759e3512b8c4d480084a8231ed048a64deae2c2f01fe1e6b88296",
-      "crates/pdf-core/src/notes.rs": "d2bcf0ff5c50795d00ed13dc6d1a9302364af7d6d14b2ffa0da188f6c3903c5e",
+      "crates/pdf-core/src/metadata.rs": "c2071d6824aff9dd25f370754331e161c1e801e6bb281d2a7d202594885339ab",
+      "crates/pdf-core/src/note_updates.rs": "48ff09e26ffb5309b80890ade56e1519329090fd0a6ce405d57cebc681cc048c",
+      "crates/pdf-core/src/notes.rs": "4f88e6562d992417afff119bfdecb2c5b3575ab84e48f20f77d53e4db9dfc035",
       "crates/pdf-core/src/pages.rs": "b5aec03fb5dab87052b623bd1eae1fcaad3285795a178ee21dbfb1f895ee47f9",
       "crates/pdf-core/src/save.rs": "35548a8df86ed6d7963122c46b90b5440354dabdbc7318a124ebe96bc69ab0f4",
       "crates/pdf-core/src/structure.rs": "d4d89d8ef8ebcb3738b4bbf61d59ec884e4902b3f496f8ff398236b1aab51c54",
       "crates/pdf-core/src/text.rs": "5a197673d53a2db37c77aabebbf0f0a0469d7881d63a6185dff341645d759ba2",
       "crates/pdf-core/tests/document.rs": "d365a14eb8a278576d860e856792a592fd301268b68ddb148b23b03f74937ee3",
-      "crates/pdf-core/tests/input.rs": "d1cb62cc540f1053957912673e132f13a71bde14843b07b7bae1cc4f6da822d9",
+      "crates/pdf-core/tests/input.rs": "1af690636844546a41f8b156f7648c61713dfedc12d32941beb26c376f3360cb",
       "crates/pdf-core/tests/inspect.rs": "f7b09b415c19f7419ba4bcd8d355b48bf637fd9265ca25b7a519ed3e03960fb8",
       "crates/pdf-core/tests/limits.rs": "e85e492c9a4c7fe642b09d8c5d8e176d098ec6ccdc636f79ef815d43633ca013",
       "crates/pdf-core/tests/merge.rs": "5964ab05ec765f3ed7e2608be612f0c55fa5448b5029bbf5c7c2c4c0b6c66a4e",
+      "crates/pdf-core/tests/metadata.rs": "6a3fe406b6299f1021a0a13b3d83f1f881209155f953e6d9970d43facaf8fd1b",
+      "crates/pdf-core/tests/note_updates.rs": "3d036bf9e208b1d237c94c5ba1acf386dfa00f0d4bf60d337e9c80329c0e6ad2",
       "crates/pdf-core/tests/notes.rs": "52aa49b89452992dd9cdf0932a8af4aa62e34606658e3e2946ffe1b102d19943",
       "crates/pdf-core/tests/pages.rs": "a88a3aafc60acb3ec17a046db206683d463831d5ea0c8830e3a60e4fdf461bcb",
       "crates/pdf-core/tests/serialization.rs": "87e2580e856a0e5d9d2dd868f9535c057715e68003271567a3406d429595361a",
       "crates/pdf-core/tests/text.rs": "f3c9cebd7999760309165b21759dc08c88190a6cf49a49da18939f02230bb5b3",
-      "crates/pdf-render/Cargo.toml": "925d9c707f169c10b185935b815f470a3c6f01c90de60de938fed06d14c5d583",
-      "crates/pdf-render/src/lib.rs": "0b72a2870794fddb6b213802563cf29f62ebb0c307d3df76c363645bb54514a4",
+      "crates/pdf-render/Cargo.toml": "9b952b14c6e2501fd9b1476c50d11827e0c0369a1b689449b02c976c09c0c317",
+      "crates/pdf-render/src/lib.rs": "6e617ba734b0f8f6d3be90e39d5398236b52a36b5b691425174dd6f4446d6417",
+      "crates/pdf-render/tests/annotations.rs": "1ef5a40ea923b6f66472ce6a95651c68ee0e4920c01d2c6f84934147bfbc0012",
       "crates/pdf-render/tests/render.rs": "1301ca7f83ffcdcf9f3891f3827c77c3938119f778fba3f2c62b74708b443f08",
       "tools/native-evidence/Cargo.toml": "32128800bba9959d46de603d953966dd215a9ffad6652f387f869213cff408cb",
       "tools/native-evidence/corpus-contract.json": "5cf3c0b2443b17167dbf75923a212a376cac052c222cc7c074d888ec4355e025",
       "tools/native-evidence/src/fixture.rs": "4182024da4a36557c8ca4799472a6592ee43222fdfa9a5120a9fc475a44de04e",
-      "tools/native-evidence/src/main.rs": "cc24235322970b96e45bc126e0add0822235d40f433b14b746744fb6972fe086",
+      "tools/native-evidence/src/main.rs": "d397b885c10b55f4b79150efc5ede2d26d60b9432b900ede0825b4024ec9e074",
       "tools/native-evidence/src/process.rs": "86eff201148d580d8103dab6d1eaab141de0d379658cdadb15e14565fb61a2d2",
-      "tools/native-evidence/src/reference.rs": "3029fa6acf118b6e09086e98589a784dc936a79475b73906df016c9d33e1d2fa"
+      "tools/native-evidence/src/reference.rs": "3029fa6acf118b6e09086e98589a784dc936a79475b73906df016c9d33e1d2fa",
+      "vendor/hayro-interpret/.cargo_vcs_info.json": "9c37486f8d0d62177b298fc740cb932f0821d46782273b52d991460df94c05cb",
+      "vendor/hayro-interpret/Cargo.toml": "511972142547a0e83a1c33f44c6880414b44bd40ec49f151333ef5c7a57ea917",
+      "vendor/hayro-interpret/Cargo.toml.orig": "5554ff767945f7e3a2b3c075c14a69b4490dfee5c15e5708475217060e9acb42",
+      "vendor/hayro-interpret/LICENSE-APACHE": "0cec06e0e55fbc3dc5cee4fca9b607f66cb8f4e4dbcf3b3c013594dd156732e9",
+      "vendor/hayro-interpret/LICENSE-MIT": "51b50e6120c344dcc146bbd6375ca1c78e079d97c8bea76e67a53d6ff0efebac",
+      "vendor/hayro-interpret/PATCH_NOTES.md": "696f4c69d9ff9a3c375133440bb24b08c80ad120e93d8dc111717e194761777c",
+      "vendor/hayro-interpret/README.md": "08f5ca628e07c0712f5fd0292415691e0917ed14578833d1a9ce5a5505aa8831",
+      "vendor/hayro-interpret/assets/CGATS001Compat-v2-micro.icc": "73e1ba37d2bad5bab2a964f40a9eed96209666efc067c3322626214bbef234a0",
+      "vendor/hayro-interpret/assets/CGATS_LICENSE.txt": "469d87b5fa48f8aaf69e25f4fcac3a309c97dbb7d561b917638abdb640e004d9",
+      "vendor/hayro-interpret/assets/FoxitDingbats.pfb": "845c752392b6c914fb989c75a08b7792b88f542d2499042ef2889f8c814a16ed",
+      "vendor/hayro-interpret/assets/FoxitFixed.pfb": "b6c8fe53f134b8b6d4578cd2d544df4cee9624c4efa8d51a560fb40ea296101b",
+      "vendor/hayro-interpret/assets/FoxitFixedBold.pfb": "f1b7159702973f54fc86254ea38bcf3712b2a736eb3a0995751e9f4bb45ad603",
+      "vendor/hayro-interpret/assets/FoxitFixedBoldItalic.pfb": "8a000945843bd31add06aee63bf9fd41b7578b4f3242a4b7cd46349ad9d24d4d",
+      "vendor/hayro-interpret/assets/FoxitFixedItalic.pfb": "5007faf8320fa1fcc08b8894b356ad976f60b992ba29ee5272578bbdebaf3876",
+      "vendor/hayro-interpret/assets/FoxitSans.pfb": "a02339e95d20db14cbdfc1c6baf359cd36a091d5434925c3a4040f60e1a1af9e",
+      "vendor/hayro-interpret/assets/FoxitSansBold.pfb": "7bdfa36de1d5757dcfaf8b8a4be95c6e41c40fa70dbed9d78bf979a7b9959054",
+      "vendor/hayro-interpret/assets/FoxitSansBoldItalic.pfb": "555ce45924338e2e4b32821910221ce85da691fd59a9723c4c971a7c5627fc8b",
+      "vendor/hayro-interpret/assets/FoxitSansItalic.pfb": "7751cbefeda351708dae8c4a88db043411bc39ab2ae2097685da845d4d16f307",
+      "vendor/hayro-interpret/assets/FoxitSerif.pfb": "4f57d2b9d884af8f907bf22df6019b52d86cbf6214fdbd02b1ae05472a543f35",
+      "vendor/hayro-interpret/assets/FoxitSerifBold.pfb": "0bdf4b04e964139818d51eda03d566ba999fc3ba2421b1c6c51f9dc969022e80",
+      "vendor/hayro-interpret/assets/FoxitSerifBoldItalic.pfb": "a406cac82583bf98175cb62c87ed5e95c45fbb34eece63a10b0a13e793cb2e10",
+      "vendor/hayro-interpret/assets/FoxitSerifItalic.pfb": "610ae0687198045c4db5d1a6650fd5e92536631706382eb8b72e38df578d0ae9",
+      "vendor/hayro-interpret/assets/FoxitSymbol.pfb": "47967d055530e7357088a08403115425643ec2cdfd6201ba8af0fbd7116c1539",
+      "vendor/hayro-interpret/assets/LAB.icc": "a6efc5c30ece826eba2a83ddf5aa7026289b0c5ffa90acb129bc59ab8d7f5c59",
+      "vendor/hayro-interpret/assets/LICENSE_FOXIT": "b578cdd2345840ada550bd12519533812320d5f1d21cf4c1c7e1b1b0a31c98b7",
+      "vendor/hayro-interpret/assets/README.md": "060a1d5778f49e9de3050c2bb84e5980a29744d9fe25ce590e76d7614c4f172f",
+      "vendor/hayro-interpret/examples/extract_html.rs": "577cfea6cdcf68ef56c805b6dcb82468806e54897d1edfab92c6727885053198",
+      "vendor/hayro-interpret/examples/extract_images.rs": "47761dd6f462f7e78bff281acaa243ac3b95e94256d451a32f884108a31e62d1",
+      "vendor/hayro-interpret/src/cache.rs": "a9bec6b9f4c1bbd65c317cfe3b10b7a9e6096e8f42ba29abf96fbd46ab47a44d",
+      "vendor/hayro-interpret/src/color/cal_gray.rs": "2a6a5198ac714e9150e0a0aec6a6aff9b960a0b16377397e499d8d9edf0f6a6c",
+      "vendor/hayro-interpret/src/color/cal_rgb.rs": "0b55996c411418fc02477479062cc893b584f34c7cf2427e4d54bf63e97c88be",
+      "vendor/hayro-interpret/src/color/device_cmyk.rs": "0e90f5951b8529e7f95f8eb543d91b24899af958feca19c2385148d979f7b1b4",
+      "vendor/hayro-interpret/src/color/device_gray.rs": "62d66e7f7ec0fe813e41191a7fdac056419b0b64139a8f2db11c4fba4bbbea27",
+      "vendor/hayro-interpret/src/color/device_n.rs": "4cb1222ce8542992b4db60ee54a03dca37c92f3af4c92586725aced523c7758a",
+      "vendor/hayro-interpret/src/color/device_rgb.rs": "a73816f3edd70366e3eb048014db212243ab2bcb4a01bbdab27216dfe2de82f8",
+      "vendor/hayro-interpret/src/color/icc.rs": "502ccad45f33666b0715fed997949c60f16ce80e4c0c3c19f00f28d1d7423398",
+      "vendor/hayro-interpret/src/color/indexed.rs": "49c454ef6c40efe67e6bcc8bf2baf9664256fc70e31e68bf9684f016f850dcc4",
+      "vendor/hayro-interpret/src/color/lab.rs": "660a30488c4b66ac4cbfc8fc1dcac349c7b5636f6e90cc7d9d9ed21ab584a3f5",
+      "vendor/hayro-interpret/src/color/mod.rs": "c123527a75e85a59efb1e11ec3a92375a551e74d856cba4359970e7775264bce",
+      "vendor/hayro-interpret/src/color/pattern.rs": "87f2102f88cb9d958b7b779614df0259ddc4fa875afcb15520c3e0c97347c316",
+      "vendor/hayro-interpret/src/color/separation.rs": "ccc044faa1cfd4d40f6ed332bd0a8eb8a1938c6952c715eea66c6c92b7db675b",
+      "vendor/hayro-interpret/src/context.rs": "b1e7fda02dfc09f8a32cbd80d212f714b1269b22aebcfd4d3832fe4fe7ed0f5b",
+      "vendor/hayro-interpret/src/convert.rs": "a361962285ef6153b4c10f75c8c7e31a2267b12481f85e5ff520915e79a6f0ba",
+      "vendor/hayro-interpret/src/device.rs": "fcc4a9a493fa981171b91971d7c64c95cf95f12078a3197e57599c1d25a2cabe",
+      "vendor/hayro-interpret/src/encode.rs": "f52a8151d0a66b5cc7725d30dedb4f66dc0ea7c62405a2db839a43e402e923e3",
+      "vendor/hayro-interpret/src/font/blob.rs": "ea2725bf74463cde5237801bb2b33c52556dc97a3f16224a2445177a893c42c0",
+      "vendor/hayro-interpret/src/font/cid.rs": "4b2ef3365250cb36a0a39a8f9d74890a16a6d11f4e0c25d8974dcf66afa0608e",
+      "vendor/hayro-interpret/src/font/generated/glyph_names.rs": "3ae9e18c10206ce893c50572c6a121db69c3f7f7c0f75ea9607b41b4c5d3dc4b",
+      "vendor/hayro-interpret/src/font/generated/mac_expert.rs": "8cee2c1e4957248931f35a813588417b34d6728e24d141e8023044f1bd33c157",
+      "vendor/hayro-interpret/src/font/generated/mac_os_roman.rs": "5c605359a58cedb98e9c68e09d0efab20b3298f78165bd6fa5448a95a2ffecb1",
+      "vendor/hayro-interpret/src/font/generated/mac_roman.rs": "0451e6ed0659cda339ef2202f1e4782cac0c4e3ec819446b33c8c5b47575c8e3",
+      "vendor/hayro-interpret/src/font/generated/metrics.rs": "2ec9e608573eda459de1e1d9bda3bb494315e36bee885acc88912a11fe0caa41",
+      "vendor/hayro-interpret/src/font/generated/mod.rs": "1f462b95c1b427704f34bbe42caca37134c14e0654b85f107a442b8bcc819773",
+      "vendor/hayro-interpret/src/font/generated/standard.rs": "9094acd2e4b0404104b48b46b28b34bf2a35ae938685ab4a4d2e17ab26bc999e",
+      "vendor/hayro-interpret/src/font/generated/symbol.rs": "3b0b7cc198c484fed14c867f033b82ff51257380dcaa72add3e87cd800afe615",
+      "vendor/hayro-interpret/src/font/generated/win_ansi.rs": "b9e4d4251a7c478c56c07ea445ebf179de6c0cbde1f50dff2b9ef9f3ae7f2139",
+      "vendor/hayro-interpret/src/font/generated/zapf_dings.rs": "b3ef29c609b22be4119b4f21a847c9bb7450e2d0155889d9590bca3835d0aba3",
+      "vendor/hayro-interpret/src/font/glyph_simulator.rs": "43f352a4b7ed8da35d556f65173248b14e9ee19137cc84429eb5dc30b5acd213",
+      "vendor/hayro-interpret/src/font/mod.rs": "cad144af20c08ef2206880c4e4cb25f3b3014c6fe2f675951d6dd8916f578623",
+      "vendor/hayro-interpret/src/font/outline.rs": "2462d9ae4008c620afb47103bfa55362e75d84a28cb418240439b147de4ada8c",
+      "vendor/hayro-interpret/src/font/standard_font.rs": "2c62a22639332fbe4a92b5c63978b357ea043e28e503415104919aeba04679d2",
+      "vendor/hayro-interpret/src/font/true_type.rs": "7d9febc0a38d40142cd9ee150cc9f9e8f0a8008fb5d03ee617cce4bfe1b4f199",
+      "vendor/hayro-interpret/src/font/type1.rs": "dbbdf04dc078db438be956e9f37377c2409d6a7deea786142c7cae0080bc1ee9",
+      "vendor/hayro-interpret/src/font/type3.rs": "273c39762471d7dfbca8dcb63af597f2327bce7a38e549152af0f429924f54d9",
+      "vendor/hayro-interpret/src/function/mod.rs": "2e3c2873eb8d49545b14ca56f0d85472b541051950b49d6956c3c822116717f9",
+      "vendor/hayro-interpret/src/function/type0.rs": "40a7c0edeb4684228f933a6e173efbece58483ba34a1b33dc141e945c6048738",
+      "vendor/hayro-interpret/src/function/type2.rs": "319e245f1495033799a86c8861cde2b760b28c5854f890b6f500a4bca00588fe",
+      "vendor/hayro-interpret/src/function/type3.rs": "825c72e8c82a8aabeab99b6755e6c5a7cce99b4b2ce195ac42d9eb4b8946048b",
+      "vendor/hayro-interpret/src/function/type4.rs": "65ce22688d6ecd9397f0992f6ac6aad0f4488e7fa6bdff7b987b04a8c2cdc9ec",
+      "vendor/hayro-interpret/src/gradient.rs": "c03a77ca88687e41f5c2cbca74303dd2b9428e6e1049fbef7189777f1764cde3",
+      "vendor/hayro-interpret/src/interpret/mod.rs": "9b5e6e0c17a4ce8c3908b1f67d8d39ab9f92d0f61553cb34138ccb4992d0c3b8",
+      "vendor/hayro-interpret/src/interpret/path.rs": "11a90f0b21c0ef59b1ab8ea241ec41910490daeccbb2f221d501aff3137871d8",
+      "vendor/hayro-interpret/src/interpret/state.rs": "0d6df0c887e46f2cdfac4e04952f9d2a6ad46f995f16ada9332e86a27966b4eb",
+      "vendor/hayro-interpret/src/interpret/text.rs": "174f923b8dbdb163a818a48f8a2ce25eaa2b4ab25e433ede70011a91e8e3b312",
+      "vendor/hayro-interpret/src/lib.rs": "454a13ed2075358fcdf9313bf29f07622c9dfb72b6cee611b2b82e66c06e3952",
+      "vendor/hayro-interpret/src/log.rs": "f5cbe9ee0319d1770e1a12dee4af754937effb3b6fe1780f687f2ff57bbf60e1",
+      "vendor/hayro-interpret/src/ocg.rs": "3f18f8fe93626459d2a87c061df351a4de4c280ff564fa5cd3ff8f41bda399a5",
+      "vendor/hayro-interpret/src/pattern.rs": "c0d201f12cd8dd4d96f3d71feab85f26914f94c0bca60837084214bf57f8cc53",
+      "vendor/hayro-interpret/src/shading.rs": "924e83417d7098f2267a7fbaa0c7571dee7798272504d230e76a886892d39667",
+      "vendor/hayro-interpret/src/types.rs": "0a7bb3de6daa9242e66f6e2d1479905b4de13751330d9cee9054113d9bafe959",
+      "vendor/hayro-interpret/src/util.rs": "0d7977b7c7aa009b18cb189b4c8f9932c42c2813634d9124165cba7ec7bb77eb",
+      "vendor/hayro-interpret/src/x_object/decode/image.rs": "8b2dabbdb169421ded0e3b9c5c1792d09d9d6e9c5ce3575d90203965616028a8",
+      "vendor/hayro-interpret/src/x_object/decode/mask.rs": "d1ffae4b2cbae93c0ed2928b6921b083d00f4d3bd23b918110a81dc744cd0869",
+      "vendor/hayro-interpret/src/x_object/decode/mod.rs": "e84e275d6e0ba425fc5e1a4af39cb638b06bdd00b6a4b06117b2d479f57c1702",
+      "vendor/hayro-interpret/src/x_object/form.rs": "d70464aaea7ed18c649b7bd74b6ad71c10cae566457a9cd04fc262fecdcf006a",
+      "vendor/hayro-interpret/src/x_object/image.rs": "de758cba0791aaef1117a14864967055358ac9d2fc24d83f40b4721c68282c28",
+      "vendor/hayro-interpret/src/x_object/mod.rs": "35fc1d34e944f577f42153cece19b1f1287f891454ab511a0763fdbb7196843c",
+      "vendor/hayro-interpret/src/x_object/soft_mask.rs": "13879ffe074e858cabbe92cd013c34c188ba493fd43cd9d7ab43066c6dc8e928"
     }
   },
   "reference_tools": {
     "pdfinfo": {
-      "path": "/private/tmp/pdf-editor-poppler-reference-extended-20261012/bin/pdfinfo",
-      "sha256": "cc53a2ce6379c1a947b2619650a65add96069a202aa2e2b798eb8f979647bd2f",
+      "path": "/private/tmp/pdf-editor-poppler-reference-images-20261012/bin/pdfinfo",
+      "sha256": "67d11de2d75fc4cb99b47467ceadd88d2050f040db6125c913e35c7b1abb983d",
       "version": "pdfinfo version 26.10.0"
     },
     "pdftotext": {
-      "path": "/private/tmp/pdf-editor-poppler-reference-extended-20261012/bin/pdftotext",
-      "sha256": "b9e0904a805b459cb027da6c771bc54afd86388883c1f2f2c26c35024fe35b5f",
+      "path": "/private/tmp/pdf-editor-poppler-reference-images-20261012/bin/pdftotext",
+      "sha256": "230373ba8de4fbbc0334288d4edf426be2719ced492eb819d614221283bef033",
       "version": "pdftotext version 26.10.0"
     },
     "qpdf": {
@@ -2314,6 +2427,6 @@
     "passed": 44,
     "skipped": 0
   },
-  "timestamp_unix_seconds": 1791834603,
-  "total_elapsed_seconds": 13.881673875
+  "timestamp_unix_seconds": 1791838866,
+  "total_elapsed_seconds": 14.120080375
 }
