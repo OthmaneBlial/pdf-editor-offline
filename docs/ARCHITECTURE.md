@@ -14,11 +14,18 @@ complete memory/CPU sandbox. Parsing still occurs in-process; fuzzing and worker
 process isolation remain hardening gates. Rendering has independent pixel limits.
 
 New-copy saves use a same-directory temporary file, file fsync, strict reopening
-and page/object-count verification before no-clobber publication. Existing paths
+and page/logical-object-graph verification before no-clobber publication. Existing paths
 are never overwritten. Power-loss durability of directory entries and crash
 recovery are not yet established. Full rewrites of signed or encrypted inputs
 are refused until signature-safe saving and encrypted export are implemented.
 No JavaScript or embedded action is executed. No redaction is claimed.
+
+Modern object/xref streams are serialization carriers, so their replacement is
+allowed while logical object IDs/content and document trailer references must
+survive. Stream length and numeric/string representation may normalize without
+semantic loss; references to a discarded carrier cause refusal. Reopened page
+information includes CropBox as well as MediaBox and rotation. Tests include
+modern object streams, crop round trips and same-count content corruption.
 
 Page-tree validation checks every branch's declared count, parent identity,
 cycles and shared leaves. The signature scan includes nested direct dictionaries,

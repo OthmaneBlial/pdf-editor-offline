@@ -4,6 +4,7 @@
 mod error;
 mod inspect;
 mod pages;
+mod save;
 mod structure;
 mod text;
 
@@ -24,6 +25,7 @@ pub const MAX_OBJECTS: usize = 1_000_000;
 pub struct PageInfo {
     pub number: u32,
     pub media_box: [f32; 4],
+    pub crop_box: [f32; 4],
     pub rotation: i64,
 }
 
@@ -99,6 +101,12 @@ impl PdfDocument {
             .enumerate()
             .map(|(index, id)| {
                 let media_box = structure::page_box(&self.document, *id, b"MediaBox")?;
+                let crop_box =
+                    if structure::inherited_raw(&self.document, *id, b"CropBox")?.is_some() {
+                        structure::page_box(&self.document, *id, b"CropBox")?
+                    } else {
+                        media_box
+                    };
                 let rotation = structure::inherited(&self.document, *id, b"Rotate")?
                     .map(Object::as_i64)
                     .transpose()?
@@ -109,6 +117,7 @@ impl PdfDocument {
                 Ok(PageInfo {
                     number: index as u32 + 1,
                     media_box,
+                    crop_box,
                     rotation: rotation.rem_euclid(360),
                 })
             })
@@ -227,11 +236,7 @@ impl PdfDocument {
                 "page structure changed during serialization",
             ));
         }
-        if reopened.document.objects.len() != self.document.objects.len() {
-            return Err(Error::Verification(
-                "object count changed during serialization",
-            ));
-        }
+        save::verify_objects(&self.document, &reopened.document)?;
         temporary.persist_noclobber(output).map_err(|error| {
             if error.error.kind() == std::io::ErrorKind::AlreadyExists {
                 Error::OutputExists(output.to_owned())

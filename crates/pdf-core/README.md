@@ -28,7 +28,7 @@ interpretation has separate stream, recursion, work and text budgets.
 
 Saving refuses encrypted inputs and signature fields, including empty fields.
 It creates and fsyncs a same-directory temporary copy, reopens it and verifies
-page structure/object count, then publishes without replacing an existing path.
+page geometry and the logical object graph, then publishes without replacing an existing path.
 Inputs, existing outputs and symlinks are preserved. This is a full rewrite,
 not an incremental update. It retains unreferenced objects and is **not secure
 deletion, sanitization or redaction**. Directory fsync, file locking, recovery,
@@ -43,6 +43,13 @@ objects remain in output. Crop only changes visibility, and none of these
 operations promises sensitive-content removal. Failed operations are transactional.
 Direct inherited resource dictionaries are moved into a shared indirect object
 before rebuilding page trees, avoiding one large resource copy per page.
+
+Save verification permits re-encoding xref/object-stream containers and stream
+length representation while comparing logical objects, stream bytes and document
+trailer references. References to discarded containers are refused. Numeric/string
+serialization normalization is compared semantically without rounding large
+integers. CropBox is included in reopen verification. This supports modern
+object-stream inputs without treating container count changes as content loss.
 
 Tests reuse synthetic fixtures and the committed Trust Lab pages, checking
 catalog/bookmark/form/attachment/layer preservation on rotation, failed edits,
