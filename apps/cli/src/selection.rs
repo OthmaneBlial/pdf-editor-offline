@@ -2,6 +2,14 @@ use pdf_core::{Error, MAX_PAGES, Result};
 use std::collections::BTreeSet;
 
 pub fn parse(selection: Option<&str>, count: usize) -> Result<Vec<u32>> {
+    parse_inner(selection, count, false)
+}
+
+pub fn parse_unique(selection: &str, count: usize) -> Result<Vec<u32>> {
+    parse_inner(Some(selection), count, true)
+}
+
+fn parse_inner(selection: Option<&str>, count: usize, reject_duplicates: bool) -> Result<Vec<u32>> {
     let Some(selection) = selection else {
         return Ok((1..=count as u32).collect());
     };
@@ -25,6 +33,8 @@ pub fn parse(selection: Option<&str>, count: usize) -> Result<Vec<u32>> {
         for page in first..=last {
             if seen.insert(page) {
                 pages.push(page);
+            } else if reject_duplicates {
+                return Err(Error::Pages("page selection contains duplicates"));
             }
         }
     }
@@ -43,5 +53,12 @@ mod tests {
         for value in ["", "0", "4", "2-1", "1-999999999", "1--2", "one", "1,"] {
             assert!(parse(Some(value), 3).is_err(), "{value}");
         }
+    }
+
+    #[test]
+    fn organization_selections_preserve_order_and_refuse_duplicates() {
+        assert_eq!(parse_unique("3,1-2", 3).ok(), Some(vec![3, 1, 2]));
+        assert!(parse_unique("1,1,2,3", 3).is_err());
+        assert!(parse_unique("1-2,2", 3).is_err());
     }
 }

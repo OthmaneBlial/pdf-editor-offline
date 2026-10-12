@@ -58,6 +58,70 @@ enum Command {
         #[arg(long)]
         dry_run: bool,
     },
+    /// Reverse every page while retaining document-level structures.
+    Reverse {
+        input: PathBuf,
+        #[arg(short, long)]
+        output: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Reorder every page exactly once in the supplied order.
+    Reorder {
+        input: PathBuf,
+        #[arg(long, help = "Complete one-based permutation, e.g. 3,1-2")]
+        order: String,
+        #[arg(short, long)]
+        output: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Set the CropBox in PDF user-space points; underlying content remains.
+    Crop {
+        input: PathBuf,
+        #[arg(long)]
+        pages: Option<String>,
+        #[arg(long, required = true, num_args = 4, value_names = ["X0", "Y0", "X1", "Y1"], allow_hyphen_values = true)]
+        rectangle: Vec<f32>,
+        #[arg(short, long)]
+        output: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Insert a blank before a one-based position; count + 1 appends.
+    InsertBlank {
+        input: PathBuf,
+        #[arg(long)]
+        position: u32,
+        #[arg(long, default_value_t = 612.0, allow_hyphen_values = true)]
+        width: f32,
+        #[arg(long, default_value_t = 792.0, allow_hyphen_values = true)]
+        height: f32,
+        #[arg(short, long)]
+        output: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Save selected pages in supplied order; complex structures may be refused.
+    ExtractPages {
+        input: PathBuf,
+        #[arg(long)]
+        pages: String,
+        #[arg(short, long)]
+        output: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Remove selected pages; this does not securely erase their content.
+    DeletePages {
+        input: PathBuf,
+        #[arg(long)]
+        pages: String,
+        #[arg(short, long)]
+        output: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Compare page geometry and extracted text (not a visual/privacy proof).
     Compare { before: PathBuf, after: PathBuf },
     /// Search extracted text; literal, case-sensitive, no OCR or hidden-content proof.
@@ -109,6 +173,106 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
                 json!({ "operation": "compress", "output": output, "dry_run": dry_run, "lossless_stream_compression": true }),
             )
         }
+        Command::Reverse {
+            input,
+            output,
+            dry_run,
+        } => {
+            let mut document = open(input)?;
+            document.reverse()?;
+            if !dry_run {
+                document.save_new(output)?;
+            }
+            Ok(
+                json!({"operation": "reverse", "page_count": document.page_count(), "output": output, "dry_run": dry_run}),
+            )
+        }
+        Command::Reorder {
+            input,
+            order,
+            output,
+            dry_run,
+        } => {
+            let mut document = open(input)?;
+            let order = selection::parse_unique(order, document.page_count())?;
+            document.reorder(&order)?;
+            if !dry_run {
+                document.save_new(output)?;
+            }
+            Ok(
+                json!({"operation": "reorder", "order": order, "output": output, "dry_run": dry_run}),
+            )
+        }
+        Command::Crop {
+            input,
+            pages,
+            rectangle,
+            output,
+            dry_run,
+        } => {
+            let mut document = open(input)?;
+            let pages = selection::parse(pages.as_deref(), document.page_count())?;
+            let rectangle: [f32; 4] = rectangle
+                .as_slice()
+                .try_into()
+                .map_err(|_| Error::Pages("crop needs exactly four coordinates"))?;
+            document.crop(&pages, rectangle)?;
+            if !dry_run {
+                document.save_new(output)?;
+            }
+            Ok(
+                json!({"operation": "crop", "pages": pages, "rectangle": rectangle, "underlying_content_retained": true, "output": output, "dry_run": dry_run}),
+            )
+        }
+        Command::InsertBlank {
+            input,
+            position,
+            width,
+            height,
+            output,
+            dry_run,
+        } => {
+            let mut document = open(input)?;
+            document.insert_blank(*position, *width, *height)?;
+            if !dry_run {
+                document.save_new(output)?;
+            }
+            Ok(
+                json!({"operation": "insert-blank", "position": position, "width": width, "height": height, "page_count": document.page_count(), "output": output, "dry_run": dry_run}),
+            )
+        }
+        Command::ExtractPages {
+            input,
+            pages,
+            output,
+            dry_run,
+        } => {
+            let document = open(input)?;
+            let pages = selection::parse_unique(pages, document.page_count())?;
+            let extracted = document.extract_pages(&pages)?;
+            if !dry_run {
+                extracted.save_new(output)?;
+            }
+            Ok(
+                json!({"operation": "extract-pages", "pages": pages, "output": output, "dry_run": dry_run, "privacy_operation": false}),
+            )
+        }
+        Command::DeletePages {
+            input,
+            pages,
+            output,
+            dry_run,
+        } => {
+            let mut document = open(input)?;
+            let pages = selection::parse_unique(pages, document.page_count())?;
+            document.delete_pages(&pages)?;
+            if !dry_run {
+                document.save_new(output)?;
+            }
+            Ok(
+                json!({"operation": "delete-pages", "pages": pages, "page_count": document.page_count(), "output": output, "dry_run": dry_run, "secure_deletion": false}),
+            )
+        }
         Command::Compare { before, after } => {
             let (before, after) = (open(before)?, open(after)?);
             Ok(
@@ -136,7 +300,7 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
         }
         Command::Capabilities => Ok(
             json!({ "runtime": "rust-native", "version": env!("CARGO_PKG_VERSION"), "migration_preview": true,
-            "commands": ["info", "inspect-security", "extract-text", "rotate", "compress", "search", "compare", "capabilities", "completions"],
+            "commands": ["info", "inspect-security", "extract-text", "rotate", "compress", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
             "saving": "verified_new_copy_no_clobber", "signed_inputs": "read_only", "encrypted_inputs": "read_only",
             "unmigrated": ["complete_page_organization", "existing_content_editing", "forms", "cryptographic_signing", "secure_redaction", "sanitization", "ocr", "office_conversion", "recovery", "wasm"] }),
         ),

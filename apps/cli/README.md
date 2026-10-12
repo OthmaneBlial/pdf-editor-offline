@@ -10,6 +10,12 @@ cargo build --release -p pdf-editor-offline-cli
 ./target/release/pdf-editor-offline extract-text examples/sample_pdfs/demo-basic.pdf
 ./target/release/pdf-editor-offline rotate input.pdf --pages 1-3 --degrees 90 -o rotated.pdf
 ./target/release/pdf-editor-offline compress input.pdf -o compressed.pdf --dry-run
+./target/release/pdf-editor-offline reverse input.pdf -o reversed.pdf
+./target/release/pdf-editor-offline reorder input.pdf --order 3,1-2 -o reordered.pdf
+./target/release/pdf-editor-offline crop input.pdf --pages 1 --rectangle 10 20 500 700 -o cropped.pdf
+./target/release/pdf-editor-offline insert-blank input.pdf --position 2 --width 612 --height 792 -o inserted.pdf
+./target/release/pdf-editor-offline extract-pages input.pdf --pages 3,1-2 -o selected.pdf
+./target/release/pdf-editor-offline delete-pages input.pdf --pages 2 -o remaining.pdf
 ./target/release/pdf-editor-offline search input.pdf "literal search"
 ./target/release/pdf-editor-offline compare old.pdf new.pdf --json
 ./target/release/pdf-editor-offline capabilities --json
@@ -21,6 +27,22 @@ numbers. Duplicate pages in rotation/extraction text selections are deduplicated
 in caller order. Degrees are additive (90, -90, 180, etc.). Saves always require
 a new output path, retain originals, and refuse signed/encrypted inputs.
 Dry-run validates the document edit without creating output.
+
+`reorder --order` requires every page exactly once, in the supplied order; it does
+not sort or silently remove duplicates. `extract-pages` also preserves supplied
+order. Reorder, page extraction and deletion refuse duplicate selections. Reverse
+and reorder retain page object identities and document-level structures; page
+labels are refused until remapping exists. Inserting at `page_count + 1` appends;
+blank dimensions default to 612×792 PDF points.
+
+Crop coordinates are unrotated PDF user-space points, ordered `X0 Y0 X1 Y1`, and
+must fit inside each selected page's MediaBox. Crop only changes the visible box;
+underlying content remains recoverable. Extraction/deletion refuse catalogs or
+pages with bookmarks, forms, annotations, layers, tags, actions or references that
+are not safely remapped by the current core. They are not privacy operations:
+unreachable content may remain in the saved copy. Deleting every page is refused.
+All six organization commands support `--dry-run`, `--json` and the global
+`--password-stdin` policy; every actual save requires a fresh output path.
 
 `--password-stdin` reads at most 4096 UTF-8 bytes and strips one trailing newline;
 keep passwords out of arguments, shell history and environment variables.
