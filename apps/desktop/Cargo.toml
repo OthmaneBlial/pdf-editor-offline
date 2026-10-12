@@ -13,6 +13,9 @@ rfd = "0.15.4"
 pdf-core = { path = "../../crates/pdf-core" }
 pdf-render = { path = "../../crates/pdf-render" }
 
+[target.'cfg(target_os = "macos")'.dependencies]
+winit = { version = "0.30.13", default-features = false, features = ["rwh_06"] }
+
 [dev-dependencies]
 lopdf = { version = "0.45.0", default-features = false }
 tempfile = "3.27"

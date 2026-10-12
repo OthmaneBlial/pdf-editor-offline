@@ -1,0 +1,105 @@
+use super::{Action, EditorApp};
+use crate::state::Tab;
+use eframe::egui;
+
+impl EditorApp {
+    pub(super) fn command_palette(&mut self, context: &egui::Context) {
+        if !self.palette_open || self.close_target.is_some() {
+            return;
+        }
+        let mut execute = None;
+        let mut open = true;
+        egui::Window::new("Commands · Command/Ctrl+K")
+            .open(&mut open)
+            .collapsible(false)
+            .resizable(false)
+            .anchor(egui::Align2::CENTER_TOP, egui::vec2(0.0, 80.0))
+            .default_width(420.0)
+            .show(context, |ui| {
+                let query = ui.add(
+                    egui::TextEdit::singleline(&mut self.palette_query)
+                        .hint_text("Find a command…")
+                        .char_limit(128),
+                );
+                if self.palette_focus {
+                    query.request_focus();
+                    self.palette_focus = false;
+                }
+                let needle = self.palette_query.to_lowercase();
+                let selected = self.selected();
+                let has_document = selected.is_some();
+                let editable = !self.busy && selected.is_some_and(Tab::editable);
+                let commands = [
+                    ("Open PDF", Action::Open, !self.busy && self.tabs.len() < 16),
+                    ("Save As new PDF", Action::Save, editable),
+                    ("Search document text", Action::Search, has_document),
+                    ("Read extracted page text", Action::PageText, has_document),
+                    ("Rotate current page left", Action::Rotate(-90), editable),
+                    ("Rotate current page right", Action::Rotate(90), editable),
+                    (
+                        "Undo",
+                        Action::Undo,
+                        !self.busy && selected.is_some_and(|tab| tab.status.can_undo),
+                    ),
+                    (
+                        "Redo",
+                        Action::Redo,
+                        !self.busy && selected.is_some_and(|tab| tab.status.can_redo),
+                    ),
+                    (
+                        "Previous page",
+                        Action::Previous,
+                        selected.is_some_and(|tab| tab.page > 0),
+                    ),
+                    (
+                        "Next page",
+                        Action::Next,
+                        selected.is_some_and(|tab| tab.page + 1 < tab.status.info.page_count),
+                    ),
+                    ("Restore actual size", Action::Zoom(1.0), has_document),
+                    ("Show or hide sidebar", Action::ToggleSidebar, true),
+                    ("Show or hide inspector", Action::ToggleInspector, true),
+                    ("Switch dark or light theme", Action::Theme, true),
+                    (
+                        "Close current PDF",
+                        Action::Close,
+                        !self.busy && has_document,
+                    ),
+                    ("Quit application", Action::Quit, true),
+                ];
+                let mut first = None;
+                egui::ScrollArea::vertical()
+                    .max_height(380.0)
+                    .show(ui, |ui| {
+                        for (label, action, enabled) in commands {
+                            if label.to_lowercase().contains(&needle) {
+                                if enabled && first.is_none() {
+                                    first = Some(action);
+                                }
+                                if ui
+                                    .add_enabled(
+                                        enabled,
+                                        egui::Button::new(label)
+                                            .min_size(egui::vec2(ui.available_width(), 28.0)),
+                                    )
+                                    .clicked()
+                                {
+                                    execute = Some(action);
+                                }
+                            }
+                        }
+                    });
+                if ui.input(|input| input.key_pressed(egui::Key::Enter)) {
+                    execute = first;
+                }
+            });
+        if context.input(|input| input.key_pressed(egui::Key::Escape)) {
+            open = false;
+        }
+        self.palette_open = open;
+        if let Some(action) = execute {
+            self.palette_open = false;
+            self.perform(action, context);
+        }
+    }
+}

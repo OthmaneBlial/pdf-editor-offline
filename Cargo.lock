@@ -2702,6 +2702,7 @@ dependencies = [
  "pdf-render",
  "rfd",
  "tempfile",
+ "winit",
 ]
 
 [[package]]

@@ -1,6 +1,15 @@
 use crate::state::Tab;
-use crate::worker::{Command, Edit, Event, Worker};
+use crate::worker::{Command, Edit, Event, TaskKey, Worker};
 use eframe::egui;
+
+mod canvas;
+mod dialogs;
+mod navigation;
+mod palette;
+mod sidebar;
+
+const MAIN_PIXEL_BUDGET: usize = 64 * 1024 * 1024;
+const _: () = assert!(pdf_render::MAX_PIXELS * 4 <= MAIN_PIXEL_BUDGET as u64);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum CloseTarget {
@@ -8,6 +17,7 @@ enum CloseTarget {
     Exit,
 }
 
+#[derive(Clone, Copy)]
 enum Action {
     Open,
     Save,
@@ -16,8 +26,24 @@ enum Action {
     Redo,
     Previous,
     Next,
+    Page(usize),
     Zoom(f32),
     Close,
+    Search,
+    PageText,
+    Palette,
+    ToggleSidebar,
+    ToggleInspector,
+    Theme,
+    Quit,
+}
+
+#[derive(Default, Clone, Copy, PartialEq, Eq)]
+enum SidebarMode {
+    #[default]
+    Pages,
+    Search,
+    Text,
 }
 
 pub struct EditorApp {
@@ -30,10 +56,18 @@ pub struct EditorApp {
     close_target: Option<CloseTarget>,
     close_after_save: Option<u64>,
     allow_exit: bool,
+    show_sidebar: bool,
+    show_inspector: bool,
+    show_page_text: bool,
+    sidebar_mode: SidebarMode,
+    palette_open: bool,
+    palette_query: String,
+    palette_focus: bool,
 }
 
 impl EditorApp {
     pub fn new(context: &eframe::CreationContext<'_>) -> Self {
+        crate::fonts::configure(&context.egui_ctx);
         context.egui_ctx.set_visuals(egui::Visuals::dark());
         Self {
             worker: Worker::new(context.egui_ctx.clone()),
@@ -45,6 +79,13 @@ impl EditorApp {
             close_target: None,
             close_after_save: None,
             allow_exit: false,
+            show_sidebar: true,
+            show_inspector: true,
+            show_page_text: false,
+            sidebar_mode: SidebarMode::Pages,
+            palette_open: false,
+            palette_query: String::new(),
+            palette_focus: false,
         }
     }
 
@@ -73,11 +114,14 @@ impl EditorApp {
     }
 
     fn poll(&mut self, context: &egui::Context) {
+        self.sync_display_ratio(context.pixels_per_point());
         while let Ok(event) = self.worker.events.try_recv() {
             self.busy = false;
             match event {
                 Event::Loaded { id, path, status } => {
-                    self.tabs.push(Tab::new(id, path, status));
+                    let mut tab = Tab::new(id, path, status);
+                    tab.set_device_ratio(context.pixels_per_point());
+                    self.tabs.push(tab);
                     self.active = Some(id);
                     self.message = "PDF opened locally.".into();
                 }
@@ -102,22 +146,74 @@ impl EditorApp {
                     }
                 }
                 Event::Rendered { key, image } => {
-                    if let Some(tab) = self
+                    if self
                         .tabs
-                        .iter_mut()
-                        .find(|tab| tab.id == key.tab && tab.accepts(key))
+                        .iter()
+                        .any(|tab| tab.id == key.tab && tab.accepts(key))
                     {
+                        let mut used = self
+                            .tabs
+                            .iter()
+                            .filter(|tab| tab.id != key.tab)
+                            .filter_map(|tab| tab.texture.as_ref())
+                            .map(texture_bytes)
+                            .sum::<usize>();
+                        for tab in self.tabs.iter_mut().filter(|tab| tab.id != key.tab) {
+                            if used + image.rgba.len() <= MAIN_PIXEL_BUDGET {
+                                break;
+                            }
+                            if let Some(texture) = tab.texture.take() {
+                                used -= texture_bytes(&texture);
+                                tab.needs_render = true;
+                            }
+                        }
                         let image = egui::ColorImage::from_rgba_unmultiplied(
                             [image.width as usize, image.height as usize],
                             &image.rgba,
                         );
-                        tab.texture = Some(context.load_texture(
-                            format!("pdf-{}", key.tab),
-                            image,
-                            egui::TextureOptions::LINEAR,
-                        ));
-                        tab.error = None;
-                        self.message = "Preview rendered in Rust. No remote service.".into();
+                        let mut limited = false;
+                        if let Some(tab) = self.tabs.iter_mut().find(|tab| tab.id == key.tab) {
+                            limited = tab.raster_plan().is_ok_and(|plan| plan.limited);
+                            tab.texture = Some(context.load_texture(
+                                format!("pdf-{}", key.tab),
+                                image,
+                                egui::TextureOptions::LINEAR,
+                            ));
+                            tab.error = None;
+                        }
+                        self.message = if limited {
+                            "Preview resolution limited. Document zoom remains unchanged."
+                        } else {
+                            "Preview rendered locally in Rust."
+                        }
+                        .into();
+                    }
+                }
+                Event::Text(text) => {
+                    if let Some(tab) = self.tabs.iter_mut().find(|tab| tab.text_key() == text.key) {
+                        tab.text = Some(text);
+                        tab.text_error = None;
+                    }
+                }
+                Event::Searched {
+                    key,
+                    page,
+                    hit,
+                    text_truncated,
+                } => {
+                    if let Some(tab) = self
+                        .tabs
+                        .iter_mut()
+                        .find(|tab| tab.id == key.tab && tab.status.revision == key.revision)
+                        && tab.search.accept(
+                            key,
+                            page,
+                            hit,
+                            text_truncated,
+                            tab.status.info.page_count,
+                        )
+                    {
+                        self.message = tab.search.completion_message();
                     }
                 }
                 Event::Closed(id) => {
@@ -127,16 +223,26 @@ impl EditorApp {
                     }
                     self.message = "PDF closed.".into();
                 }
-                Event::Error {
-                    id,
-                    render_key,
-                    message,
-                } => {
+                Event::Error { id, task, message } => {
                     self.close_after_save = None;
                     if let Some(tab) = self.tabs.iter_mut().find(|tab| tab.id == id) {
-                        if render_key.is_none_or(|key| tab.accepts(key)) {
-                            tab.error = Some(message.clone());
-                            self.message = message;
+                        match task {
+                            Some(TaskKey::Render(key)) if tab.accepts(key) => {
+                                tab.error = Some(message.clone());
+                                self.message = message;
+                            }
+                            Some(TaskKey::Text(key)) if tab.text_key() == key => {
+                                tab.text_error = Some(message);
+                            }
+                            Some(TaskKey::Search(key)) if tab.search.key == Some(key) => {
+                                tab.search.running = false;
+                                tab.search.error = Some(message);
+                            }
+                            None => {
+                                tab.error = Some(message.clone());
+                                self.message = message;
+                            }
+                            _ => {}
                         }
                     } else {
                         self.message = message;
@@ -144,16 +250,55 @@ impl EditorApp {
                 }
             }
         }
-        if !self.busy
-            && let Some(tab) = self.selected_mut().filter(|tab| tab.needs_render)
-        {
+        self.schedule();
+    }
+
+    fn schedule(&mut self) {
+        if self.busy || self.close_target.is_some() {
+            return;
+        }
+        if let Some(tab) = self.selected_mut().filter(|tab| tab.needs_render) {
+            let key = match tab.key() {
+                Ok(key) => key,
+                Err(message) => {
+                    tab.error = Some(message.into());
+                    tab.needs_render = false;
+                    self.message = message.into();
+                    return;
+                }
+            };
             tab.needs_render = false;
-            let key = tab.key();
             if !self.send(Command::Render(key), "Rendering page in Rust…")
                 && let Some(tab) = self.selected_mut()
             {
                 tab.needs_render = true;
             }
+            return;
+        }
+        if (self.show_page_text || (self.show_sidebar && self.sidebar_mode == SidebarMode::Text))
+            && let Some(tab) = self.selected_mut().filter(|tab| tab.needs_text)
+        {
+            let key = tab.text_key();
+            tab.needs_text = false;
+            if !self.send(Command::Text(key), "Extracting page text…")
+                && let Some(tab) = self.selected_mut()
+            {
+                tab.needs_text = true;
+            }
+            return;
+        }
+        if let Some(tab) = self.selected().filter(|tab| tab.search.running)
+            && let Some(key) = tab.search.key
+        {
+            self.send(
+                Command::Search {
+                    key,
+                    page: tab.search.next_page,
+                    query: tab.search.query.clone(),
+                    match_case: tab.search.query_case,
+                },
+                "Searching local page text…",
+            );
         }
     }
 
@@ -168,6 +313,12 @@ impl EditorApp {
             let id = self.next_id;
             self.next_id += 1;
             self.send(Command::Load { id, path }, "Opening and validating PDF…");
+        }
+    }
+
+    fn sync_display_ratio(&mut self, ratio: f32) {
+        for tab in &mut self.tabs {
+            tab.set_device_ratio(ratio);
         }
     }
 
@@ -211,7 +362,18 @@ impl EditorApp {
         !self.allow_exit && (self.busy || self.tabs.iter().any(|tab| tab.status.dirty))
     }
 
-    fn action(&mut self, action: Action) {
+    fn request_exit(&mut self, context: &egui::Context) {
+        if self.needs_exit_guard() {
+            context.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+            self.close_target = Some(CloseTarget::Exit);
+            self.palette_open = false;
+        } else {
+            self.allow_exit = true;
+            context.send_viewport_cmd(egui::ViewportCommand::Close);
+        }
+    }
+
+    fn perform(&mut self, action: Action, context: &egui::Context) {
         match action {
             Action::Open => self.open(),
             Action::Save => {
@@ -232,6 +394,11 @@ impl EditorApp {
             Action::Next => {
                 if let Some(tab) = self.selected_mut() {
                     tab.set_page(tab.page + 1);
+                }
+            }
+            Action::Page(page) => {
+                if let Some(tab) = self.selected_mut() {
+                    tab.set_page(page);
                 }
             }
             Action::Zoom(scale) => {
@@ -272,6 +439,30 @@ impl EditorApp {
                     );
                 }
             }
+            Action::Search => {
+                self.show_sidebar = true;
+                self.sidebar_mode = SidebarMode::Search;
+            }
+            Action::PageText => {
+                self.show_sidebar = true;
+                self.sidebar_mode = SidebarMode::Text;
+                self.show_page_text = true;
+            }
+            Action::Palette => {
+                self.palette_open = !self.palette_open;
+                self.palette_query.clear();
+                self.palette_focus = self.palette_open;
+            }
+            Action::ToggleSidebar => self.show_sidebar = !self.show_sidebar,
+            Action::ToggleInspector => self.show_inspector = !self.show_inspector,
+            Action::Theme => {
+                context.set_visuals(if context.global_style().visuals.dark_mode {
+                    egui::Visuals::light()
+                } else {
+                    egui::Visuals::dark()
+                });
+            }
+            Action::Quit => self.request_exit(context),
         }
     }
 
@@ -282,7 +473,15 @@ impl EditorApp {
         let shortcut = |key, modifiers| egui::KeyboardShortcut::new(modifiers, key);
         let wants_keyboard_input = context.egui_wants_keyboard_input();
         let action = context.input_mut(|input| {
-            if input.consume_shortcut(&shortcut(egui::Key::O, egui::Modifiers::COMMAND)) {
+            if input.consume_shortcut(&shortcut(egui::Key::Q, egui::Modifiers::COMMAND)) {
+                Some(Action::Quit)
+            } else if input.consume_shortcut(&shortcut(egui::Key::K, egui::Modifiers::COMMAND)) {
+                Some(Action::Palette)
+            } else if self.palette_open {
+                None
+            } else if input.consume_shortcut(&shortcut(egui::Key::F, egui::Modifiers::COMMAND)) {
+                Some(Action::Search)
+            } else if input.consume_shortcut(&shortcut(egui::Key::O, egui::Modifiers::COMMAND)) {
                 Some(Action::Open)
             } else if input.consume_shortcut(&shortcut(egui::Key::S, egui::Modifiers::COMMAND)) {
                 Some(Action::Save)
@@ -308,218 +507,31 @@ impl EditorApp {
             }
         });
         if let Some(action) = action {
-            self.action(action);
+            self.perform(action, context);
         }
     }
+}
 
-    fn toolbar(&mut self, ui: &mut egui::Ui) {
-        let mut action = None;
-        ui.horizontal_wrapped(|ui| {
-            ui.heading("PDF Editor Offline");
-            ui.separator();
-            if ui.add_enabled(!self.busy && self.tabs.len() < 16, egui::Button::new("Open PDF"))
-                .on_hover_text("Open a local PDF · Command/Ctrl+O · up to 16 tabs").clicked() { action = Some(Action::Open); }
-            let editable = self.selected().is_some_and(Tab::editable);
-            if ui.add_enabled(!self.busy && editable, egui::Button::new("Save As…"))
-                .on_hover_text("Create a new verified PDF · Command/Ctrl+S · existing files are never overwritten").clicked() { action = Some(Action::Save); }
-            if ui.add_enabled(!self.busy && self.selected().is_some_and(|tab| tab.status.can_undo), egui::Button::new("Undo"))
-                .on_hover_text("Command/Ctrl+Z · keeps up to 8 history entries").clicked() { action = Some(Action::Undo); }
-            if ui.add_enabled(!self.busy && self.selected().is_some_and(|tab| tab.status.can_redo), egui::Button::new("Redo"))
-                .on_hover_text("Command/Ctrl+Shift+Z").clicked() { action = Some(Action::Redo); }
-            ui.separator();
-            let dark = ui.visuals().dark_mode;
-            if ui.button(if dark { "Light theme" } else { "Dark theme" }).clicked() {
-                ui.ctx().set_visuals(if dark { egui::Visuals::light() } else { egui::Visuals::dark() });
-            }
-        });
-        if let Some(action) = action {
-            self.action(action);
-        }
-    }
-
-    fn tabs(&mut self, ui: &mut egui::Ui) {
-        let mut close = None;
-        egui::ScrollArea::horizontal()
-            .id_salt("document-tabs")
-            .show(ui, |ui| {
-                ui.horizontal(|ui| {
-                    for tab in &self.tabs {
-                        let title = format!(
-                            "{}{}",
-                            tab.title(),
-                            if tab.status.dirty { " *" } else { "" }
-                        );
-                        if ui
-                            .selectable_label(self.active == Some(tab.id), title)
-                            .on_hover_text(tab.path.display().to_string())
-                            .clicked()
-                        {
-                            self.active = Some(tab.id);
-                        }
-                        if ui
-                            .add_enabled(!self.busy, egui::Button::new("Close").small())
-                            .on_hover_text(format!("Close {}", tab.title()))
-                            .clicked()
-                        {
-                            close = Some(tab.id);
-                        }
-                        ui.separator();
-                    }
-                });
-            });
-        if let Some(id) = close {
-            self.request_close(id);
-        }
-    }
-
-    fn page_controls(&mut self, ui: &mut egui::Ui) {
-        let mut action = None;
-        if let Some(tab) = self.selected() {
-            ui.horizontal_wrapped(|ui| {
-                if ui
-                    .add_enabled(tab.page > 0, egui::Button::new("Previous page"))
-                    .clicked()
-                {
-                    action = Some(Action::Previous);
-                }
-                ui.label(format!(
-                    "Page {} / {}",
-                    tab.page + 1,
-                    tab.status.info.page_count
-                ));
-                if ui
-                    .add_enabled(
-                        tab.page + 1 < tab.status.info.page_count,
-                        egui::Button::new("Next page"),
-                    )
-                    .clicked()
-                {
-                    action = Some(Action::Next);
-                }
-                ui.separator();
-                if ui.button("Zoom out").clicked() {
-                    action = Some(Action::Zoom(tab.scale / 1.25));
-                }
-                ui.label(format!("{:.0}%", tab.scale * 100.0));
-                if ui.button("Zoom in").clicked() {
-                    action = Some(Action::Zoom(tab.scale * 1.25));
-                }
-                if ui.button("Actual size").clicked() {
-                    action = Some(Action::Zoom(1.0));
-                }
-                ui.separator();
-                if ui
-                    .add_enabled(
-                        !self.busy && tab.editable(),
-                        egui::Button::new("Rotate left"),
-                    )
-                    .clicked()
-                {
-                    action = Some(Action::Rotate(-90));
-                }
-                if ui
-                    .add_enabled(
-                        !self.busy && tab.editable(),
-                        egui::Button::new("Rotate right"),
-                    )
-                    .clicked()
-                {
-                    action = Some(Action::Rotate(90));
-                }
-            });
-            if !tab.editable() {
-                ui.label("Read only: editing and saving signed or encrypted PDFs is blocked to preserve document protection.");
-            }
-            ui.label("Preview may omit unsupported PDF features. Signing, password protection, OCR and format conversion are not available in this native milestone.");
-        }
-        if let Some(action) = action {
-            self.action(action);
-        }
-    }
-
-    fn close_dialog(&mut self, context: &egui::Context) {
-        let Some(target) = self.close_target else {
-            return;
-        };
-        egui::Window::new("Unsaved changes").collapsible(false).resizable(false)
-            .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO).show(context, |ui| {
-                if self.busy { ui.label("Wait for the document operation to finish before closing."); }
-                else {
-                    match target {
-                        CloseTarget::Tab(id) => {
-                            ui.label("This PDF has unsaved edits. Save a new file or discard the edits before closing.");
-                            ui.horizontal(|ui| {
-                                if ui.button("Save As…").clicked() { self.save_as(id, true); }
-                                if ui.button("Discard edits and close").clicked() {
-                                    self.close_target = None;
-                                    self.send(Command::Close(id), "Closing PDF…");
-                                }
-                                if ui.button("Keep editing").clicked() { self.close_target = None; }
-                            });
-                        }
-                        CloseTarget::Exit => {
-                            let dirty = self.tabs.iter().filter(|tab| tab.status.dirty).count();
-                            if dirty == 0 {
-                                ui.label("The operation finished. There are no unsaved edits.");
-                            } else {
-                                ui.label(format!("{dirty} PDF(s) have unsaved edits. Return to editing to Save As, or discard all edits and quit."));
-                            }
-                            ui.horizontal(|ui| {
-                                if ui.button("Return to editing").clicked() { self.close_target = None; }
-                                if ui.button(if dirty == 0 { "Quit" } else { "Discard edits and quit" }).clicked() {
-                                    self.allow_exit = true;
-                                    context.send_viewport_cmd(egui::ViewportCommand::Close);
-                                }
-                            });
-                        }
-                    }
-                }
-            });
-    }
+fn texture_bytes(texture: &egui::TextureHandle) -> usize {
+    let size = texture.size();
+    size[0] * size[1] * 4
 }
 
 impl eframe::App for EditorApp {
     fn logic(&mut self, context: &egui::Context, _frame: &mut eframe::Frame) {
         self.poll(context);
     }
-
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let context = ui.ctx().clone();
-        if context.input(|input| input.viewport().close_requested()) && self.needs_exit_guard() {
-            context.send_viewport_cmd(egui::ViewportCommand::CancelClose);
-            self.close_target = Some(CloseTarget::Exit);
+        self.sync_display_ratio(context.pixels_per_point());
+        if context.input(|input| input.viewport().close_requested()) && !self.allow_exit {
+            self.request_exit(&context);
         }
         self.shortcuts(&context);
-        ui.add_enabled_ui(self.close_target.is_none(), |ui| {
-        egui::Frame::central_panel(ui.style()).show(ui, |ui| {
-            self.toolbar(ui);
-            ui.separator();
-            self.tabs(ui);
-            self.page_controls(ui);
-            ui.separator();
-            ui.horizontal(|ui| {
-                if self.busy { ui.spinner(); }
-                ui.label(&self.message);
-            });
-            ui.separator();
-            if let Some(tab) = self.selected() {
-                if let Some(error) = &tab.error { ui.colored_label(ui.visuals().error_fg_color, error); }
-                egui::ScrollArea::both().id_salt(("pdf-page", tab.id)).show(ui, |ui| {
-                    if let Some(texture) = &tab.texture {
-                        let size = texture.size_vec2();
-                        ui.add(egui::Image::new((texture.id(), size)).alt_text(format!("PDF page {}. Raster preview; text is not exposed to assistive technology.", tab.page + 1)));
-                    } else if tab.error.is_none() { ui.label("Preparing local page preview…"); }
-                });
-            } else {
-                ui.add_space(70.0);
-                ui.heading("Your PDFs, on your computer.");
-                ui.label("Open a PDF to read pages, zoom, rotate, undo and save a new copy.");
-                ui.label("Native Rust engine · no account · no upload · original files preserved");
-                ui.add_space(16.0);
-                if ui.add_enabled(!self.busy, egui::Button::new("Open a local PDF")).clicked() { self.open(); }
-            }
+        ui.add_enabled_ui(self.close_target.is_none() && !self.palette_open, |ui| {
+            self.workstation(ui)
         });
-        });
+        self.command_palette(&context);
         self.close_dialog(&context);
     }
 }
@@ -529,12 +541,11 @@ mod tests {
     use super::*;
     use crate::state::DocumentStatus;
     use pdf_core::DocumentInfo;
-
     fn app() -> EditorApp {
-        let context = eframe::CreationContext::_new_kittest(egui::Context::default());
-        EditorApp::new(&context)
+        EditorApp::new(&eframe::CreationContext::_new_kittest(
+            egui::Context::default(),
+        ))
     }
-
     #[test]
     fn dirty_tab_close_and_exit_require_a_decision() {
         let mut app = app();
@@ -563,7 +574,6 @@ mod tests {
         app.tabs[0].status.dirty = false;
         assert!(!app.needs_exit_guard());
     }
-
     #[test]
     fn in_flight_operation_prevents_exit_until_completed() {
         let mut app = app();
@@ -574,5 +584,55 @@ mod tests {
         app.busy = true;
         app.allow_exit = true;
         assert!(!app.needs_exit_guard());
+    }
+
+    #[test]
+    fn theme_command_toggles_the_actual_visuals_in_both_directions() {
+        let context = eframe::CreationContext::_new_kittest(egui::Context::default());
+        let mut app = EditorApp::new(&context);
+        assert!(context.egui_ctx.global_style().visuals.dark_mode);
+        app.perform(Action::Theme, &context.egui_ctx);
+        assert!(!context.egui_ctx.global_style().visuals.dark_mode);
+        app.perform(Action::Theme, &context.egui_ctx);
+        assert!(context.egui_ctx.global_style().visuals.dark_mode);
+    }
+
+    #[test]
+    fn quit_action_closes_clean_apps_and_guards_dirty_or_busy_apps() {
+        let context = eframe::CreationContext::_new_kittest(egui::Context::default());
+        let mut clean = EditorApp::new(&context);
+        clean.perform(Action::Quit, &context.egui_ctx);
+        assert!(clean.allow_exit);
+        assert_eq!(clean.close_target, None);
+
+        let mut busy = EditorApp::new(&context);
+        busy.busy = true;
+        busy.perform(Action::Quit, &context.egui_ctx);
+        assert!(!busy.allow_exit);
+        assert_eq!(busy.close_target, Some(CloseTarget::Exit));
+
+        let mut dirty = EditorApp::new(&context);
+        dirty.tabs.push(Tab::new(
+            1,
+            "original.pdf".into(),
+            DocumentStatus {
+                info: DocumentInfo {
+                    version: "1.7".into(),
+                    page_count: 1,
+                    object_count: 5,
+                    encrypted: false,
+                    signature_fields: 0,
+                    pages: vec![],
+                },
+                revision: 1,
+                dirty: true,
+                can_undo: true,
+                can_redo: false,
+            },
+        ));
+        dirty.perform(Action::Quit, &context.egui_ctx);
+        assert!(!dirty.allow_exit);
+        assert_eq!(dirty.close_target, Some(CloseTarget::Exit));
+        assert!(dirty.tabs[0].status.dirty);
     }
 }

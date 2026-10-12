@@ -18,11 +18,42 @@ Real captures: [rotation/save](../screenshots/native/rotation-save-2026-10-12.pn
 and [unsaved guard](../screenshots/native/unsaved-guard-2026-10-12.png).
 The GUI binary used for these captures had SHA-256
 `94520ed1d82969d6a4041075b66da26df97a801650848b88783e8f07f7360038`.
-It precedes the later core resource/extraction fixes; the visible GUI is unchanged.
+It precedes the later core resource/extraction fixes and workstation redesign.
 The final workspace desktop build, seven state/history tests and strict Clippy
 also passed after those core fixes. Screenshots are not proof of other workflows.
 
 Not established: Windows/Linux GUI behavior, all renderer fidelity, VoiceOver
 document-text access, large-document responsiveness, multimonitor behavior,
 crash recovery, total hostile-input memory/time isolation or release packaging.
-The current simple workstation layout requires further design and feature work.
+
+## Workstation, search and Retina check
+
+The redesigned native preview was exercised on the same macOS host with the
+actual `trust_lab/corpus/v1/forms.pdf`. Literal `Synthetic` search found page 1,
+reported scanning 1/1, disabled Stop after completion and showed
+`Search complete: 1 matching page.` The result excerpt and accessibility tree
+contained the visible `✓`; the embedded fallback displayed the actual glyph.
+The Retina canvas was visibly sharp at 100%; zoom changed to 125% without changing
+document geometry. Physical 2× render sizing also has an automated real-PDF test.
+
+Command+K opened the actual palette. Filtering and Enter executed rotation and
+theme commands; Escape dismissed it. File → Quit correctly guarded the dirty tab.
+The first actual Command+Q test exposed Winit's native `terminate:` menu bypass.
+Disabling its default native menu routed Command+Q through the app guard; the
+rebuilt binary showed the unsaved prompt and retained edits after Return to
+editing. Undo restored rotation 0° and the clean state. The French AZERTY host's
+automation uses physical key positions: tool `super+a` produced logical Command+Q,
+and `super+w` produced Command+Z. The application uses standard logical shortcuts.
+
+Fresh captures from the fixed binary:
+[search/Retina](../screenshots/native/workstation-search-retina-2026-10-12.png),
+[dark palette](../screenshots/native/workstation-palette-dark-2026-10-12.png),
+[actual Command+Q guard](../screenshots/native/workstation-quit-guard-2026-10-12.png).
+Binary SHA-256: `53fac9c411c8a1827c382ec8ff85201f7373db0feba32171c3bf97aa12a0a7dd`.
+Twenty desktop tests, strict Clippy, formatting and build passed.
+
+AX activation/value assignment did not reliably focus or update the search field;
+clicking its visible coordinates and pasting worked. Text was exposed in the
+accessibility tree, but full VoiceOver interaction is unverified. Dock/system
+termination, multimonitor DPI transitions, large-document scrolling and the
+resolution-cap notice on an actual oversized document were not exercised.

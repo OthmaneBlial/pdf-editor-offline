@@ -1,4 +1,7 @@
-use crate::state::{DocumentStatus, RenderKey};
+use crate::search::{
+    MAX_QUERY_CHARS, PageText, SearchHit, SearchKey, limit_page_text, literal_excerpt,
+};
+use crate::state::{DocumentStatus, RenderKey, TextKey};
 use eframe::egui;
 use pdf_core::PdfDocument;
 use pdf_render::RenderedPage;
@@ -16,10 +19,26 @@ pub enum Edit {
 }
 
 pub enum Command {
-    Load { id: u64, path: PathBuf },
+    Load {
+        id: u64,
+        path: PathBuf,
+    },
     Render(RenderKey),
-    Edit { id: u64, edit: Edit },
-    Save { id: u64, path: PathBuf },
+    Text(TextKey),
+    Search {
+        key: SearchKey,
+        page: usize,
+        query: String,
+        match_case: bool,
+    },
+    Edit {
+        id: u64,
+        edit: Edit,
+    },
+    Save {
+        id: u64,
+        path: PathBuf,
+    },
     Close(u64),
 }
 
@@ -31,8 +50,17 @@ impl Command {
             | Self::Save { id, .. }
             | Self::Close(id) => *id,
             Self::Render(key) => key.tab,
+            Self::Text(key) => key.tab,
+            Self::Search { key, .. } => key.tab,
         }
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum TaskKey {
+    Render(RenderKey),
+    Text(TextKey),
+    Search(SearchKey),
 }
 
 pub enum Event {
@@ -54,10 +82,17 @@ pub enum Event {
         key: RenderKey,
         image: RenderedPage,
     },
+    Text(PageText),
+    Searched {
+        key: SearchKey,
+        page: usize,
+        hit: Option<SearchHit>,
+        text_truncated: bool,
+    },
     Closed(u64),
     Error {
         id: u64,
-        render_key: Option<RenderKey>,
+        task: Option<TaskKey>,
         message: String,
     },
 }
@@ -75,8 +110,10 @@ impl Worker {
             let mut documents = HashMap::new();
             while let Ok(command) = commands.recv() {
                 let id = command.id();
-                let render_key = match &command {
-                    Command::Render(key) => Some(*key),
+                let task = match &command {
+                    Command::Render(key) => Some(TaskKey::Render(*key)),
+                    Command::Text(key) => Some(TaskKey::Text(*key)),
+                    Command::Search { key, .. } => Some(TaskKey::Search(*key)),
                     _ => None,
                 };
                 let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
@@ -86,13 +123,13 @@ impl Worker {
                     Ok(Ok(event)) => event,
                     Ok(Err(message)) => Event::Error {
                         id,
-                        render_key,
+                        task,
                         message,
                     },
                     Err(_) => {
                         Event::Error {
                             id,
-                            render_key: None,
+                            task: None,
                             message: "Document operation failed. The open document has been retained; save a new copy before retrying.".into(),
                         }
                     }
@@ -237,7 +274,46 @@ fn process(
                 f32::from_bits(key.scale_bits),
             )
             .map_err(|e| e.to_string())?;
+            if [image.width, image.height] != key.pixel_size {
+                return Err(
+                    "This PDF page's preview dimensions differ from its inspected visible area."
+                        .into(),
+                );
+            }
             Ok(Event::Rendered { key, image })
+        }
+        Command::Text(key) => {
+            if key.revision != document.current.revision {
+                return Err("Text request is stale".into());
+            }
+            let (text, truncated) = page_text(document, key.page)?;
+            Ok(Event::Text(PageText {
+                key,
+                text,
+                truncated,
+            }))
+        }
+        Command::Search {
+            key,
+            page,
+            query,
+            match_case,
+        } => {
+            if key.revision != document.current.revision {
+                return Err("Search request is stale".into());
+            }
+            if query.is_empty() || query.chars().count() > MAX_QUERY_CHARS {
+                return Err("Search accepts 1–256 literal characters".into());
+            }
+            let (text, text_truncated) = page_text(document, page)?;
+            let hit = literal_excerpt(&text, &query, match_case)
+                .map(|excerpt| SearchHit { page, excerpt });
+            Ok(Event::Searched {
+                key,
+                page,
+                hit,
+                text_truncated,
+            })
         }
         Command::Edit { edit, .. } => {
             document.edit(edit)?;
@@ -260,6 +336,18 @@ fn process(
     }
 }
 
+fn page_text(document: &WorkingDocument, page: usize) -> Result<(String, bool), String> {
+    if page >= document.current.document.page_count() {
+        return Err("Page is outside document".into());
+    }
+    let text = document
+        .current
+        .document
+        .extract_text(&[page as u32 + 1])
+        .map_err(|error| error.to_string())?;
+    Ok(limit_page_text(text))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -270,12 +358,16 @@ mod tests {
         let path = directory.path().join("source.pdf");
         let mut pdf = Document::with_version("1.7");
         let pages = pdf.new_object_id();
+        let font = pdf.add_object(
+            dictionary! { "Type" => "Font", "Subtype" => "Type1", "BaseFont" => "Helvetica" },
+        );
         let content = pdf.add_object(Stream::new(
             dictionary! {},
-            b"1 0 0 rg 0 0 100 80 re f".to_vec(),
+            b"1 0 0 rg 0 0 100 80 re f BT /F1 12 Tf 10 20 Td (Hello PDF workstation) Tj ET"
+                .to_vec(),
         ));
         let page = pdf.add_object(dictionary! { "Type" => "Page", "Parent" => pages,
-            "MediaBox" => vec![0.into(), 0.into(), 100.into(), 80.into()], "Resources" => dictionary!{}, "Contents" => content });
+            "MediaBox" => vec![0.into(), 0.into(), 100.into(), 80.into()], "Resources" => dictionary! { "Font" => dictionary! { "F1" => font } }, "Contents" => content });
         pdf.objects.insert(
             pages,
             Object::Dictionary(
@@ -346,7 +438,10 @@ mod tests {
                     tab: 1,
                     revision: 99,
                     page: 0,
-                    scale_bits: 1.0_f32.to_bits()
+                    scale_bits: 1.0_f32.to_bits(),
+                    zoom_bits: 1.0_f32.to_bits(),
+                    device_ratio_bits: 1.0_f32.to_bits(),
+                    pixel_size: [100, 80],
                 })
             )
             .is_err()
@@ -361,6 +456,84 @@ mod tests {
                 }
             )
             .is_err()
+        );
+    }
+
+    #[test]
+    fn actor_extracts_actual_pdf_text_and_searches_literal_case_sensitive_content() {
+        let (_directory, path) = fixture();
+        let mut documents = HashMap::new();
+        process(&mut documents, Command::Load { id: 1, path }).expect("load");
+        let event = process(
+            &mut documents,
+            Command::Text(TextKey {
+                tab: 1,
+                revision: 0,
+                page: 0,
+            }),
+        )
+        .expect("extract");
+        assert!(
+            matches!(event, Event::Text(PageText { text, truncated: false, .. }) if text.contains("Hello PDF workstation"))
+        );
+        let key = SearchKey {
+            tab: 1,
+            revision: 0,
+            generation: 1,
+        };
+        let event = process(
+            &mut documents,
+            Command::Search {
+                key,
+                page: 0,
+                query: "hello pdf".into(),
+                match_case: false,
+            },
+        )
+        .expect("search");
+        assert!(
+            matches!(event, Event::Searched { hit: Some(SearchHit { page: 0, excerpt }), .. } if excerpt.contains("Hello PDF"))
+        );
+        let event = process(
+            &mut documents,
+            Command::Search {
+                key,
+                page: 0,
+                query: "hello pdf".into(),
+                match_case: true,
+            },
+        )
+        .expect("case search");
+        assert!(matches!(event, Event::Searched { hit: None, .. }));
+    }
+
+    #[test]
+    fn actor_renders_retina_pixels_and_preserves_logical_canvas_dimensions() {
+        let (_directory, path) = fixture();
+        let mut documents = HashMap::new();
+        process(
+            &mut documents,
+            Command::Load {
+                id: 1,
+                path: path.clone(),
+            },
+        )
+        .expect("load");
+        let working = documents.get(&1).expect("working document");
+        let mut tab = crate::state::Tab::new(1, path, working.status().expect("status"));
+        tab.set_device_ratio(2.0);
+        let key = tab.key().expect("retina render key");
+        let plan = tab.raster_plan().expect("plan");
+        let event = process(&mut documents, Command::Render(key)).expect("render real PDF");
+        let Event::Rendered { image, .. } = event else {
+            panic!("expected rendered PDF");
+        };
+        assert_eq!([image.width, image.height], [200, 160]);
+        assert_eq!([image.width, image.height], plan.pixel_size);
+        assert_eq!(image.rgba.len(), 200 * 160 * 4);
+        assert_eq!(
+            plan.display_size([image.width, image.height]),
+            [100.0, 80.0]
         );
     }
 }
