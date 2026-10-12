@@ -20,6 +20,16 @@ recovery are not yet established. Full rewrites of signed or encrypted inputs
 are refused until signature-safe saving and encrypted export are implemented.
 No JavaScript or embedded action is executed. No redaction is claimed.
 
+Page-tree validation checks every branch's declared count, parent identity,
+cycles and shared leaves. The signature scan includes nested direct dictionaries,
+arrays and stream dictionaries, with 128-level/two-million-value budgets after
+parsing. Extraction processes one page at a time and caps accumulated UTF-8 text
+at 128 MiB. Flattening page trees preserves inherited indirect resource sharing;
+large directly inherited resource dictionaries still require promotion to avoid
+amplification. Regression fixtures exercise real compressed content, ToUnicode,
+object and xref streams against the 32 MiB limit. These cases do not establish
+universal hostile-input isolation or total allocator bounds.
+
 The Rust dependency direction is applications → operation/render crates → core.
 UI code must call reusable document operations rather than manipulate PDF objects.
 Create crate boundaries when a real capability needs them, not empty placeholders.

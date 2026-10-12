@@ -115,20 +115,7 @@ impl PdfDocument {
             page_count: self.pages.len(),
             object_count: self.document.objects.len(),
             encrypted: self.encrypted_input,
-            signature_fields: self
-                .document
-                .objects
-                .values()
-                .filter(|object| {
-                    object.as_dict().is_ok_and(|dict| {
-                        [b"FT".as_slice(), b"Type".as_slice()].iter().any(|key| {
-                            dict.get(key)
-                                .and_then(Object::as_name)
-                                .is_ok_and(|name| name == b"Sig")
-                        })
-                    })
-                })
-                .count(),
+            signature_fields: structure::signature_fields(&self.document)?,
             pages,
         })
     }

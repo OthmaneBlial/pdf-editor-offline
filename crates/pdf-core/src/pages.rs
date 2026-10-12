@@ -221,7 +221,7 @@ impl PdfDocument {
             .map(|id| {
                 let mut values = Vec::new();
                 for key in [b"Resources".as_slice(), b"MediaBox", b"CropBox", b"Rotate"] {
-                    if let Some(value) = structure::inherited(&self.document, *id, key)? {
+                    if let Some(value) = structure::inherited_raw(&self.document, *id, key)? {
                         values.push((key.to_vec(), value.clone()));
                     }
                 }
