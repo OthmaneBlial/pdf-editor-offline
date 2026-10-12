@@ -18,6 +18,13 @@ objects. Object count is checked after parsing; these limits do not establish
 total CPU/memory isolation. Text extraction is best effort (font encoding and
 reading order vary); it does not provide OCR or prove absence of hidden content.
 
+Extraction includes supported visible normal annotation/widget appearances and
+their invoked Form XObjects, preserving appearance state and ignoring hidden
+annotations and unrelated field values. Standard checkbox Dingbats are supported;
+unsupported symbolic glyphs fail explicitly. Page-level Form XObjects, appearance
+clipping/geometry and complex reading order remain fidelity work. Appearance
+interpretation has separate stream, recursion, work and text budgets.
+
 Saving refuses encrypted inputs and signature fields, including empty fields.
 It creates and fsyncs a same-directory temporary copy, reopens it and verifies
 page structure/object count, then publishes without replacing an existing path.

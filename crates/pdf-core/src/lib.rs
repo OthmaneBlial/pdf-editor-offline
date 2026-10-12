@@ -4,6 +4,7 @@
 mod error;
 mod pages;
 mod structure;
+mod text;
 
 pub use error::{Error, Result};
 use lopdf::{Document, LoadOptions, Object, ObjectId};
@@ -124,9 +125,7 @@ impl PdfDocument {
         self.validate_selection(pages)?;
         let mut text = String::new();
         for page in pages {
-            let extracted = self
-                .document
-                .extract_text_with_limit(&[*page], MAX_STREAM_BYTES)?;
+            let extracted = text::extract_page(&self.document, *page)?;
             if text.len().saturating_add(extracted.len()) > MAX_INPUT_BYTES {
                 return Err(Error::Limit("extracted text exceeds 128 MiB"));
             }
