@@ -33,6 +33,27 @@ content streams share the bounded interpreter; uninvoked resources are excluded.
 Appearance clipping/geometry and complex reading order remain fidelity work. Appearance
 interpretation has separate stream, recursion, work and text budgets.
 
+`metadata()` reads the six standard trailer `/Info` text fields: Title, Author,
+Subject, Keywords, Creator and Producer. `update_metadata(&[(MetadataKey,
+Option<&str>)])` atomically sets fields or removes them with `None`; an empty
+string remains an explicit value. Input/output values are limited to 64 KiB of
+UTF-8 per field and Info dictionaries to 10,000 entries. Editing also caps the
+direct Info graph copied to 10,000 values and 1 MiB of string/name/key payload,
+retaining indirect payloads as shared references. Those are structural/payload
+caps, not a strict heap-memory bound. Child counts are checked before growing the scan.
+Reference chains are
+bounded at 128; malformed encodings, missing/cyclic references, duplicate edits,
+unsupported keys and NUL input fail explicitly. Values are written as UTF-16BE
+with a BOM. Dates are preserved and are not editable in this slice.
+
+Edits copy the Info dictionary to a new object so shared aliases retain their
+original values. Every custom key/reference, unrelated object, nonstandard
+catalog `/Info` dictionary and XMP stream is preserved. Reading is allowed on
+signed or decrypted inputs; editing refuses both. The report explicitly says
+`xmp_synchronized: false` and `secure_erasure: false`: XMP/catalog values may
+differ from the edited standard fields, and old metadata can remain recoverable.
+This is document metadata editing, not sanitization, secure removal or XMP sync.
+
 `add_note(page, rectangle, contents, author)` adds a real sticky Text annotation
 with UTF-16BE metadata and an explicit vector icon appearance. Coordinates are
 unrotated PDF points and must fit inside the visible CropBox/MediaBox intersection.
@@ -47,10 +68,9 @@ text. Comment contents are not page extraction/search text. Popup interaction,
 editing/deleting notes, highlights, replies and desktop annotation controls remain
 unimplemented. Rust rendering tests and an optional pinned Poppler gate check
 actual icon placement across crop, rotation and nonzero page origins.
-Hayro rotates these appearances with the page; Poppler forces upright sticky icons
-around the annotation's upper-left anchor. Rotated footprints therefore differ;
-the reference test validates each renderer's behavior and preserved pixels outside
-its icon, without claiming cross-renderer visual parity.
+The patched native renderer and Poppler keep sticky icons upright around the
+annotation's upper-left anchor. The reference test validates that defined footprint
+and preserved pixels outside it, without claiming identical antialiasing.
 
 Saving refuses encrypted inputs and signature fields, including empty fields.
 It creates and fsyncs a same-directory temporary copy, reopens it and verifies

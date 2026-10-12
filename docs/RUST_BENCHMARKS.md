@@ -66,10 +66,16 @@ PDF_REFERENCE_BIN_DIR=/absolute/new/poppler-prefix/bin cargo test --locked -p pd
 PATH=/absolute/new/poppler-prefix/bin:$PATH cargo test --locked -p pdf-core --test merge -- --ignored
 ```
 
-These gates have passed locally with pinned Poppler. Sticky-note orientation differs
-between Hayro and Poppler on rotated pages; the note gate proves each engine's icon
-visibility and preservation outside its footprint, without claiming visual parity.
+These gates have passed locally with pinned Poppler. The note gate checks upright
+sticky icons on rotated pages and preservation outside their defined footprint.
+Matching geometry does not establish identical antialiasing or full visual parity.
 Cross-platform CI and broader hostile-document/render fidelity remain separate gates.
+
+The [rotated-note PNG](../screenshots/render/sticky-note-rotated-2026-10-12.png)
+is an actual native CLI export of the synthetic demo with a sticky note and a
+90-degree page rotation, rendered at 0.75 pixels per PDF point (594 × 459).
+It was visually inspected: page content rotates while the note icon stays upright.
+This is rendered PDF output, not a desktop UI screenshot.
 
 The [2026-10-12 local report](benchmarks/rust-baseline-2026-10-12.json) passes
 **44/44 records, zero failures/skips**, in 13.8817 seconds with the default warmup

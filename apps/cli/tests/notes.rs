@@ -298,28 +298,12 @@ fn device(point: [usize; 2], rotation: i64) -> [usize; 2] {
     }
 }
 
-fn assert_icon(
-    before: &[u8],
-    after: &[u8],
-    width: usize,
-    channels: usize,
-    rotation: i64,
-    upright: bool,
-) {
+fn assert_icon(before: &[u8], after: &[u8], width: usize, channels: usize, rotation: i64) {
     assert_eq!(before.len(), after.len());
     // Poppler 26.10 AnnotText forces NoRotate; Gfx pivots around the upper-left.
     // Source: poppler Annot.cc/Gfx.cc at 2703be11769c1f86f4d0dc3b276ec94bba5ac6d3.
-    // Hayro instead applies page rotation to the entire appearance. Test both exact footprints.
-    let a = if upright {
-        device([50, 74], rotation)
-    } else {
-        device([50, 50], rotation)
-    };
-    let b = if upright {
-        [a[0] + 24, a[1] + 24]
-    } else {
-        device([74, 74], rotation)
-    };
+    let a = device([50, 74], rotation);
+    let b = [a[0] + 24, a[1] + 24];
     let x0 = a[0].min(b[0]).saturating_sub(1);
     let x1 = a[0].max(b[0]) + 1;
     let y0 = a[1].min(b[1]).saturating_sub(1);
@@ -343,11 +327,7 @@ fn assert_icon(
         changed > 200,
         "note icon missing: only {changed} pixels changed"
     );
-    let [x, y] = if upright {
-        [a[0] + 8, a[1] + 7]
-    } else {
-        device([58, 67], rotation)
-    };
+    let [x, y] = [a[0] + 8, a[1] + 7];
     let rgb = &after[(y * width + x) * channels..][..3];
     assert!(
         rgb[0] > 240 && rgb[1] > 200 && rgb[1] < 245 && rgb[2] < 100,
@@ -372,7 +352,6 @@ fn hayro_displays_note_in_pdf_coordinates_and_preserves_pixels_outside_it() {
             before.width as usize,
             4,
             rotation,
-            false,
         );
     }
 }
@@ -439,8 +418,8 @@ fn poppler_displays_the_vector_icon_and_preserves_original_page_content() {
         let (width, before) = raster(&input);
         let (after_width, after) = raster(&output);
         assert_eq!(width, after_width);
-        // Exact upright footprint, not Hayro parity. The central fixture avoids crop clipping.
-        assert_icon(&before, &after, width, 3, rotation, true);
+        // Both engines must preserve this exact upright footprint and untouched pixels.
+        assert_icon(&before, &after, width, 3, rotation);
         assert_eq!(
             reference("pdftotext", &[input.to_str().unwrap(), "-"]),
             reference("pdftotext", &[output.to_str().unwrap(), "-"])

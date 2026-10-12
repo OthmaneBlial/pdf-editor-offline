@@ -6,6 +6,9 @@ development to avoid running an older installed version with the same name.
 ```sh
 cargo build --release -p pdf-editor-offline-cli
 ./target/release/pdf-editor-offline info examples/sample_pdfs/demo-basic.pdf --json
+./target/release/pdf-editor-offline metadata input.pdf --json
+./target/release/pdf-editor-offline set-metadata input.pdf --key title --value "Revised title" -o revised.pdf --dry-run --json
+./target/release/pdf-editor-offline remove-metadata input.pdf --key author -o removed-author.pdf --json
 ./target/release/pdf-editor-offline inspect-security input.pdf --json
 ./target/release/pdf-editor-offline add-note input.pdf --page 1 --rectangle 50 60 74 84 --contents "Review this paragraph" --author "Reviewer" -o noted.pdf
 ./target/release/pdf-editor-offline list-notes noted.pdf --pages 1 --json
@@ -32,14 +35,34 @@ in caller order. Degrees are additive (90, -90, 180, etc.). Saves always require
 a new output path, retain originals, and refuse signed/encrypted inputs.
 Dry-run validates the document edit without creating output.
 
+`metadata` reads six standard trailer Info fields; `set-metadata` and
+`remove-metadata` accept lowercase `title`, `author`, `subject`, `keywords`,
+`creator` and `producer`. Set values are limited to 64 KiB of UTF-8 and written
+as UTF-16BE. The directly copied Info graph is capped at 10,000 values plus 1 MiB
+of string/name/key payload; larger indirect custom payloads remain shared. These
+caps do not establish strict process-memory bounds. Empty values are supported;
+removal deletes the active Info key.
+Custom keys, dates, shared aliases, nonstandard catalog Info and XMP are retained.
+XMP/catalog values may consequently differ from edited trailer fields. Reports
+explicitly return `xmp_synchronized: false` and `secure_erasure: false`; old
+dictionaries and values can remain in the output graph. Signed/decrypted inputs
+permit reading and refuse edits. Editing uses verified fresh output copies;
+`--dry-run` validates without creating output. Date editing, XMP synchronization,
+clear-all sanitization and private-data removal are outside this slice.
+
+The optional independent gate verifies Unicode with Poppler 26.10.0 and compares
+every original logical object/decoded stream with qpdf 12.4.2 on synthetic
+XMP/custom aliases and the forms/bookmarks/attachments/layers/image corpus:
+`PDF_REFERENCE_BIN_DIR=/path/to/poppler/bin PDF_REFERENCE_QPDF=/path/to/qpdf cargo test -p pdf-editor-offline-cli --test metadata -- --ignored`.
+
 `add-note` creates a real sticky Text annotation with UTF-16BE comment/author
 strings and a self-contained vector note icon. Rectangle coordinates are unrotated
 PDF user-space points (bottom-left origin), ordered `X0 Y0 X1 Y1`, and must fit
-inside the intersection of CropBox and MediaBox. The native icon follows the page's
-rotation and crop. Poppler treats sticky icons as upright around their upper-left
-anchor, so rotated-page icon orientation/footprints differ between these renderers;
-icons close to crop edges can consequently be clipped differently. This slice is
-a beta annotation feature and does not claim cross-renderer visual parity. Contents are limited to
+inside the intersection of CropBox and MediaBox. Sticky icons remain upright around
+their upper-left anchor on rotated pages in both the patched native renderer and
+Poppler. The independent gate checks their defined footprints, visible interiors
+and preservation outside the icon; it does not claim identical antialiasing.
+This slice remains a beta annotation feature. Contents are limited to
 64 KiB of UTF-8 and author to 1 KiB;
 author defaults to empty. Existing annotations and shared annotation arrays remain
 intact. `--dry-run` validates the addition without publishing a file; actual saves

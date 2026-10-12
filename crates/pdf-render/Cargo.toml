@@ -9,3 +9,6 @@ description = "Offline PDF page rasterization in pure Rust"
 
 [dependencies]
 hayro = "0.8"
+
+[dev-dependencies]
+tempfile.workspace = true

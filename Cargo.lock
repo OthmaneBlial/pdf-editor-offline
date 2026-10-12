@@ -1694,8 +1694,6 @@ dependencies = [
 [[package]]
 name = "hayro-interpret"
 version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac9df074ff163a63864cec9b0bf640ccbff8abf4e44481df7369ce0ac172ffbe"
 dependencies = [
  "bitflags 2.13.2",
  "hayro-cmap",
@@ -2722,6 +2720,7 @@ name = "pdf-render"
 version = "3.0.0"
 dependencies = [
  "hayro",
+ "tempfile",
 ]
 
 [[package]]

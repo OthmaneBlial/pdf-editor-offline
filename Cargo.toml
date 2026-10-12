@@ -25,3 +25,6 @@ unsafe_code = "forbid"
 unwrap_used = "warn"
 expect_used = "warn"
 
+[patch.crates-io]
+hayro-interpret = { path = "vendor/hayro-interpret" }
+

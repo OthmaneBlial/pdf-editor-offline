@@ -11,6 +11,7 @@ fn renderer_error(error: RenderError) -> Error {
         RenderError::InvalidPdf => Error::Invalid("renderer cannot parse PDF"),
         RenderError::PasswordRequired => Error::Refused("encrypted rendering is not supported"),
         RenderError::InvalidScale => Error::Pages("scale must be finite and positive"),
+        RenderError::InvalidViewZoom => Error::Pages("view zoom must be finite and positive"),
         RenderError::PageOutOfRange { .. } => Error::Pages("render page is outside document"),
         RenderError::OutputTooLarge => Error::Limit("render exceeds dimension or pixel budget"),
         RenderError::RendererFailed => Error::Refused("renderer could not complete this page"),

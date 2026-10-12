@@ -5,6 +5,10 @@
 use hayro::hayro_syntax::{LoadPdfError, Pdf};
 use hayro::vello_cpu::{Pixmap, RasterizerSettings, RenderContext, Resources, TargetInit};
 use std::fmt;
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+};
 
 /// Input limit shared with the document engine.
 pub const MAX_INPUT_BYTES: usize = 128 * 1024 * 1024;
@@ -28,6 +32,7 @@ pub enum RenderError {
     InvalidPdf,
     PasswordRequired,
     InvalidScale,
+    InvalidViewZoom,
     PageOutOfRange { requested: usize, page_count: usize },
     OutputTooLarge,
     RendererFailed,
@@ -42,6 +47,7 @@ impl fmt::Display for RenderError {
                 f.write_str("PDF requires a password or uses unsupported encryption")
             }
             Self::InvalidScale => f.write_str("Render scale must be finite and greater than zero"),
+            Self::InvalidViewZoom => f.write_str("View zoom must be finite and greater than zero"),
             Self::PageOutOfRange {
                 requested,
                 page_count,
@@ -65,7 +71,7 @@ impl std::error::Error for RenderError {}
 ///
 /// Dimensions include CropBox and page rotation; fractional dimensions round up.
 /// The output uses an opaque white background. No file, network, subprocess, GPU,
-/// Python service, or platform PDF library is needed.
+/// service or platform PDF library is needed.
 ///
 /// Input and output limits bound the input copy and raster buffer. They do not
 /// bound Hayro's decompression, internal allocations, or execution time. Ordinary
@@ -76,13 +82,28 @@ pub fn render_page(
     page_index: usize,
     scale: f32,
 ) -> Result<RenderedPage, RenderError> {
+    render_view_page(bytes, page_index, scale, 1.0)
+}
+
+/// Render for on-screen viewing. `scale` is raster pixels per PDF point; `view_zoom`
+/// is logical screen magnification. NoZoom annotations cancel only `view_zoom`,
+/// preserving density/DPR and capped-preview resolution independently.
+pub fn render_view_page(
+    bytes: &[u8],
+    page_index: usize,
+    scale: f32,
+    view_zoom: f32,
+) -> Result<RenderedPage, RenderError> {
     if bytes.len() > MAX_INPUT_BYTES {
         return Err(RenderError::InputTooLarge);
     }
     if !scale.is_finite() || scale <= 0.0 {
         return Err(RenderError::InvalidScale);
     }
-    std::panic::catch_unwind(|| render_page_inner(bytes, page_index, scale))
+    if !view_zoom.is_finite() || view_zoom <= 0.0 {
+        return Err(RenderError::InvalidViewZoom);
+    }
+    std::panic::catch_unwind(|| render_page_inner(bytes, page_index, scale, view_zoom))
         .map_err(|_| RenderError::RendererFailed)?
 }
 
@@ -90,6 +111,7 @@ fn render_page_inner(
     bytes: &[u8],
     page_index: usize,
     scale: f32,
+    view_zoom: f32,
 ) -> Result<RenderedPage, RenderError> {
     let pdf = Pdf::new(bytes.to_vec()).map_err(|error| match error {
         LoadPdfError::Invalid => RenderError::InvalidPdf,
@@ -107,14 +129,30 @@ fn render_page_inner(
     let mut context = RenderContext::new(width as u16, height as u16);
     let transform = hayro::kurbo::Affine::scale(f64::from(scale))
         * hayro::hayro_interpret::util::TransformExt::to_kurbo(&page.initial_transform(true));
+    let invalid_geometry = Arc::new(AtomicBool::new(false));
+    let geometry_warning = invalid_geometry.clone();
     hayro::render_into(
         page,
         &hayro::RenderCache::new(),
-        &Default::default(),
+        &hayro::hayro_interpret::InterpreterSettings {
+            annotation_view_zoom: f64::from(view_zoom),
+            warning_sink: Arc::new(move |warning| {
+                if matches!(
+                    warning,
+                    hayro::hayro_interpret::InterpreterWarning::InvalidAnnotationGeometry
+                ) {
+                    geometry_warning.store(true, Ordering::Relaxed);
+                }
+            }),
+            ..Default::default()
+        },
         &Default::default(),
         &mut context,
         transform,
     );
+    if invalid_geometry.load(Ordering::Relaxed) {
+        return Err(RenderError::RendererFailed);
+    }
     context.flush();
     let mut pixmap = Pixmap::new(width as u16, height as u16);
     context.render_with(
