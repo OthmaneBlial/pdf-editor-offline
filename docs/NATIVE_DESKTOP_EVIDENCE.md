@@ -1,5 +1,53 @@
 # Native desktop smoke evidence — 2026-10-12
 
+## Production subprocess checkpoint — 2026-10-13
+
+The Rust `4.0.0-preview.1` desktop was rebuilt with
+`cargo build --locked -p pdf-editor-offline-native -p pdf-editor-offline-cli`,
+without the test-helper feature. The resulting native debug binary has SHA-256
+`8601076198ecea00ab622dd279ed3630f5e8bc24dcdb1fb3e3b5e151f07e78b4`.
+Only the owned temporary `/tmp/PDF Editor Offline Review.app` was refreshed;
+the previous binary was preserved outside the repository. This is a local debug
+build, not a signed installer or a published native binary release.
+
+An external temporary Rust harness used the production transport and that exact
+bundle executable with `--pdf-worker`. Every request ran through the native
+binary's early worker entry, rather than a standalone test helper. Against the
+public `tests/fixtures/pdfs/forms.pdf`, the six child operations passed:
+
+- Document info returned one unencrypted, unsigned page with a 595×842-point
+  MediaBox and CropBox and rotation 0.
+- Rendering at scale 2 returned an actual 1190×1684 RGBA payload of 8,015,840
+  bytes; the returned dimensions matched its byte length.
+- Page-text extraction returned `Synthetic` without truncation.
+- Rotation returned a verified PDF with rotation 90.
+- Metadata editing retained that rotation and set the title to
+  `Subprocess smoke Résumé 中文 ✓`.
+- Prepare Save returned verified PDF bytes, written by the harness to a new
+  temporary output using exclusive creation. This did not exercise the native
+  Save As dialog or the parent GUI's history and publishing flow.
+
+The independent native CLI and pinned Poppler 26.10.0 read the exact Unicode
+title and rotation 90 from
+`/tmp/pdf-editor-subprocess-smoke-20261013/production-worker-output.pdf`.
+Poppler text extraction retained the synthetic form text, and qpdf 12.4.2 found
+no syntax or stream-encoding errors. The output SHA-256 is
+`72d16b0bfb634eae0be2083f47c59dd944da76fea53ab23681e5d3f30c696cfb`.
+The source SHA-256 before and after was unchanged:
+`f937f8d02adf1341885163524107e33e365aefc07bf434f68dd64995f0c645dc`.
+These checks establish the stated structural/text boundaries, not complete
+raster fidelity or preservation of every possible PDF feature.
+
+The integration's explicit 53-test native suite and strict all-target Clippy
+passed before this production rebuild. Actual GUI smoke for this subprocess
+milestone remains pending: the computer-use service reported `cgWindowNotFound`
+for both the prior review binary and the rebuilt running bundle, through exact
+path and registered bundle ID. A second review session reproduced the same
+acquisition failure. No current-build GUI opening, search, rotate/undo/redo,
+properties editing or Save As interaction was observed, and no new GUI capture
+is claimed. The genuine screenshots below remain evidence for their identified
+earlier binaries.
+
 The subsequent thumbnail preview has 30 passing automated tests, including actual
 PDF raster pixels, bounded texture-cache eviction, visible-only thousand-page
 scheduling and foreground priority. A one-shot initial visibility command avoids

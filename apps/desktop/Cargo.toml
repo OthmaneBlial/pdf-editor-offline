@@ -12,7 +12,9 @@ eframe = { version = "0.36.2", default-features = false, features = ["default_fo
 rfd = "0.15.4"
 pdf-core = { path = "../../crates/pdf-core" }
 pdf-render = { path = "../../crates/pdf-render" }
-pdf-convert = { path = "../../crates/pdf-convert" }
+pdf-worker = { path = "../../crates/pdf-worker" }
+serde_json.workspace = true
+tempfile.workspace = true
 
 [target.'cfg(target_os = "macos")'.dependencies]
 winit = { version = "0.30.13", default-features = false, features = ["rwh_06"] }

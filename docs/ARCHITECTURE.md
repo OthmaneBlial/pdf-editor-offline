@@ -14,7 +14,7 @@ tests/fixtures/pdfs: immutable synthetic corpus
 
 The desktop uses eframe/egui and bundled licensed fonts. Hayro renders PDF content; the local interpreter patch preserves tested note appearance geometry. The core owns inspection, text, page operations, notes, properties, and verified serialization. The converter owns the supported PNG/JPEG image-to-PDF subset.
 
-The current desktop uses a background document thread. The worker crate provides separately tested subprocess and journal infrastructure; desktop integration remains unfinished. The CLI also parses locally in-process. Do not infer a complete hostile-input sandbox from bounded reads.
+The desktop's background coordinator sends opaque bytes and typed operations to its own executable's `--pdf-worker` mode. Parsing, rendering, text, metadata, edits, image conversion, and save preparation run in bounded subprocesses; the parent validates replies before committing state. The CLI still parses in-process. Process limits are not a filesystem or network sandbox, and journal integration remains unfinished.
 
 ## Integrity boundaries
 

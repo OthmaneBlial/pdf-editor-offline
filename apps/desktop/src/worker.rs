@@ -4,14 +4,18 @@ use crate::search::{
 use crate::state::{DocumentStatus, MetadataReadKey, RenderKey, TextKey};
 use crate::thumbnails::ThumbnailKey;
 use eframe::egui;
+#[cfg(test)]
 use pdf_core::PdfDocument;
 use pdf_render::RenderedPage;
+use pdf_worker::PayloadKind;
+use pdf_worker::document::{DocumentResult, Operation};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::mpsc::{self, Receiver, SyncSender};
 
 const HISTORY_LIMIT: usize = 8;
 const HISTORY_BYTES: usize = 256 * 1024 * 1024;
+const SNAPSHOT_BYTES: usize = 512 * 1024 * 1024;
 pub const MAX_TABS: usize = 16;
 
 // Tiny noninterlaced RGB fixtures: a solid red 2×3 image and a solid blue 3×2 image.
@@ -215,189 +219,8 @@ impl Worker {
     }
 }
 
-struct Snapshot {
-    document: PdfDocument,
-    bytes: Vec<u8>,
-    revision: u64,
-}
-
-struct WorkingDocument {
-    current: Snapshot,
-    undo: Vec<Snapshot>,
-    redo: Vec<Snapshot>,
-    saved_revision: Option<u64>,
-    next_revision: u64,
-}
-
-impl WorkingDocument {
-    fn from_images(paths: &[PathBuf]) -> Result<Self, String> {
-        if paths.is_empty() || paths.len() > pdf_core::MAX_PAGES {
-            return Err("Select 1–20,000 PNG/JPEG images.".into());
-        }
-        let mut sources = Vec::with_capacity(paths.len());
-        let mut total = 0usize;
-        for path in paths {
-            let limit = pdf_core::MAX_STREAM_BYTES.min(pdf_core::MAX_INPUT_BYTES - total);
-            let bytes = pdf_core::read_input_bytes(path, limit).map_err(|error| {
-                format!(
-                    "{}: {error}. Image inputs allow 32 MiB per file and 128 MiB total.",
-                    path.display()
-                )
-            })?;
-            total += bytes.len();
-            sources.push(bytes);
-        }
-        let refs: Vec<_> = sources.iter().map(Vec::as_slice).collect();
-        let converted=pdf_convert::images_to_pdf(&refs).map_err(|error| format!("{error}. Images to PDF supports PNG/JPEG; unsupported orientation or color metadata must be resolved before importing."))?;
-        let bytes = converted.document.to_bytes().map_err(|e| e.to_string())?;
-        Ok(Self {
-            current: Snapshot {
-                document: converted.document,
-                bytes,
-                revision: 0,
-            },
-            undo: vec![],
-            redo: vec![],
-            saved_revision: None,
-            next_revision: 1,
-        })
-    }
-
-    fn load(path: &PathBuf) -> Result<Self, String> {
-        let bytes = pdf_core::read_pdf_bytes(path).map_err(|e| e.to_string())?;
-        let document = PdfDocument::from_bytes(&bytes, None).map_err(|e| e.to_string())?;
-        Ok(Self {
-            current: Snapshot {
-                document,
-                bytes,
-                revision: 0,
-            },
-            undo: vec![],
-            redo: vec![],
-            saved_revision: Some(0),
-            next_revision: 1,
-        })
-    }
-
-    fn status(&self) -> Result<DocumentStatus, String> {
-        Ok(DocumentStatus {
-            info: self.current.document.info().map_err(|e| e.to_string())?,
-            revision: self.current.revision,
-            dirty: Some(self.current.revision) != self.saved_revision,
-            can_undo: !self.undo.is_empty(),
-            can_redo: !self.redo.is_empty(),
-        })
-    }
-
-    fn edit(&mut self, edit: Edit) -> Result<Option<usize>, String> {
-        let mut selected_page = None;
-        match edit {
-            Edit::Undo => {
-                let previous = self.undo.pop().ok_or("Nothing to undo")?;
-                self.redo
-                    .push(std::mem::replace(&mut self.current, previous));
-            }
-            Edit::Redo => {
-                let next = self.redo.pop().ok_or("Nothing to redo")?;
-                self.undo.push(std::mem::replace(&mut self.current, next));
-            }
-            edit => {
-                let mut document = self.current.document.clone();
-                match edit {
-                    Edit::Rotate(page, degrees) => document
-                        .rotate(&[page], degrees)
-                        .map_err(|e| e.to_string())?,
-                    Edit::Move { page, earlier } => {
-                        let count = document.page_count();
-                        let index = (page as usize)
-                            .checked_sub(1)
-                            .filter(|index| *index < count)
-                            .ok_or("Move page is outside the document")?;
-                        let target = if earlier {
-                            index.checked_sub(1)
-                        } else {
-                            index.checked_add(1).filter(|next| *next < count)
-                        }
-                        .ok_or("Page cannot move farther in that direction")?;
-                        let mut order: Vec<_> = (1..=count as u32).collect();
-                        order.swap(index, target);
-                        document.reorder(&order).map_err(|e| e.to_string())?;
-                        selected_page = Some(target);
-                    }
-                    Edit::Reverse { page } => {
-                        let index = (page as usize)
-                            .checked_sub(1)
-                            .filter(|index| *index < document.page_count())
-                            .ok_or("Current page is outside the document")?;
-                        selected_page = Some(document.page_count() - 1 - index);
-                        document.reverse().map_err(|e| e.to_string())?;
-                    }
-                    Edit::InsertBlank {
-                        position,
-                        width,
-                        height,
-                    } => {
-                        document
-                            .insert_blank(position, width, height)
-                            .map_err(|e| e.to_string())?;
-                        selected_page = Some(position as usize - 1);
-                    }
-                    Edit::Crop { page, rectangle } => {
-                        document
-                            .crop(&[page], rectangle)
-                            .map_err(|e| e.to_string())?;
-                    }
-                    Edit::Metadata { key, changes } => {
-                        if key.revision != self.current.revision {
-                            return Err(
-                                "Metadata draft is stale. Read the document properties again."
-                                    .into(),
-                            );
-                        }
-                        let changes: Vec<_> = changes
-                            .iter()
-                            .map(|(key, value)| (*key, value.as_deref()))
-                            .collect();
-                        document
-                            .update_metadata(&changes)
-                            .map_err(|e| e.to_string())?;
-                    }
-                    Edit::Undo | Edit::Redo => unreachable!("history handled above"),
-                }
-                let bytes = document.to_bytes().map_err(|e| e.to_string())?;
-                let snapshot = Snapshot {
-                    document,
-                    bytes,
-                    revision: self.next_revision,
-                };
-                self.next_revision += 1;
-                self.undo
-                    .push(std::mem::replace(&mut self.current, snapshot));
-                self.redo.clear();
-                self.trim_history();
-            }
-        }
-        Ok(selected_page)
-    }
-
-    fn trim_history(&mut self) {
-        // shortcut: serialized-byte budget estimates clone size; isolate the worker for strict process-memory limits.
-        while self.undo.len() > HISTORY_LIMIT
-            || self.undo.iter().map(|item| item.bytes.len()).sum::<usize>() > HISTORY_BYTES
-        {
-            self.undo.remove(0);
-        }
-    }
-
-    fn save(&mut self, path: &PathBuf) -> Result<(), String> {
-        self.current
-            .document
-            .save_new(path)
-            .map_err(|e| e.to_string())?;
-        self.saved_revision = Some(self.current.revision);
-        Ok(())
-    }
-}
+mod document;
+use document::WorkingDocument;
 
 fn process(
     documents: &mut HashMap<u64, WorkingDocument>,
@@ -413,6 +236,7 @@ fn process(
             return Err("New document identifier is already open".into());
         }
         let document = WorkingDocument::from_images(&paths)?;
+        check_snapshot_budget(documents, &document)?;
         let status = document.status()?;
         documents.insert(id, document);
         return Ok(Event::Loaded {
@@ -422,7 +246,16 @@ fn process(
         });
     }
     if let Command::Load { id, path } = command {
+        if documents.contains_key(&id) {
+            return Err("Document identifier is already open".into());
+        }
+        if documents.len() >= MAX_TABS {
+            return Err(
+                "Close a PDF before opening another document; at most 16 tabs can be open.".into(),
+            );
+        }
         let document = WorkingDocument::load(&path)?;
+        check_snapshot_budget(documents, &document)?;
         let status = document.status()?;
         documents.insert(id, document);
         return Ok(Event::Loaded { id, path, status });
@@ -432,6 +265,13 @@ fn process(
         return Ok(Event::Closed(id));
     }
     let id = command.id();
+    let remaining = SNAPSHOT_BYTES.saturating_sub(
+        documents
+            .iter()
+            .filter(|(other, _)| **other != id)
+            .map(|(_, document)| document.byte_len())
+            .sum::<usize>(),
+    );
     let document = documents
         .get_mut(&id)
         .ok_or("Document is unavailable; close and reopen it")?;
@@ -449,12 +289,9 @@ fn process(
                 return Err("Thumbnail exceeds its pixel limit.".into());
             }
             // Recompute from inspected geometry before rasterization; no oversized scale can slip through a forged key.
-            let info = document
+            let page = document
                 .current
-                .document
-                .info()
-                .map_err(|e| e.to_string())?;
-            let page = info
+                .info
                 .pages
                 .get(key.page)
                 .ok_or("Thumbnail page is unavailable")?;
@@ -488,11 +325,7 @@ fn process(
             }
             Ok(Event::Metadata {
                 key,
-                values: document
-                    .current
-                    .document
-                    .metadata()
-                    .map_err(|e| e.to_string())?,
+                values: document.metadata()?,
             })
         }
         Command::Search {
@@ -523,7 +356,7 @@ fn process(
             {
                 return Err("Metadata draft belongs to another document".into());
             }
-            let selected_page = document.edit(edit)?;
+            let selected_page = document.edit_with_budget(edit, remaining)?;
             Ok(Event::Updated {
                 id,
                 status: document.status()?,
@@ -552,31 +385,80 @@ fn render(
     if key.revision != document.current.revision {
         return Err("Preview request is stale".into());
     }
-    let image = pdf_render::render_view_page(
+    let (result, reply) = document::execute(
+        Operation::Render {
+            page: key.page,
+            scale: f32::from_bits(key.scale_bits),
+            logical_zoom: view_zoom,
+        },
         &document.current.bytes,
-        key.page,
-        f32::from_bits(key.scale_bits),
-        view_zoom,
-    )
-    .map_err(|e| e.to_string())?;
-    if [image.width, image.height] != key.pixel_size {
+    )?;
+    let DocumentResult::Render { raster } = result else {
+        return Err("Unexpected raster response".into());
+    };
+    let length = u64::from(raster.width)
+        .checked_mul(u64::from(raster.height))
+        .and_then(|pixels| pixels.checked_mul(4));
+    if reply.kind != PayloadKind::Rgba
+        || raster.page != key.page
+        || raster.scale.to_bits() != key.scale_bits
+        || raster.logical_zoom.to_bits() != view_zoom.to_bits()
+        || raster.width == 0
+        || raster.height == 0
+        || raster.width > pdf_render::MAX_DIMENSION
+        || raster.height > pdf_render::MAX_DIMENSION
+        || length != Some(reply.payload.len() as u64)
+        || reply.payload.len() > pdf_worker::MAX_RGBA_BYTES
+        || [raster.width, raster.height] != key.pixel_size
+    {
         return Err(
             "This PDF page's preview dimensions differ from its inspected visible area.".into(),
         );
     }
-    Ok(image)
+    Ok(RenderedPage {
+        width: raster.width,
+        height: raster.height,
+        rgba: reply.payload,
+    })
 }
 
 fn page_text(document: &WorkingDocument, page: usize) -> Result<(String, bool), String> {
-    if page >= document.current.document.page_count() {
+    if page >= document.current.info.page_count {
         return Err("Page is outside document".into());
     }
-    let text = document
-        .current
-        .document
-        .extract_text(&[page as u32 + 1])
-        .map_err(|error| error.to_string())?;
-    Ok(limit_page_text(text))
+    let (result, reply) = document::execute(
+        Operation::Text {
+            page: page as u32 + 1,
+        },
+        &document.current.bytes,
+    )?;
+    let DocumentResult::Text { text, truncated } = result else {
+        return Err("Unexpected page text response".into());
+    };
+    if reply.kind != PayloadKind::None
+        || !reply.payload.is_empty()
+        || text.len() > pdf_worker::document::MAX_TEXT_BYTES
+    {
+        return Err("Invalid page text payload".into());
+    }
+    let (text, parent_truncated) = limit_page_text(text);
+    Ok((text, truncated || parent_truncated))
+}
+
+fn check_snapshot_budget(
+    documents: &HashMap<u64, WorkingDocument>,
+    candidate: &WorkingDocument,
+) -> Result<(), String> {
+    let total = documents
+        .values()
+        .map(WorkingDocument::byte_len)
+        .sum::<usize>();
+    if candidate.byte_len() > SNAPSHOT_BYTES.saturating_sub(total) {
+        return Err(
+            "Open document snapshots exceed 512 MiB; close a tab before continuing.".into(),
+        );
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -611,6 +493,208 @@ mod tests {
         pdf.trailer.set("Root", catalog);
         pdf.save(&path).expect("save fixture");
         (directory, path)
+    }
+
+    #[test]
+    fn child_launch_failure_retains_edits_history_source_and_save_destination() {
+        let (directory, source) = fixture();
+        let mut documents = HashMap::new();
+        process(
+            &mut documents,
+            Command::Load {
+                id: 1,
+                path: source.clone(),
+            },
+        )
+        .expect("load child");
+        process(
+            &mut documents,
+            Command::Edit {
+                id: 1,
+                edit: Edit::Rotate(1, 90),
+            },
+        )
+        .expect("edit child");
+        let original = std::fs::read(&source).expect("source");
+        let bytes = documents[&1].current.bytes.clone();
+        let status = documents[&1].status().expect("status");
+        let next_revision = documents[&1].next_revision;
+        let undo = documents[&1].undo.len();
+        let destination = directory.path().join("failed-save.pdf");
+        let context =
+            crate::state::Tab::new(1, source.clone(), documents[&1].status().expect("status"));
+        document::with_test_executable(directory.path().join("missing-worker"), || {
+            assert!(
+                process(
+                    &mut documents,
+                    Command::Edit {
+                        id: 1,
+                        edit: Edit::Rotate(1, 90)
+                    }
+                )
+                .is_err()
+            );
+            assert!(process(&mut documents, Command::Render(context.key().expect("key"))).is_err());
+            assert!(
+                process(
+                    &mut documents,
+                    Command::Text(TextKey {
+                        tab: 1,
+                        revision: status.revision,
+                        page: 0
+                    })
+                )
+                .is_err()
+            );
+            assert!(
+                process(
+                    &mut documents,
+                    Command::Save {
+                        id: 1,
+                        path: destination.clone()
+                    }
+                )
+                .is_err()
+            );
+            assert!(
+                process(
+                    &mut documents,
+                    Command::Load {
+                        id: 2,
+                        path: source.clone()
+                    }
+                )
+                .is_err()
+            );
+        });
+        assert_eq!(documents.len(), 1);
+        assert_eq!(documents[&1].current.bytes, bytes);
+        assert_eq!(documents[&1].current.revision, status.revision);
+        assert_eq!(documents[&1].next_revision, next_revision);
+        assert_eq!(documents[&1].undo.len(), undo);
+        assert!(documents[&1].status().expect("status").dirty);
+        assert_eq!(std::fs::read(source).expect("original"), original);
+        assert!(!destination.exists());
+        // Test override is thread-local and restored: a real child can retry the operation.
+        process(
+            &mut documents,
+            Command::Save {
+                id: 1,
+                path: destination.clone(),
+            },
+        )
+        .expect("retry save");
+        assert!(destination.exists());
+    }
+
+    #[test]
+    fn snapshot_budget_failure_after_successful_child_edit_leaves_parent_unchanged() {
+        let (_directory, source) = fixture();
+        let mut document = WorkingDocument::load(&source).expect("load");
+        let bytes = document.current.bytes.clone();
+        assert!(document.edit_with_budget(Edit::Rotate(1, 90), 1).is_err());
+        assert_eq!(document.current.bytes, bytes);
+        assert_eq!(document.current.revision, 0);
+        assert_eq!(document.next_revision, 1);
+        assert!(document.undo.is_empty() && document.redo.is_empty());
+        assert!(!document.status().expect("status").dirty);
+    }
+
+    #[test]
+    #[ignore = "build pdf-worker with --features test-helper before this fault-injection gate"]
+    fn crashed_timed_out_and_corrupt_children_cannot_commit_or_publish() {
+        let (directory, source) = fixture();
+        let current = std::env::current_exe().expect("test executable");
+        let helper = current
+            .parent()
+            .and_then(std::path::Path::parent)
+            .expect("target directory")
+            .join(if cfg!(windows) {
+                "pdf-worker-test-helper.exe"
+            } else {
+                "pdf-worker-test-helper"
+            });
+        assert!(
+            helper.is_file(),
+            "build pdf-worker --features test-helper first"
+        );
+        let mut working = WorkingDocument::load(&source).expect("load");
+        working.edit(Edit::Rotate(1, 90)).expect("first edit");
+        let committed = working.current.bytes.clone();
+        let revision = working.current.revision;
+        let next_revision = working.next_revision;
+        let original = std::fs::read(&source).expect("source");
+        let limits = pdf_worker::Limits::for_test(
+            pdf_worker::MEMORY_BYTES,
+            30,
+            std::time::Duration::from_millis(500),
+        )
+        .expect("reduced deadline");
+        for mode in [
+            "abort",
+            "timeout",
+            "truncated",
+            "checksum",
+            "oversize",
+            "malformed",
+        ] {
+            let destination = directory.path().join(format!("{mode}.pdf"));
+            document::with_test_executor(
+                helper.clone(),
+                vec![std::ffi::OsString::from(mode)],
+                limits,
+                || {
+                    assert!(working.edit(Edit::Rotate(1, 90)).is_err(), "{mode}");
+                    assert!(working.save(&destination).is_err(), "{mode}");
+                },
+            );
+            assert_eq!(working.current.bytes, committed, "{mode}");
+            assert_eq!(working.current.revision, revision, "{mode}");
+            assert_eq!(working.next_revision, next_revision, "{mode}");
+            assert_eq!(working.undo.len(), 1, "{mode}");
+            assert!(working.redo.is_empty() && working.status().expect("status").dirty);
+            assert_eq!(std::fs::read(&source).expect("source retained"), original);
+            assert!(!destination.exists(), "{mode}");
+        }
+        working
+            .edit(Edit::Rotate(1, 90))
+            .expect("successful retry after faults");
+    }
+
+    #[test]
+    #[ignore = "build the normal native executable before exercising its early worker entry"]
+    fn native_executable_self_hosts_document_worker_without_gui_startup() {
+        let (directory, path) = fixture();
+        let current = std::env::current_exe().expect("test executable");
+        let helper = current
+            .parent()
+            .and_then(std::path::Path::parent)
+            .expect("target directory")
+            .join(if cfg!(windows) {
+                "pdf-editor-offline-native.exe"
+            } else {
+                "pdf-editor-offline-native"
+            });
+        assert!(helper.is_file(), "build normal native executable first");
+        document::with_test_executor(
+            helper,
+            vec![std::ffi::OsString::from("--pdf-worker")],
+            pdf_worker::Limits::default(),
+            || {
+                let mut working = WorkingDocument::load(&path).expect("self-hosted info");
+                let text = page_text(&working, 0).expect("self-hosted text");
+                assert!(text.0.contains("Hello PDF workstation"));
+                working.edit(Edit::Rotate(1, 90)).expect("self-hosted edit");
+                let tab = crate::state::Tab::new(1, path, working.status().expect("status"));
+                let image =
+                    render(&working, tab.key().expect("key"), 1.0).expect("self-hosted raster");
+                assert_eq!([image.width, image.height], [80, 100]);
+                working
+                    .save(&directory.path().join("self-hosted.pdf"))
+                    .expect("self-hosted verified save");
+                assert!(!working.status().expect("saved").dirty);
+            },
+        );
     }
 
     #[test]
@@ -854,7 +938,7 @@ mod tests {
         .expect("edit");
         let working = documents.get_mut(&1).expect("working");
         assert_eq!(working.undo.len(), 1);
-        let edited = working.current.document.metadata().expect("metadata");
+        let edited = working.document_for_test().metadata().expect("metadata");
         assert_eq!(
             edited.fields[&pdf_core::MetadataKey::Title],
             "Résumé 東京 ✓"
@@ -1005,6 +1089,7 @@ mod tests {
         let mut signed = Document::load(&path).expect("load raw");
         signed.add_object(dictionary! { "FT"=>"Sig" });
         signed.save(&path).expect("signed fixture");
+        process(&mut documents, Command::Close(1)).expect("close original before signed reopen");
         process(&mut documents, Command::Load { id: 1, path }).expect("signed load");
         assert!(process(&mut documents, Command::Metadata(key)).is_ok());
         let original = documents[&1].current.bytes.clone();
@@ -1041,8 +1126,7 @@ mod tests {
         );
         let text = |working: &WorkingDocument, page: u32| {
             working
-                .current
-                .document
+                .document_for_test()
                 .extract_text(&[page])
                 .expect("text")
         };
@@ -1068,7 +1152,7 @@ mod tests {
                 .expect("blank"),
             Some(1)
         );
-        assert_eq!(working.current.document.page_count(), 4);
+        assert_eq!(working.current.info.page_count, 4);
         assert!(text(&working, 2).trim().is_empty());
         assert!(text(&working, 3).contains("Page1"));
         working
@@ -1097,7 +1181,7 @@ mod tests {
             [0.0, 0.0, 100.0, 80.0]
         );
         working.edit(Edit::Undo).expect("undo blank");
-        assert_eq!(working.current.document.page_count(), 3);
+        assert_eq!(working.current.info.page_count, 3);
         assert!(text(&working, 2).contains("Page1"));
         working.edit(Edit::Undo).expect("undo reverse");
         assert!(text(&working, 1).contains("Page2"));

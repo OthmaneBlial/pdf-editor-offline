@@ -10,6 +10,13 @@ mod ui;
 mod worker;
 
 fn main() -> eframe::Result {
+    if std::env::args_os().nth(1).as_deref() == Some(std::ffi::OsStr::new("--pdf-worker")) {
+        if let Err(error) = pdf_worker::serve_once(pdf_worker::document::execute_document) {
+            eprintln!("{error}");
+            std::process::exit(1);
+        }
+        return Ok(());
+    }
     let options = eframe::NativeOptions {
         viewport: eframe::egui::ViewportBuilder::default()
             .with_title("PDF Editor Offline")

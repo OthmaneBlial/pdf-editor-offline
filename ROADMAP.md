@@ -4,7 +4,7 @@ PDF Editor Offline is becoming a native Rust workstation for private PDF work. T
 
 ## Next milestones
 
-1. **Keep work safe:** integrate isolated document workers and the recovery journal into the desktop; prove interruption, failure, and restoration behavior.
+1. **Keep work safe:** integrate the recovery journal into the desktop and isolate CLI processing; extend interruption, failure, and restoration evidence beyond the tested desktop child boundary.
 2. **Finish the organizer:** desktop merge, extraction, splitting, duplication, and destination-preserving page operations.
 3. **Edit with precision:** persisted annotations, text/image overlays, selection, accessibility, and guarded existing-content changes.
 4. **Fill, sign, and protect:** AcroForms, explicit visual signatures, certificate verification/signing, and supported encrypted workflows.

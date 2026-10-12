@@ -59,6 +59,8 @@ jobs:
         run: |
           cargo test --workspace --locked
           cargo test -p pdf-worker --features test-helper --locked
+          cargo build -p pdf-worker --features test-helper -p pdf-editor-offline-native --locked
+          cargo test -p pdf-editor-offline-native --locked -- --include-ignored
           RUSTDOCFLAGS='-D warnings' cargo doc --workspace --no-deps --locked
       - name: Audit locked dependencies and licenses
         run: |
@@ -116,6 +118,7 @@ jobs:
           cargo test --workspace --locked
           cargo test -p pdf-worker --features test-helper --locked
           cargo build -p pdf-editor-offline-cli -p pdf-editor-offline-native --locked
+          cargo test -p pdf-editor-offline-native --locked -- --include-ignored
       - name: Linux desktop startup smoke
         if: runner.os == 'Linux'
         run: |
