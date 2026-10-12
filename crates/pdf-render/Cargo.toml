@@ -1,0 +1,11 @@
+[package]
+name = "pdf-render"
+version = "3.0.0"
+edition = "2024"
+rust-version = "1.95"
+license = "MIT"
+authors = ["Othmane BLIAL"]
+description = "Offline PDF page rasterization in pure Rust"
+
+[dependencies]
+hayro = "0.8"

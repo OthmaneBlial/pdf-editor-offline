@@ -1,0 +1,18 @@
+[package]
+name = "pdf-core"
+description = "Bounded offline PDF document model and verified new-copy saving"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+lopdf.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+tempfile.workspace = true
+
+[lints]
+workspace = true

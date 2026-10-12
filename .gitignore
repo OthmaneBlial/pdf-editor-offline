@@ -19,3 +19,5 @@ frontend/.vite
 frontend/.turbo
 frontend/coverage
 base/
+/target/
+/desktop/src-tauri/target/
