@@ -77,7 +77,17 @@ The first [Native Rust CI run](https://github.com/OthmaneBlial/pdf-editor-offlin
 
 The first hash exactly matches the failed Linux reference field. This is a verified reference-version discrepancy, not a reason to change the fixture, Rust output, or equality test. The [24.02.0 source](https://gitlab.freedesktop.org/poppler/poppler/-/blob/5ad744922aeed83ecf2bbdb83c783bbfc23b4192/poppler/GfxFont.cc) selects the declared WinAnsi base encoding. The [26.10.0 source](https://gitlab.freedesktop.org/poppler/poppler/-/blob/2703be11769c1f86f4d0dc3b276ec94bba5ac6d3/poppler/GfxFont.cc) explicitly selects the built-in ZapfDingbats encoding before considering that declaration. Both sources were inspected from official release archives. This explains this fixture difference; it does not establish that any reference version is universally correct.
 
-[`install_reference_poppler.sh`](../scripts/install_reference_poppler.sh) builds only the external `pdftotext` reference into a caller-provided empty absolute prefix. It pins the [official Poppler 26.10.0 release](https://poppler.freedesktop.org/), verifies archive SHA-256 `6792cb7c69205007ad87d2e936cecc5b3a31fac29ab54ffc3175fdb6b2a6ce35`, and verifies its detached signature against the release site's signing fingerprint `CA262C6C83DE4D2FB28A332A3A6A4DB839EAA6D7` in a temporary GPG home. It never changes the user's keyring or system installation. Poppler remains a separate GPL test process and is not linked into the Rust application.
+[`install_reference_poppler.sh`](../scripts/install_reference_poppler.sh) builds the external `pdftotext`, `pdfinfo` and `pdftoppm` references into a caller-provided empty absolute prefix. It pins the [official Poppler 26.10.0 release](https://poppler.freedesktop.org/), verifies archive SHA-256 `6792cb7c69205007ad87d2e936cecc5b3a31fac29ab54ffc3175fdb6b2a6ce35`, and verifies its detached signature against the release site's signing fingerprint `CA262C6C83DE4D2FB28A332A3A6A4DB839EAA6D7` in a temporary GPG home. It never changes the user's keyring or system installation. Poppler remains a separate GPL test process and is not linked into the Rust application.
+
+The organization gate is now Rust-driven:
+`cargo test -p pdf-editor-offline-cli --test native_pages_reference -- --ignored`.
+It authors deterministic PDFs in Rust, invokes the real native CLI, and compares
+Poppler text, effective page boxes/rotation and exact page rasters after reverse,
+reorder, crop, insertion, extraction and deletion. It also checks original bytes,
+dry-run and no-clobber behavior. Set `PDF_REFERENCE_BIN_DIR` to a verified reference
+installation; otherwise tools are resolved from PATH. This gate ran successfully
+on macOS and requires no interpreter. The older timing harness still awaits its
+native replacement before the final obsolete-stack removal gate.
 
 ```sh
 bash scripts/install_reference_poppler.sh --verify-only
