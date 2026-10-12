@@ -167,14 +167,20 @@ fn actual_memory_allocation_is_rejected_by_installed_os_limit() {
 }
 #[test]
 fn actual_cpu_limit_ends_a_spinning_worker_before_wall_deadline() {
-    let start = Instant::now();
-    let limit = Limits::for_test(pdf_worker::MEMORY_BYTES, 1, Duration::from_secs(5)).unwrap();
+    // Windows checks job CPU time periodically; five wall seconds is not a guaranteed interval.
+    let wall = Duration::from_secs(if cfg!(windows) { 20 } else { 5 });
+    let limit = Limits::for_test(pdf_worker::MEMORY_BYTES, 1, wall).unwrap();
     assert!(run("echo", limit).is_ok());
+    let start = Instant::now();
     let error = run("cpu", limit).unwrap_err();
     assert!(!matches!(error, Error::Timeout));
     assert!(matches!(error, Error::Exited(_)), "{error}");
     assert!(start.elapsed() >= Duration::from_millis(800));
-    assert!(start.elapsed() < Duration::from_secs(5));
+    assert!(start.elapsed() < wall);
+    eprintln!(
+        "OS CPU termination after {:?}, 1s CPU budget, {wall:?} wall deadline: {error}",
+        start.elapsed()
+    );
 }
 
 #[test]

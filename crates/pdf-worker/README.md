@@ -22,6 +22,13 @@ assigned to a private kill-on-close Job Object before document input is sent.
 Production limits are a 30-second wall deadline, a 30-second process CPU limit
 (Windows Job Objects count user CPU time) and the following memory policy:
 
+Windows checks its CPU quota periodically, as documented by
+[Microsoft](https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_basic_limit_information).
+The CPU-exhaustion test therefore gives Windows a 20-second observation deadline
+while keeping the one-second CPU quota and requiring a process exit, never a
+wall-timeout result. Other platforms keep the five-second observation deadline.
+These are test allowances; production limits are unchanged.
+
 | Platform | Memory enforcement |
 | --- | --- |
 | Linux | 2 GiB total address-space hard/soft limit via safe rustix |
