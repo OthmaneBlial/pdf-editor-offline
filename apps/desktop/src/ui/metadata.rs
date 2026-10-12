@@ -127,6 +127,7 @@ impl EditorApp {
                 .filter(|dialog| dialog.key == key && !dialog.stale)
         {
             dialog.loaded(values);
+            self.message = "Document properties loaded locally.".into();
         }
     }
     pub(super) fn open_metadata(&mut self) {
@@ -172,6 +173,7 @@ impl EditorApp {
             .collapsible(false)
             .resizable(true)
             .vscroll(true)
+            .default_height((context.content_rect().height() - 90.0).clamp(200.0, 600.0))
             .max_height((context.content_rect().height() - 60.0).max(200.0));
         let window = if dialog.submitting {
             window
@@ -187,7 +189,8 @@ impl EditorApp {
                 if !editable && !dialog.stale { ui.label("Read only: this document is signed or encrypted."); }
                 ui.small("Standard document fields · each field allows up to 64 KiB of UTF-8 text.");
                 egui::ScrollArea::vertical().id_salt("metadata-fields")
-                    .max_height((context.content_rect().height()-210.0).max(120.0)).show(ui,|ui| {
+                    // Reserve the title, instructions and action footer even on short windows.
+                    .max_height((context.content_rect().height()-470.0).clamp(70.0,280.0)).show(ui,|ui| {
                     for (index,(_,name)) in FIELDS.iter().enumerate() {
                         let label=ui.label(egui::RichText::new(*name).font(crate::style::medium(13.0)));
                         let response=if editable && !dialog.submitting {
@@ -417,6 +420,64 @@ mod tests {
         assert_eq!(dialog.drafts[0], "Changed");
         assert!(dialog.error.is_some() && !dialog.submitting);
         assert!(!app.tabs[0].status.dirty);
+    }
+
+    #[test]
+    fn property_actions_are_painted_inside_the_visible_dialog_without_scrolling() {
+        for size in [egui::vec2(640.0, 420.0), egui::vec2(1260.0, 718.0)] {
+            let mut app = app();
+            let key = app.metadata_dialog.as_ref().expect("dialog").key;
+            app.accept_metadata(key, values());
+            app.metadata_dialog.as_mut().expect("dialog").drafts[0] = "Changed".into();
+            let context = egui::Context::default();
+            crate::fonts::configure(&context);
+            crate::style::configure(&context, false);
+            for frame in 0..4 {
+                let mut output = context.run_ui(
+                    egui::RawInput {
+                        time: Some(f64::from(frame) * 0.1),
+                        screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, size)),
+                        ..Default::default()
+                    },
+                    |_| app.metadata_dialog_ui(&context),
+                );
+                output.textures_delta.clear();
+                if frame < 3 {
+                    continue;
+                }
+                for label in ["Apply changes", "Cancel"] {
+                    let painted = output.shapes.iter().any(|shape| {
+                        if let egui::epaint::Shape::Text(text) = &shape.shape {
+                            text.galley.job.text == label
+                                && shape
+                                    .clip_rect
+                                    .contains_rect(text.galley.rect.translate(text.pos.to_vec2()))
+                        } else {
+                            false
+                        }
+                    });
+                    assert!(
+                        painted,
+                        "{label} is clipped at {size:?}: {:?}",
+                        output
+                            .shapes
+                            .iter()
+                            .filter_map(|shape| {
+                                if let egui::epaint::Shape::Text(text) = &shape.shape {
+                                    (text.galley.job.text == label).then_some((
+                                        shape.clip_rect,
+                                        text.pos,
+                                        text.galley.rect,
+                                    ))
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect::<Vec<_>>()
+                    );
+                }
+            }
+        }
     }
 
     #[test]
