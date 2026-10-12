@@ -3,7 +3,7 @@ mod selection;
 use clap::{CommandFactory, Parser, Subcommand};
 use pdf_core::{Error, PdfDocument};
 use serde_json::{Value, json};
-use std::io::{self, Read};
+use std::io::{self, Read, Write};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
@@ -327,16 +327,68 @@ fn read_password() -> pdf_core::Result<String> {
     Ok(password)
 }
 
+fn finish_output(result: io::Result<()>, code: u8) -> ExitCode {
+    match result {
+        Ok(()) => ExitCode::from(code),
+        Err(error) if error.kind() == io::ErrorKind::BrokenPipe => ExitCode::from(code),
+        Err(error) => {
+            let _ = writeln!(io::stderr().lock(), "Error writing command output: {error}");
+            ExitCode::from(3)
+        }
+    }
+}
+
+fn output_stdout(bytes: &[u8], code: u8) -> ExitCode {
+    let mut stdout = io::stdout().lock();
+    finish_output(stdout.write_all(bytes).and_then(|()| stdout.flush()), code)
+}
+
+fn output_json(value: &Value, pretty: bool, code: u8) -> ExitCode {
+    let mut stdout = io::stdout().lock();
+    let result = (|| {
+        let serialized = if pretty {
+            serde_json::to_writer_pretty(&mut stdout, value)
+        } else {
+            serde_json::to_writer(&mut stdout, value)
+        };
+        serialized.map_err(|error| {
+            io::Error::new(error.io_error_kind().unwrap_or(io::ErrorKind::Other), error)
+        })?;
+        stdout.write_all(b"\n")?;
+        stdout.flush()
+    })();
+    finish_output(result, code)
+}
+
+fn error_envelope(kind: &str, message: &str) -> Value {
+    json!({ "ok": false, "error": { "kind": kind, "message": message } })
+}
+
 fn main() -> ExitCode {
-    let cli = Cli::parse();
+    let json_requested = std::env::args_os()
+        .skip(1)
+        .take_while(|argument| argument != "--")
+        .any(|argument| argument == "--json");
+    let cli = match Cli::try_parse() {
+        Ok(cli) => cli,
+        Err(error) => {
+            let code = error.exit_code() as u8;
+            if json_requested && error.use_stderr() {
+                let envelope = error_envelope("arguments", &error.to_string());
+                return output_json(&envelope, false, code);
+            }
+            return finish_output(error.print(), code);
+        }
+    };
     if let Command::Completions { shell } = cli.command {
+        let mut script = Vec::new();
         clap_complete::generate(
             shell,
             &mut Cli::command(),
             "pdf-editor-offline",
-            &mut io::stdout(),
+            &mut script,
         );
-        return ExitCode::SUCCESS;
+        return output_stdout(&script, 0);
     }
     let result = (|| {
         let password = if cli.password_stdin {
@@ -349,13 +401,12 @@ fn main() -> ExitCode {
     match result {
         Ok(data) => {
             if cli.json {
-                println!("{}", json!({ "ok": true, "data": data }));
+                output_json(&json!({ "ok": true, "data": data }), false, 0)
             } else if let Some(text) = data.get("text").and_then(Value::as_str) {
-                print!("{text}");
+                output_stdout(text.as_bytes(), 0)
             } else {
-                println!("{data:#}");
+                output_json(&data, true, 0)
             }
-            ExitCode::SUCCESS
         }
         Err(error) => {
             let (code, kind) = match error {
@@ -365,14 +416,11 @@ fn main() -> ExitCode {
                 _ => (1, "document"),
             };
             if cli.json {
-                println!(
-                    "{}",
-                    json!({ "ok": false, "error": { "kind": kind, "message": error.to_string() } })
-                );
+                let envelope = error_envelope(kind, &error.to_string());
+                output_json(&envelope, false, code)
             } else {
-                eprintln!("Error: {error}");
+                finish_output(writeln!(io::stderr().lock(), "Error: {error}"), code)
             }
-            ExitCode::from(code)
         }
     }
 }

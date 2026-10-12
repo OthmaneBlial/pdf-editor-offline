@@ -361,3 +361,133 @@ fn unsafe_subset_and_signed_organization_are_refused_without_output() {
         assert_eq!(std::fs::read(&input).unwrap(), before);
     }
 }
+
+#[test]
+fn json_argument_errors_use_envelopes_but_help_and_version_remain_text() {
+    let input = fixture("bookmarks.pdf");
+    for args in [
+        vec!["--json"],
+        vec!["--json", "unknown-command"],
+        vec![
+            "crop",
+            input.to_str().unwrap(),
+            "-o",
+            "unused.pdf",
+            "--json",
+        ],
+        vec![
+            "rotate",
+            input.to_str().unwrap(),
+            "--degrees",
+            "invalid",
+            "-o",
+            "unused.pdf",
+            "--json",
+        ],
+    ] {
+        let output = cli(&args);
+        assert_eq!(output.status.code(), Some(2), "{output:?}");
+        assert_eq!(json(&output)["ok"], false);
+        assert_eq!(json(&output)["error"]["kind"], "arguments");
+        assert!(
+            !json(&output)["error"]["message"]
+                .as_str()
+                .unwrap()
+                .is_empty()
+        );
+        assert!(output.stderr.is_empty());
+    }
+    for args in [["--json", "--help"], ["--json", "--version"]] {
+        let output = cli(&args);
+        assert!(output.status.success(), "{output:?}");
+        assert!(!output.stdout.is_empty());
+        assert!(serde_json::from_slice::<Value>(&output.stdout).is_err());
+        assert!(output.stderr.is_empty());
+    }
+    let literal = cli(&["info", input.to_str().unwrap(), "--", "--json"]);
+    assert_eq!(literal.status.code(), Some(2));
+    assert!(literal.stdout.is_empty());
+    assert!(!literal.stderr.is_empty());
+}
+
+#[cfg(unix)]
+#[test]
+fn closed_stdout_is_quiet_for_data_completions_help_and_errors() {
+    use std::os::fd::OwnedFd;
+    use std::os::unix::net::UnixStream;
+    use std::process::Stdio;
+
+    let input = fixture("bookmarks.pdf");
+    for (args, expected) in [
+        (vec!["capabilities", "--json"], 0),
+        (vec!["extract-text", input.to_str().unwrap()], 0),
+        (vec!["completions", "zsh"], 0),
+        (vec!["--json", "--help"], 0),
+        (vec!["--json", "--version"], 0),
+        (vec!["--json", "unknown-command"], 2),
+        (vec!["info", "missing-input.pdf", "--json"], 3),
+    ] {
+        let (reader, writer) = UnixStream::pair().unwrap();
+        drop(reader);
+        let output = Command::new(env!("CARGO_BIN_EXE_pdf-editor-offline"))
+            .args(args)
+            .stdout(Stdio::from(OwnedFd::from(writer)))
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(expected), "{output:?}");
+        assert!(output.stderr.is_empty(), "{output:?}");
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn other_output_errors_return_filesystem_code_without_panicking() {
+    use std::io::Write;
+    use std::os::fd::OwnedFd;
+    use std::os::unix::net::UnixStream;
+    use std::process::Stdio;
+
+    let (_reader, mut writer) = UnixStream::pair().unwrap();
+    writer.set_nonblocking(true).unwrap();
+    loop {
+        match writer.write(&[0; 8192]) {
+            Ok(_) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => break,
+            Err(error) => panic!("could not fill test output socket: {error}"),
+        }
+    }
+    let output = Command::new(env!("CARGO_BIN_EXE_pdf-editor-offline"))
+        .args(["capabilities", "--json"])
+        .stdout(Stdio::from(OwnedFd::from(writer)))
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(3), "{output:?}");
+    assert!(String::from_utf8_lossy(&output.stderr).contains("Error writing command output"));
+    assert!(!String::from_utf8_lossy(&output.stderr).contains("panicked"));
+}
+
+#[test]
+fn password_stdin_errors_do_not_disclose_input() {
+    use std::io::Write;
+    use std::process::Stdio;
+
+    let mut child = Command::new(env!("CARGO_BIN_EXE_pdf-editor-offline"))
+        .args(["capabilities", "--password-stdin", "--json"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let password = "private-test-password".repeat(220);
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(password.as_bytes())
+        .unwrap();
+    let output = child.wait_with_output().unwrap();
+    assert_eq!(output.status.code(), Some(5), "{output:?}");
+    assert_eq!(json(&output)["error"]["kind"], "resource_limit");
+    assert!(!String::from_utf8_lossy(&output.stdout).contains("private-test-password"));
+    assert!(!String::from_utf8_lossy(&output.stderr).contains("private-test-password"));
+}

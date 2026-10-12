@@ -50,10 +50,17 @@ Encrypted opening depends on the algorithms supported by lopdf. Export of an
 encrypted input is refused until an explicit encrypted-save policy is implemented.
 
 `--json` produces `{ "ok": true, "data": ... }` or a structured error envelope.
-Completion scripts are shell text. Human mode prints text extraction directly
+Argument/usage errors also use the envelope with `error.kind: "arguments"` and
+exit code 2 when `--json` is supplied before a literal `--` terminator. Explicit
+help/version requests remain normal successful text output. Completion scripts
+are shell text. Human mode prints text extraction directly
 and indented inspection/operation reports. Exit codes: 0 success; 1 document or
 selection error; 2 argument parsing; 3 filesystem/no-clobber; 4 unsupported or
 unsafe operation; 5 application resource limit.
+
+Output writes handle closed pipes quietly without panicking: successful commands
+retain exit 0 and failed commands retain their error code. Other output failures
+exit 3. Passwords read from stdin are never included in error messages.
 
 Comparison covers extracted text and page geometry, not images or signatures.
 Search is literal and case-sensitive with UTF-8 byte offsets and one-based page
