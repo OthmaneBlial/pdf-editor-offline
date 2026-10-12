@@ -26,6 +26,14 @@ not an incremental update. It retains unreferenced objects and is **not secure
 deletion, sanitization or redaction**. Directory fsync, file locking, recovery,
 signature-safe updates and encrypted export remain migration work.
 
+Page APIs include `reorder`, `reverse`, `crop`, `insert_blank`, `extract_pages`
+and `delete_pages`. Reorder retains page identities and inherited resources.
+Indexed page labels are refused until remapping exists. Extraction/deletion
+refuse unsupported catalog structures, annotations and references to removed
+pages; this conservative gate prevents silent data loss. Unreachable original
+objects remain in output. Crop only changes visibility, and none of these
+operations promises sensitive-content removal. Failed operations are transactional.
+
 Tests reuse synthetic fixtures and the committed Trust Lab pages, checking
 catalog/bookmark/form/attachment/layer preservation on rotation, failed edits,
 malformed page trees, no-clobber saves and signature refusal. They do not prove

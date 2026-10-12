@@ -2,6 +2,7 @@
 //! Saving creates a verified new copy and never replaces an existing file.
 
 mod error;
+mod pages;
 mod structure;
 
 pub use error::{Error, Result};
