@@ -74,9 +74,7 @@ impl PdfDocument {
     }
 
     fn from_document(document: Document, encrypted_input: bool) -> Result<Self> {
-        if document.objects.len() > MAX_OBJECTS {
-            return Err(Error::Limit("too many PDF objects"));
-        }
+        validate_object_budget(&document)?;
         let pages = structure::validate_pages(&document)?;
         let result = Self {
             document,
@@ -160,6 +158,7 @@ impl PdfDocument {
     }
 
     pub fn ensure_editable(&self) -> Result<()> {
+        validate_object_budget(&self.document)?;
         if self.encrypted_input {
             return Err(Error::Refused(
                 "encrypted inputs are read-only until encrypted export is implemented",
@@ -243,4 +242,20 @@ impl PdfDocument {
         })?;
         Ok(())
     }
+}
+
+fn validate_object_budget(document: &Document) -> Result<()> {
+    if document.objects.len() > MAX_OBJECTS {
+        return Err(Error::Limit("too many PDF objects"));
+    }
+    // The xref-table writer visits every number through max_id, including gaps.
+    if document.max_id as usize > MAX_OBJECTS
+        || document
+            .objects
+            .last_key_value()
+            .is_some_and(|(id, _)| id.0 as usize > MAX_OBJECTS)
+    {
+        return Err(Error::Limit("PDF object identifier exceeds 1000000"));
+    }
+    Ok(())
 }

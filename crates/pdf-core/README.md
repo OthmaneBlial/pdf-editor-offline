@@ -13,8 +13,9 @@ document.save_new("rotated.pdf")?;
 ```
 
 Opening uses strict lopdf loading with 128 MiB input, 32 MiB per decompressed
-loader/text stream, 20,000 pages, 128 page-tree levels and one million parsed
-objects. Object count is checked after parsing; these limits do not establish
+loader/text stream, 20,000 pages, 128 page-tree levels, one million parsed objects
+and object numbers at most one million. Sparse higher IDs are refused to bound
+xref-table serialization. Object limits are checked after parsing; they do not establish
 total CPU/memory isolation. Text extraction is best effort (font encoding and
 reading order vary); it does not provide OCR or prove absence of hidden content.
 

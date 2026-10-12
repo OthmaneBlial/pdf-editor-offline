@@ -1,5 +1,41 @@
 #![allow(clippy::unwrap_used)]
 
+fn sparse_page_id_pdf(id: u32) -> Vec<u8> {
+    let mut bytes = b"%PDF-1.7\n".to_vec();
+    let catalog = bytes.len();
+    bytes.extend_from_slice(b"1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+    let pages = bytes.len();
+    bytes.extend_from_slice(
+        format!("2 0 obj\n<< /Type /Pages /Kids [{id} 0 R] /Count 1 >>\nendobj\n").as_bytes(),
+    );
+    let page = bytes.len();
+    bytes.extend_from_slice(
+        format!("{id} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>\nendobj\n")
+            .as_bytes(),
+    );
+    let xref = bytes.len();
+    bytes.extend_from_slice(format!("xref\n0 3\n0000000000 65535 f \n{catalog:010} 00000 n \n{pages:010} 00000 n \n{id} 1\n{page:010} 00000 n \ntrailer\n<< /Size {} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n", u64::from(id) + 1).as_bytes());
+    bytes
+}
+
+#[test]
+fn sparse_object_numbers_are_bounded_before_xref_serialization() {
+    let boundary = pdf_core::MAX_OBJECTS as u32;
+    let mut accepted = PdfDocument::from_bytes(&sparse_page_id_pdf(boundary), None).unwrap();
+    assert_eq!(accepted.page_count(), 1);
+    assert!(matches!(
+        accepted.insert_blank(2, 100.0, 100.0),
+        Err(Error::Limit(_))
+    ));
+    assert_eq!(accepted.page_count(), 1);
+    assert!(matches!(
+        PdfDocument::from_bytes(&sparse_page_id_pdf(boundary + 1), None),
+        Err(Error::Limit("PDF object identifier exceeds 1000000"))
+    ));
+    // An out-of-range trailer Size can also be rejected by the strict loader first.
+    assert!(PdfDocument::from_bytes(&sparse_page_id_pdf(u32::MAX), None).is_err());
+}
+
 use lopdf::{DecompressError, Document, Object, Stream, dictionary};
 use pdf_core::{Error, MAX_STREAM_BYTES, PdfDocument};
 use std::sync::OnceLock;

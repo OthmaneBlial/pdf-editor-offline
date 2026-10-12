@@ -78,7 +78,7 @@ impl PdfDocument {
         if self.page_count() >= MAX_PAGES {
             return Err(Error::Limit("more than 20000 pages"));
         }
-        if self.document.max_id == u32::MAX {
+        if self.document.max_id as usize >= MAX_OBJECTS {
             return Err(Error::Limit("PDF object identifiers are exhausted"));
         }
         if self.document.objects.len() >= MAX_OBJECTS {
@@ -265,12 +265,7 @@ impl PdfDocument {
         if self.document.objects.len() + direct_resources.len() > MAX_OBJECTS {
             return Err(Error::Limit("too many PDF objects"));
         }
-        if self
-            .document
-            .max_id
-            .checked_add(direct_resources.len() as u32)
-            .is_none()
-        {
+        if self.document.max_id as usize + direct_resources.len() > MAX_OBJECTS {
             return Err(Error::Limit("PDF object identifiers are exhausted"));
         }
         // Move shared ancestor dictionaries once, before materialization could copy them per leaf.
