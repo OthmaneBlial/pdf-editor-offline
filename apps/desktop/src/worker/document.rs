@@ -2,6 +2,7 @@ use super::{Edit, HISTORY_BYTES, HISTORY_LIMIT};
 use crate::state::DocumentStatus;
 use pdf_core::DocumentInfo;
 use pdf_worker::document::{DocumentResult, MetadataChange, Mutation, Operation};
+use pdf_worker::journal::{DocumentStateRef, Journal, SnapshotRef};
 use pdf_worker::{PayloadKind, Reply, Request};
 use std::ffi::OsString;
 use std::io::{Read, Seek, SeekFrom, Write};
@@ -19,6 +20,17 @@ pub(super) struct WorkingDocument {
     pub redo: Vec<Snapshot>,
     pub saved_revision: Option<u64>,
     pub next_revision: u64,
+    pub path: Option<PathBuf>,
+}
+
+impl Snapshot {
+    fn as_ref(&self) -> SnapshotRef<'_> {
+        SnapshotRef {
+            revision: self.revision,
+            bytes: &self.bytes,
+            info: &self.info,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -67,6 +79,14 @@ pub(super) fn execute(
     operation: Operation,
     bytes: &[u8],
 ) -> Result<(DocumentResult, Reply), String> {
+    execute_limited(operation, bytes, pdf_worker::Limits::default())
+}
+
+pub(super) fn execute_limited(
+    operation: Operation,
+    bytes: &[u8],
+    limits: pdf_worker::Limits,
+) -> Result<(DocumentResult, Reply), String> {
     let current = std::env::current_exe().map_err(|error| error.to_string())?;
     #[cfg(not(test))]
     let (helper, arguments) = (current, vec![OsString::from("--pdf-worker")]);
@@ -85,13 +105,12 @@ pub(super) fn execute(
     };
     #[cfg(test)]
     let (helper, arguments, limits) = TEST_EXECUTABLE.with(|slot| {
-        slot.borrow().clone().map_or(
-            (helper, arguments, pdf_worker::Limits::default()),
-            |executor| (executor.executable, executor.arguments, executor.limits),
-        )
+        slot.borrow()
+            .clone()
+            .map_or((helper, arguments, limits), |executor| {
+                (executor.executable, executor.arguments, executor.limits)
+            })
     });
-    #[cfg(not(test))]
-    let limits = pdf_worker::Limits::default();
     let reply = pdf_worker::execute(
         &helper,
         &arguments,
@@ -165,6 +184,7 @@ impl WorkingDocument {
             redo: Vec::new(),
             saved_revision: Some(0),
             next_revision: 1,
+            path: Some(std::path::absolute(path).map_err(|error| error.to_string())?),
         })
     }
 
@@ -225,6 +245,7 @@ impl WorkingDocument {
             redo: Vec::new(),
             saved_revision: None,
             next_revision: 1,
+            path: None,
         })
     }
 
@@ -259,22 +280,67 @@ impl WorkingDocument {
         Ok(metadata)
     }
 
+    pub fn as_ref<'a>(&'a self, id: &'a str) -> DocumentStateRef<'a> {
+        DocumentStateRef {
+            id,
+            current: self.current.as_ref(),
+            undo: self.undo.iter().map(Snapshot::as_ref).collect(),
+            redo: self.redo.iter().map(Snapshot::as_ref).collect(),
+            saved_revision: self.saved_revision,
+            next_revision: self.next_revision,
+            path: self.path.as_deref(),
+        }
+    }
+
     #[cfg(test)]
     pub fn edit(&mut self, edit: Edit) -> Result<Option<usize>, String> {
         self.edit_with_budget(edit, HISTORY_BYTES)
     }
 
+    #[cfg(test)]
     pub fn edit_with_budget(&mut self, edit: Edit, budget: usize) -> Result<Option<usize>, String> {
+        self.edit_durable(edit, budget, "test", |_| Ok(()))
+    }
+
+    pub fn edit_durable(
+        &mut self,
+        edit: Edit,
+        budget: usize,
+        id: &str,
+        commit: impl FnOnce(&DocumentStateRef<'_>) -> Result<(), String>,
+    ) -> Result<Option<usize>, String> {
         let budget = budget.min(HISTORY_BYTES);
-        if let Edit::Undo = edit {
-            let previous = self.undo.pop().ok_or("Nothing to undo")?;
-            self.redo
-                .push(std::mem::replace(&mut self.current, previous));
-            return Ok(None);
-        }
-        if let Edit::Redo = edit {
-            let next = self.redo.pop().ok_or("Nothing to redo")?;
-            self.undo.push(std::mem::replace(&mut self.current, next));
+        if matches!(edit, Edit::Undo | Edit::Redo) {
+            let undo = matches!(edit, Edit::Undo);
+            let target = if undo {
+                self.undo.last()
+            } else {
+                self.redo.last()
+            }
+            .ok_or(if undo {
+                "Nothing to undo"
+            } else {
+                "Nothing to redo"
+            })?;
+            let mut candidate = self.as_ref(id);
+            candidate.current = target.as_ref();
+            if undo {
+                candidate.undo.pop();
+                candidate.redo.push(self.current.as_ref());
+            } else {
+                candidate.redo.pop();
+                candidate.undo.push(self.current.as_ref());
+            }
+            commit(&candidate)?;
+            drop(candidate);
+            if undo {
+                let previous = self.undo.pop().ok_or("Nothing to undo")?;
+                self.redo
+                    .push(std::mem::replace(&mut self.current, previous));
+            } else {
+                let next = self.redo.pop().ok_or("Nothing to redo")?;
+                self.undo.push(std::mem::replace(&mut self.current, next));
+            }
             return Ok(None);
         }
         let mutation = match edit {
@@ -333,22 +399,36 @@ impl WorkingDocument {
             info,
             revision: self.next_revision,
         };
-        self.next_revision = next_revision;
+        let mut undo: Vec<_> = self
+            .undo
+            .iter()
+            .map(Snapshot::as_ref)
+            .chain(std::iter::once(self.current.as_ref()))
+            .collect();
+        let mut total =
+            snapshot.bytes.len() + undo.iter().map(|entry| entry.bytes.len()).sum::<usize>();
+        let mut dropped = 0;
+        while undo.len() > HISTORY_LIMIT || total > budget {
+            total -= undo.remove(0).bytes.len();
+            dropped += 1;
+        }
+        let candidate = DocumentStateRef {
+            id,
+            current: snapshot.as_ref(),
+            undo,
+            redo: Vec::new(),
+            saved_revision: self.saved_revision,
+            next_revision,
+            path: self.path.as_deref(),
+        };
+        commit(&candidate)?;
+        drop(candidate);
         self.undo
             .push(std::mem::replace(&mut self.current, snapshot));
         self.redo.clear();
-        self.trim_history(budget);
+        self.undo.drain(..dropped);
+        self.next_revision = next_revision;
         Ok(selected_page)
-    }
-
-    fn trim_history(&mut self, budget: usize) {
-        while self.undo.len() + self.redo.len() > HISTORY_LIMIT || self.byte_len() > budget {
-            if !self.undo.is_empty() {
-                self.undo.remove(0);
-            } else {
-                self.redo.remove(0);
-            }
-        }
     }
 
     pub fn prepare_save(&self) -> Result<Vec<u8>, String> {
@@ -366,11 +446,72 @@ impl WorkingDocument {
         Ok(reply.payload)
     }
 
+    #[cfg(test)]
     pub fn save(&mut self, path: &Path) -> Result<(), String> {
         let bytes = self.prepare_save()?;
         publish(&bytes, path)?;
         self.saved_revision = Some(self.current.revision);
         Ok(())
+    }
+
+    pub fn save_durable(
+        &mut self,
+        path: &Path,
+        id: &str,
+        journal: &mut Journal,
+    ) -> Result<(), String> {
+        if journal
+            .save_intents()
+            .iter()
+            .any(|intent| intent.document_id == id)
+        {
+            return Err("A previous save acknowledgement remains unresolved. Resolve or explicitly cancel it before saving another copy.".into());
+        }
+        match path.symlink_metadata() {
+            Ok(_) => return Err("Output already exists; choose a new file".into()),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => (),
+            Err(error) => return Err(error.to_string()),
+        }
+        let bytes = self.prepare_save()?;
+        let intent = journal
+            .begin_save(id, self.current.revision, path, &bytes)
+            .map_err(|error| {
+                format!("Save journal failed; the document remains unsaved: {error}")
+            })?;
+        publish(&bytes, path)?;
+        journal.finish_save(&intent.token).map_err(|error| format!("The new copy was published, but its save acknowledgement failed. The document remains unsaved and the save intent is recoverable: {error}"))?;
+        self.saved_revision = Some(self.current.revision);
+        self.path = Some(intent.destination);
+        Ok(())
+    }
+
+    pub fn resolve_save(&mut self, id: &str, journal: &mut Journal) -> Result<PathBuf, String> {
+        let intent = journal
+            .save_intents()
+            .iter()
+            .find(|intent| intent.document_id == id)
+            .ok_or("No pending save intent exists")?
+            .clone();
+        if intent.revision != self.current.revision {
+            return Err(
+                "The pending save belongs to another revision; its evidence remains retained"
+                    .into(),
+            );
+        }
+        let artifact = journal
+            .save_artifact(&intent.token)
+            .map_err(|error| error.to_string())?;
+        match intent.destination.symlink_metadata() {
+            Ok(_) => (),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                publish(&artifact, &intent.destination)?
+            }
+            Err(error) => return Err(error.to_string()),
+        }
+        journal.finish_save(&intent.token).map_err(|error| format!("The pending copy could not be acknowledged; the document and save evidence remain retained: {error}"))?;
+        self.saved_revision = Some(self.current.revision);
+        self.path = Some(intent.destination.clone());
+        Ok(intent.destination)
     }
 
     #[cfg(test)]

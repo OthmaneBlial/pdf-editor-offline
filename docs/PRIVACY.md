@@ -2,9 +2,9 @@
 
 Current native document operations run on the user's device. The desktop and CLI implement no upload service, account system, remote processing, document telemetry, or automatic download of fonts. Licensed fonts are bundled.
 
-Open files and edit snapshots reside in application memory. Save As creates a temporary file beside the chosen destination and publishes a verified new copy. A crash can leave a temporary file; desktop recovery and cleanup controls remain unfinished. Closing a tab does not promise erasure from swap, filesystem history, backups, or storage hardware.
+The desktop records opened PDFs, committed edits, undo/redo snapshots, original paths and save destinations in a private local recovery journal. Unapplied property drafts and workspace presentation state are not recorded. Save As creates a temporary file beside the chosen destination and publishes a verified new copy. An interrupted save can leave a temporary file or an unresolved acknowledgement. Closing a tab does not promise erasure from journal backups, swap, filesystem history, backups, or storage hardware.
 
-The standalone worker's journal stores private local document bytes and manifest information. It is infrastructure, not yet an enabled desktop autosave workflow. Do not claim a desktop recovery retention or deletion policy before its integration is tested.
+File → Recovery lists retained sessions without automatically opening their documents. Restore validates snapshots through bounded children and preserves existing tabs. Explicit session discard deletes only recognized private journal files; originals and exported destinations are untouched. Active sessions, unexpected files and unsafe filesystem entries prevent deletion. Default quitting retains open documents for recovery. There is no automatic seven-day deletion; old sessions remain until explicitly discarded. See [recovery controls and limits](DESKTOP_RECOVERY.md).
 
 Project pages, dependency downloads, release downloads, and the optional npm installer use the network. These are distribution resources, separate from PDF processing. The npm wrapper downloads a native CLI binary; it does not process documents.
 

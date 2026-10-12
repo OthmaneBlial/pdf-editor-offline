@@ -87,6 +87,7 @@ app with the instructions below.
 | Images | Create PDF pages from supported PNG/JPEG files | Restricted images-to-PDF conversion; export one PDF page as PNG |
 | Comments | Existing supported appearances can be displayed | Add/list sticky Text notes; guarded editing/removal of basic notes |
 | Inspect and export | Verified Save As to a new path | Read-only action/attachment/form/layer markers, lossless stream compression, verified fresh output copies |
+| Resume your work | Recorded document/history snapshots, explicit session restore/discard, interrupted-save retry/cancel in current source | Desktop recovery is separate from the CLI |
 
 Supported edits preserve unrelated PDF objects and refuse structures they cannot
 safely handle. Merge, page subsets, note editing and image conversion have explicit
@@ -140,6 +141,10 @@ or cloud conversion service and requires no account. Local processing does not
 make every PDF safe or prove that hidden information has been removed.
 [Security inspection scope](docs/SECURITY_INSPECTION_RUST.md) explains what the
 read-only report can establish.
+
+The current desktop source keeps private local recovery copies, including PDF
+bytes and paths. [Recovery controls](docs/DESKTOP_RECOVERY.md) let you inspect and
+discard retained sessions; closing a tab does not securely erase those bytes.
 
 Validation includes Rust tests and independent qpdf/Poppler checks for specific
 fixtures and supported operations. The [CLI evidence](docs/RUST_BENCHMARKS.md)

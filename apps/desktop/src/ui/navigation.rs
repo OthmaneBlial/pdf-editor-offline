@@ -75,12 +75,9 @@ impl EditorApp {
     fn navigation(&mut self, ui: &mut egui::Ui) {
         let mut action = None;
         let dark = ui.ctx().global_style().visuals.dark_mode;
-        let colors = crate::style::palette(dark);
         let spacious = ui.available_width() >= 840.0;
         egui::MenuBar::new().ui(ui, |ui| {
-            egui::Frame::new().fill(colors.on_chrome).corner_radius(3).inner_margin(egui::Margin::symmetric(5, 2)).show(ui, |ui| {
-                ui.label(egui::RichText::new("PDF").font(crate::style::medium(14.0)).color(colors.chrome));
-            });
+            crate::brand::logo(ui);
             ui.label(egui::RichText::new("Editor").font(crate::style::medium(17.0)));
             ui.add_space(8.0);
             ui.separator();
@@ -92,6 +89,7 @@ impl EditorApp {
                 if ui.add_enabled(!self.busy && self.selected().is_some_and(Tab::editable), egui::Button::new("Save As new PDF…")).clicked() { action = Some(Action::Save); ui.close(); }
                 if ui.add_enabled(!self.busy && self.selected().is_some(), egui::Button::new("Close current PDF")).clicked() { action = Some(Action::Close); ui.close(); }
                 if ui.add_enabled(!self.busy && self.selected().is_some(), egui::Button::new("Document properties…")).clicked() { action = Some(Action::Metadata); ui.close(); }
+                if ui.button("Recover previous session…").clicked() { action = Some(Action::Recovery); ui.close(); }
                 ui.separator();
                 if ui.button("Quit · Command/Ctrl+Q").clicked() { action = Some(Action::Quit); ui.close(); }
             });

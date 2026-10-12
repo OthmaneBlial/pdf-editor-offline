@@ -1,6 +1,6 @@
 # Rust migration matrix
 
-Updated: 2026-10-12. The current source is native Rust; the previous implementation is preserved at [the recovery tag](https://github.com/OthmaneBlial/pdf-editor-offline/tree/recovery-before-native-cleanup-20261012).
+Updated: 2026-10-13. The current source is native Rust; the previous implementation is preserved at [the recovery tag](https://github.com/OthmaneBlial/pdf-editor-offline/tree/recovery-before-native-cleanup-20261012).
 
 **Partial** means the complete native parity gate is still open. P0/P1/P2 schedule work; they do not authorize dropping a capability. Historical implementation and test names belong to the recovery tree. The inventory below preserves required behavior without obsolete current-source paths.
 
@@ -14,8 +14,8 @@ Historical baseline tests do not establish native parity. Current results must i
 | --- | --- | --- | --- |
 | Open/inspect | Partial | strict bounded parser, structural/geometry inspection, nested signature detection; native GUI + `info` | broader encrypted/malformed corpus and isolation |
 | Render/navigate | Partial | Hayro vectors/crop/rotation and pinned annotation geometry; native DPI-aware navigation and bounded visible-page thumbnails; 17 renderer tests and earlier actual macOS window | full font/fidelity corpus, thumbnail runtime review, tiled rendering and all platform UI |
-| Save As | Partial | verified new-copy/no-clobber core/CLI/GUI; independent copy inspection | overwrite policy, recovery, locking and power-loss durability |
-| Undo/redo | Partial | native rotation/organization/properties snapshots, dirty/saved revisions and rejected-edit preservation | every editing workflow and recovery integration |
+| Save As | Partial | verified new-copy/no-clobber core/CLI/GUI; independent copy inspection; durable desktop save intents and explicit retry/cancel | broader overwrite policy, locking and power-loss/platform durability |
+| Undo/redo | Partial | native rotation/organization/properties snapshots, dirty/saved revisions, rejected-edit preservation and durable desktop restoration | every editing workflow and actual recovery-dialog interaction |
 | Page organization | Partial | guarded core/CLI reorder/reverse/crop/blank/subsets and simple merge; GUI move/reverse/blank/crop with history | organizer runtime review, GUI subsets/merge, split/import/duplicate and indexed structures |
 | Compression | Partial | lossless stream compression + verified new copy; CLI and cross-reader preservation | repair, images/lossy tiers and native tool workflow |
 | Text/search | Partial | bounded fonts/content/appearances/Form XObjects; literal CLI and native incremental search; 7 text regressions and actual focused native search | coordinate highlights, broad Unicode/RTL/CJK and general clipping/reading order |
@@ -37,7 +37,7 @@ Historical baseline tests do not establish native parity. Current results must i
 | Render and navigate | Actual Rust-owned rendering, page cache, zoom/scroll/thumbnails/search/navigation, Unicode/font fidelity | Pending | P1 / fidelity and latency |
 | Save As/export | Write verified temporary output; atomic replacement without overwriting original prematurely; permission/locking/read-only errors | Pending | P0 / document loss |
 | Undo/redo | One documented history model for overlays and document edits; redo invalidation; failed commands leave no partial state | Pending | P0 / inconsistent document state |
-| Recovery/storage cleanup | Native recovery journal/copies, restoration/previews, expiry, full sidecar inventory and confirmed deletion | Pending | P0 / sensitive orphan files |
+| Recovery/storage cleanup | Native recovery journal/copies, restoration/previews, expiry, full sidecar inventory and confirmed deletion | Partial: durable desktop snapshots/history/save intents; explicit session restore/discard; no automatic expiry or full external sidecar cleanup | P0 / sensitive orphan files |
 | Merge/split/extract | Copy pages/resources safely; deterministic user selection semantics; remap bookmarks/links/widgets or explicit refusal/warning | Pending | P1 / silent structure loss |
 | Delete/duplicate/reorder/reverse | Page tree editing with index validation and preserved/remapped destinations | Pending | P1 / dangling references |
 | Rotation/crop/resize | Distinguish page rotation, media/crop boxes and content transforms; preserve coordinate mapping | Pending | P1 / misplaced content |

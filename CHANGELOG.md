@@ -2,6 +2,8 @@
 
 ## Unreleased — native Rust preview
 
+- Added durable desktop document/history recovery, explicit retained-session restore/discard controls, and retry/cancel handling for interrupted save acknowledgements. Originals and exported copies are never deleted by journal cleanup.
+- Brought the original vector logo into the native header and moved community guidance into `.github/` to keep the root focused on the Rust workspace.
 - Made the native Rust workspace the current source: desktop, CLI, document core, renderer, image converter, worker infrastructure, and independent evidence tools.
 - Added guarded page organization, basic sticky-note operations, document-property editing, supported PNG/JPEG import, text search, and verified no-clobber copies.
 - Refined the native desktop with ivory/forest themes, bundled licensed fonts, page thumbnails, tabs, history, and real workflow screenshots.

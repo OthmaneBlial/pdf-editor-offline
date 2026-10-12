@@ -9,6 +9,7 @@ use pdf_core::PdfDocument;
 use pdf_render::RenderedPage;
 use pdf_worker::PayloadKind;
 use pdf_worker::document::{DocumentResult, Operation};
+use pdf_worker::journal::Journal;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::mpsc::{self, Receiver, SyncSender};
@@ -59,6 +60,19 @@ pub enum Edit {
 }
 
 pub enum Command {
+    ResolveSave {
+        id: u64,
+    },
+    CancelSave {
+        id: u64,
+    },
+    RecoveryList,
+    RestoreSession {
+        session: String,
+    },
+    DiscardSession {
+        session: String,
+    },
     Images {
         id: u64,
         paths: Vec<PathBuf>,
@@ -91,10 +105,13 @@ pub enum Command {
 impl Command {
     fn id(&self) -> u64 {
         match self {
+            Self::RecoveryList | Self::RestoreSession { .. } | Self::DiscardSession { .. } => 0,
             Self::Load { id, .. }
             | Self::Images { id, .. }
             | Self::Edit { id, .. }
             | Self::Save { id, .. }
+            | Self::ResolveSave { id }
+            | Self::CancelSave { id }
             | Self::Close(id) => *id,
             Self::Render(key) => key.tab,
             Self::Thumbnail(key) => key.tab,
@@ -115,6 +132,17 @@ pub enum TaskKey {
 }
 
 pub enum Event {
+    SavePending {
+        id: u64,
+        path: PathBuf,
+        message: String,
+    },
+    RecoveryListed {
+        sessions: Vec<RecoverySession>,
+    },
+    RecoveryRestored {
+        documents: Vec<RecoveredDocument>,
+    },
     Loaded {
         id: u64,
         path: PathBuf,
@@ -168,6 +196,27 @@ impl Worker {
         let (responses, events) = mpsc::channel();
         std::thread::spawn(move || {
             let mut documents = HashMap::new();
+            let mut recovery = recovery::Recovery::new();
+            let startup = match &recovery {
+                Ok(recovery) => recovery.list(),
+                Err(error) => Err(error.clone()),
+            }
+            .unwrap_or_else(|message| Event::Error {
+                id: 0,
+                task: None,
+                message,
+            });
+            let _ = responses.send(startup);
+            if let Ok(recovery) = &mut recovery
+                && let Some(message) = recovery.initial_error.take()
+            {
+                let _ = responses.send(Event::Error {
+                    id: 0,
+                    task: None,
+                    message,
+                });
+            }
+            context.request_repaint();
             while let Ok(command) = commands.recv() {
                 let id = command.id();
                 let task = match &command {
@@ -183,7 +232,7 @@ impl Worker {
                     _ => None,
                 };
                 let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                    process(&mut documents, command)
+                    process_durable(&mut documents, &mut recovery, command)
                 }));
                 let event = match result {
                     Ok(Ok(event)) => event,
@@ -203,7 +252,19 @@ impl Worker {
                 if responses.send(event).is_err() {
                     break;
                 }
+                if let Ok(recovery) = &mut recovery
+                    && let Some(message) = recovery.initial_error.take()
+                {
+                    let _ = responses.send(Event::Error {
+                        id: 0,
+                        task: None,
+                        message,
+                    });
+                }
                 context.request_repaint();
+            }
+            if let Ok(recovery) = recovery {
+                recovery.finish(&documents);
             }
         });
         Self { sender, events }
@@ -220,11 +281,53 @@ impl Worker {
 }
 
 mod document;
+mod recovery;
 use document::WorkingDocument;
+pub use recovery::{RecoveredDocument, RecoverySession};
 
+fn process_durable(
+    documents: &mut HashMap<u64, WorkingDocument>,
+    recovery: &mut Result<recovery::Recovery, String>,
+    command: Command,
+) -> Result<Event, String> {
+    let recovery = recovery.as_mut().map_err(|error| error.clone())?;
+    match command {
+        Command::RecoveryList => recovery.list(),
+        Command::RestoreSession { session } => recovery.restore(&session, documents),
+        Command::DiscardSession { session } => recovery.discard(&session),
+        command => process_with_journal(documents, command, Some(recovery.journal()?)),
+    }
+}
+
+#[cfg(test)]
 fn process(
     documents: &mut HashMap<u64, WorkingDocument>,
     command: Command,
+) -> Result<Event, String> {
+    process_with_journal(documents, command, None)
+}
+
+fn persist(
+    journal: Option<&mut Journal>,
+    document: &pdf_worker::journal::DocumentStateRef<'_>,
+) -> Result<(), String> {
+    match journal {
+        Some(journal) => journal.commit_document_ref(document).map_err(|error| {
+            format!(
+                "Recovery journal failed; the previous committed document was retained: {error}"
+            )
+        }),
+        #[cfg(test)]
+        None => Ok(()),
+        #[cfg(not(test))]
+        None => Err("A durable recovery journal is required before changing documents".into()),
+    }
+}
+
+fn process_with_journal(
+    documents: &mut HashMap<u64, WorkingDocument>,
+    command: Command,
+    mut journal: Option<&mut Journal>,
 ) -> Result<Event, String> {
     if let Command::Images { id, paths } = command {
         if documents.len() >= MAX_TABS {
@@ -237,6 +340,7 @@ fn process(
         }
         let document = WorkingDocument::from_images(&paths)?;
         check_snapshot_budget(documents, &document)?;
+        persist(journal.as_deref_mut(), &document.as_ref(&id.to_string()))?;
         let status = document.status()?;
         documents.insert(id, document);
         return Ok(Event::Loaded {
@@ -256,11 +360,27 @@ fn process(
         }
         let document = WorkingDocument::load(&path)?;
         check_snapshot_budget(documents, &document)?;
+        persist(journal.as_deref_mut(), &document.as_ref(&id.to_string()))?;
         let status = document.status()?;
         documents.insert(id, document);
         return Ok(Event::Loaded { id, path, status });
     }
     if let Command::Close(id) = command {
+        if let Some(journal) = &mut journal {
+            if journal
+                .save_intents()
+                .iter()
+                .any(|intent| intent.document_id == id.to_string())
+            {
+                return Err(
+                    "An unresolved save intent must be acknowledged before closing this document."
+                        .into(),
+                );
+            }
+            journal.close_document(&id.to_string()).map_err(|error| {
+                format!("Recovery journal could not close the document; it remains open: {error}")
+            })?;
+        }
         documents.remove(&id);
         return Ok(Event::Closed(id));
     }
@@ -356,7 +476,21 @@ fn process(
             {
                 return Err("Metadata draft belongs to another document".into());
             }
-            let selected_page = document.edit_with_budget(edit, remaining)?;
+            if journal.as_ref().is_some_and(|journal| {
+                journal
+                    .save_intents()
+                    .iter()
+                    .any(|intent| intent.document_id == id.to_string())
+            }) {
+                return Err(
+                    "An unresolved save intent must be acknowledged before editing this document."
+                        .into(),
+                );
+            }
+            let selected_page =
+                document.edit_durable(edit, remaining, &id.to_string(), |candidate| {
+                    persist(journal.as_deref_mut(), candidate)
+                })?;
             Ok(Event::Updated {
                 id,
                 status: document.status()?,
@@ -364,15 +498,81 @@ fn process(
             })
         }
         Command::Save { path, .. } => {
-            document.save(&path)?;
+            match journal {
+                Some(journal) => {
+                    if let Err(message) = document.save_durable(&path, &id.to_string(), journal) {
+                        if let Some(intent) = journal
+                            .save_intents()
+                            .iter()
+                            .find(|intent| intent.document_id == id.to_string())
+                        {
+                            return Ok(Event::SavePending {
+                                id,
+                                path: intent.destination.clone(),
+                                message,
+                            });
+                        }
+                        return Err(message);
+                    }
+                }
+                #[cfg(test)]
+                None => document.save(&path)?,
+                #[cfg(not(test))]
+                None => return Err("A durable journal is required before saving".into()),
+            }
             Ok(Event::Saved {
                 id,
                 path,
                 status: document.status()?,
             })
         }
+        Command::ResolveSave { .. } => {
+            let journal = journal.ok_or("A durable journal is required to resolve a save")?;
+            match document.resolve_save(&id.to_string(), journal) {
+                Ok(path) => Ok(Event::Saved {
+                    id,
+                    path,
+                    status: document.status()?,
+                }),
+                Err(message) => {
+                    let intent = journal
+                        .save_intents()
+                        .iter()
+                        .find(|intent| intent.document_id == id.to_string())
+                        .ok_or_else(|| message.clone())?;
+                    Ok(Event::SavePending {
+                        id,
+                        path: intent.destination.clone(),
+                        message,
+                    })
+                }
+            }
+        }
+        Command::CancelSave { .. } => {
+            let journal = journal.ok_or("A durable journal is required to cancel a save")?;
+            let token = journal
+                .save_intents()
+                .iter()
+                .find(|intent| intent.document_id == id.to_string())
+                .ok_or("No pending save intent exists")?
+                .token
+                .clone();
+            journal.cancel_save(&token).map_err(|error| {
+                format!(
+                    "Save cancellation was not committed; its evidence remains retained: {error}"
+                )
+            })?;
+            Ok(Event::Updated {
+                id,
+                status: document.status()?,
+                selected_page: None,
+            })
+        }
         Command::Load { .. } | Command::Images { .. } | Command::Close(_) => {
             unreachable!("load and close handled before lookup")
+        }
+        Command::RecoveryList | Command::RestoreSession { .. } | Command::DiscardSession { .. } => {
+            Err("Recovery commands must use the session controller".into())
         }
     }
 }

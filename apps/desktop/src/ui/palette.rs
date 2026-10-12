@@ -30,6 +30,7 @@ impl EditorApp {
                 let has_document = selected.is_some();
                 let editable = !self.busy && selected.is_some_and(Tab::editable);
                 let commands = [
+                    ("Recover previous session", Action::Recovery, true),
                     ("Open PDF", Action::Open, !self.busy && self.tabs.len() < 16),
                     (
                         "Images to PDF",

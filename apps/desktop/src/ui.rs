@@ -8,6 +8,7 @@ mod metadata;
 mod navigation;
 mod organizer;
 mod palette;
+mod recovery;
 mod sidebar;
 
 const MAIN_PIXEL_BUDGET: usize = 64 * 1024 * 1024;
@@ -44,6 +45,7 @@ enum Action {
     ToggleInspector,
     Theme,
     Quit,
+    Recovery,
 }
 
 #[derive(Default, Clone, Copy, PartialEq, Eq)]
@@ -78,6 +80,9 @@ pub struct EditorApp {
     organizer_dialog: Option<organizer::Dialog>,
     metadata_dialog: Option<metadata::Dialog>,
     metadata_generation: u64,
+    recovery: recovery::State,
+    discard_quit: bool,
+    pending_saves: std::collections::BTreeMap<u64, recovery::PendingSave>,
 }
 
 impl EditorApp {
@@ -108,6 +113,9 @@ impl EditorApp {
             organizer_dialog: None,
             metadata_dialog: None,
             metadata_generation: 0,
+            recovery: Default::default(),
+            discard_quit: false,
+            pending_saves: Default::default(),
         }
     }
 
@@ -146,8 +154,25 @@ impl EditorApp {
     fn poll(&mut self, context: &egui::Context) {
         self.sync_display_ratio(context.pixels_per_point());
         while let Ok(event) = self.worker.events.try_recv() {
-            self.busy = false;
+            if !matches!(
+                &event,
+                Event::RecoveryListed { .. } | Event::Error { id: 0, .. }
+            ) || self.recovery.pending.is_some()
+            {
+                self.busy = false;
+            }
             match event {
+                Event::RecoveryListed { sessions } => self.accept_recovery_list(sessions),
+                Event::RecoveryRestored { documents } => self.accept_recovered(documents, context),
+                Event::SavePending { id, path, message } => {
+                    if self.tabs.iter().any(|tab| tab.id == id) {
+                        self.pending_saves
+                            .insert(id, recovery::PendingSave::new(path, message.clone()));
+                        self.message = message;
+                        self.close_after_save = None;
+                        self.close_target = None;
+                    }
+                }
                 Event::Loaded { id, path, status } => {
                     let mut tab = Tab::new(id, path, status);
                     tab.set_device_ratio(context.pixels_per_point());
@@ -162,6 +187,13 @@ impl EditorApp {
                     status,
                     selected_page,
                 } => {
+                    let save_cancelled = self
+                        .pending_saves
+                        .get(&id)
+                        .is_some_and(|pending| pending.submitting);
+                    if save_cancelled {
+                        self.pending_saves.remove(&id);
+                    }
                     if self
                         .metadata_dialog
                         .as_ref()
@@ -184,9 +216,15 @@ impl EditorApp {
                         }
                         tab.error = None;
                     }
-                    self.message = "Edit applied. Save As creates a new PDF.".into();
+                    self.message = if save_cancelled {
+                        "Recorded save attempt cancelled. Destination files preserved."
+                    } else {
+                        "Edit applied. Save As creates a new PDF."
+                    }
+                    .into();
                 }
                 Event::Saved { id, path, status } => {
+                    self.pending_saves.remove(&id);
                     if let Some(tab) = self.tabs.iter_mut().find(|tab| tab.id == id) {
                         tab.update(status);
                         tab.path = path;
@@ -287,6 +325,7 @@ impl EditorApp {
                     }
                 }
                 Event::Closed(id) => {
+                    self.pending_saves.remove(&id);
                     self.tabs.retain(|tab| tab.id != id);
                     if self.active == Some(id) {
                         self.active = self.tabs.last().map(|tab| tab.id);
@@ -294,6 +333,20 @@ impl EditorApp {
                     self.message = "PDF closed.".into();
                 }
                 Event::Error { id, task, message } => {
+                    if let Some(pending) = self.pending_saves.get_mut(&id) {
+                        pending.submitting = false;
+                        pending.message = message.clone();
+                    }
+                    if id == 0 {
+                        self.recovery.pending = None;
+                        self.recovery.error = Some(message.clone());
+                        self.discard_quit = false;
+                        self.message = message;
+                        continue;
+                    }
+                    if task.is_none() {
+                        self.discard_quit = false;
+                    }
                     if let Some(TaskKey::Metadata(key)) = task {
                         if let Some(dialog) = self
                             .metadata_dialog
@@ -345,6 +398,7 @@ impl EditorApp {
                     && tab.device_ratio.to_bits() == key.device_ratio_bits
             })
         });
+        self.continue_discard_quit(context);
         self.schedule();
     }
 
@@ -358,7 +412,11 @@ impl EditorApp {
     }
 
     fn schedule(&mut self) {
-        if self.busy || self.close_target.is_some() {
+        if self.busy
+            || self.close_target.is_some()
+            || self.recovery.open
+            || !self.pending_saves.is_empty()
+        {
             return;
         }
         if let Some(tab) = self.selected_mut().filter(|tab| tab.needs_render) {
@@ -430,8 +488,14 @@ impl EditorApp {
             .pick_file()
         {
             let id = self.next_id;
-            self.next_id += 1;
-            self.send(Command::Load { id, path }, "Opening and validating PDF…");
+            let Some(next) = id.checked_add(1) else {
+                self.message =
+                    "Document identifier limit reached. Restart after saving your work.".into();
+                return;
+            };
+            if self.send(Command::Load { id, path }, "Opening and validating PDF…") {
+                self.next_id = next;
+            }
         }
     }
 
@@ -462,11 +526,16 @@ impl EditorApp {
             return false;
         }
         let id = self.next_id;
+        let Some(next) = id.checked_add(1) else {
+            self.message =
+                "Document identifier limit reached. Restart after saving your work.".into();
+            return false;
+        };
         if self.send(
             Command::Images { id, paths },
             "Converting PNG/JPEG images locally…",
         ) {
-            self.next_id += 1;
+            self.next_id = next;
             true
         } else {
             false
@@ -512,6 +581,7 @@ impl EditorApp {
     fn needs_exit_guard(&self) -> bool {
         !self.allow_exit
             && (self.busy
+                || !self.pending_saves.is_empty()
                 || self.tabs.iter().any(|tab| tab.status.dirty)
                 || self
                     .metadata_dialog
@@ -648,6 +718,7 @@ impl EditorApp {
                 crate::style::configure(context, !context.global_style().visuals.dark_mode);
             }
             Action::Quit => self.request_exit(context),
+            Action::Recovery => self.open_recovery(),
         }
     }
 
@@ -713,7 +784,8 @@ impl eframe::App for EditorApp {
         if context.input(|input| input.viewport().close_requested()) && !self.allow_exit {
             self.request_exit(&context);
         }
-        if self.organizer_dialog.is_none() && self.metadata_dialog.is_none() {
+        if self.organizer_dialog.is_none() && self.metadata_dialog.is_none() && !self.recovery.open
+        {
             self.shortcuts(&context);
         } else if context
             .input_mut(|input| input.consume_key(egui::Modifiers::COMMAND, egui::Key::Q))
@@ -724,13 +796,17 @@ impl eframe::App for EditorApp {
             self.close_target.is_none()
                 && !self.palette_open
                 && self.organizer_dialog.is_none()
-                && self.metadata_dialog.is_none(),
+                && self.metadata_dialog.is_none()
+                && !self.recovery.open
+                && self.pending_saves.is_empty(),
             |ui| self.workstation(ui),
         );
         self.command_palette(&context);
         self.close_dialog(&context);
         self.organizer_dialog_ui(&context);
         self.metadata_dialog_ui(&context);
+        self.recovery_dialog(&context);
+        self.pending_save_dialog(&context);
     }
 }
 
@@ -964,15 +1040,19 @@ mod tests {
             app.schedule();
             assert!(app.busy);
             // These UI-only documents intentionally are absent from the worker; its typed error proves which task was dispatched.
-            let Event::Error {
-                task: Some(task), ..
-            } = app
-                .worker
-                .events
-                .recv_timeout(std::time::Duration::from_secs(2))
-                .expect("worker response")
-            else {
-                panic!("typed task error");
+            let task = loop {
+                match app
+                    .worker
+                    .events
+                    .recv_timeout(std::time::Duration::from_secs(2))
+                    .expect("worker response")
+                {
+                    Event::RecoveryListed { .. } => continue,
+                    Event::Error {
+                        task: Some(task), ..
+                    } => break task,
+                    _ => panic!("typed task error"),
+                }
             };
             app.busy = false;
             task

@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+mod brand;
 mod fonts;
 mod raster;
 mod search;
