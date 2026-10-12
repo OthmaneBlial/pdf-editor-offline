@@ -1,5 +1,9 @@
 # Native Rust migration status
 
+Current source version: **4.0.0-preview.1**. The [released CLI and npm package](NATIVE_RELEASE_EVIDENCE.md)
+have verified five-platform installation evidence. Desktop installers and complete
+feature parity remain open.
+
 The source now builds the native Rust preview. The previous source is preserved
 under `recovery-before-native-cleanup-20261012`; old release assets remain in
 release history. The native replacement is incomplete: see the gates below.

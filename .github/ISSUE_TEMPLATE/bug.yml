@@ -22,7 +22,7 @@ body:
     id: version
     attributes:
       label: Version and operating system
-      placeholder: Native preview 3.0.0 on macOS arm64
+      placeholder: Native preview 4.0.0-preview.1 on macOS arm64
     validations:
       required: true
   - type: textarea
