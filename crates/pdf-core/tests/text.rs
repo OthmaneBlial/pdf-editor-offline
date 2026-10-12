@@ -125,3 +125,95 @@ fn trust_lab_forms_and_signature_appearances_are_read_without_modification() {
         assert_eq!(std::fs::read(&path).unwrap(), before);
     }
 }
+
+#[test]
+fn direct_ancestor_resources_are_used_and_empty_leaf_resources_shadow_them() {
+    let bytes = document(Vec::new(), 0, false);
+    let mut inherited = Document::load_mem(&bytes).unwrap();
+    let page = *inherited.get_pages().get(&1).unwrap();
+    let leaf = inherited.get_dictionary_mut(page).unwrap();
+    let parent = leaf.get(b"Parent").unwrap().as_reference().unwrap();
+    let resources = leaf.get(b"Resources").unwrap().clone();
+    leaf.remove(b"Resources");
+    leaf.remove(b"Annots");
+    inherited
+        .get_dictionary_mut(parent)
+        .unwrap()
+        .set("Resources", resources);
+    let content = inherited.add_object(Stream::new(
+        dictionary! {},
+        b"BT /F1 12 Tf (INHERITED) Tj ET".to_vec(),
+    ));
+    inherited
+        .get_dictionary_mut(page)
+        .unwrap()
+        .set("Contents", content);
+    let mut bytes = Vec::new();
+    inherited.save_to(&mut bytes).unwrap();
+    assert_eq!(
+        normalized(
+            &PdfDocument::from_bytes(&bytes, None)
+                .unwrap()
+                .extract_text(&[1])
+                .unwrap()
+        ),
+        "INHERITED"
+    );
+    inherited
+        .get_dictionary_mut(page)
+        .unwrap()
+        .set("Resources", dictionary! {});
+    let mut bytes = Vec::new();
+    inherited.save_to(&mut bytes).unwrap();
+    assert!(
+        PdfDocument::from_bytes(&bytes, None)
+            .unwrap()
+            .extract_text(&[1])
+            .is_err()
+    );
+}
+
+#[test]
+fn split_content_streams_share_state_and_only_invoked_form_text_is_read() {
+    let bytes = document(Vec::new(), 0, false);
+    let mut nested = Document::load_mem(&bytes).unwrap();
+    let page = *nested.get_pages().get(&1).unwrap();
+    let resources = nested
+        .get_dictionary(page)
+        .unwrap()
+        .get(b"Resources")
+        .unwrap()
+        .as_dict()
+        .unwrap()
+        .clone();
+    let used = nested.add_object(Stream::new(
+        dictionary! {"Subtype" => "Form", "Resources" => resources.clone()},
+        b"BT /F1 12 Tf (NESTED) Tj ET".to_vec(),
+    ));
+    let unused = nested.add_object(Stream::new(
+        dictionary! {"Subtype" => "Form", "Resources" => resources.clone()},
+        b"BT /F1 12 Tf (UNUSED) Tj ET".to_vec(),
+    ));
+    let first = nested.add_object(Stream::new(dictionary! {}, b"q BT /F1 12 Tf".to_vec()));
+    let second = nested.add_object(Stream::new(
+        dictionary! {},
+        b"(BEFORE) Tj ET /Used Do BT (AFTER) Tj ET Q".to_vec(),
+    ));
+    let mut resources = resources;
+    resources.set("XObject", dictionary! {"Used" => used, "Unused" => unused});
+    let leaf = nested.get_dictionary_mut(page).unwrap();
+    leaf.remove(b"Annots");
+    leaf.set("Resources", resources);
+    leaf.set("Contents", vec![first.into(), second.into()]);
+    let mut bytes = Vec::new();
+    nested.save_to(&mut bytes).unwrap();
+    assert_eq!(
+        normalized(
+            &PdfDocument::from_bytes(&bytes, None)
+                .unwrap()
+                .extract_text(&[1])
+                .unwrap()
+        ),
+        "BEFORE NESTED AFTER"
+    );
+}

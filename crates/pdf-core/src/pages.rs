@@ -81,6 +81,9 @@ impl PdfDocument {
         if self.document.max_id == u32::MAX {
             return Err(Error::Limit("PDF object identifiers are exhausted"));
         }
+        if self.document.objects.len() >= MAX_OBJECTS {
+            return Err(Error::Limit("too many PDF objects"));
+        }
         let mut candidate = self.clone();
         let page = candidate.document.add_object(dictionary! {
             "Type" => "Page", "MediaBox" => vec![0.into(), 0.into(), width.into(), height.into()],
@@ -215,6 +218,61 @@ impl PdfDocument {
             return Err(Error::Limit("too many PDF objects"));
         }
         let root = self.document.catalog()?.get(b"Pages")?.as_reference()?;
+        let mut nodes = BTreeSet::new();
+        for leaf in &ids {
+            let mut id = *leaf;
+            for depth in 0..=128 {
+                let object = self
+                    .document
+                    .objects
+                    .get(&id)
+                    .ok_or(lopdf::Error::ObjectNotFound(id))?;
+                let canonical = self.document.dereference(object)?.0.unwrap_or(id);
+                if !nodes.insert(canonical) {
+                    break;
+                }
+                let node = self.document.get_dictionary(canonical)?;
+                match node.get(b"Parent") {
+                    Ok(parent) if depth < 128 => id = parent.as_reference()?,
+                    Ok(_) => return Err(Error::Limit("page inheritance exceeds 128 levels")),
+                    Err(_) => break,
+                }
+            }
+        }
+        let mut direct_resources = Vec::new();
+        for id in nodes {
+            if let Ok(resources) = self.document.get_dictionary(id)?.get(b"Resources") {
+                self.document.dereference(resources)?.1.as_dict()?;
+                if matches!(resources, Object::Dictionary(_)) {
+                    direct_resources.push(id);
+                }
+            }
+        }
+        if self.document.objects.len() + direct_resources.len() > MAX_OBJECTS {
+            return Err(Error::Limit("too many PDF objects"));
+        }
+        if self
+            .document
+            .max_id
+            .checked_add(direct_resources.len() as u32)
+            .is_none()
+        {
+            return Err(Error::Limit("PDF object identifiers are exhausted"));
+        }
+        // Move shared ancestor dictionaries once, before materialization could copy them per leaf.
+        for id in direct_resources {
+            let resources = self
+                .document
+                .get_dictionary_mut(id)?
+                .remove(b"Resources")
+                .ok_or(Error::Invalid(
+                    "page resources disappeared during normalization",
+                ))?;
+            let resource_id = self.document.add_object(resources);
+            self.document
+                .get_dictionary_mut(id)?
+                .set("Resources", resource_id);
+        }
         // Inheritance must be resolved against the old tree before any parent is changed.
         let materialized = ids
             .iter()

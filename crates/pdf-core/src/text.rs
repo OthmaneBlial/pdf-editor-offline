@@ -130,7 +130,21 @@ impl<'a> ApText<'a> {
         } else {
             inherited
         };
-        let content = Content::decode(&bytes)?;
+        self.interpret(&bytes, resources, depth, output)?;
+        if let Some(id) = id {
+            self.active.remove(&id);
+        }
+        Ok(())
+    }
+
+    fn interpret(
+        &mut self,
+        bytes: &[u8],
+        resources: Option<&'a Dictionary>,
+        depth: usize,
+        output: &mut String,
+    ) -> Result<()> {
+        let content = Content::decode(bytes)?;
         let mut fonts = BTreeMap::new();
         let mut current: Option<Vec<u8>> = None;
         let mut stack = Vec::new();
@@ -197,36 +211,43 @@ impl<'a> ApText<'a> {
                 _ => {}
             }
         }
-        if let Some(id) = id {
-            self.active.remove(&id);
-        }
         Ok(())
     }
 }
 
-pub(crate) fn extract_page(document: &Document, page_number: u32) -> Result<String> {
-    let page_id = *document
-        .get_pages()
-        .get(&page_number)
-        .ok_or(Error::Pages("page does not exist"))?;
-    let mut output = document.extract_text_with_limit(&[page_number], MAX_STREAM_BYTES)?;
-    if output.len() > MAX_INPUT_BYTES {
-        return Err(Error::Limit("extracted text exceeds 128 MiB"));
-    }
+pub(crate) fn extract_page(document: &Document, page_id: ObjectId) -> Result<String> {
     let page = document.get_dictionary(page_id)?;
-    let Ok(annotations) = page.get(b"Annots") else {
-        return Ok(output);
-    };
-    let annotations = document.dereference(annotations)?.1.as_array()?;
     let resources = structure::inherited(document, page_id, b"Resources")?
         .map(Object::as_dict)
         .transpose()?;
+    let mut output = String::new();
     let mut appearances = ApText {
         document,
         remaining_bytes: MAX_STREAM_BYTES,
         active: HashSet::new(),
         calls: 0,
     };
+    let mut content = Vec::new();
+    let streams = document.get_page_contents(page_id);
+    if streams.len() > 10_000 {
+        return Err(Error::Limit("page content stream work budget"));
+    }
+    for id in streams {
+        let stream = document.get_object(id)?.as_stream()?;
+        let remaining = MAX_STREAM_BYTES.saturating_sub(content.len());
+        let bytes = stream.decompressed_content_with_limit(remaining)?;
+        if bytes.len().saturating_add(1) > remaining {
+            return Err(Error::Limit("page content exceeds 32 MiB"));
+        }
+        content.extend_from_slice(&bytes);
+        content.push(b'\n');
+    }
+    appearances.remaining_bytes -= content.len();
+    appearances.interpret(&content, resources, 0, &mut output)?;
+    let Ok(annotations) = page.get(b"Annots") else {
+        return Ok(output);
+    };
+    let annotations = document.dereference(annotations)?.1.as_array()?;
     for annotation in annotations {
         let annotation = document.dereference(annotation)?.1.as_dict()?;
         let flags = if annotation.has(b"F") {

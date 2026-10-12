@@ -25,8 +25,9 @@ cycles and shared leaves. The signature scan includes nested direct dictionaries
 arrays and stream dictionaries, with 128-level/two-million-value budgets after
 parsing. Extraction processes one page at a time and caps accumulated UTF-8 text
 at 128 MiB. Flattening page trees preserves inherited indirect resource sharing;
-large directly inherited resource dictionaries still require promotion to avoid
-amplification. Regression fixtures exercise real compressed content, ToUnicode,
+directly inherited resource dictionaries are moved once into shared indirect
+objects before rebuilding, avoiding per-page resource amplification. Regression
+fixtures exercise real compressed content, ToUnicode,
 object and xref streams against the 32 MiB limit. These cases do not establish
 universal hostile-input isolation or total allocator bounds.
 

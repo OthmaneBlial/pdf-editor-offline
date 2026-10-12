@@ -21,8 +21,9 @@ reading order vary); it does not provide OCR or prove absence of hidden content.
 Extraction includes supported visible normal annotation/widget appearances and
 their invoked Form XObjects, preserving appearance state and ignoring hidden
 annotations and unrelated field values. Standard checkbox Dingbats are supported;
-unsupported symbolic glyphs fail explicitly. Page-level Form XObjects, appearance
-clipping/geometry and complex reading order remain fidelity work. Appearance
+unsupported symbolic glyphs fail explicitly. Invoked page Form XObjects and split
+content streams share the bounded interpreter; uninvoked resources are excluded.
+Appearance clipping/geometry and complex reading order remain fidelity work. Appearance
 interpretation has separate stream, recursion, work and text budgets.
 
 Saving refuses encrypted inputs and signature fields, including empty fields.
@@ -40,6 +41,8 @@ refuse unsupported catalog structures, annotations and references to removed
 pages; this conservative gate prevents silent data loss. Unreachable original
 objects remain in output. Crop only changes visibility, and none of these
 operations promises sensitive-content removal. Failed operations are transactional.
+Direct inherited resource dictionaries are moved into a shared indirect object
+before rebuilding page trees, avoiding one large resource copy per page.
 
 Tests reuse synthetic fixtures and the committed Trust Lab pages, checking
 catalog/bookmark/form/attachment/layer preservation on rotation, failed edits,

@@ -125,7 +125,7 @@ impl PdfDocument {
         self.validate_selection(pages)?;
         let mut text = String::new();
         for page in pages {
-            let extracted = text::extract_page(&self.document, *page)?;
+            let extracted = text::extract_page(&self.document, self.pages[*page as usize - 1])?;
             if text.len().saturating_add(extracted.len()) > MAX_INPUT_BYTES {
                 return Err(Error::Limit("extracted text exceeds 128 MiB"));
             }

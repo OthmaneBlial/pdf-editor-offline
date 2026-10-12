@@ -338,3 +338,137 @@ fn real_corpus_catalog_objects_remain_intact_after_reversal() {
         }
     }
 }
+
+#[test]
+fn direct_inherited_resources_are_moved_once_for_one_hundred_pages() {
+    let mut source = fixture();
+    let root = source
+        .catalog()
+        .unwrap()
+        .get(b"Pages")
+        .unwrap()
+        .as_reference()
+        .unwrap();
+    let branch = source
+        .get_dictionary(root)
+        .unwrap()
+        .get(b"Kids")
+        .unwrap()
+        .as_array()
+        .unwrap()[0]
+        .as_reference()
+        .unwrap();
+    let resources = source
+        .get_dictionary(branch)
+        .unwrap()
+        .get(b"Resources")
+        .unwrap()
+        .as_reference()
+        .unwrap();
+    let font = source
+        .get_dictionary(resources)
+        .unwrap()
+        .get(b"Font")
+        .unwrap()
+        .as_dict()
+        .unwrap()
+        .get(b"F1")
+        .unwrap()
+        .as_reference()
+        .unwrap();
+    let mut fonts = lopdf::Dictionary::new();
+    for number in 0..2048 {
+        fonts.set(format!("F{number}"), font);
+    }
+    source
+        .get_dictionary_mut(branch)
+        .unwrap()
+        .set("Resources", dictionary! { "Font" => fonts });
+    source.objects.remove(&resources);
+    let mut kids = source
+        .get_dictionary(branch)
+        .unwrap()
+        .get(b"Kids")
+        .unwrap()
+        .as_array()
+        .unwrap()
+        .clone();
+    for number in 4..=100 {
+        let content = source.add_object(Stream::new(
+            dictionary! {},
+            format!("BT /F2047 12 Tf 20 30 Td (Page {number}) Tj ET").into_bytes(),
+        ));
+        let page = source.add_object(
+            dictionary! { "Type" => "Page", "Parent" => branch, "Contents" => content },
+        );
+        kids.push(Object::Reference(page));
+    }
+    source.get_dictionary_mut(branch).unwrap().set("Kids", kids);
+    source.get_dictionary_mut(branch).unwrap().set("Count", 100);
+    source.get_dictionary_mut(root).unwrap().set("Count", 100);
+    let original_ids = source.get_pages().values().copied().collect::<Vec<_>>();
+    let input = bytes(source);
+    let original_objects = Document::load_mem(&input).unwrap().objects.len();
+    let mut doc = PdfDocument::from_bytes(&input, None).unwrap();
+    doc.reverse().unwrap();
+    let output = doc.to_bytes().unwrap();
+    let saved = Document::load_mem(&output).unwrap();
+    assert_eq!(saved.objects.len(), original_objects + 1);
+    assert_eq!(
+        saved.get_pages().values().copied().collect::<Vec<_>>(),
+        original_ids.into_iter().rev().collect::<Vec<_>>()
+    );
+    let shared = saved
+        .get_dictionary(branch)
+        .unwrap()
+        .get(b"Resources")
+        .unwrap()
+        .as_reference()
+        .unwrap();
+    for page in saved.get_pages().values() {
+        assert_eq!(
+            saved
+                .get_dictionary(*page)
+                .unwrap()
+                .get(b"Resources")
+                .unwrap()
+                .as_reference()
+                .unwrap(),
+            shared
+        );
+    }
+    let fonts = saved
+        .get_dictionary(shared)
+        .unwrap()
+        .get(b"Font")
+        .unwrap()
+        .as_dict()
+        .unwrap();
+    assert_eq!(fonts.len(), 2048);
+    assert_eq!(fonts.get(b"F2047").unwrap().as_reference().unwrap(), font);
+    assert!(doc.extract_text(&[1]).unwrap().contains("Page 100"));
+    assert!(output.len() < input.len() + 20_000);
+    assert!(
+        PdfDocument::from_bytes(&input, None)
+            .unwrap()
+            .extract_text(&[1])
+            .unwrap()
+            .contains("Page 1")
+    );
+}
+
+#[test]
+fn malformed_resources_fail_transactionally_before_normalization_commits() {
+    let mut source = fixture();
+    let second = *source.get_pages().get(&2).unwrap();
+    source
+        .get_dictionary_mut(second)
+        .unwrap()
+        .set("Resources", 42);
+    let mut doc = load(source);
+    let original = doc.to_bytes().unwrap();
+    assert!(doc.reverse().is_err());
+    assert_eq!(doc.to_bytes().unwrap(), original);
+    assert!(doc.insert_blank(2, 100.0, 100.0).is_err());
+    assert_eq!(doc.to_bytes().unwrap(), original);
+}
