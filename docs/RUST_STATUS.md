@@ -16,4 +16,7 @@ the existing application until the replacement passes the migration gates.
 
 Full plan and feature gates: [rewrite plan](RUST_REWRITE_PLAN.md),
 [migration matrix](MIGRATION_MATRIX.md), [architecture](ARCHITECTURE.md).
-Performance claims require actual benchmark output; none is asserted yet.
+Performance evidence: [reproducible native baseline](RUST_BENCHMARKS.md) records
+44 independent checks, including a generated 1,000-page synthetic PDF, with real
+release-process timings and hashes. These measurements do not establish a
+Python speedup, peak-memory bounds, scrolling responsiveness or all-document fidelity.

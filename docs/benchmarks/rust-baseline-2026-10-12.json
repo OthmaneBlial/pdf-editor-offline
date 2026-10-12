@@ -1,0 +1,2050 @@
+{
+  "schema": "pdf-editor-offline.rust-baseline",
+  "schema_version": "1.0.0",
+  "generated_at": "2026-10-12T18:15:21.309153+00:00",
+  "privacy": "public-synthetic-only",
+  "source_commit": "04aec654fca2ab8e7f7099c6b87433e5299b1053",
+  "source_worktree_status": [
+    " M apps/desktop/src/main.rs",
+    " M apps/desktop/src/state.rs",
+    "?? apps/desktop/src/search.rs"
+  ],
+  "source_sha256": {
+    "crates/pdf-core/src/error.rs": "19da1ce18b0087009408eff0411df903cdb4476a46e942784f6c10bb34aeff43",
+    "crates/pdf-core/src/lib.rs": "fa6123cfd72d9e23ceeac27967b1f27af3b1228e037b9c3946b6d7f8c559b9b5",
+    "crates/pdf-core/src/pages.rs": "c4272f743a4cd60457b06daf9330422f5131ffad8ed2794fa68f62360a011b21",
+    "crates/pdf-core/src/structure.rs": "d4d89d8ef8ebcb3738b4bbf61d59ec884e4902b3f496f8ff398236b1aab51c54",
+    "crates/pdf-core/src/text.rs": "5a197673d53a2db37c77aabebbf0f0a0469d7881d63a6185dff341645d759ba2",
+    "crates/pdf-core/tests/document.rs": "d365a14eb8a278576d860e856792a592fd301268b68ddb148b23b03f74937ee3",
+    "crates/pdf-core/tests/limits.rs": "1a2b3953da8b252ffc9b7cc3db21d0ab2ee17408114c5c219e282ddbf71ce3c7",
+    "crates/pdf-core/tests/pages.rs": "63653baba3cbf7cbf59b368982bae14a131eace7ee32a4977d1f35180854715d",
+    "crates/pdf-core/tests/text.rs": "f3c9cebd7999760309165b21759dc08c88190a6cf49a49da18939f02230bb5b3",
+    "crates/pdf-render/src/lib.rs": "0b72a2870794fddb6b213802563cf29f62ebb0c307d3df76c363645bb54514a4",
+    "crates/pdf-render/tests/render.rs": "1301ca7f83ffcdcf9f3891f3827c77c3938119f778fba3f2c62b74708b443f08",
+    "crates/pdf-core/Cargo.toml": "63430f284b83a6b65af155fc500a463ca0eaf6bac00f7fc37c8093ba913d65ca",
+    "crates/pdf-render/Cargo.toml": "925d9c707f169c10b185935b815f470a3c6f01c90de60de938fed06d14c5d583",
+    "apps/cli/src/main.rs": "72d46ab1e9606350454ba3e6ef01163566cfbf5aaa17582fbe107b5b265beeb9",
+    "apps/cli/src/selection.rs": "d3b4ca4f1906be7b379fc4e31d095240aaa67be280acd3f52629a661b42057fc",
+    "apps/cli/tests/commands.rs": "199f2db3bfb54ad9ae7c2a76d851956f9d22245280fbeb76f12aba901fd60afc",
+    "apps/desktop/src/main.rs": "daee89e33d778d4ced5e7d5a7722b4e25595cf0a9ba7c14bfd807cb27b6fe481",
+    "apps/desktop/src/search.rs": "63b1fbebe1a5124a05c511c540c6f0ddd4051daf7bfdf549acf909e1dacce6e7",
+    "apps/desktop/src/state.rs": "7c07dd44d9fb8a42ba3b19e63abf606c32a212c1f272188f4a81197d73aee20c",
+    "apps/desktop/src/ui.rs": "2626de25b6ba1f9393c5f5423b0551999632d0217bad7425c446d5cbadd3d188",
+    "apps/desktop/src/worker.rs": "acb9e7e47cf39950a6f9b3efb7c6efa499c178982169d84397267b84f5648087",
+    "apps/cli/Cargo.toml": "98147678cbb18f7564a28402e8d1c361f56befe738647e81974f025ad3744876",
+    "apps/desktop/Cargo.toml": "2e00da2a98ccf351dc9d35afca06428835e436970406123392d644e11db76ff7",
+    "Cargo.toml": "960842e3baa7d05df1bd24e84339aa4886dca3e84d2ecc0d5e834cc7b3ac8b02",
+    "Cargo.lock": "de38131f630b08ef4d2a30cd8daf2506beefa6bf30ca5cd7d5b3d547eb64cc39"
+  },
+  "benchmark_script_sha256": "7010c800c2884914378c33d702b6a443c9d9ff3312dc9dd29752821675bf9c5a",
+  "binary": {
+    "name": "pdf-editor-offline",
+    "profile": "release",
+    "sha256": "6354ddaf1766de3803322449bdbb6e0f18620b10b4d9fe5485d1aefb2ae6872e",
+    "bytes": 3115552
+  },
+  "environment": {
+    "platform": "macOS-26.6-arm64-arm-64bit",
+    "machine": "arm64",
+    "logical_cpus": 8,
+    "python": "3.12.5",
+    "pymupdf": "1.28.2",
+    "rustc": "rustc 1.95.0 (59807616e 2026-04-14)",
+    "pdftotext": "/opt/homebrew/bin/pdftotext",
+    "poppler_version": "pdftotext version 24.12.0"
+  },
+  "method": "fresh CLI process per sample; wall time includes startup, read, operation and output; validation runs outside timed interval; no speedup comparison",
+  "warmup_count": 1,
+  "cases": [
+    {
+      "id": "demo-basic",
+      "fixture": "examples/sample_pdfs/demo-basic.pdf",
+      "sha256": "9794abc87209d99bd2c7f5008927270cd407ec477398743697ca13ecfff7c35d",
+      "bytes": 2403,
+      "operations": [
+        {
+          "operation": "info",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.005287625011987984,
+            0.0047600839752703905,
+            0.0055911659728735685
+          ],
+          "median_wall_seconds": 0.005287625011987984,
+          "min_wall_seconds": 0.0047600839752703905,
+          "max_wall_seconds": 0.0055911659728735685,
+          "status": "passed"
+        },
+        {
+          "operation": "extract-text",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "90685bc7a8c9930a6863059630b7a2bbafc315d98e7635a32c0d14b24953a8c9",
+              "rust_text_sha256": "90685bc7a8c9930a6863059630b7a2bbafc315d98e7635a32c0d14b24953a8c9"
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "90685bc7a8c9930a6863059630b7a2bbafc315d98e7635a32c0d14b24953a8c9",
+              "rust_text_sha256": "90685bc7a8c9930a6863059630b7a2bbafc315d98e7635a32c0d14b24953a8c9"
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "90685bc7a8c9930a6863059630b7a2bbafc315d98e7635a32c0d14b24953a8c9",
+              "rust_text_sha256": "90685bc7a8c9930a6863059630b7a2bbafc315d98e7635a32c0d14b24953a8c9"
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "90685bc7a8c9930a6863059630b7a2bbafc315d98e7635a32c0d14b24953a8c9",
+              "rust_text_sha256": "90685bc7a8c9930a6863059630b7a2bbafc315d98e7635a32c0d14b24953a8c9"
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.004940708051435649,
+            0.004708915948867798,
+            0.005196708021685481
+          ],
+          "median_wall_seconds": 0.004940708051435649,
+          "min_wall_seconds": 0.004708915948867798,
+          "max_wall_seconds": 0.005196708021685481,
+          "status": "passed"
+        },
+        {
+          "operation": "rotate",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "ec4675a7e34da85cd74e04612da4f458dc2c9b2c239e00a444c41e6be2927c25",
+              "output_bytes": 2384
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "ec4675a7e34da85cd74e04612da4f458dc2c9b2c239e00a444c41e6be2927c25",
+              "output_bytes": 2384
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "ec4675a7e34da85cd74e04612da4f458dc2c9b2c239e00a444c41e6be2927c25",
+              "output_bytes": 2384
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "ec4675a7e34da85cd74e04612da4f458dc2c9b2c239e00a444c41e6be2927c25",
+              "output_bytes": 2384
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.011689541977830231,
+            0.012000542017631233,
+            0.012195999966934323
+          ],
+          "median_wall_seconds": 0.012000542017631233,
+          "min_wall_seconds": 0.011689541977830231,
+          "max_wall_seconds": 0.012195999966934323,
+          "status": "passed"
+        },
+        {
+          "operation": "compress",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "18d46434f94bec28bbe9371cf4311d9820e1430b46decb03b761fd528011c83e",
+              "output_bytes": 2383
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "18d46434f94bec28bbe9371cf4311d9820e1430b46decb03b761fd528011c83e",
+              "output_bytes": 2383
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "18d46434f94bec28bbe9371cf4311d9820e1430b46decb03b761fd528011c83e",
+              "output_bytes": 2383
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "18d46434f94bec28bbe9371cf4311d9820e1430b46decb03b761fd528011c83e",
+              "output_bytes": 2383
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.01334533398039639,
+            0.013374625006690621,
+            0.011258082929998636
+          ],
+          "median_wall_seconds": 0.01334533398039639,
+          "min_wall_seconds": 0.011258082929998636,
+          "max_wall_seconds": 0.013374625006690621,
+          "status": "passed"
+        }
+      ],
+      "page_count": 1,
+      "first_page_text_sha256": "90685bc7a8c9930a6863059630b7a2bbafc315d98e7635a32c0d14b24953a8c9",
+      "last_page_text_sha256": "90685bc7a8c9930a6863059630b7a2bbafc315d98e7635a32c0d14b24953a8c9"
+    },
+    {
+      "id": "forms",
+      "fixture": "trust_lab/corpus/v1/forms.pdf",
+      "sha256": "f937f8d02adf1341885163524107e33e365aefc07bf434f68dd64995f0c645dc",
+      "bytes": 3855,
+      "operations": [
+        {
+          "operation": "info",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.005209333961829543,
+            0.005764249945059419,
+            0.0061851670034229755
+          ],
+          "median_wall_seconds": 0.005764249945059419,
+          "min_wall_seconds": 0.005209333961829543,
+          "max_wall_seconds": 0.0061851670034229755,
+          "status": "passed"
+        },
+        {
+          "operation": "extract-text",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "e910270937a4f5ecb80df9fec53b8b6b7e81b074ac6c9172f08a8b9835cf42df",
+              "rust_text_sha256": "e910270937a4f5ecb80df9fec53b8b6b7e81b074ac6c9172f08a8b9835cf42df"
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "e910270937a4f5ecb80df9fec53b8b6b7e81b074ac6c9172f08a8b9835cf42df",
+              "rust_text_sha256": "e910270937a4f5ecb80df9fec53b8b6b7e81b074ac6c9172f08a8b9835cf42df"
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "e910270937a4f5ecb80df9fec53b8b6b7e81b074ac6c9172f08a8b9835cf42df",
+              "rust_text_sha256": "e910270937a4f5ecb80df9fec53b8b6b7e81b074ac6c9172f08a8b9835cf42df"
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "e910270937a4f5ecb80df9fec53b8b6b7e81b074ac6c9172f08a8b9835cf42df",
+              "rust_text_sha256": "e910270937a4f5ecb80df9fec53b8b6b7e81b074ac6c9172f08a8b9835cf42df"
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.005416041007265449,
+            0.005203125067055225,
+            0.005156541941687465
+          ],
+          "median_wall_seconds": 0.005203125067055225,
+          "min_wall_seconds": 0.005156541941687465,
+          "max_wall_seconds": 0.005416041007265449,
+          "status": "passed"
+        },
+        {
+          "operation": "rotate",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "dbd3e75310d1463eed385646edf2b0eb15a03a66b70c6af90e26261f0b655c96",
+              "output_bytes": 3815
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "dbd3e75310d1463eed385646edf2b0eb15a03a66b70c6af90e26261f0b655c96",
+              "output_bytes": 3815
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "dbd3e75310d1463eed385646edf2b0eb15a03a66b70c6af90e26261f0b655c96",
+              "output_bytes": 3815
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "dbd3e75310d1463eed385646edf2b0eb15a03a66b70c6af90e26261f0b655c96",
+              "output_bytes": 3815
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.017191167105920613,
+            0.0176899170037359,
+            0.01724225003272295
+          ],
+          "median_wall_seconds": 0.01724225003272295,
+          "min_wall_seconds": 0.017191167105920613,
+          "max_wall_seconds": 0.0176899170037359,
+          "status": "passed"
+        },
+        {
+          "operation": "compress",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "239bf707c73ea1d4d19e17739a5477fde18eab993f515d0f71b07807ab33d01b",
+              "output_bytes": 3814
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "239bf707c73ea1d4d19e17739a5477fde18eab993f515d0f71b07807ab33d01b",
+              "output_bytes": 3814
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "239bf707c73ea1d4d19e17739a5477fde18eab993f515d0f71b07807ab33d01b",
+              "output_bytes": 3814
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "239bf707c73ea1d4d19e17739a5477fde18eab993f515d0f71b07807ab33d01b",
+              "output_bytes": 3814
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.017315750010311604,
+            0.017713624984025955,
+            0.015899082995019853
+          ],
+          "median_wall_seconds": 0.017315750010311604,
+          "min_wall_seconds": 0.015899082995019853,
+          "max_wall_seconds": 0.017713624984025955,
+          "status": "passed"
+        }
+      ],
+      "page_count": 1,
+      "first_page_text_sha256": "16ea174fe5d14346a225650a287d4a6c3735c1e13c741d54713f76fb0857f8af",
+      "last_page_text_sha256": "16ea174fe5d14346a225650a287d4a6c3735c1e13c741d54713f76fb0857f8af"
+    },
+    {
+      "id": "mixed-fonts",
+      "fixture": "trust_lab/corpus/v1/mixed-fonts.pdf",
+      "sha256": "9ca593c5f1b8b9cec4cb72c834ebcdc46dc06ce1e145d6866e45d4f30ca4dd02",
+      "bytes": 1933,
+      "operations": [
+        {
+          "operation": "info",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.005725249997340143,
+            0.004804500029422343,
+            0.005127249984070659
+          ],
+          "median_wall_seconds": 0.005127249984070659,
+          "min_wall_seconds": 0.004804500029422343,
+          "max_wall_seconds": 0.005725249997340143,
+          "status": "passed"
+        },
+        {
+          "operation": "extract-text",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "ee79286db4d0ce4e982f898315102f1c2221edb7b6ed4056255e10a3ef689bbc",
+              "rust_text_sha256": "ee79286db4d0ce4e982f898315102f1c2221edb7b6ed4056255e10a3ef689bbc"
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "ee79286db4d0ce4e982f898315102f1c2221edb7b6ed4056255e10a3ef689bbc",
+              "rust_text_sha256": "ee79286db4d0ce4e982f898315102f1c2221edb7b6ed4056255e10a3ef689bbc"
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "ee79286db4d0ce4e982f898315102f1c2221edb7b6ed4056255e10a3ef689bbc",
+              "rust_text_sha256": "ee79286db4d0ce4e982f898315102f1c2221edb7b6ed4056255e10a3ef689bbc"
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "ee79286db4d0ce4e982f898315102f1c2221edb7b6ed4056255e10a3ef689bbc",
+              "rust_text_sha256": "ee79286db4d0ce4e982f898315102f1c2221edb7b6ed4056255e10a3ef689bbc"
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.004758084076456726,
+            0.005070292041637003,
+            0.005466209026053548
+          ],
+          "median_wall_seconds": 0.005070292041637003,
+          "min_wall_seconds": 0.004758084076456726,
+          "max_wall_seconds": 0.005466209026053548,
+          "status": "passed"
+        },
+        {
+          "operation": "rotate",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "ba6de7ab5a18afc4a5dfe18909c72ca2f01abc8e1097e6641baed40bd13fcbcf",
+              "output_bytes": 1899
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "ba6de7ab5a18afc4a5dfe18909c72ca2f01abc8e1097e6641baed40bd13fcbcf",
+              "output_bytes": 1899
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "ba6de7ab5a18afc4a5dfe18909c72ca2f01abc8e1097e6641baed40bd13fcbcf",
+              "output_bytes": 1899
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "ba6de7ab5a18afc4a5dfe18909c72ca2f01abc8e1097e6641baed40bd13fcbcf",
+              "output_bytes": 1899
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.011505958973430097,
+            0.012761999969370663,
+            0.012928541982546449
+          ],
+          "median_wall_seconds": 0.012761999969370663,
+          "min_wall_seconds": 0.011505958973430097,
+          "max_wall_seconds": 0.012928541982546449,
+          "status": "passed"
+        },
+        {
+          "operation": "compress",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "8809fe605c2db31a095406bf9c2b054dc705be092cbc542e383836f210a91898",
+              "output_bytes": 1898
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "8809fe605c2db31a095406bf9c2b054dc705be092cbc542e383836f210a91898",
+              "output_bytes": 1898
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "8809fe605c2db31a095406bf9c2b054dc705be092cbc542e383836f210a91898",
+              "output_bytes": 1898
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "8809fe605c2db31a095406bf9c2b054dc705be092cbc542e383836f210a91898",
+              "output_bytes": 1898
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.01358350005466491,
+            0.01296079100575298,
+            0.012705957982689142
+          ],
+          "median_wall_seconds": 0.01296079100575298,
+          "min_wall_seconds": 0.012705957982689142,
+          "max_wall_seconds": 0.01358350005466491,
+          "status": "passed"
+        }
+      ],
+      "page_count": 1,
+      "first_page_text_sha256": "ee79286db4d0ce4e982f898315102f1c2221edb7b6ed4056255e10a3ef689bbc",
+      "last_page_text_sha256": "ee79286db4d0ce4e982f898315102f1c2221edb7b6ed4056255e10a3ef689bbc"
+    },
+    {
+      "id": "image-scan",
+      "fixture": "trust_lab/corpus/v1/image-scan.pdf",
+      "sha256": "7da67f820a5c7ed9a7b08474d94c881ebb4dc66fec06c9687cfc044b25413bed",
+      "bytes": 16418,
+      "operations": [
+        {
+          "operation": "info",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.004833417013287544,
+            0.0050524999387562275,
+            0.004906542017124593
+          ],
+          "median_wall_seconds": 0.004906542017124593,
+          "min_wall_seconds": 0.004833417013287544,
+          "max_wall_seconds": 0.0050524999387562275,
+          "status": "passed"
+        },
+        {
+          "operation": "extract-text",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "rust_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "rust_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "rust_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "rust_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.0052017500856891274,
+            0.0053537079365924,
+            0.004857708001509309
+          ],
+          "median_wall_seconds": 0.0052017500856891274,
+          "min_wall_seconds": 0.004857708001509309,
+          "max_wall_seconds": 0.0053537079365924,
+          "status": "passed"
+        },
+        {
+          "operation": "rotate",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "a77b8134ccdba7caf366ec53fd2c6da2cbfd7cb67c4f4dcc0851cee8cef38ee9",
+              "output_bytes": 16388
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "a77b8134ccdba7caf366ec53fd2c6da2cbfd7cb67c4f4dcc0851cee8cef38ee9",
+              "output_bytes": 16388
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "a77b8134ccdba7caf366ec53fd2c6da2cbfd7cb67c4f4dcc0851cee8cef38ee9",
+              "output_bytes": 16388
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "a77b8134ccdba7caf366ec53fd2c6da2cbfd7cb67c4f4dcc0851cee8cef38ee9",
+              "output_bytes": 16388
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.012282415991649032,
+            0.011716083972714841,
+            0.01178366702515632
+          ],
+          "median_wall_seconds": 0.01178366702515632,
+          "min_wall_seconds": 0.011716083972714841,
+          "max_wall_seconds": 0.012282415991649032,
+          "status": "passed"
+        },
+        {
+          "operation": "compress",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "20712a7b10cbf4c6535b07af59169eb90fd47c33b45cf075ae394f52060205db",
+              "output_bytes": 16387
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "20712a7b10cbf4c6535b07af59169eb90fd47c33b45cf075ae394f52060205db",
+              "output_bytes": 16387
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "20712a7b10cbf4c6535b07af59169eb90fd47c33b45cf075ae394f52060205db",
+              "output_bytes": 16387
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "20712a7b10cbf4c6535b07af59169eb90fd47c33b45cf075ae394f52060205db",
+              "output_bytes": 16387
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.009815292083658278,
+            0.01244700001552701,
+            0.01021966605912894
+          ],
+          "median_wall_seconds": 0.01021966605912894,
+          "min_wall_seconds": 0.009815292083658278,
+          "max_wall_seconds": 0.01244700001552701,
+          "status": "passed"
+        }
+      ],
+      "page_count": 1,
+      "first_page_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "last_page_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "layers-transparency",
+      "fixture": "trust_lab/corpus/v1/layers-transparency.pdf",
+      "sha256": "7c5290c629b8d09896c29d58ad8b34188cd37f9b398a7a7560dd1391bbcdbc70",
+      "bytes": 1689,
+      "operations": [
+        {
+          "operation": "info",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.005246083019301295,
+            0.004916167003102601,
+            0.005213791970163584
+          ],
+          "median_wall_seconds": 0.005213791970163584,
+          "min_wall_seconds": 0.004916167003102601,
+          "max_wall_seconds": 0.005246083019301295,
+          "status": "passed"
+        },
+        {
+          "operation": "extract-text",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "0564e79204d0514fd34d255e3fa1ccd33bee1fc99e32a5763769d32435d87d24",
+              "rust_text_sha256": "0564e79204d0514fd34d255e3fa1ccd33bee1fc99e32a5763769d32435d87d24"
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "0564e79204d0514fd34d255e3fa1ccd33bee1fc99e32a5763769d32435d87d24",
+              "rust_text_sha256": "0564e79204d0514fd34d255e3fa1ccd33bee1fc99e32a5763769d32435d87d24"
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "0564e79204d0514fd34d255e3fa1ccd33bee1fc99e32a5763769d32435d87d24",
+              "rust_text_sha256": "0564e79204d0514fd34d255e3fa1ccd33bee1fc99e32a5763769d32435d87d24"
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "0564e79204d0514fd34d255e3fa1ccd33bee1fc99e32a5763769d32435d87d24",
+              "rust_text_sha256": "0564e79204d0514fd34d255e3fa1ccd33bee1fc99e32a5763769d32435d87d24"
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.005108457989990711,
+            0.005476249963976443,
+            0.005490042036399245
+          ],
+          "median_wall_seconds": 0.005476249963976443,
+          "min_wall_seconds": 0.005108457989990711,
+          "max_wall_seconds": 0.005490042036399245,
+          "status": "passed"
+        },
+        {
+          "operation": "rotate",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "9dc449abc5e0271e2e5ec2c7778fcd0489b796df40ccea2b4cdb21e6c175d0a6",
+              "output_bytes": 1659
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "9dc449abc5e0271e2e5ec2c7778fcd0489b796df40ccea2b4cdb21e6c175d0a6",
+              "output_bytes": 1659
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "9dc449abc5e0271e2e5ec2c7778fcd0489b796df40ccea2b4cdb21e6c175d0a6",
+              "output_bytes": 1659
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "9dc449abc5e0271e2e5ec2c7778fcd0489b796df40ccea2b4cdb21e6c175d0a6",
+              "output_bytes": 1659
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.014216415933333337,
+            0.012469291919842362,
+            0.013740458060055971
+          ],
+          "median_wall_seconds": 0.013740458060055971,
+          "min_wall_seconds": 0.012469291919842362,
+          "max_wall_seconds": 0.014216415933333337,
+          "status": "passed"
+        },
+        {
+          "operation": "compress",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "e977c36abe5a0ffe3710678f9095ee7bac8bf2acfc88f15bf1c764591e0cd2fd",
+              "output_bytes": 1658
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "e977c36abe5a0ffe3710678f9095ee7bac8bf2acfc88f15bf1c764591e0cd2fd",
+              "output_bytes": 1658
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "e977c36abe5a0ffe3710678f9095ee7bac8bf2acfc88f15bf1c764591e0cd2fd",
+              "output_bytes": 1658
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "e977c36abe5a0ffe3710678f9095ee7bac8bf2acfc88f15bf1c764591e0cd2fd",
+              "output_bytes": 1658
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.013350542052648962,
+            0.013274917029775679,
+            0.012410666910000145
+          ],
+          "median_wall_seconds": 0.013274917029775679,
+          "min_wall_seconds": 0.012410666910000145,
+          "max_wall_seconds": 0.013350542052648962,
+          "status": "passed"
+        }
+      ],
+      "page_count": 1,
+      "first_page_text_sha256": "0564e79204d0514fd34d255e3fa1ccd33bee1fc99e32a5763769d32435d87d24",
+      "last_page_text_sha256": "0564e79204d0514fd34d255e3fa1ccd33bee1fc99e32a5763769d32435d87d24"
+    },
+    {
+      "id": "rotated-page",
+      "fixture": "trust_lab/corpus/v1/rotated-page.pdf",
+      "sha256": "a0c8881c02155c0ff707183818859679dc34262d107ab22010bf7926a34ad54b",
+      "bytes": 1036,
+      "operations": [
+        {
+          "operation": "info",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.005303791956976056,
+            0.004980916972272098,
+            0.004717207979410887
+          ],
+          "median_wall_seconds": 0.004980916972272098,
+          "min_wall_seconds": 0.004717207979410887,
+          "max_wall_seconds": 0.005303791956976056,
+          "status": "passed"
+        },
+        {
+          "operation": "extract-text",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "b68debb2888aace805f0eae03e1ff7c1ec3051e06f643a68401df59f40761478",
+              "rust_text_sha256": "b68debb2888aace805f0eae03e1ff7c1ec3051e06f643a68401df59f40761478"
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "b68debb2888aace805f0eae03e1ff7c1ec3051e06f643a68401df59f40761478",
+              "rust_text_sha256": "b68debb2888aace805f0eae03e1ff7c1ec3051e06f643a68401df59f40761478"
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "b68debb2888aace805f0eae03e1ff7c1ec3051e06f643a68401df59f40761478",
+              "rust_text_sha256": "b68debb2888aace805f0eae03e1ff7c1ec3051e06f643a68401df59f40761478"
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "b68debb2888aace805f0eae03e1ff7c1ec3051e06f643a68401df59f40761478",
+              "rust_text_sha256": "b68debb2888aace805f0eae03e1ff7c1ec3051e06f643a68401df59f40761478"
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.005122915958054364,
+            0.004729959066025913,
+            0.005435750004835427
+          ],
+          "median_wall_seconds": 0.005122915958054364,
+          "min_wall_seconds": 0.004729959066025913,
+          "max_wall_seconds": 0.005435750004835427,
+          "status": "passed"
+        },
+        {
+          "operation": "rotate",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "a5f817c5d4e2d8b6f01018fc578c6e13c2e9c614f77aab77f7e5cfbfcffda3e9",
+              "output_bytes": 1008
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "a5f817c5d4e2d8b6f01018fc578c6e13c2e9c614f77aab77f7e5cfbfcffda3e9",
+              "output_bytes": 1008
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "a5f817c5d4e2d8b6f01018fc578c6e13c2e9c614f77aab77f7e5cfbfcffda3e9",
+              "output_bytes": 1008
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "a5f817c5d4e2d8b6f01018fc578c6e13c2e9c614f77aab77f7e5cfbfcffda3e9",
+              "output_bytes": 1008
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.010431541013531387,
+            0.012381249922327697,
+            0.010481415898539126
+          ],
+          "median_wall_seconds": 0.010481415898539126,
+          "min_wall_seconds": 0.010431541013531387,
+          "max_wall_seconds": 0.012381249922327697,
+          "status": "passed"
+        },
+        {
+          "operation": "compress",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "ac0de33e3972a2bfff1c8fe838aa041e6e3c0f02d0e751f9dca1861fb53f86f8",
+              "output_bytes": 1007
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "ac0de33e3972a2bfff1c8fe838aa041e6e3c0f02d0e751f9dca1861fb53f86f8",
+              "output_bytes": 1007
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "ac0de33e3972a2bfff1c8fe838aa041e6e3c0f02d0e751f9dca1861fb53f86f8",
+              "output_bytes": 1007
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "ac0de33e3972a2bfff1c8fe838aa041e6e3c0f02d0e751f9dca1861fb53f86f8",
+              "output_bytes": 1007
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.011542874970473349,
+            0.01196625002194196,
+            0.009880332974717021
+          ],
+          "median_wall_seconds": 0.011542874970473349,
+          "min_wall_seconds": 0.009880332974717021,
+          "max_wall_seconds": 0.01196625002194196,
+          "status": "passed"
+        }
+      ],
+      "page_count": 1,
+      "first_page_text_sha256": "b68debb2888aace805f0eae03e1ff7c1ec3051e06f643a68401df59f40761478",
+      "last_page_text_sha256": "b68debb2888aace805f0eae03e1ff7c1ec3051e06f643a68401df59f40761478"
+    },
+    {
+      "id": "bookmarks",
+      "fixture": "trust_lab/corpus/v1/bookmarks.pdf",
+      "sha256": "3e73ba71c9e6cd355c48e7a4de2088f2371d2ebb622e3ebc5b05fa6db75373ff",
+      "bytes": 2288,
+      "operations": [
+        {
+          "operation": "info",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "expected_page_count": 3,
+              "rotations_match": true
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "expected_page_count": 3,
+              "rotations_match": true
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "expected_page_count": 3,
+              "rotations_match": true
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "expected_page_count": 3,
+              "rotations_match": true
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.0049162080977112055,
+            0.00518612505402416,
+            0.005797999911010265
+          ],
+          "median_wall_seconds": 0.00518612505402416,
+          "min_wall_seconds": 0.0049162080977112055,
+          "max_wall_seconds": 0.005797999911010265,
+          "status": "passed"
+        },
+        {
+          "operation": "extract-text",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "aa56b0faf51e3b1296737ca8a77387af33b663e967ffddbd025450ded0203749",
+              "rust_text_sha256": "aa56b0faf51e3b1296737ca8a77387af33b663e967ffddbd025450ded0203749"
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "aa56b0faf51e3b1296737ca8a77387af33b663e967ffddbd025450ded0203749",
+              "rust_text_sha256": "aa56b0faf51e3b1296737ca8a77387af33b663e967ffddbd025450ded0203749"
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "aa56b0faf51e3b1296737ca8a77387af33b663e967ffddbd025450ded0203749",
+              "rust_text_sha256": "aa56b0faf51e3b1296737ca8a77387af33b663e967ffddbd025450ded0203749"
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "aa56b0faf51e3b1296737ca8a77387af33b663e967ffddbd025450ded0203749",
+              "rust_text_sha256": "aa56b0faf51e3b1296737ca8a77387af33b663e967ffddbd025450ded0203749"
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.005144249997101724,
+            0.005481790984049439,
+            0.004983208025805652
+          ],
+          "median_wall_seconds": 0.005144249997101724,
+          "min_wall_seconds": 0.004983208025805652,
+          "max_wall_seconds": 0.005481790984049439,
+          "status": "passed"
+        },
+        {
+          "operation": "rotate",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "fc90685e07c61d51671644482691331ec4cbb511d270ebf7f5a539a303ffa655",
+              "output_bytes": 2251
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "fc90685e07c61d51671644482691331ec4cbb511d270ebf7f5a539a303ffa655",
+              "output_bytes": 2251
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "fc90685e07c61d51671644482691331ec4cbb511d270ebf7f5a539a303ffa655",
+              "output_bytes": 2251
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "fc90685e07c61d51671644482691331ec4cbb511d270ebf7f5a539a303ffa655",
+              "output_bytes": 2251
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.01447100006043911,
+            0.014302041963674128,
+            0.015135791967622936
+          ],
+          "median_wall_seconds": 0.01447100006043911,
+          "min_wall_seconds": 0.014302041963674128,
+          "max_wall_seconds": 0.015135791967622936,
+          "status": "passed"
+        },
+        {
+          "operation": "compress",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "2176d26838655a00ad86a0204ed37a218eba1f3431b7be546dd05f21d9bb59d2",
+              "output_bytes": 2250
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "2176d26838655a00ad86a0204ed37a218eba1f3431b7be546dd05f21d9bb59d2",
+              "output_bytes": 2250
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "2176d26838655a00ad86a0204ed37a218eba1f3431b7be546dd05f21d9bb59d2",
+              "output_bytes": 2250
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "2176d26838655a00ad86a0204ed37a218eba1f3431b7be546dd05f21d9bb59d2",
+              "output_bytes": 2250
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.012720291968435049,
+            0.014986583031713963,
+            0.01464604097418487
+          ],
+          "median_wall_seconds": 0.01464604097418487,
+          "min_wall_seconds": 0.012720291968435049,
+          "max_wall_seconds": 0.014986583031713963,
+          "status": "passed"
+        }
+      ],
+      "page_count": 3,
+      "first_page_text_sha256": "7f974dee1284ac81c9a1042a4b3cb6f4faa2819f9572851cd1c470c0843a941d",
+      "last_page_text_sha256": "a547717b17efcff24501f8fded40350781b35b49f98c22491047d25cd53ba7fb"
+    },
+    {
+      "id": "attachment",
+      "fixture": "trust_lab/corpus/v1/attachment.pdf",
+      "sha256": "446ae33f1ec7c801e62429cc0bc110a0681433a129ad2a2458662bff8d3cbf96",
+      "bytes": 1490,
+      "operations": [
+        {
+          "operation": "info",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.005923249991610646,
+            0.006941042025573552,
+            0.005263208062388003
+          ],
+          "median_wall_seconds": 0.005923249991610646,
+          "min_wall_seconds": 0.005263208062388003,
+          "max_wall_seconds": 0.006941042025573552,
+          "status": "passed"
+        },
+        {
+          "operation": "extract-text",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "6ab187eaee35e52c73a6d9c98e5ad81fe9371b2eaa7e6e3bf932c95f110adb70",
+              "rust_text_sha256": "6ab187eaee35e52c73a6d9c98e5ad81fe9371b2eaa7e6e3bf932c95f110adb70"
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "6ab187eaee35e52c73a6d9c98e5ad81fe9371b2eaa7e6e3bf932c95f110adb70",
+              "rust_text_sha256": "6ab187eaee35e52c73a6d9c98e5ad81fe9371b2eaa7e6e3bf932c95f110adb70"
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "6ab187eaee35e52c73a6d9c98e5ad81fe9371b2eaa7e6e3bf932c95f110adb70",
+              "rust_text_sha256": "6ab187eaee35e52c73a6d9c98e5ad81fe9371b2eaa7e6e3bf932c95f110adb70"
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "6ab187eaee35e52c73a6d9c98e5ad81fe9371b2eaa7e6e3bf932c95f110adb70",
+              "rust_text_sha256": "6ab187eaee35e52c73a6d9c98e5ad81fe9371b2eaa7e6e3bf932c95f110adb70"
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.005760833970271051,
+            0.004983750055544078,
+            0.005005083978176117
+          ],
+          "median_wall_seconds": 0.005005083978176117,
+          "min_wall_seconds": 0.004983750055544078,
+          "max_wall_seconds": 0.005760833970271051,
+          "status": "passed"
+        },
+        {
+          "operation": "rotate",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "2d32a221bd9643cc3274c5d587aa89b3ae72ecbf5e795db4e6544b735c4d340e",
+              "output_bytes": 1461
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "2d32a221bd9643cc3274c5d587aa89b3ae72ecbf5e795db4e6544b735c4d340e",
+              "output_bytes": 1461
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "2d32a221bd9643cc3274c5d587aa89b3ae72ecbf5e795db4e6544b735c4d340e",
+              "output_bytes": 1461
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "2d32a221bd9643cc3274c5d587aa89b3ae72ecbf5e795db4e6544b735c4d340e",
+              "output_bytes": 1461
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.012876582914032042,
+            0.013403916032984853,
+            0.012668374925851822
+          ],
+          "median_wall_seconds": 0.012876582914032042,
+          "min_wall_seconds": 0.012668374925851822,
+          "max_wall_seconds": 0.013403916032984853,
+          "status": "passed"
+        },
+        {
+          "operation": "compress",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "7449ba464b0a991d738063a4a497580094e3ec79ec7ba36e7a63827b40a2055e",
+              "output_bytes": 1460
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "7449ba464b0a991d738063a4a497580094e3ec79ec7ba36e7a63827b40a2055e",
+              "output_bytes": 1460
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "7449ba464b0a991d738063a4a497580094e3ec79ec7ba36e7a63827b40a2055e",
+              "output_bytes": 1460
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "7449ba464b0a991d738063a4a497580094e3ec79ec7ba36e7a63827b40a2055e",
+              "output_bytes": 1460
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.012690833071246743,
+            0.012430208967998624,
+            0.012956999940797687
+          ],
+          "median_wall_seconds": 0.012690833071246743,
+          "min_wall_seconds": 0.012430208967998624,
+          "max_wall_seconds": 0.012956999940797687,
+          "status": "passed"
+        }
+      ],
+      "page_count": 1,
+      "first_page_text_sha256": "6ab187eaee35e52c73a6d9c98e5ad81fe9371b2eaa7e6e3bf932c95f110adb70",
+      "last_page_text_sha256": "6ab187eaee35e52c73a6d9c98e5ad81fe9371b2eaa7e6e3bf932c95f110adb70"
+    },
+    {
+      "id": "signed",
+      "fixture": "trust_lab/corpus/v1/signed.pdf",
+      "sha256": "ccc3e14fd8fe22cd4305b103d38044c0c8327c100462fcda2628d4ec6142e545",
+      "bytes": 38797,
+      "operations": [
+        {
+          "operation": "info",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "expected_page_count": 1,
+              "rotations_match": true
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.005612417007796466,
+            0.005861749988980591,
+            0.006214999943040311
+          ],
+          "median_wall_seconds": 0.005861749988980591,
+          "min_wall_seconds": 0.005612417007796466,
+          "max_wall_seconds": 0.006214999943040311,
+          "status": "passed"
+        },
+        {
+          "operation": "extract-text",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "cdacbb4a76d5b71896ff4f0fb2ce31ef4e54a5978a9d00451da0af16b4afbdbd",
+              "rust_text_sha256": "cdacbb4a76d5b71896ff4f0fb2ce31ef4e54a5978a9d00451da0af16b4afbdbd"
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "cdacbb4a76d5b71896ff4f0fb2ce31ef4e54a5978a9d00451da0af16b4afbdbd",
+              "rust_text_sha256": "cdacbb4a76d5b71896ff4f0fb2ce31ef4e54a5978a9d00451da0af16b4afbdbd"
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "cdacbb4a76d5b71896ff4f0fb2ce31ef4e54a5978a9d00451da0af16b4afbdbd",
+              "rust_text_sha256": "cdacbb4a76d5b71896ff4f0fb2ce31ef4e54a5978a9d00451da0af16b4afbdbd"
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "cdacbb4a76d5b71896ff4f0fb2ce31ef4e54a5978a9d00451da0af16b4afbdbd",
+              "rust_text_sha256": "cdacbb4a76d5b71896ff4f0fb2ce31ef4e54a5978a9d00451da0af16b4afbdbd"
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.007004208047874272,
+            0.006060417043045163,
+            0.006391917006112635
+          ],
+          "median_wall_seconds": 0.006391917006112635,
+          "min_wall_seconds": 0.006060417043045163,
+          "max_wall_seconds": 0.007004208047874272,
+          "status": "passed"
+        },
+        {
+          "operation": "rotate",
+          "checks": [
+            {
+              "repeat": 0,
+              "safe_rejection": true
+            },
+            {
+              "repeat": 1,
+              "safe_rejection": true
+            },
+            {
+              "repeat": 2,
+              "safe_rejection": true
+            },
+            {
+              "repeat": 3,
+              "safe_rejection": true
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.006157708005048335,
+            0.006162250065244734,
+            0.005769709008745849
+          ],
+          "median_wall_seconds": 0.006157708005048335,
+          "min_wall_seconds": 0.005769709008745849,
+          "max_wall_seconds": 0.006162250065244734,
+          "status": "passed"
+        },
+        {
+          "operation": "compress",
+          "checks": [
+            {
+              "repeat": 0,
+              "safe_rejection": true
+            },
+            {
+              "repeat": 1,
+              "safe_rejection": true
+            },
+            {
+              "repeat": 2,
+              "safe_rejection": true
+            },
+            {
+              "repeat": 3,
+              "safe_rejection": true
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.006221083924174309,
+            0.0056330839870497584,
+            0.006180583033710718
+          ],
+          "median_wall_seconds": 0.006180583033710718,
+          "min_wall_seconds": 0.0056330839870497584,
+          "max_wall_seconds": 0.006221083924174309,
+          "status": "passed"
+        }
+      ],
+      "page_count": 1,
+      "first_page_text_sha256": "cdacbb4a76d5b71896ff4f0fb2ce31ef4e54a5978a9d00451da0af16b4afbdbd",
+      "last_page_text_sha256": "cdacbb4a76d5b71896ff4f0fb2ce31ef4e54a5978a9d00451da0af16b4afbdbd"
+    },
+    {
+      "id": "malformed",
+      "fixture": "trust_lab/corpus/v1/malformed.pdf",
+      "sha256": "5963331762e09b64197b0e3dec8ba10bac18daa2594ec37404b53d3f43634c34",
+      "bytes": 133,
+      "operations": [
+        {
+          "operation": "info",
+          "checks": [
+            {
+              "repeat": 0,
+              "safe_rejection": true
+            },
+            {
+              "repeat": 1,
+              "safe_rejection": true
+            },
+            {
+              "repeat": 2,
+              "safe_rejection": true
+            },
+            {
+              "repeat": 3,
+              "safe_rejection": true
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.005169374984689057,
+            0.005283124977722764,
+            0.005519833997823298
+          ],
+          "median_wall_seconds": 0.005283124977722764,
+          "min_wall_seconds": 0.005169374984689057,
+          "max_wall_seconds": 0.005519833997823298,
+          "status": "passed"
+        },
+        {
+          "operation": "extract-text",
+          "checks": [
+            {
+              "repeat": 0,
+              "safe_rejection": true
+            },
+            {
+              "repeat": 1,
+              "safe_rejection": true
+            },
+            {
+              "repeat": 2,
+              "safe_rejection": true
+            },
+            {
+              "repeat": 3,
+              "safe_rejection": true
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.00535208301153034,
+            0.004945583990775049,
+            0.004556333995424211
+          ],
+          "median_wall_seconds": 0.004945583990775049,
+          "min_wall_seconds": 0.004556333995424211,
+          "max_wall_seconds": 0.00535208301153034,
+          "status": "passed"
+        },
+        {
+          "operation": "rotate",
+          "checks": [
+            {
+              "repeat": 0,
+              "safe_rejection": true
+            },
+            {
+              "repeat": 1,
+              "safe_rejection": true
+            },
+            {
+              "repeat": 2,
+              "safe_rejection": true
+            },
+            {
+              "repeat": 3,
+              "safe_rejection": true
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.00489637500140816,
+            0.0046822919975966215,
+            0.004661208018660545
+          ],
+          "median_wall_seconds": 0.0046822919975966215,
+          "min_wall_seconds": 0.004661208018660545,
+          "max_wall_seconds": 0.00489637500140816,
+          "status": "passed"
+        },
+        {
+          "operation": "compress",
+          "checks": [
+            {
+              "repeat": 0,
+              "safe_rejection": true
+            },
+            {
+              "repeat": 1,
+              "safe_rejection": true
+            },
+            {
+              "repeat": 2,
+              "safe_rejection": true
+            },
+            {
+              "repeat": 3,
+              "safe_rejection": true
+            }
+          ],
+          "repeat_count": 3,
+          "samples_wall_seconds": [
+            0.004666583961807191,
+            0.004646499990485609,
+            0.005434041959233582
+          ],
+          "median_wall_seconds": 0.004666583961807191,
+          "min_wall_seconds": 0.004646499990485609,
+          "max_wall_seconds": 0.005434041959233582,
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "id": "generated-1000-pages",
+      "fixture": "generated-in-temporary-directory",
+      "sha256": "f3ad21c98f3697c08ff3e6e262e00adfc9473d919c234aab456241ea9ee2395e",
+      "bytes": 356862,
+      "operations": [
+        {
+          "operation": "info",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "expected_page_count": 1000,
+              "rotations_match": true
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "expected_page_count": 1000,
+              "rotations_match": true
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "expected_page_count": 1000,
+              "rotations_match": true
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "expected_page_count": 1000,
+              "rotations_match": true
+            },
+            {
+              "repeat": 4,
+              "passed": true,
+              "expected_page_count": 1000,
+              "rotations_match": true
+            },
+            {
+              "repeat": 5,
+              "passed": true,
+              "expected_page_count": 1000,
+              "rotations_match": true
+            }
+          ],
+          "repeat_count": 5,
+          "samples_wall_seconds": [
+            0.0194089999422431,
+            0.01865441701374948,
+            0.019345750100910664,
+            0.020003334037028253,
+            0.019010625081136823
+          ],
+          "median_wall_seconds": 0.019345750100910664,
+          "min_wall_seconds": 0.01865441701374948,
+          "max_wall_seconds": 0.020003334037028253,
+          "status": "passed"
+        },
+        {
+          "operation": "extract-text",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "9e6927351b62bfadb5fad2834c72d3f606198ec8fcdc0cbba08d74b4c6d166da",
+              "rust_text_sha256": "9e6927351b62bfadb5fad2834c72d3f606198ec8fcdc0cbba08d74b4c6d166da"
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "9e6927351b62bfadb5fad2834c72d3f606198ec8fcdc0cbba08d74b4c6d166da",
+              "rust_text_sha256": "9e6927351b62bfadb5fad2834c72d3f606198ec8fcdc0cbba08d74b4c6d166da"
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "9e6927351b62bfadb5fad2834c72d3f606198ec8fcdc0cbba08d74b4c6d166da",
+              "rust_text_sha256": "9e6927351b62bfadb5fad2834c72d3f606198ec8fcdc0cbba08d74b4c6d166da"
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "9e6927351b62bfadb5fad2834c72d3f606198ec8fcdc0cbba08d74b4c6d166da",
+              "rust_text_sha256": "9e6927351b62bfadb5fad2834c72d3f606198ec8fcdc0cbba08d74b4c6d166da"
+            },
+            {
+              "repeat": 4,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "9e6927351b62bfadb5fad2834c72d3f606198ec8fcdc0cbba08d74b4c6d166da",
+              "rust_text_sha256": "9e6927351b62bfadb5fad2834c72d3f606198ec8fcdc0cbba08d74b4c6d166da"
+            },
+            {
+              "repeat": 5,
+              "passed": true,
+              "reference": "Poppler",
+              "reference_text_sha256": "9e6927351b62bfadb5fad2834c72d3f606198ec8fcdc0cbba08d74b4c6d166da",
+              "rust_text_sha256": "9e6927351b62bfadb5fad2834c72d3f606198ec8fcdc0cbba08d74b4c6d166da"
+            }
+          ],
+          "repeat_count": 5,
+          "samples_wall_seconds": [
+            0.03165991592686623,
+            0.03196954191662371,
+            0.03148233308456838,
+            0.03177800006233156,
+            0.0317406669491902
+          ],
+          "median_wall_seconds": 0.0317406669491902,
+          "min_wall_seconds": 0.03148233308456838,
+          "max_wall_seconds": 0.03196954191662371,
+          "status": "passed"
+        },
+        {
+          "operation": "rotate",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "c2b828b34d7a0931237bfa9cc66e2b13007b48ecca66ec34ded89c7e7179fe5f",
+              "output_bytes": 354830
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "c2b828b34d7a0931237bfa9cc66e2b13007b48ecca66ec34ded89c7e7179fe5f",
+              "output_bytes": 354830
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "c2b828b34d7a0931237bfa9cc66e2b13007b48ecca66ec34ded89c7e7179fe5f",
+              "output_bytes": 354830
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "c2b828b34d7a0931237bfa9cc66e2b13007b48ecca66ec34ded89c7e7179fe5f",
+              "output_bytes": 354830
+            },
+            {
+              "repeat": 4,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "c2b828b34d7a0931237bfa9cc66e2b13007b48ecca66ec34ded89c7e7179fe5f",
+              "output_bytes": 354830
+            },
+            {
+              "repeat": 5,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "c2b828b34d7a0931237bfa9cc66e2b13007b48ecca66ec34ded89c7e7179fe5f",
+              "output_bytes": 354830
+            }
+          ],
+          "repeat_count": 5,
+          "samples_wall_seconds": [
+            0.38018533296417445,
+            0.3830562080256641,
+            0.38849991594906896,
+            0.38227229204494506,
+            0.3877365000080317
+          ],
+          "median_wall_seconds": 0.3830562080256641,
+          "min_wall_seconds": 0.38018533296417445,
+          "max_wall_seconds": 0.38849991594906896,
+          "status": "passed"
+        },
+        {
+          "operation": "compress",
+          "checks": [
+            {
+              "repeat": 0,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "7408318d4ded717d4009964ae56df511f2644707721e8c415ac69f7742a84207",
+              "output_bytes": 354829
+            },
+            {
+              "repeat": 1,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "7408318d4ded717d4009964ae56df511f2644707721e8c415ac69f7742a84207",
+              "output_bytes": 354829
+            },
+            {
+              "repeat": 2,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "7408318d4ded717d4009964ae56df511f2644707721e8c415ac69f7742a84207",
+              "output_bytes": 354829
+            },
+            {
+              "repeat": 3,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "7408318d4ded717d4009964ae56df511f2644707721e8c415ac69f7742a84207",
+              "output_bytes": 354829
+            },
+            {
+              "repeat": 4,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "7408318d4ded717d4009964ae56df511f2644707721e8c415ac69f7742a84207",
+              "output_bytes": 354829
+            },
+            {
+              "repeat": 5,
+              "passed": true,
+              "differences": [],
+              "output_sha256": "7408318d4ded717d4009964ae56df511f2644707721e8c415ac69f7742a84207",
+              "output_bytes": 354829
+            }
+          ],
+          "repeat_count": 5,
+          "samples_wall_seconds": [
+            0.3747284159762785,
+            0.37886933295521885,
+            0.38491133297793567,
+            0.3851496250135824,
+            0.3795217500301078
+          ],
+          "median_wall_seconds": 0.3795217500301078,
+          "min_wall_seconds": 0.3747284159762785,
+          "max_wall_seconds": 0.3851496250135824,
+          "status": "passed"
+        }
+      ],
+      "generator": {
+        "tool": "PyMuPDF",
+        "version": "1.28.2",
+        "page_count": 1000,
+        "page_size_points": [
+          612,
+          792
+        ],
+        "font": "Helvetica",
+        "font_size_points": 10,
+        "template": "Rust baseline page {number:04d} of {pages:04d}: offline synthetic text.",
+        "save": {
+          "garbage": 4,
+          "deflate": true,
+          "no_new_id": true
+        }
+      },
+      "page_count": 1000,
+      "first_page_text_sha256": "abd8f22fffa387ce1b81c8e311b649001602e7d338aad222dfa26a624229fadc",
+      "last_page_text_sha256": "7f55e1a3ba062bec3ca1e73b22f29489e928704c99d79c271a984776f2ef6421"
+    }
+  ],
+  "skipped_capabilities": [
+    "peak memory (no per-child sampler)",
+    "desktop startup and interaction",
+    "Python legacy speed comparison",
+    "standalone save latency (rotate/compress include verified saving)",
+    "Rust render CLI command absent"
+  ],
+  "summary": {
+    "passed": 44,
+    "failed": 0,
+    "skipped": 0
+  },
+  "total_elapsed_seconds": 14.209740499965847
+}
