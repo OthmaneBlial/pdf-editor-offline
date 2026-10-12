@@ -181,6 +181,7 @@ impl PdfDocument {
             b"PageLayout",
             b"PageMode",
             b"Lang",
+            b"Info",
         ];
         if self
             .document
@@ -191,6 +192,19 @@ impl PdfDocument {
             return Err(Error::Refused(
                 "catalog structures require remapping before page extraction or deletion",
             ));
+        }
+        if let Ok(info) = self.document.catalog()?.get(b"Info") {
+            // MuPDF 1.28 stores producer metadata here; allow only inert string fields.
+            let (_, info) = self.document.dereference(info)?;
+            if info
+                .as_dict()?
+                .iter()
+                .any(|(_, value)| !matches!(value, Object::String(_, _)))
+            {
+                return Err(Error::Refused(
+                    "non-string catalog Info requires remapping before page extraction or deletion",
+                ));
+            }
         }
         for id in &self.pages {
             let page = self.document.get_dictionary(*id)?;

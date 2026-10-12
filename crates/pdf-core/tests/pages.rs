@@ -55,6 +55,41 @@ fn parsed(doc: &PdfDocument) -> Document {
 }
 
 #[test]
+fn subset_preserves_inert_catalog_info_and_refuses_reference_values() {
+    for indirect in [false, true] {
+        let mut source = fixture();
+        let metadata = dictionary! { "Producer" => Object::string_literal("MuPDF 1.28.2") };
+        let value = if indirect {
+            Object::Reference(source.add_object(metadata))
+        } else {
+            Object::Dictionary(metadata)
+        };
+        source.catalog_mut().unwrap().set("Info", value);
+        let expected = source.catalog().unwrap().get(b"Info").unwrap().clone();
+        let doc = load(source);
+        let subset = doc.extract_pages(&[3, 1]).unwrap();
+        let saved = parsed(&subset);
+        assert_eq!(saved.catalog().unwrap().get(b"Info").unwrap(), &expected);
+        let info = saved.dereference(&expected).unwrap().1.as_dict().unwrap();
+        assert_eq!(
+            info.get(b"Producer").unwrap().as_str().unwrap(),
+            b"MuPDF 1.28.2"
+        );
+        assert_eq!(subset.page_count(), 2);
+    }
+    let mut source = fixture();
+    let removed = *source.get_pages().get(&2).unwrap();
+    source
+        .catalog_mut()
+        .unwrap()
+        .set("Info", dictionary! { "Custom" => removed });
+    let mut doc = load(source);
+    let before = doc.to_bytes().unwrap();
+    assert!(matches!(doc.delete_pages(&[2]), Err(Error::Refused(_))));
+    assert_eq!(doc.to_bytes().unwrap(), before);
+}
+
+#[test]
 fn reorder_materializes_nested_inheritance_and_keeps_page_ids() {
     let source = fixture();
     let original_ids = source.get_pages().values().copied().collect::<Vec<_>>();

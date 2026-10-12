@@ -47,6 +47,8 @@ refuse unsupported catalog structures, annotations and references to removed
 pages; this conservative gate prevents silent data loss. Unreachable original
 objects remain in output. Crop only changes visibility, and none of these
 operations promises sensitive-content removal. Failed operations are transactional.
+Inert string-only catalog `Info` dictionaries produced by MuPDF 1.28 are retained
+on subset operations; other catalog `Info` values are refused.
 Direct inherited resource dictionaries are moved into a shared indirect object
 before rebuilding page trees, avoiding one large resource copy per page.
 
