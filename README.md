@@ -9,6 +9,8 @@
 [![Native Rust CI](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml/badge.svg)](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml)
 [![MIT license](https://img.shields.io/badge/license-MIT-forestgreen)](LICENSE)
 
+[Explore the workstation](https://othmaneblial.github.io/pdf-editor-offline/) · [Build guide](https://othmaneblial.github.io/pdf-editor-offline/docs.html#native-build) · [Roadmap](ROADMAP.md)
+
 Open a PDF, find the page you need, organize it and save a new copy. PDF Editor
 Offline is a free, open-source desktop app and command-line tool for local PDF
 work. No account, subscription or document upload is required.
@@ -23,6 +25,25 @@ contains earlier builds and does not establish the current native feature set.
 
 The screenshot is a real app window using a public synthetic PDF.
 [More native captures](screenshots/native/) · [Runtime evidence](docs/NATIVE_DESKTOP_EVIDENCE.md)
+
+<details>
+<summary>Take a closer look: pages, properties and the dark workspace</summary>
+
+**Find your page.** Thumbnails follow the document while the canvas gives you room to read.
+
+![Actual native page thumbnails and reading canvas](screenshots/native/thumbnails-light-2026-10-12.png)
+
+**Keep the details right.** Edit document properties, including tested Chinese, Japanese and Korean text, then save a verified copy.
+
+![Actual native document properties with Unicode text](screenshots/native/properties-cjk-2026-10-12.png)
+
+**Work after dark.** The same native workspace, with a quieter palette.
+
+![Actual native PDF editor in the dark theme](screenshots/native/editorial-dark-2026-10-12.png)
+
+These are real macOS captures with synthetic public documents.
+
+</details>
 
 ## What works today
 
