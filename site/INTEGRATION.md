@@ -24,6 +24,14 @@ Review feature scope against the repository before publication. Local inspection
 does not establish a deployed website; publication and live verification are
 separate steps.
 
+Both pages have their own canonical and Open Graph URLs plus large-image sharing
+metadata using an actual native capture. The homepage's `SoftwareSourceCode`
+JSON-LD describes Rust source preview version `4.0.0-preview.1`, its repository,
+author and MIT license. It does not describe a packaged binary release or claim
+ratings, downloads or translated UI/site availability. `sitemap.xml` lists only
+the canonical home and documentation pages; no global Pages crawler settings
+are changed. Update the source version when the workspace version changes.
+
 Local review completed at 1280-pixel desktop and 320-pixel mobile widths for both
 pages. Neither page overflows its viewport. The feature table scrolls horizontally
 with the keyboard inside its named focusable region. Local HTML/font
