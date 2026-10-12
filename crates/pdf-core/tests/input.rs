@@ -1,7 +1,23 @@
 #![allow(clippy::unwrap_used)]
 
-use pdf_core::{Error, MAX_INPUT_BYTES, read_pdf_bytes};
+use pdf_core::{Error, MAX_INPUT_BYTES, read_input_bytes, read_pdf_bytes};
 use std::io::Write;
+
+#[test]
+fn caller_bound_accepts_exact_bytes_and_rejects_larger_inputs_and_limits() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("image.bin");
+    std::fs::write(&path, b"1234").unwrap();
+    assert_eq!(read_input_bytes(&path, 4).unwrap(), b"1234");
+    assert!(matches!(read_input_bytes(&path, 3), Err(Error::Limit(_))));
+    assert!(matches!(read_input_bytes(&path, 0), Err(Error::Limit(_))));
+    assert!(matches!(
+        read_input_bytes(&path, usize::MAX),
+        Err(Error::Limit(_))
+    ));
+    std::fs::write(&path, b"").unwrap();
+    assert!(read_input_bytes(&path, 0).unwrap().is_empty());
+}
 
 #[test]
 fn regular_input_bytes_round_trip_without_modifying_source() {

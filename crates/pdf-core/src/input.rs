@@ -5,8 +5,16 @@ use std::path::Path;
 
 /// Read a bounded regular file. Symlinks to regular files are allowed; special files are refused.
 pub fn read_pdf_bytes(path: impl AsRef<Path>) -> Result<Vec<u8>> {
+    read_input_bytes(path, MAX_INPUT_BYTES)
+}
+
+/// Read a regular input with a caller-specific bound no greater than the core input limit.
+pub fn read_input_bytes(path: impl AsRef<Path>, max_bytes: usize) -> Result<Vec<u8>> {
+    if max_bytes > MAX_INPUT_BYTES {
+        return Err(Error::Limit("input reader limit exceeds 128 MiB"));
+    }
     let path = path.as_ref();
-    validate_input_metadata(&std::fs::metadata(path)?)?;
+    validate_input_metadata(&std::fs::metadata(path)?, max_bytes)?;
     #[cfg(unix)]
     let file = {
         use rustix::fs::{Mode, OFlags};
@@ -21,22 +29,29 @@ pub fn read_pdf_bytes(path: impl AsRef<Path>) -> Result<Vec<u8>> {
     };
     #[cfg(not(unix))]
     let file = File::open(path)?;
-    validate_input_metadata(&file.metadata()?)?;
+    validate_input_metadata(&file.metadata()?, max_bytes)?;
     let mut bytes = Vec::new();
-    file.take(MAX_INPUT_BYTES as u64 + 1)
-        .read_to_end(&mut bytes)?;
-    if bytes.len() > MAX_INPUT_BYTES {
-        return Err(Error::Limit("input exceeds 128 MiB"));
+    file.take(max_bytes as u64 + 1).read_to_end(&mut bytes)?;
+    if bytes.len() > max_bytes {
+        return Err(size_error(max_bytes));
     }
     Ok(bytes)
 }
 
-fn validate_input_metadata(metadata: &Metadata) -> Result<()> {
+fn validate_input_metadata(metadata: &Metadata, max_bytes: usize) -> Result<()> {
     if !metadata.is_file() {
         return Err(Error::Refused("input must be a regular file"));
     }
-    if metadata.len() > MAX_INPUT_BYTES as u64 {
-        return Err(Error::Limit("input exceeds 128 MiB"));
+    if metadata.len() > max_bytes as u64 {
+        return Err(size_error(max_bytes));
     }
     Ok(())
+}
+
+fn size_error(max_bytes: usize) -> Error {
+    Error::Limit(if max_bytes == MAX_INPUT_BYTES {
+        "input exceeds 128 MiB"
+    } else {
+        "input exceeds caller byte limit"
+    })
 }

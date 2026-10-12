@@ -14,7 +14,7 @@ mod structure;
 mod text;
 
 pub use error::{Error, Result};
-pub use input::read_pdf_bytes;
+pub use input::{read_input_bytes, read_pdf_bytes};
 pub use inspect::*;
 use lopdf::{Document, LoadOptions, Object, ObjectId};
 pub use metadata::*;
