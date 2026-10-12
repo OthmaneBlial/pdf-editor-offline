@@ -2249,7 +2249,7 @@ dependencies = [
 
 [[package]]
 name = "native-evidence"
-version = "3.0.0"
+version = "4.0.0-preview.1"
 dependencies = [
  "serde_json",
  "sha2",
@@ -2681,7 +2681,7 @@ dependencies = [
 
 [[package]]
 name = "pdf-convert"
-version = "3.0.0"
+version = "4.0.0-preview.1"
 dependencies = [
  "crc32fast",
  "image",
@@ -2700,7 +2700,7 @@ dependencies = [
 
 [[package]]
 name = "pdf-core"
-version = "3.0.0"
+version = "4.0.0-preview.1"
 dependencies = [
  "lopdf",
  "rustix 1.1.5",
@@ -2712,7 +2712,7 @@ dependencies = [
 
 [[package]]
 name = "pdf-editor-offline-cli"
-version = "3.0.0"
+version = "4.0.0-preview.1"
 dependencies = [
  "clap",
  "clap_complete",
@@ -2727,7 +2727,7 @@ dependencies = [
 
 [[package]]
 name = "pdf-editor-offline-native"
-version = "3.0.0"
+version = "4.0.0-preview.1"
 dependencies = [
  "eframe",
  "lopdf",
@@ -2741,7 +2741,7 @@ dependencies = [
 
 [[package]]
 name = "pdf-render"
-version = "3.0.0"
+version = "4.0.0-preview.1"
 dependencies = [
  "hayro",
  "tempfile",
@@ -2749,7 +2749,7 @@ dependencies = [
 
 [[package]]
 name = "pdf-worker"
-version = "3.0.0"
+version = "4.0.0-preview.1"
 dependencies = [
  "libc",
  "pdf-convert",

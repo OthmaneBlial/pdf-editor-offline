@@ -1,6 +1,6 @@
 [package]
 name = "pdf-render"
-version = "3.0.0"
+version.workspace = true
 edition = "2024"
 rust-version = "1.95"
 license = "MIT"
