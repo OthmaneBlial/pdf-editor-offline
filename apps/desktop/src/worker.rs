@@ -2,6 +2,7 @@ use crate::search::{
     MAX_QUERY_CHARS, PageText, SearchHit, SearchKey, limit_page_text, literal_excerpt,
 };
 use crate::state::{DocumentStatus, RenderKey, TextKey};
+use crate::thumbnails::ThumbnailKey;
 use eframe::egui;
 use pdf_core::PdfDocument;
 use pdf_render::RenderedPage;
@@ -24,6 +25,7 @@ pub enum Command {
         path: PathBuf,
     },
     Render(RenderKey),
+    Thumbnail(ThumbnailKey),
     Text(TextKey),
     Search {
         key: SearchKey,
@@ -50,6 +52,7 @@ impl Command {
             | Self::Save { id, .. }
             | Self::Close(id) => *id,
             Self::Render(key) => key.tab,
+            Self::Thumbnail(key) => key.tab,
             Self::Text(key) => key.tab,
             Self::Search { key, .. } => key.tab,
         }
@@ -59,6 +62,7 @@ impl Command {
 #[derive(Debug, Clone, Copy)]
 pub enum TaskKey {
     Render(RenderKey),
+    Thumbnail(ThumbnailKey),
     Text(TextKey),
     Search(SearchKey),
 }
@@ -80,6 +84,10 @@ pub enum Event {
     },
     Rendered {
         key: RenderKey,
+        image: RenderedPage,
+    },
+    Thumbnail {
+        key: ThumbnailKey,
         image: RenderedPage,
     },
     Text(PageText),
@@ -112,6 +120,7 @@ impl Worker {
                 let id = command.id();
                 let task = match &command {
                     Command::Render(key) => Some(TaskKey::Render(*key)),
+                    Command::Thumbnail(key) => Some(TaskKey::Thumbnail(*key)),
                     Command::Text(key) => Some(TaskKey::Text(*key)),
                     Command::Search { key, .. } => Some(TaskKey::Search(*key)),
                     _ => None,
@@ -129,7 +138,7 @@ impl Worker {
                     Err(_) => {
                         Event::Error {
                             id,
-                            task: None,
+                            task,
                             message: "Document operation failed. The open document has been retained; save a new copy before retrying.".into(),
                         }
                     }
@@ -265,22 +274,39 @@ fn process(
         .ok_or("Document is unavailable; close and reopen it")?;
     match command {
         Command::Render(key) => {
-            if key.revision != document.current.revision {
-                return Err("Preview request is stale".into());
-            }
-            let image = pdf_render::render_page(
-                &document.current.bytes,
-                key.page,
-                f32::from_bits(key.scale_bits),
-            )
-            .map_err(|e| e.to_string())?;
-            if [image.width, image.height] != key.pixel_size {
-                return Err(
-                    "This PDF page's preview dimensions differ from its inspected visible area."
-                        .into(),
-                );
-            }
+            let image = render(document, key)?;
             Ok(Event::Rendered { key, image })
+        }
+        Command::Thumbnail(key) => {
+            if key
+                .pixel_size
+                .iter()
+                .any(|side| *side == 0 || *side > crate::thumbnails::MAX_SIDE)
+            {
+                return Err("Thumbnail exceeds its pixel limit.".into());
+            }
+            // Recompute from inspected geometry before rasterization; no oversized scale can slip through a forged key.
+            let info = document
+                .current
+                .document
+                .info()
+                .map_err(|e| e.to_string())?;
+            let page = info
+                .pages
+                .get(key.page)
+                .ok_or("Thumbnail page is unavailable")?;
+            let expected = ThumbnailKey::new(
+                key.tab,
+                key.revision,
+                key.page,
+                page,
+                f32::from_bits(key.device_ratio_bits),
+            )?;
+            if key != expected {
+                return Err("Thumbnail geometry is stale".into());
+            }
+            let image = render(document, key.render_key())?;
+            Ok(Event::Thumbnail { key, image })
         }
         Command::Text(key) => {
             if key.revision != document.current.revision {
@@ -336,6 +362,24 @@ fn process(
     }
 }
 
+fn render(document: &WorkingDocument, key: RenderKey) -> Result<RenderedPage, String> {
+    if key.revision != document.current.revision {
+        return Err("Preview request is stale".into());
+    }
+    let image = pdf_render::render_page(
+        &document.current.bytes,
+        key.page,
+        f32::from_bits(key.scale_bits),
+    )
+    .map_err(|e| e.to_string())?;
+    if [image.width, image.height] != key.pixel_size {
+        return Err(
+            "This PDF page's preview dimensions differ from its inspected visible area.".into(),
+        );
+    }
+    Ok(image)
+}
+
 fn page_text(document: &WorkingDocument, page: usize) -> Result<(String, bool), String> {
     if page >= document.current.document.page_count() {
         return Err("Page is outside document".into());
@@ -378,6 +422,50 @@ mod tests {
         pdf.trailer.set("Root", catalog);
         pdf.save(&path).expect("save fixture");
         (directory, path)
+    }
+
+    #[test]
+    fn thumbnail_actor_renders_real_pixels_and_rejects_forged_or_stale_keys() {
+        let (_directory, path) = fixture();
+        let mut documents = HashMap::new();
+        process(&mut documents, Command::Load { id: 1, path }).expect("load");
+        let info = documents[&1].status().expect("status").info;
+        let key = ThumbnailKey::new(1, 0, 0, &info.pages[0], 2.0).expect("thumb key");
+        let Event::Thumbnail {
+            key: returned,
+            image,
+        } = process(&mut documents, Command::Thumbnail(key)).expect("thumbnail")
+        else {
+            panic!("thumbnail event");
+        };
+        assert_eq!(returned, key);
+        assert_eq!([image.width, image.height], key.pixel_size);
+        assert_eq!(
+            image.rgba.len(),
+            image.width as usize * image.height as usize * 4
+        );
+        assert!(
+            image
+                .rgba
+                .chunks_exact(4)
+                .any(|pixel| pixel == [255, 0, 0, 255])
+        );
+        let forged = ThumbnailKey {
+            scale_bits: 1000.0_f32.to_bits(),
+            ..key
+        };
+        assert!(process(&mut documents, Command::Thumbnail(forged)).is_err());
+        process(
+            &mut documents,
+            Command::Edit {
+                id: 1,
+                edit: Edit::Rotate(1, 90),
+            },
+        )
+        .expect("edit");
+        assert!(process(&mut documents, Command::Thumbnail(key)).is_err());
+        process(&mut documents, Command::Close(1)).expect("close");
+        assert!(process(&mut documents, Command::Thumbnail(key)).is_err());
     }
 
     #[test]

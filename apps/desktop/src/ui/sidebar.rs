@@ -36,7 +36,8 @@ impl EditorApp {
 
     fn page_list(&mut self, ui: &mut egui::Ui) {
         let mut select = None;
-        if let Some(tab) = self.selected() {
+        self.visible_thumbnails.clear();
+        if let Some(tab) = self.tabs.iter().find(|tab| Some(tab.id) == self.active) {
             ui.label(
                 egui::RichText::new(format!("{} pages", tab.status.info.page_count))
                     .small()
@@ -46,7 +47,7 @@ impl EditorApp {
             egui::ScrollArea::vertical()
                 .id_salt(("page-list", tab.id))
                 .auto_shrink([false, false])
-                .show_rows(ui, 62.0, tab.status.info.page_count, |ui, pages| {
+                .show_rows(ui, 98.0, tab.status.info.page_count, |ui, pages| {
                     for page in pages {
                         let detail =
                             tab.status
@@ -60,14 +61,43 @@ impl EditorApp {
                                         info.media_box[3] - info.media_box[1]
                                     )
                                 });
-                        if ui
-                            .add_sized(
-                                [ui.available_width(), 54.0],
-                                egui::Button::new(format!("Page {}\n{detail}", page + 1))
-                                    .selected(page == tab.page),
+                        let key = tab.status.info.pages.get(page).and_then(|info| {
+                            crate::thumbnails::ThumbnailKey::new(
+                                tab.id,
+                                tab.status.revision,
+                                page,
+                                info,
+                                tab.device_ratio,
                             )
-                            .clicked()
+                            .ok()
+                        });
+                        if let Some(key) = key
+                            && self.visible_thumbnails.len() < crate::thumbnails::MAX_VISIBLE
                         {
+                            self.visible_thumbnails.push(key);
+                        }
+                        let entry = key.and_then(|key| self.thumbnails.get(key));
+                        let label = format!("Page {}\n{detail}", page + 1);
+                        let button = if let (Some(key), Some(texture)) =
+                            (key, entry.and_then(|entry| entry.texture.as_ref()))
+                        {
+                            egui::Button::image_and_text(
+                                egui::Image::new((texture.id(), key.display_size())),
+                                label,
+                            )
+                        } else {
+                            egui::Button::new(label)
+                        };
+                        let response = ui.add_sized(
+                            [ui.available_width(), 90.0],
+                            button.selected(page == tab.page),
+                        );
+                        if let Some(error) = entry.and_then(|entry| entry.error.as_ref()) {
+                            response
+                                .clone()
+                                .on_hover_text(format!("Thumbnail unavailable: {error}"));
+                        }
+                        if response.clicked() {
                             select = Some(page);
                         }
                     }

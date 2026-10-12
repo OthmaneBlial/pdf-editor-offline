@@ -1,5 +1,15 @@
 # Native desktop smoke evidence — 2026-10-12
 
+The subsequent thumbnail preview has 30 passing automated tests, including actual
+PDF raster pixels, bounded texture-cache eviction, visible-only thousand-page
+scheduling and foreground priority. A one-shot initial visibility command avoids
+eframe's hidden-window first-paint cycle. Temporary diagnostics confirmed the
+constructor, logic and UI callbacks run; no logging remains in source.
+The computer-use surface currently fails to acquire this build's window
+(`cgWindowNotFound`), including a fresh temporary bundle and control-session reset.
+Consequently no new thumbnail screenshot or click/scroll runtime success is claimed.
+The captures below document the earlier visual workstation build.
+
 Tested a locally compiled debug native application on macOS Apple Silicon using
 real native window and file-dialog interactions. This is a development preview,
 not a signed/notarized installer or full feature-parity claim.

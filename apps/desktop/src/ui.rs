@@ -64,6 +64,9 @@ pub struct EditorApp {
     palette_query: String,
     palette_focus: bool,
     search_focus: bool,
+    thumbnails: crate::thumbnails::Cache,
+    visible_thumbnails: Vec<crate::thumbnails::ThumbnailKey>,
+    initial_window_show: bool,
 }
 
 impl EditorApp {
@@ -88,11 +91,22 @@ impl EditorApp {
             palette_query: String::new(),
             palette_focus: false,
             search_focus: false,
+            thumbnails: Default::default(),
+            visible_thumbnails: vec![],
+            initial_window_show: true,
         }
     }
 
     fn selected(&self) -> Option<&Tab> {
         self.tabs.iter().find(|tab| Some(tab.id) == self.active)
+    }
+
+    fn show_initial_window(&mut self, context: &egui::Context) {
+        if std::mem::take(&mut self.initial_window_show) {
+            // Eframe 0.36.2 starts hidden, but its invisible-window path runs only logic;
+            // post_rendering's automatic show requires a UI frame that this path skips.
+            context.send_viewport_cmd(egui::ViewportCommand::Visible(true));
+        }
     }
     fn selected_mut(&mut self) -> Option<&mut Tab> {
         self.tabs.iter_mut().find(|tab| Some(tab.id) == self.active)
@@ -191,6 +205,19 @@ impl EditorApp {
                         .into();
                     }
                 }
+                Event::Thumbnail { key, image } => {
+                    if self.thumbnail_is_current(key) && self.visible_thumbnails.contains(&key) {
+                        let texture = context.load_texture(
+                            format!("thumbnail-{}-{}-{}", key.tab, key.revision, key.page),
+                            egui::ColorImage::from_rgba_unmultiplied(
+                                [image.width as usize, image.height as usize],
+                                &image.rgba,
+                            ),
+                            egui::TextureOptions::LINEAR,
+                        );
+                        self.thumbnails.insert(key, Some(texture), None);
+                    }
+                }
                 Event::Text(text) => {
                     if let Some(tab) = self.tabs.iter_mut().find(|tab| tab.text_key() == text.key) {
                         tab.text = Some(text);
@@ -226,6 +253,12 @@ impl EditorApp {
                     self.message = "PDF closed.".into();
                 }
                 Event::Error { id, task, message } => {
+                    if let Some(TaskKey::Thumbnail(key)) = task {
+                        if self.thumbnail_is_current(key) {
+                            self.thumbnails.insert(key, None, Some(message));
+                        }
+                        continue;
+                    }
                     self.close_after_save = None;
                     if let Some(tab) = self.tabs.iter_mut().find(|tab| tab.id == id) {
                         match task {
@@ -252,7 +285,24 @@ impl EditorApp {
                 }
             }
         }
+        let tabs = &self.tabs;
+        self.thumbnails.retain(|key| {
+            tabs.iter().any(|tab| {
+                tab.id == key.tab
+                    && tab.status.revision == key.revision
+                    && tab.device_ratio.to_bits() == key.device_ratio_bits
+            })
+        });
         self.schedule();
+    }
+
+    fn thumbnail_is_current(&self, key: crate::thumbnails::ThumbnailKey) -> bool {
+        self.tabs.iter().any(|tab| {
+            tab.id == key.tab
+                && tab.status.revision == key.revision
+                && tab.device_ratio.to_bits() == key.device_ratio_bits
+                && key.page < tab.status.info.page_count
+        })
     }
 
     fn schedule(&mut self) {
@@ -301,6 +351,21 @@ impl EditorApp {
                 },
                 "Searching local page text…",
             );
+            return;
+        }
+        if self.show_sidebar
+            && self.sidebar_mode == SidebarMode::Pages
+            && let Some(key) = self.visible_thumbnails.iter().copied().find(|key| {
+                Some(key.tab) == self.active
+                    && self.thumbnail_is_current(*key)
+                    && !self.thumbnails.contains(*key)
+            })
+        {
+            // One slot, one active operation; foreground render/text/search always wins the next dispatch.
+            match self.worker.send(Command::Thumbnail(key)) {
+                Ok(()) => self.busy = true,
+                Err(error) => self.message = error,
+            }
         }
     }
 
@@ -518,6 +583,7 @@ fn texture_bytes(texture: &egui::TextureHandle) -> usize {
 
 impl eframe::App for EditorApp {
     fn logic(&mut self, context: &egui::Context, _frame: &mut eframe::Frame) {
+        self.show_initial_window(context);
         self.poll(context);
     }
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
@@ -583,6 +649,110 @@ mod tests {
         app.busy = true;
         app.allow_exit = true;
         assert!(!app.needs_exit_guard());
+    }
+
+    #[test]
+    fn initial_logic_shows_hidden_window_once_without_reopening_it_later() {
+        let context = eframe::CreationContext::_new_kittest(egui::Context::default());
+        let mut app = EditorApp::new(&context);
+        let first = context
+            .egui_ctx
+            .run_logic(&Default::default(), |ctx| app.show_initial_window(ctx));
+        let commands = &first.viewport_commands[&egui::ViewportId::ROOT];
+        assert!(
+            commands
+                .iter()
+                .any(|command| matches!(command, egui::ViewportCommand::Visible(true)))
+        );
+        let later = context
+            .egui_ctx
+            .run_logic(&Default::default(), |ctx| app.show_initial_window(ctx));
+        assert!(
+            !later
+                .viewport_commands
+                .values()
+                .flatten()
+                .any(|command| matches!(command, egui::ViewportCommand::Visible(true)))
+        );
+    }
+
+    #[test]
+    fn thousand_page_sidebar_requests_only_visible_pages_and_foreground_work_wins() {
+        let context = eframe::CreationContext::_new_kittest(egui::Context::default());
+        let mut app = EditorApp::new(&context);
+        app.tabs.push(Tab::new(
+            1,
+            "many.pdf".into(),
+            DocumentStatus {
+                info: DocumentInfo {
+                    version: "1.7".into(),
+                    page_count: 1000,
+                    object_count: 1002,
+                    encrypted: false,
+                    signature_fields: 0,
+                    pages: (1..=1000)
+                        .map(|number| pdf_core::PageInfo {
+                            number,
+                            media_box: [0.0, 0.0, 100.0, 80.0],
+                            crop_box: [0.0, 0.0, 100.0, 80.0],
+                            rotation: 0,
+                        })
+                        .collect(),
+                },
+                revision: 0,
+                dirty: false,
+                can_undo: false,
+                can_redo: false,
+            },
+        ));
+        app.active = Some(1);
+        let mut output = context.egui_ctx.run_ui(
+            egui::RawInput {
+                screen_rect: Some(egui::Rect::from_min_size(
+                    egui::Pos2::ZERO,
+                    egui::vec2(240.0, 480.0),
+                )),
+                ..Default::default()
+            },
+            |ui| app.sidebar(ui),
+        );
+        output.textures_delta.clear();
+        assert!(!app.visible_thumbnails.is_empty());
+        assert!(app.visible_thumbnails.len() <= crate::thumbnails::MAX_VISIBLE);
+        assert!(app.visible_thumbnails.iter().all(|key| key.page < 10));
+        let first = app.visible_thumbnails[0];
+        app.tabs[0].search.draft = "PDF".into();
+        app.tabs[0].search.start(1, 0);
+        app.show_page_text = true;
+        let dispatch = |app: &mut EditorApp| {
+            app.schedule();
+            assert!(app.busy);
+            // These UI-only documents intentionally are absent from the worker; its typed error proves which task was dispatched.
+            let Event::Error {
+                task: Some(task), ..
+            } = app
+                .worker
+                .events
+                .recv_timeout(std::time::Duration::from_secs(2))
+                .expect("worker response")
+            else {
+                panic!("typed task error");
+            };
+            app.busy = false;
+            task
+        };
+        assert!(matches!(dispatch(&mut app), TaskKey::Render(_)));
+        assert!(matches!(dispatch(&mut app), TaskKey::Text(_)));
+        assert!(matches!(dispatch(&mut app), TaskKey::Search(_)));
+        app.tabs[0].search.cancel();
+        assert!(matches!(dispatch(&mut app),TaskKey::Thumbnail(key) if key == first));
+        app.tabs[0].set_device_ratio(2.0);
+        assert!(!app.thumbnail_is_current(first));
+        app.tabs[0].set_device_ratio(1.0);
+        app.tabs[0].status.revision = 1;
+        assert!(!app.thumbnail_is_current(first));
+        app.tabs.clear();
+        assert!(!app.thumbnail_is_current(first));
     }
 
     #[test]

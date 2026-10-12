@@ -5,6 +5,7 @@ mod raster;
 mod search;
 mod state;
 mod style;
+mod thumbnails;
 mod ui;
 mod worker;
 
