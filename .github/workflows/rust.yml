@@ -1,0 +1,107 @@
+name: Native Rust
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Cargo.*'
+      - 'crates/**'
+      - 'apps/**'
+      - 'deny.toml'
+      - '.github/workflows/rust.yml'
+      - 'scripts/benchmark_rust.py'
+  pull_request:
+    paths:
+      - 'Cargo.*'
+      - 'crates/**'
+      - 'apps/**'
+      - 'deny.toml'
+      - '.github/workflows/rust.yml'
+      - 'scripts/benchmark_rust.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-rust-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: '0'
+
+jobs:
+  quality:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Rust and native build libraries
+        run: |
+          rustup toolchain install 1.95.0 --profile minimal --component rustfmt --component clippy
+          rustup default 1.95.0
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends libxkbcommon-dev libwayland-dev libgl1-mesa-dev
+      - name: Format and lint
+        run: |
+          cargo fmt --all --check
+          cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: Rust tests and API documentation
+        run: |
+          cargo test --workspace --locked
+          RUSTDOCFLAGS='-D warnings' cargo doc --workspace --no-deps --locked
+      - name: Audit locked dependencies and licenses
+        run: |
+          cargo install cargo-audit --version 0.22.2 --locked
+          cargo install cargo-deny --version 0.20.2 --locked
+          cargo audit --file Cargo.lock
+          cargo deny check licenses sources
+      - name: Independent PDF output and measured CLI baseline
+        run: |
+          sudo apt-get install --yes --no-install-recommends poppler-utils
+          python3 -m venv "$RUNNER_TEMP/pdf-parity"
+          "$RUNNER_TEMP/pdf-parity/bin/pip" install PyMuPDF==1.28.2
+          cargo build --release -p pdf-editor-offline-cli --locked
+          "$RUNNER_TEMP/pdf-parity/bin/python" scripts/benchmark_rust.py --self-check
+          "$RUNNER_TEMP/pdf-parity/bin/python" scripts/benchmark_rust.py --binary target/release/pdf-editor-offline --output "$RUNNER_TEMP/rust-baseline.json"
+      - name: Preserve independent evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: rust-independent-baseline
+          path: ${{ runner.temp }}/rust-baseline.json
+          if-no-files-found: warn
+
+  platforms:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-15-intel, windows-2025, ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install locked toolchain
+        shell: bash
+        run: |
+          rustup toolchain install 1.95.0 --profile minimal
+          rustup default 1.95.0
+      - name: Install Linux native libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends libxkbcommon-dev libwayland-dev libgl1-mesa-dev xvfb
+      - name: Cross-platform tests and desktop build
+        run: |
+          cargo test --workspace --locked
+          cargo build -p pdf-editor-offline-cli -p pdf-editor-offline-native --locked
+      - name: Linux desktop startup smoke
+        if: runner.os == 'Linux'
+        run: |
+          set +e
+          xvfb-run --auto-servernum timeout 10s target/debug/pdf-editor-offline-native > "$RUNNER_TEMP/native-startup.log" 2>&1
+          result=$?
+          cat "$RUNNER_TEMP/native-startup.log"
+          test "$result" -eq 124
+
