@@ -1,0 +1,19 @@
+{
+  "name": "pdf-editor-offline",
+  "version": "4.0.0-preview.1",
+  "description": "Native Rust PDF CLI preview; verified platform binary installer and launcher",
+  "license": "MIT",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "bin": { "pdf-editor-offline": "bin/pdf-editor-offline.mjs" },
+  "files": ["bin", "lib", "install.mjs", "verify-manifest.mjs", "release-manifest.json", "README.md", "LICENSE", "THIRD_PARTY_NOTICES.txt"],
+  "scripts": {
+    "postinstall": "node install.mjs",
+    "prepack": "node verify-manifest.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "repository": { "type": "git", "url": "git+https://github.com/OthmaneBlial/pdf-editor-offline.git" },
+  "homepage": "https://github.com/OthmaneBlial/pdf-editor-offline",
+  "bugs": { "url": "https://github.com/OthmaneBlial/pdf-editor-offline/issues" },
+  "keywords": ["pdf", "offline", "rust", "native", "cli"]
+}

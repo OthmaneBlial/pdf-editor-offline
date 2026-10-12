@@ -1,0 +1,107 @@
+name: Native CLI prerelease
+
+on:
+  workflow_dispatch:
+  push:
+    tags: [v4.0.0-preview.1]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-cli-release-v4.0.0-preview.1
+  cancel-in-progress: false
+
+env:
+  RELEASE_VERSION: 4.0.0-preview.1
+  CARGO_INCREMENTAL: '0'
+
+jobs:
+  binaries:
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: macos-15, key: darwin-arm64, target: aarch64-apple-darwin }
+          - { runner: macos-15-intel, key: darwin-x64, target: x86_64-apple-darwin }
+          - { runner: windows-2025, key: win32-x64, target: x86_64-pc-windows-msvc }
+          - { runner: ubuntu-24.04, key: linux-x64, target: x86_64-unknown-linux-musl }
+          - { runner: ubuntu-24.04-arm, key: linux-arm64, target: aarch64-unknown-linux-musl }
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - name: Install pinned Rust toolchain
+        shell: bash
+        run: |
+          rustup toolchain install 1.95.0 --profile minimal --target '${{ matrix.target }}'
+          rustup default 1.95.0
+      - name: Install native musl linker
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends musl-tools binutils
+      - name: Build locked standalone CLI
+        shell: bash
+        run: |
+          if [[ '${{ runner.os }}' == 'Linux' ]]; then
+            export CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER=musl-gcc
+            export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=musl-gcc
+          fi
+          if [[ '${{ runner.os }}' == 'Windows' || '${{ runner.os }}' == 'Linux' ]]; then
+            export RUSTFLAGS='-C target-feature=+crt-static'
+          fi
+          cargo build --release --locked -p pdf-editor-offline-cli --target '${{ matrix.target }}'
+      - name: Execute native binary and capture release evidence
+        shell: bash
+        run: node distribution/npm/tools/prepare-platform.mjs '${{ matrix.key }}' '${{ matrix.target }}' release-assets
+      - name: Test installer and launcher on this actual runner
+        shell: bash
+        env:
+          PDF_NATIVE_TEST_BINARY: ${{ github.workspace }}/target/${{ matrix.target }}/release/pdf-editor-offline${{ runner.os == 'Windows' && '.exe' || '' }}
+        run: node --test distribution/npm/tests/*.test.mjs
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: native-cli-${{ matrix.key }}
+          path: release-assets/*
+          if-no-files-found: error
+
+  draft:
+    needs: binaries
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: native-cli-*
+          merge-multiple: true
+          path: release-assets
+      - name: Verify all assets, evidence and tagged source
+        shell: bash
+        run: |
+          test "$(git rev-parse 'v4.0.0-preview.1^{commit}')" = "$GITHUB_SHA"
+          node distribution/npm/tools/assemble-release.mjs release-assets
+      - name: Create immutable prerelease draft with verified uncompressed assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v4.0.0-preview.1 release-assets/pdf-editor-offline-* release-assets/release-manifest.json release-assets/THIRD_PARTY_NOTICES.txt release-assets/release-evidence.json --verify-tag --draft --prerelease --title '4.0.0-preview.1 — native Rust CLI' --notes-file distribution/npm/RELEASE_NOTES.md
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: verified-native-cli-release
+          path: |
+            release-assets/release-manifest.json
+            release-assets/THIRD_PARTY_NOTICES.txt
+            release-assets/release-evidence.json
+          if-no-files-found: error

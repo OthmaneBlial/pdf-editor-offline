@@ -1,0 +1,27 @@
+name: Native npm global install smoke
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  global-install:
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, macos-15-intel, windows-2025, ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - name: Pack actual pinned manifest and complete native notices
+        shell: bash
+        run: npm pack ./distribution/npm --pack-destination "$RUNNER_TEMP"
+      - name: Install package globally in an isolated prefix using real HTTPS assets
+        shell: bash
+        run: npm install --global --prefix "$RUNNER_TEMP/npm-native" "$RUNNER_TEMP/pdf-editor-offline-4.0.0-preview.1.tgz"
+      - name: Execute installed launcher against synthetic PDF
+        shell: bash
+        run: node distribution/npm/tools/smoke-installed.mjs "$RUNNER_TEMP/npm-native"
