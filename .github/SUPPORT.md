@@ -4,4 +4,4 @@ Use [Discussions](https://github.com/OthmaneBlial/pdf-editor-offline/discussions
 
 Never upload a private PDF. Create a minimal synthetic reproduction instead. Security reports belong in [private vulnerability reporting](SECURITY.md).
 
-Support follows the documented native preview scope. Check [known limitations](docs/KNOWN_LIMITATIONS.md) before relying on an advanced workflow. Historical release downloads and the current source have different capabilities.
+Support follows the documented native preview scope. Check [known limitations](../docs/KNOWN_LIMITATIONS.md) before relying on an advanced workflow. Historical release downloads and the current source have different capabilities.

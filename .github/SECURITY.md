@@ -14,4 +14,4 @@ The native source is a technical preview. Older published releases are separate 
 - Permanent redaction, sanitization, certificate signing, and OCR are not shipped native workflows.
 - No document telemetry or remote processing is implemented.
 
-Read the [threat model](docs/THREAT_MODEL.md), [privacy contract](docs/PRIVACY.md), and [dependency inventory](docs/RUST_DEPENDENCIES.md).
+Read the [threat model](../docs/THREAT_MODEL.md), [privacy contract](../docs/PRIVACY.md), and [dependency inventory](../docs/RUST_DEPENDENCIES.md).

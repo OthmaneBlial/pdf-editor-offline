@@ -8,6 +8,8 @@
 
 [![Native Rust CI](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml/badge.svg)](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml)
 [![MIT license](https://img.shields.io/badge/license-MIT-forestgreen)](LICENSE)
+[![npm version](https://img.shields.io/npm/v/pdf-editor-offline)](https://www.npmjs.com/package/pdf-editor-offline)
+[![GitHub stars](https://img.shields.io/github/stars/OthmaneBlial/pdf-editor-offline?style=flat)](https://github.com/OthmaneBlial/pdf-editor-offline/stargazers)
 
 [Explore the workstation](https://othmaneblial.github.io/pdf-editor-offline/) · [Build guide](https://othmaneblial.github.io/pdf-editor-offline/docs.html#native-build) · [Roadmap](ROADMAP.md)
 
@@ -25,6 +27,20 @@ historical desktop releases have a different feature set.
 
 The screenshot is a real app window using a public synthetic PDF.
 [More native captures](screenshots/native/) · [Runtime evidence](docs/NATIVE_DESKTOP_EVIDENCE.md)
+
+## Your next PDF, without the upload
+
+**A few pages for someone else.** Open your document, move the pages into order,
+rotate a sideways scan and save a separate copy. Your original stays where it is.
+
+**An answer buried in a long file.** Search for a phrase, jump to the matching
+page and use thumbnails to keep your place.
+
+**The same task, every week.** Use the Rust CLI for repeatable page operations
+and JSON inspection. Preview a supported change with `--dry-run` before writing.
+
+[Try the CLI ↓](#try-the-native-cli) · [Run the desktop ↓](#build-and-run) ·
+[See supported operations ↓](#what-works-today)
 
 <details>
 <summary>Take a closer look: pages, properties and the dark workspace</summary>
@@ -133,6 +149,11 @@ fidelity, desktop responsiveness or a universal speedup.
 
 ## Help build it
 
+This is an active native rewrite. Follow the [release notes](CHANGELOG.md),
+the [next milestones](ROADMAP.md) and the [implementation status](docs/RUST_STATUS.md)
+to see what has shipped and what still needs work. The screenshots above show
+the app; the status documents describe its current limits.
+
 Useful contributions include reproducible PDF issues with synthetic fixtures,
 renderer comparisons, accessibility testing, translation corrections and small
 Rust changes. Please keep private documents out of public reports.
@@ -143,7 +164,8 @@ cargo clippy --workspace --all-targets --locked -- -D warnings
 ```
 
 [Native status](docs/RUST_STATUS.md) · [Desktop guide](apps/desktop/README.md) ·
-[CLI guide](apps/cli/README.md) · [Fixture policy](docs/FIXTURE_POLICY.md)
+[CLI guide](apps/cli/README.md) · [Contributing](.github/CONTRIBUTING.md) ·
+[Support](.github/SUPPORT.md) · [Security](.github/SECURITY.md)
 
 If you want a PDF editor that works locally, **star the repository** to help
 others find it.
