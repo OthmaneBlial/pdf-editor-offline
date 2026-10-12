@@ -65,3 +65,25 @@ The generated fixture was 356,862 bytes with SHA-256 `f3ad21c98f3697c08ff3e6e262
 | Compress and save verified copy | 379.52 ms | 374.73–385.15 ms |
 
 Every saved copy retained all 1,000 pages, all-page text, boxes and rotation semantics; independent Poppler extraction matched the source. First/last page text hashes are recorded explicitly. Rotation changed only page 1. The rotate output was 354,830 bytes; the compress output was 354,829 bytes. This one deterministic text fixture proves these measured operations on this page count, without implying low peak memory, fast scrolling, renderer speed, or a speedup over the legacy Python implementation.
+
+## Reference engine versions in CI
+
+The first [Native Rust CI run](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38289906413) reported 43 passing comparisons and one failure with Ubuntu's Poppler 24.02.0. The form appearance uses a standard ZapfDingbats font whose dictionary also declares WinAnsiEncoding. That reference extracted the checkbox as the character `3`, while the macOS Poppler 24.12.0 reference and Rust extracted `✓`. The whitespace-normalized whole-form strings hash to:
+
+| Checkbox character in normalized extraction | SHA-256 |
+| --- | --- |
+| `3` | `16ea174fe5d14346a225650a287d4a6c3735c1e13c741d54713f76fb0857f8af` |
+| `✓` | `e910270937a4f5ecb80df9fec53b8b6b7e81b074ac6c9172f08a8b9835cf42df` |
+
+The first hash exactly matches the failed Linux reference field. This is a verified reference-version discrepancy, not a reason to change the fixture, Rust output, or equality test. The [24.02.0 source](https://gitlab.freedesktop.org/poppler/poppler/-/blob/5ad744922aeed83ecf2bbdb83c783bbfc23b4192/poppler/GfxFont.cc) selects the declared WinAnsi base encoding. The [26.10.0 source](https://gitlab.freedesktop.org/poppler/poppler/-/blob/2703be11769c1f86f4d0dc3b276ec94bba5ac6d3/poppler/GfxFont.cc) explicitly selects the built-in ZapfDingbats encoding before considering that declaration. Both sources were inspected from official release archives. This explains this fixture difference; it does not establish that any reference version is universally correct.
+
+[`install_reference_poppler.sh`](../scripts/install_reference_poppler.sh) builds only the external `pdftotext` reference into a caller-provided empty absolute prefix. It pins the [official Poppler 26.10.0 release](https://poppler.freedesktop.org/), verifies archive SHA-256 `6792cb7c69205007ad87d2e936cecc5b3a31fac29ab54ffc3175fdb6b2a6ce35`, and verifies its detached signature against the release site's signing fingerprint `CA262C6C83DE4D2FB28A332A3A6A4DB839EAA6D7` in a temporary GPG home. It never changes the user's keyring or system installation. Poppler remains a separate GPL test process and is not linked into the Rust application.
+
+```sh
+bash scripts/install_reference_poppler.sh --verify-only
+bash scripts/install_reference_poppler.sh "$RUNNER_TEMP/reference-poppler"
+.venv/bin/python scripts/benchmark_rust.py \
+  --pdftotext "$RUNNER_TEMP/reference-poppler/bin/pdftotext"
+```
+
+Ubuntu 24.04 prerequisites are `build-essential cmake pkg-config curl xz-utils gnupg poppler-data libfreetype-dev libfontconfig1-dev zlib1g-dev libbrotli-dev libharfbuzz-dev`. The official source requires CMake ≥3.28, FreeType ≥2.13, Fontconfig ≥2.15, and Brotli ≥1.1. Source checksum/signature verification, shell syntax/help/error handling, CMake configuration with the exact installer options, and compilation of the `pdftotext` target passed locally on macOS. The built tool reports version 26.10.0 and extracts the form checkbox as `✓`; all 44 unchanged strict comparisons also passed against that built reference. A successful Linux build and strict benchmark run must be confirmed by the ensuing CI run; this documentation does not retroactively mark the failed run passing. The benchmark JSON already records the actual `pdftotext -v` output for every run.
