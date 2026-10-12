@@ -1,4 +1,30 @@
 {
   "version": "4.0.0-preview.1",
-  "assets": {}
+  "assets": {
+    "darwin-arm64": {
+      "asset": "pdf-editor-offline-darwin-arm64",
+      "bytes": 9760592,
+      "sha256": "88f88d33862c99d0340d860917a3e3f41f03cdc27150884f37e2246c5aa502da"
+    },
+    "darwin-x64": {
+      "asset": "pdf-editor-offline-darwin-x64",
+      "bytes": 10956576,
+      "sha256": "d2cdc8e22e596f3a8833ecbb3ca23802b12933a6758c404dc6c32cf3d378c57f"
+    },
+    "win32-x64": {
+      "asset": "pdf-editor-offline-windows-x64.exe",
+      "bytes": 10232832,
+      "sha256": "a2671401efc34ba7d083da4afecf1b0e6850a24357f33bec00ff5811f70812b3"
+    },
+    "linux-x64": {
+      "asset": "pdf-editor-offline-linux-x64",
+      "bytes": 12741232,
+      "sha256": "0749dfa4a830df0dbdcb1ea5ef380838f25ba0c2e5bfcfbf5d0aa0c4ae661308"
+    },
+    "linux-arm64": {
+      "asset": "pdf-editor-offline-linux-arm64",
+      "bytes": 11078840,
+      "sha256": "349505d9ba26f7f0d951e2a7eaf9597823854b2a17af3871177ffaaf0daafbd3"
+    }
+  }
 }
