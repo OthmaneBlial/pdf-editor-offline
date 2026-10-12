@@ -1,0 +1,25 @@
+[package]
+name = "pdf-editor-offline-cli"
+description = "Independent native PDF Editor Offline command line"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "pdf-editor-offline"
+path = "src/main.rs"
+
+[dependencies]
+pdf-core = { path = "../../crates/pdf-core" }
+clap = { version = "4.6", features = ["derive"] }
+clap_complete = "4.6"
+serde_json.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true
