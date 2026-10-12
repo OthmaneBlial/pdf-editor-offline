@@ -152,7 +152,8 @@ fn invalid_keys_limits_and_clobber_have_typed_errors_and_preserve_files() {
     let original = std::fs::read(&input).unwrap();
     for (key, value, code, kind) in [
         ("creation-date", "value", 2, "arguments"),
-        ("title", &"x".repeat(65537), 5, "resource_limit"),
+        // Exceed the UTF-8 byte budget while staying below Windows' UTF-16 argv budget.
+        ("title", &"界".repeat(21846), 5, "resource_limit"),
     ] {
         let result = edit("set-metadata", &input, &output, key, Some(value), &[]);
         assert_eq!(result.status.code(), Some(code));
