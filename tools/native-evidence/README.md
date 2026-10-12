@@ -34,6 +34,9 @@ hash, source file hashes, compiler/platform, Git HEAD and dirty working tree.
 These identify the observed inputs; they do not prove reproducible builds or a
 cryptographic source-to-binary binding. Source changes during the run are listed.
 Run again from the final stable checkout before publishing release evidence.
+Embedded desktop font assets/licenses and every vendored renderer file are hashed
+recursively, including non-Rust assets and provenance notices. Nonregular files in
+these trees are refused rather than silently omitted.
 
 The default matrix has 11 fixtures × four operations = **44 operation records**:
 the sample PDF, every hash-verified version-one corpus case, and a generated

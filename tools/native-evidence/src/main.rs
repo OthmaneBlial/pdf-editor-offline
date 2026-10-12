@@ -146,22 +146,14 @@ fn provenance(runner: &Runner, options: &Options) -> Result<Value, String> {
 
 fn source_hashes() -> Result<serde_json::Map<String, Value>, String> {
     let mut sources = serde_json::Map::new();
-    fn scan(directory: &Path, sources: &mut serde_json::Map<String, Value>) -> Result<(), String> {
-        for entry in fs::read_dir(directory).map_err(|e| e.to_string())? {
-            let entry = entry.map_err(|e| e.to_string())?;
-            let path = entry.path();
-            if entry.file_type().map_err(|e| e.to_string())?.is_dir() {
-                scan(&path, sources)?;
-            } else if path.extension().is_some_and(|v| v == "rs")
-                || path.file_name().is_some_and(|v| v == "Cargo.toml")
-            {
-                sources.insert(path.to_string_lossy().into(), json!(hash(&path)?));
-            }
-        }
-        Ok(())
-    }
     for directory in ["crates", "apps", "tools/native-evidence"] {
-        scan(Path::new(directory), &mut sources)?;
+        hash_source_tree(Path::new(directory), &mut sources, false)?;
+    }
+    for directory in ["apps/desktop/assets", "vendor/hayro-interpret"] {
+        let path = Path::new(directory);
+        if path.exists() {
+            hash_source_tree(path, &mut sources, true)?;
+        }
     }
     for path in [
         "Cargo.toml",
@@ -171,6 +163,33 @@ fn source_hashes() -> Result<serde_json::Map<String, Value>, String> {
         sources.insert(path.into(), json!(hash(Path::new(path))?));
     }
     Ok(sources)
+}
+
+fn hash_source_tree(
+    directory: &Path,
+    sources: &mut serde_json::Map<String, Value>,
+    all_files: bool,
+) -> Result<(), String> {
+    for entry in fs::read_dir(directory).map_err(|e| e.to_string())? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let path = entry.path();
+        let kind = entry.file_type().map_err(|e| e.to_string())?;
+        if kind.is_dir() {
+            hash_source_tree(&path, sources, all_files)?;
+        } else if all_files
+            || path.extension().is_some_and(|v| v == "rs")
+            || path.file_name().is_some_and(|v| v == "Cargo.toml")
+        {
+            if !kind.is_file() {
+                return Err(format!(
+                    "source provenance requires regular files: {}",
+                    path.display()
+                ));
+            }
+            sources.insert(path.to_string_lossy().into(), json!(hash(&path)?));
+        }
+    }
+    Ok(())
 }
 
 fn build_provenance(path: &Path, binary: &Path) -> Result<Value, String> {
@@ -637,6 +656,35 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn vendored_assets_and_licenses_are_hashed_recursively() -> Result<(), String> {
+        let directory = tempfile::tempdir().map_err(|e| e.to_string())?;
+        let nested = directory.path().join("assets");
+        fs::create_dir(&nested).map_err(|e| e.to_string())?;
+        let font = nested.join("font.ttf");
+        let license = directory.path().join("LICENSE");
+        fs::write(&font, b"font bytes").map_err(|e| e.to_string())?;
+        fs::write(&license, b"license text").map_err(|e| e.to_string())?;
+        let mut before = serde_json::Map::new();
+        hash_source_tree(directory.path(), &mut before, true)?;
+        assert_eq!(before.len(), 2);
+        fs::write(&font, b"changed font").map_err(|e| e.to_string())?;
+        let mut after = serde_json::Map::new();
+        hash_source_tree(directory.path(), &mut after, true)?;
+        assert_ne!(
+            before[font.to_string_lossy().as_ref()],
+            after[font.to_string_lossy().as_ref()]
+        );
+        assert_eq!(
+            before[license.to_string_lossy().as_ref()],
+            after[license.to_string_lossy().as_ref()]
+        );
+        fs::remove_file(&font).map_err(|e| e.to_string())?;
+        let mut removed = serde_json::Map::new();
+        hash_source_tree(directory.path(), &mut removed, true)?;
+        assert!(!removed.contains_key(font.to_string_lossy().as_ref()));
+        Ok(())
+    }
     #[test]
     fn artifact_profile_success_and_executable_must_match() -> Result<(), String> {
         let directory = tempfile::tempdir().map_err(|e| e.to_string())?;
