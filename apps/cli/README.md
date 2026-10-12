@@ -6,6 +6,7 @@ uses the same executable name; explicit paths avoid ambiguity during migration.
 ```sh
 cargo build --release -p pdf-editor-offline-cli
 ./target/release/pdf-editor-offline info examples/sample_pdfs/demo-basic.pdf --json
+./target/release/pdf-editor-offline inspect-security input.pdf --json
 ./target/release/pdf-editor-offline extract-text examples/sample_pdfs/demo-basic.pdf
 ./target/release/pdf-editor-offline rotate input.pdf --pages 1-3 --degrees 90 -o rotated.pdf
 ./target/release/pdf-editor-offline compress input.pdf -o compressed.pdf --dry-run
@@ -37,3 +38,9 @@ Search is literal and case-sensitive with UTF-8 byte offsets and one-based page
 numbers. Extraction is best effort, not OCR or reading-order reconstruction.
 No redaction, sanitization, Office conversion, cryptographic signing or batch
 parity is claimed by this preview. Run `capabilities` for its actual scope.
+
+`inspect-security` inventories tracked reachable/orphaned object markers,
+attachments, metadata, forms/XFA, layers, actions and decoded permission flags.
+It never executes actions or reports scripts, action targets or field/metadata
+values. It explicitly returns `complete_privacy_proof: false` and unavailable
+revision analysis. An empty inventory is not proof that a file is safe to share.

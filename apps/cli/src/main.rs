@@ -30,6 +30,8 @@ struct Cli {
 enum Command {
     /// Inspect pages, geometry and signature/encryption flags.
     Info { input: PathBuf },
+    /// Inventory metadata, attachments, forms and actions; not a privacy proof.
+    InspectSecurity { input: PathBuf },
     /// Extract encoded text; scanned documents require OCR (not yet migrated).
     ExtractText {
         input: PathBuf,
@@ -70,6 +72,7 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
     let open = |input: &PathBuf| PdfDocument::open(input, password);
     match &cli.command {
         Command::Info { input } => Ok(json!(open(input)?.info()?)),
+        Command::InspectSecurity { input } => Ok(json!(open(input)?.inspect_security()?)),
         Command::ExtractText { input, pages } => {
             let document = open(input)?;
             let pages = selection::parse(pages.as_deref(), document.page_count())?;
@@ -133,7 +136,7 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
         }
         Command::Capabilities => Ok(
             json!({ "runtime": "rust-native", "version": env!("CARGO_PKG_VERSION"), "migration_preview": true,
-            "commands": ["info", "extract-text", "rotate", "compress", "search", "compare", "capabilities", "completions"],
+            "commands": ["info", "inspect-security", "extract-text", "rotate", "compress", "search", "compare", "capabilities", "completions"],
             "saving": "verified_new_copy_no_clobber", "signed_inputs": "read_only", "encrypted_inputs": "read_only",
             "unmigrated": ["complete_page_organization", "existing_content_editing", "forms", "cryptographic_signing", "secure_redaction", "sanitization", "ocr", "office_conversion", "recovery", "wasm"] }),
         ),

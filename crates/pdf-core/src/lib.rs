@@ -2,11 +2,13 @@
 //! Saving creates a verified new copy and never replaces an existing file.
 
 mod error;
+mod inspect;
 mod pages;
 mod structure;
 mod text;
 
 pub use error::{Error, Result};
+pub use inspect::*;
 use lopdf::{Document, LoadOptions, Object, ObjectId};
 use serde::Serialize;
 use std::fs::File;

@@ -114,3 +114,23 @@ fn malformed_input_has_structured_error() {
     assert!(!result.status.success());
     assert_eq!(json(&result)["ok"], false);
 }
+
+#[test]
+fn security_inventory_reports_real_attachments_without_claiming_privacy() {
+    let output = cli(&[
+        "inspect-security",
+        fixture("attachment.pdf").to_str().unwrap(),
+        "--json",
+    ]);
+    assert!(output.status.success());
+    let report = json(&output);
+    assert_eq!(report["data"]["schema_version"], 1);
+    assert_eq!(report["data"]["complete_privacy_proof"], false);
+    assert!(report["data"]["embedded_file_streams"].as_u64().unwrap() > 0);
+    assert!(
+        report["data"]["revision_analysis"]
+            .as_str()
+            .unwrap()
+            .starts_with("unavailable")
+    );
+}

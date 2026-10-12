@@ -1,8 +1,33 @@
 # Rust migration matrix
 
-Baseline: 2026-10-12. This matrix inventories existing capabilities and required Rust acceptance evidence. **Pending** means no Rust replacement has been reviewed by this audit; it does not mean the legacy feature is missing or broken. Update a row only after implementation, tests and its actual desktop/CLI integration have been verified. Rust milestones developed concurrently must attach their evidence before changing a status.
+Baseline: 2026-10-12. This matrix inventories existing capabilities and required Rust acceptance evidence. **Pending** means the full replacement gate remains open, not that the legacy feature is missing or broken. The verified updates below record current partial implementations and supersede the initial Pending status for those scopes. **Partial** is never removal eligibility. Full parity requires tested behavior plus actual desktop/CLI integration.
 
 Priority: P0 = integrity/security/foundation, P1 = core workstation parity, P2 = advanced workflows/distribution. Priority schedules work; it never authorizes dropping a feature. `core/` below means `pdf_editor_offline/core/`. Legacy implementation remains available until the replacement meets its gate.
+
+## Verified updates
+
+Evidence and remaining limits: [native status](RUST_STATUS.md),
+[desktop smoke](NATIVE_DESKTOP_EVIDENCE.md), [independent benchmark](RUST_BENCHMARKS.md).
+The retained legacy suite passed 545 tests with 2 skips on macOS. No feature is
+eligible for removal at this milestone.
+
+| Family | Current status | Verified Rust scope | Remaining gate |
+| --- | --- | --- | --- |
+| Open/inspect | Partial | strict bounded parser, structural/geometry inspection, nested signature detection; native GUI + `info` | broader encrypted/malformed corpus and isolation |
+| Render/navigate | Partial | Hayro vectors/crop/rotation, native tabs/zoom/navigation; 6 renderer tests and actual macOS window | full font/fidelity corpus, tiled/cache behavior and all platform UI |
+| Save As | Partial | verified new-copy/no-clobber core/CLI/GUI; independent copy inspection | overwrite policy, recovery, locking and power-loss durability |
+| Undo/redo | Partial | native rotation snapshots, dirty/saved revision behavior; 7 desktop tests | every editing workflow and recovery integration |
+| Page organization | Partial | 11 core tests for reorder/reverse/crop/blank and guarded subset operations; GUI/CLI rotation | merge/split/import/duplicate, indexed structures and full organizer UI/CLI |
+| Compression | Partial | lossless stream compression + verified new copy; CLI and cross-reader preservation | repair, images/lossy tiers and native tool workflow |
+| Text/search | Partial | bounded fonts/content/appearances/Form XObjects; literal CLI search; 7 text regressions | geometry, broad Unicode/RTL/CJK, general clipping/reading order and native search UI |
+| CLI/capabilities | Partial | independent Rust commands, JSON reports, exit codes, dry-run and completions | all legacy behaviors, batch/cancellation/progress and versioned schema compatibility |
+| UI usability | Partial | themes, dialogs, tabs, rotation, history, unsaved guards; actual macOS smoke captures | full workstation layout, organizer, text accessibility and advanced tools |
+| Trust Lab/performance | Partial | 44 strict independent cases including a generated 1,000-page document, release timings and hashes | large real corpus, rendering/memory/scroll/OCR and legacy-runtime baseline |
+| Rust library | Partial | reusable documented core/render crates, library tests, rustdoc | complete operation APIs, WASM and publication |
+| CI/distribution | Partial | locked cross-platform workflow, local RustSec/license/source checks | inspect actual target runs, installed GUI smoke, native installers/signing/provenance |
+| Docs/presentation | Partial | real native captures, README/build instructions, audit/architecture/decisions/status | updated hosted site, complete docs/demo/release evidence |
+
+## Full acceptance inventory
 
 | Feature family | Legacy implementation / callers | Required Rust replacement and preservation gate | Reference tests / independent checks | Status | Priority / risk |
 | --- | --- | --- | --- | --- | --- |
