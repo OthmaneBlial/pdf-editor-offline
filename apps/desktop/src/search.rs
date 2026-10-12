@@ -61,6 +61,16 @@ impl SearchState {
         self.running = false;
     }
 
+    pub fn invalidate_document(&mut self) {
+        self.cancel();
+        self.query.clear();
+        self.next_page = 0;
+        self.hits.clear();
+        self.text_was_truncated = false;
+        self.limited = false;
+        self.error = None;
+    }
+
     pub fn accept(
         &mut self,
         key: SearchKey,

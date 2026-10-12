@@ -117,8 +117,7 @@ impl Tab {
             self.text = None;
             self.text_error = None;
             self.needs_text = true;
-            self.search.cancel();
-            self.search.hits.clear();
+            self.search.invalidate_document();
             self.page = self.page.min(status.info.page_count.saturating_sub(1));
         }
         self.status = status;
@@ -188,6 +187,43 @@ mod tests {
                 can_redo: false,
             },
         )
+    }
+
+    #[test]
+    fn edits_clear_search_results_but_keep_query_preferences_and_generation() {
+        let mut tab = tab();
+        tab.search.draft = "Café".into();
+        tab.search.match_case = true;
+        tab.search.start(tab.id, 0);
+        let old = tab.search.key.expect("search key");
+        tab.search.next_page = 3;
+        tab.search.limited = true;
+        tab.search.text_was_truncated = true;
+        tab.search.error = Some("Old extraction error".into());
+        tab.search.hits.push(crate::search::SearchHit {
+            page: 0,
+            excerpt: "Old result".into(),
+        });
+        let status = DocumentStatus {
+            info: tab.status.info.clone(),
+            revision: 1,
+            dirty: true,
+            can_undo: true,
+            can_redo: false,
+        };
+        tab.update(status);
+        assert_eq!(tab.search.draft, "Café");
+        assert!(tab.search.match_case);
+        assert_eq!(tab.search.next_page, 0);
+        assert!(tab.search.hits.is_empty());
+        assert!(!tab.search.running && !tab.search.limited && !tab.search.text_was_truncated);
+        assert!(tab.search.error.is_none() && tab.search.key.is_none());
+        // Undo can return to revision zero; the next search must still have a new generation.
+        tab.status.revision = 0;
+        tab.search.start(tab.id, 0);
+        assert!(tab.search.key.expect("new key").generation > old.generation);
+        assert!(!tab.search.accept(old, 0, None, false, 3));
+        assert_eq!(tab.search.next_page, 0);
     }
 
     #[test]
