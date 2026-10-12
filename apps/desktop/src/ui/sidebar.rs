@@ -36,6 +36,7 @@ impl EditorApp {
 
     fn page_list(&mut self, ui: &mut egui::Ui) {
         let mut select = None;
+        let mut organize = None;
         self.visible_thumbnails.clear();
         if let Some(tab) = self.tabs.iter().find(|tab| Some(tab.id) == self.active) {
             ui.label(
@@ -43,6 +44,27 @@ impl EditorApp {
                     .small()
                     .weak(),
             );
+            ui.add_space(4.0);
+            ui.horizontal(|ui| {
+                let editable = !self.busy && tab.editable();
+                if ui
+                    .add_enabled(editable && tab.page > 0, egui::Button::new("Earlier"))
+                    .on_hover_text("Move the current page one position earlier")
+                    .clicked()
+                {
+                    organize = Some(Action::Move(true));
+                }
+                if ui
+                    .add_enabled(
+                        editable && tab.page + 1 < tab.status.info.page_count,
+                        egui::Button::new("Later"),
+                    )
+                    .on_hover_text("Move the current page one position later")
+                    .clicked()
+                {
+                    organize = Some(Action::Move(false));
+                }
+            });
             ui.add_space(4.0);
             egui::ScrollArea::vertical()
                 .id_salt(("page-list", tab.id))
@@ -105,6 +127,9 @@ impl EditorApp {
         }
         if let Some(page) = select {
             self.perform(Action::Page(page), ui.ctx());
+        }
+        if let Some(action) = organize {
+            self.perform(action, ui.ctx());
         }
     }
 

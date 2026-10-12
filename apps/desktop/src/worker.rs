@@ -15,6 +15,22 @@ const HISTORY_BYTES: usize = 256 * 1024 * 1024;
 
 pub enum Edit {
     Rotate(u32, i64),
+    Move {
+        page: u32,
+        earlier: bool,
+    },
+    Reverse {
+        page: u32,
+    },
+    InsertBlank {
+        position: u32,
+        width: f32,
+        height: f32,
+    },
+    Crop {
+        page: u32,
+        rectangle: [f32; 4],
+    },
     Undo,
     Redo,
 }
@@ -76,6 +92,7 @@ pub enum Event {
     Updated {
         id: u64,
         status: DocumentStatus,
+        selected_page: Option<usize>,
     },
     Saved {
         id: u64,
@@ -203,13 +220,66 @@ impl WorkingDocument {
         })
     }
 
-    fn edit(&mut self, edit: Edit) -> Result<(), String> {
+    fn edit(&mut self, edit: Edit) -> Result<Option<usize>, String> {
+        let mut selected_page = None;
         match edit {
-            Edit::Rotate(page, degrees) => {
+            Edit::Undo => {
+                let previous = self.undo.pop().ok_or("Nothing to undo")?;
+                self.redo
+                    .push(std::mem::replace(&mut self.current, previous));
+            }
+            Edit::Redo => {
+                let next = self.redo.pop().ok_or("Nothing to redo")?;
+                self.undo.push(std::mem::replace(&mut self.current, next));
+            }
+            edit => {
                 let mut document = self.current.document.clone();
-                document
-                    .rotate(&[page], degrees)
-                    .map_err(|e| e.to_string())?;
+                match edit {
+                    Edit::Rotate(page, degrees) => document
+                        .rotate(&[page], degrees)
+                        .map_err(|e| e.to_string())?,
+                    Edit::Move { page, earlier } => {
+                        let count = document.page_count();
+                        let index = (page as usize)
+                            .checked_sub(1)
+                            .filter(|index| *index < count)
+                            .ok_or("Move page is outside the document")?;
+                        let target = if earlier {
+                            index.checked_sub(1)
+                        } else {
+                            index.checked_add(1).filter(|next| *next < count)
+                        }
+                        .ok_or("Page cannot move farther in that direction")?;
+                        let mut order: Vec<_> = (1..=count as u32).collect();
+                        order.swap(index, target);
+                        document.reorder(&order).map_err(|e| e.to_string())?;
+                        selected_page = Some(target);
+                    }
+                    Edit::Reverse { page } => {
+                        let index = (page as usize)
+                            .checked_sub(1)
+                            .filter(|index| *index < document.page_count())
+                            .ok_or("Current page is outside the document")?;
+                        selected_page = Some(document.page_count() - 1 - index);
+                        document.reverse().map_err(|e| e.to_string())?;
+                    }
+                    Edit::InsertBlank {
+                        position,
+                        width,
+                        height,
+                    } => {
+                        document
+                            .insert_blank(position, width, height)
+                            .map_err(|e| e.to_string())?;
+                        selected_page = Some(position as usize - 1);
+                    }
+                    Edit::Crop { page, rectangle } => {
+                        document
+                            .crop(&[page], rectangle)
+                            .map_err(|e| e.to_string())?;
+                    }
+                    Edit::Undo | Edit::Redo => unreachable!("history handled above"),
+                }
                 let bytes = document.to_bytes().map_err(|e| e.to_string())?;
                 let snapshot = Snapshot {
                     document,
@@ -222,17 +292,8 @@ impl WorkingDocument {
                 self.redo.clear();
                 self.trim_history();
             }
-            Edit::Undo => {
-                let previous = self.undo.pop().ok_or("Nothing to undo")?;
-                self.redo
-                    .push(std::mem::replace(&mut self.current, previous));
-            }
-            Edit::Redo => {
-                let next = self.redo.pop().ok_or("Nothing to redo")?;
-                self.undo.push(std::mem::replace(&mut self.current, next));
-            }
         }
-        Ok(())
+        Ok(selected_page)
     }
 
     fn trim_history(&mut self) {
@@ -274,7 +335,7 @@ fn process(
         .ok_or("Document is unavailable; close and reopen it")?;
     match command {
         Command::Render(key) => {
-            let image = render(document, key)?;
+            let image = render(document, key, f32::from_bits(key.zoom_bits))?;
             Ok(Event::Rendered { key, image })
         }
         Command::Thumbnail(key) => {
@@ -305,7 +366,7 @@ fn process(
             if key != expected {
                 return Err("Thumbnail geometry is stale".into());
             }
-            let image = render(document, key.render_key())?;
+            let image = render(document, key.render_key(), 1.0)?;
             Ok(Event::Thumbnail { key, image })
         }
         Command::Text(key) => {
@@ -342,10 +403,11 @@ fn process(
             })
         }
         Command::Edit { edit, .. } => {
-            document.edit(edit)?;
+            let selected_page = document.edit(edit)?;
             Ok(Event::Updated {
                 id,
                 status: document.status()?,
+                selected_page,
             })
         }
         Command::Save { path, .. } => {
@@ -362,14 +424,19 @@ fn process(
     }
 }
 
-fn render(document: &WorkingDocument, key: RenderKey) -> Result<RenderedPage, String> {
+fn render(
+    document: &WorkingDocument,
+    key: RenderKey,
+    view_zoom: f32,
+) -> Result<RenderedPage, String> {
     if key.revision != document.current.revision {
         return Err("Preview request is stale".into());
     }
-    let image = pdf_render::render_page(
+    let image = pdf_render::render_view_page(
         &document.current.bytes,
         key.page,
         f32::from_bits(key.scale_bits),
+        view_zoom,
     )
     .map_err(|e| e.to_string())?;
     if [image.width, image.height] != key.pixel_size {
@@ -398,6 +465,10 @@ mod tests {
     use lopdf::{Document, Object, Stream, dictionary};
 
     fn fixture() -> (tempfile::TempDir, PathBuf) {
+        fixture_pages(1)
+    }
+
+    fn fixture_pages(count: u32) -> (tempfile::TempDir, PathBuf) {
         let directory = tempfile::tempdir().expect("temp directory");
         let path = directory.path().join("source.pdf");
         let mut pdf = Document::with_version("1.7");
@@ -405,23 +476,174 @@ mod tests {
         let font = pdf.add_object(
             dictionary! { "Type" => "Font", "Subtype" => "Type1", "BaseFont" => "Helvetica" },
         );
-        let content = pdf.add_object(Stream::new(
-            dictionary! {},
-            b"1 0 0 rg 0 0 100 80 re f BT /F1 12 Tf 10 20 Td (Hello PDF workstation) Tj ET"
-                .to_vec(),
-        ));
-        let page = pdf.add_object(dictionary! { "Type" => "Page", "Parent" => pages,
+        let mut kids = vec![];
+        for number in 1..=count {
+            let content = pdf.add_object(Stream::new(dictionary! {},format!("1 0 0 rg 0 0 100 80 re f BT /F1 12 Tf 10 20 Td (Hello PDF workstation Page{number}) Tj ET").into_bytes()));
+            let page = pdf.add_object(dictionary! { "Type" => "Page", "Parent" => pages,
             "MediaBox" => vec![0.into(), 0.into(), 100.into(), 80.into()], "Resources" => dictionary! { "Font" => dictionary! { "F1" => font } }, "Contents" => content });
+            kids.push(page.into());
+        }
         pdf.objects.insert(
             pages,
-            Object::Dictionary(
-                dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
-            ),
+            Object::Dictionary(dictionary! { "Type" => "Pages", "Kids" => kids, "Count" => count }),
         );
         let catalog = pdf.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages });
         pdf.trailer.set("Root", catalog);
         pdf.save(&path).expect("save fixture");
         (directory, path)
+    }
+
+    #[test]
+    fn organizer_edits_are_transactional_preserve_content_and_roundtrip_history() {
+        let (directory, path) = fixture_pages(3);
+        let original = std::fs::read(&path).expect("original");
+        let mut working = WorkingDocument::load(&path).expect("load");
+        assert_eq!(
+            working
+                .edit(Edit::Move {
+                    page: 2,
+                    earlier: true
+                })
+                .expect("move"),
+            Some(0)
+        );
+        let text = |working: &WorkingDocument, page: u32| {
+            working
+                .current
+                .document
+                .extract_text(&[page])
+                .expect("text")
+        };
+        assert!(text(&working, 1).contains("Page2"));
+        assert!(text(&working, 2).contains("Page1"));
+        working.edit(Edit::Undo).expect("undo");
+        assert!(text(&working, 1).contains("Page1"));
+        working.edit(Edit::Redo).expect("redo");
+        assert!(text(&working, 1).contains("Page2"));
+        assert_eq!(
+            working.edit(Edit::Reverse { page: 1 }).expect("reverse"),
+            Some(2)
+        );
+        assert!(text(&working, 1).contains("Page3"));
+        assert!(text(&working, 3).contains("Page2"));
+        assert_eq!(
+            working
+                .edit(Edit::InsertBlank {
+                    position: 2,
+                    width: 200.0,
+                    height: 300.0
+                })
+                .expect("blank"),
+            Some(1)
+        );
+        assert_eq!(working.current.document.page_count(), 4);
+        assert!(text(&working, 2).trim().is_empty());
+        assert!(text(&working, 3).contains("Page1"));
+        working
+            .edit(Edit::Crop {
+                page: 1,
+                rectangle: [10.0, 10.0, 90.0, 70.0],
+            })
+            .expect("crop");
+        assert_eq!(
+            working.status().expect("status").info.pages[0].crop_box,
+            [10.0, 10.0, 90.0, 70.0]
+        );
+        assert!(text(&working, 1).contains("Page3"));
+        let output = directory.path().join("organized.pdf");
+        working.save(&output).expect("save");
+        let reopened = PdfDocument::open(&output, None).expect("reopen");
+        assert_eq!(
+            reopened.info().expect("info").pages[0].crop_box,
+            [10.0, 10.0, 90.0, 70.0]
+        );
+        assert!(reopened.extract_text(&[4]).expect("text").contains("Page2"));
+        assert_eq!(std::fs::read(path).expect("original retained"), original);
+        working.edit(Edit::Undo).expect("undo crop");
+        assert_eq!(
+            working.status().expect("status").info.pages[0].crop_box,
+            [0.0, 0.0, 100.0, 80.0]
+        );
+        working.edit(Edit::Undo).expect("undo blank");
+        assert_eq!(working.current.document.page_count(), 3);
+        assert!(text(&working, 2).contains("Page1"));
+        working.edit(Edit::Undo).expect("undo reverse");
+        assert!(text(&working, 1).contains("Page2"));
+        working.edit(Edit::Undo).expect("undo move");
+        assert_eq!(working.current.bytes, original);
+        assert!(working.status().expect("status").dirty); // The saved copy contains the organized revision.
+    }
+
+    #[test]
+    fn signature_markers_block_every_organizer_mutation_in_the_worker() {
+        let (_directory, path) = fixture_pages(3);
+        let mut pdf = Document::load(&path).expect("load fixture");
+        pdf.add_object(dictionary! { "FT"=>"Sig","Type"=>"Annot","Subtype"=>"Widget" });
+        pdf.save(&path).expect("signed fixture");
+        let mut working = WorkingDocument::load(&path).expect("load signed input");
+        assert!(working.status().expect("status").info.signature_fields > 0);
+        let original = working.current.bytes.clone();
+        for edit in [
+            Edit::Move {
+                page: 2,
+                earlier: true,
+            },
+            Edit::Reverse { page: 1 },
+            Edit::InsertBlank {
+                position: 2,
+                width: 100.0,
+                height: 80.0,
+            },
+            Edit::Crop {
+                page: 1,
+                rectangle: [10.0, 10.0, 90.0, 70.0],
+            },
+        ] {
+            assert!(working.edit(edit).is_err());
+            assert_eq!(working.current.bytes, original);
+            assert!(working.undo.is_empty());
+        }
+    }
+
+    #[test]
+    fn invalid_organizer_edits_leave_bytes_revision_and_history_unchanged() {
+        let (_directory, path) = fixture_pages(3);
+        let mut working = WorkingDocument::load(&path).expect("load");
+        let original = working.current.bytes.clone();
+        for edit in [
+            Edit::Move {
+                page: 1,
+                earlier: true,
+            },
+            Edit::Move {
+                page: 3,
+                earlier: false,
+            },
+            Edit::Move {
+                page: 0,
+                earlier: false,
+            },
+            Edit::Reverse { page: 4 },
+            Edit::InsertBlank {
+                position: 5,
+                width: 100.0,
+                height: 80.0,
+            },
+            Edit::InsertBlank {
+                position: 1,
+                width: f32::NAN,
+                height: 80.0,
+            },
+            Edit::Crop {
+                page: 1,
+                rectangle: [0.0, 0.0, 101.0, 80.0],
+            },
+        ] {
+            assert!(working.edit(edit).is_err());
+            assert_eq!(working.current.bytes, original);
+            assert_eq!(working.current.revision, 0);
+            assert!(working.undo.is_empty() && working.redo.is_empty());
+        }
     }
 
     #[test]
@@ -623,5 +845,52 @@ mod tests {
             plan.display_size([image.width, image.height]),
             [100.0, 80.0]
         );
+    }
+
+    #[test]
+    fn actor_passes_logical_zoom_separately_from_raster_density() {
+        let (_directory, path) = fixture();
+        let mut source = PdfDocument::open(&path, None).expect("source");
+        source
+            .add_note(1, [10.0, 20.0, 34.0, 44.0], "note", "")
+            .expect("note");
+        std::fs::write(&path, source.to_bytes().expect("bytes")).expect("synthetic fixture");
+        let mut documents = HashMap::new();
+        process(
+            &mut documents,
+            Command::Load {
+                id: 1,
+                path: path.clone(),
+            },
+        )
+        .expect("load");
+        let status = documents[&1].status().expect("status");
+        let mut tab = crate::state::Tab::new(1, path, status);
+        tab.set_scale(2.0);
+        for ratio in [1.0, 2.0] {
+            tab.set_device_ratio(ratio);
+            let key = tab.key().expect("key");
+            let Event::Rendered { image, .. } =
+                process(&mut documents, Command::Render(key)).expect("render")
+            else {
+                panic!("expected image");
+            };
+            let anchor = [20.0 * ratio, 72.0 * ratio];
+            let side = 24.0 * ratio;
+            let mut yellow = 0;
+            for (index, pixel) in image.rgba.chunks_exact(4).enumerate() {
+                if pixel[0] > 240 && pixel[1] > 190 && pixel[2] < 120 {
+                    yellow += 1;
+                    let x = (index % image.width as usize) as f32;
+                    let y = (index / image.width as usize) as f32;
+                    assert!(x >= anchor[0] - 1.0 && x <= anchor[0] + side + 1.0);
+                    assert!(y >= anchor[1] - 1.0 && y <= anchor[1] + side + 1.0);
+                }
+            }
+            assert!(yellow > 100, "sticky icon must remain visible");
+        }
+        let mut invalid = tab.key().expect("key");
+        invalid.zoom_bits = 0;
+        assert!(process(&mut documents, Command::Render(invalid)).is_err());
     }
 }

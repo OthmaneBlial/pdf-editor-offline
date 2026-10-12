@@ -10,6 +10,12 @@ The computer-use surface currently fails to acquire this build's window
 Consequently no new thumbnail screenshot or click/scroll runtime success is claimed.
 The captures below document the earlier visual workstation build.
 
+The organizer milestone raises the native test count to 36: move/reverse, blank
+insertion, numeric crop, verified save/reopen and complete undo are tested on an
+actual three-page PDF, including signature and failed-edit guards. The render
+worker also tests fixed-size sticky notes at zoom 2 and DPR 1/2. These are automated
+behavior checks; organizer dialog and thumbnail runtime review remain pending.
+
 Tested a locally compiled debug native application on macOS Apple Silicon using
 real native window and file-dialog interactions. This is a development preview,
 not a signed/notarized installer or full feature-parity claim.

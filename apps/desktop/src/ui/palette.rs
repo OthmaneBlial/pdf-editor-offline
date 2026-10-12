@@ -37,6 +37,32 @@ impl EditorApp {
                     ("Rotate current page left", Action::Rotate(-90), editable),
                     ("Rotate current page right", Action::Rotate(90), editable),
                     (
+                        "Move current page earlier",
+                        Action::Move(true),
+                        editable && selected.is_some_and(|tab| tab.page > 0),
+                    ),
+                    (
+                        "Move current page later",
+                        Action::Move(false),
+                        editable
+                            && selected
+                                .is_some_and(|tab| tab.page + 1 < tab.status.info.page_count),
+                    ),
+                    (
+                        "Reverse all pages",
+                        Action::Reverse,
+                        editable && selected.is_some_and(|tab| tab.status.info.page_count > 1),
+                    ),
+                    (
+                        "Insert blank page",
+                        Action::InsertBlank,
+                        editable
+                            && selected.is_some_and(|tab| {
+                                tab.status.info.page_count < pdf_core::MAX_PAGES
+                            }),
+                    ),
+                    ("Crop current page", Action::Crop, editable),
+                    (
                         "Undo",
                         Action::Undo,
                         !self.busy && selected.is_some_and(|tab| tab.status.can_undo),

@@ -106,6 +106,13 @@ impl EditorApp {
                 let editable = !self.busy && self.selected().is_some_and(Tab::editable);
                 if ui.add_enabled(editable, egui::Button::new("Rotate current page left")).clicked() { action = Some(Action::Rotate(-90)); ui.close(); }
                 if ui.add_enabled(editable, egui::Button::new("Rotate current page right")).clicked() { action = Some(Action::Rotate(90)); ui.close(); }
+                ui.separator();
+                if ui.add_enabled(editable && self.selected().is_some_and(|tab| tab.page > 0), egui::Button::new("Move current page earlier")).clicked() { action = Some(Action::Move(true)); ui.close(); }
+                if ui.add_enabled(editable && self.selected().is_some_and(|tab| tab.page + 1 < tab.status.info.page_count), egui::Button::new("Move current page later")).clicked() { action = Some(Action::Move(false)); ui.close(); }
+                if ui.add_enabled(editable && self.selected().is_some_and(|tab| tab.status.info.page_count > 1), egui::Button::new("Reverse all pages")).clicked() { action = Some(Action::Reverse); ui.close(); }
+                ui.separator();
+                if ui.add_enabled(editable && self.selected().is_some_and(|tab| tab.status.info.page_count < pdf_core::MAX_PAGES), egui::Button::new("Insert blank page…")).clicked() { action = Some(Action::InsertBlank); ui.close(); }
+                if ui.add_enabled(editable, egui::Button::new("Crop current page…")).clicked() { action = Some(Action::Crop); ui.close(); }
             });
             ui.menu_button("View", |ui| {
                 if ui.button(if self.show_sidebar { "Hide sidebar" } else { "Show sidebar" }).clicked() { action = Some(Action::ToggleSidebar); ui.close(); }

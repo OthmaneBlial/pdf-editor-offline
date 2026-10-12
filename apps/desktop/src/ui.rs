@@ -5,6 +5,7 @@ use eframe::egui;
 mod canvas;
 mod dialogs;
 mod navigation;
+mod organizer;
 mod palette;
 mod sidebar;
 
@@ -22,6 +23,10 @@ enum Action {
     Open,
     Save,
     Rotate(i64),
+    Move(bool),
+    Reverse,
+    InsertBlank,
+    Crop,
     Undo,
     Redo,
     Previous,
@@ -67,6 +72,7 @@ pub struct EditorApp {
     thumbnails: crate::thumbnails::Cache,
     visible_thumbnails: Vec<crate::thumbnails::ThumbnailKey>,
     initial_window_show: bool,
+    organizer_dialog: Option<organizer::Dialog>,
 }
 
 impl EditorApp {
@@ -94,6 +100,7 @@ impl EditorApp {
             thumbnails: Default::default(),
             visible_thumbnails: vec![],
             initial_window_show: true,
+            organizer_dialog: None,
         }
     }
 
@@ -141,9 +148,16 @@ impl EditorApp {
                     self.active = Some(id);
                     self.message = "PDF opened locally.".into();
                 }
-                Event::Updated { id, status } => {
+                Event::Updated {
+                    id,
+                    status,
+                    selected_page,
+                } => {
                     if let Some(tab) = self.tabs.iter_mut().find(|tab| tab.id == id) {
                         tab.update(status);
+                        if let Some(page) = selected_page {
+                            tab.set_page(page);
+                        }
                         tab.error = None;
                     }
                     self.message = "Edit applied. Save As creates a new PDF.".into();
@@ -484,6 +498,35 @@ impl EditorApp {
                     );
                 }
             }
+            Action::Move(earlier) => {
+                if let Some(tab) = self.selected().filter(|tab| tab.editable()) {
+                    self.send(
+                        Command::Edit {
+                            id: tab.id,
+                            edit: Edit::Move {
+                                page: tab.page as u32 + 1,
+                                earlier,
+                            },
+                        },
+                        "Moving page…",
+                    );
+                }
+            }
+            Action::Reverse => {
+                if let Some(tab) = self.selected().filter(|tab| tab.editable()) {
+                    self.send(
+                        Command::Edit {
+                            id: tab.id,
+                            edit: Edit::Reverse {
+                                page: tab.page as u32 + 1,
+                            },
+                        },
+                        "Reversing page order…",
+                    );
+                }
+            }
+            Action::InsertBlank => self.open_organizer_dialog(false),
+            Action::Crop => self.open_organizer_dialog(true),
             Action::Undo => {
                 if let Some(tab) = self.selected().filter(|tab| tab.status.can_undo) {
                     self.send(
@@ -592,12 +635,20 @@ impl eframe::App for EditorApp {
         if context.input(|input| input.viewport().close_requested()) && !self.allow_exit {
             self.request_exit(&context);
         }
-        self.shortcuts(&context);
-        ui.add_enabled_ui(self.close_target.is_none() && !self.palette_open, |ui| {
-            self.workstation(ui)
-        });
+        if self.organizer_dialog.is_none() {
+            self.shortcuts(&context);
+        } else if context
+            .input_mut(|input| input.consume_key(egui::Modifiers::COMMAND, egui::Key::Q))
+        {
+            self.request_exit(&context);
+        }
+        ui.add_enabled_ui(
+            self.close_target.is_none() && !self.palette_open && self.organizer_dialog.is_none(),
+            |ui| self.workstation(ui),
+        );
         self.command_palette(&context);
         self.close_dialog(&context);
+        self.organizer_dialog_ui(&context);
     }
 }
 
