@@ -14,5 +14,8 @@ serde.workspace = true
 thiserror.workspace = true
 tempfile.workspace = true
 
+[target.'cfg(unix)'.dependencies]
+rustix = { version = "1", features = ["fs"] }
+
 [lints]
 workspace = true

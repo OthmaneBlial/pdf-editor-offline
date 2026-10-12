@@ -2,6 +2,7 @@
 //! Saving creates a verified new copy and never replaces an existing file.
 
 mod error;
+mod input;
 mod inspect;
 mod pages;
 mod save;
@@ -9,11 +10,10 @@ mod structure;
 mod text;
 
 pub use error::{Error, Result};
+pub use input::read_pdf_bytes;
 pub use inspect::*;
 use lopdf::{Document, LoadOptions, Object, ObjectId};
 use serde::Serialize;
-use std::fs::File;
-use std::io::Read;
 use std::path::Path;
 
 pub const MAX_INPUT_BYTES: usize = 128 * 1024 * 1024;
@@ -48,10 +48,7 @@ pub struct PdfDocument {
 
 impl PdfDocument {
     pub fn open(path: impl AsRef<Path>, password: Option<&str>) -> Result<Self> {
-        let mut bytes = Vec::new();
-        File::open(path)?
-            .take(MAX_INPUT_BYTES as u64 + 1)
-            .read_to_end(&mut bytes)?;
+        let bytes = read_pdf_bytes(path)?;
         Self::from_bytes(&bytes, password)
     }
 

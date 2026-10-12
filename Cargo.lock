@@ -2675,6 +2675,7 @@ name = "pdf-core"
 version = "3.0.0"
 dependencies = [
  "lopdf",
+ "rustix 1.1.5",
  "serde",
  "tempfile",
  "thiserror 2.0.21",

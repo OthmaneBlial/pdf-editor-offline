@@ -3,8 +3,6 @@ use eframe::egui;
 use pdf_core::PdfDocument;
 use pdf_render::RenderedPage;
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::Read;
 use std::path::PathBuf;
 use std::sync::mpsc::{self, Receiver, SyncSender};
 
@@ -134,12 +132,7 @@ struct WorkingDocument {
 
 impl WorkingDocument {
     fn load(path: &PathBuf) -> Result<Self, String> {
-        let mut bytes = Vec::new();
-        File::open(path)
-            .map_err(|e| e.to_string())?
-            .take(pdf_core::MAX_INPUT_BYTES as u64 + 1)
-            .read_to_end(&mut bytes)
-            .map_err(|e| e.to_string())?;
+        let bytes = pdf_core::read_pdf_bytes(path).map_err(|e| e.to_string())?;
         let document = PdfDocument::from_bytes(&bytes, None).map_err(|e| e.to_string())?;
         Ok(Self {
             current: Snapshot {

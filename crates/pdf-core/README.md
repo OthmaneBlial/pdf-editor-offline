@@ -18,6 +18,12 @@ objects. Object count is checked after parsing; these limits do not establish
 total CPU/memory isolation. Text extraction is best effort (font encoding and
 reading order vary); it does not provide OCR or prove absence of hidden content.
 
+File opening shares `read_pdf_bytes` with the native desktop: only regular files
+are read, including symlinks to regular files. Size is checked before opening,
+again on the opened descriptor, and after the bounded read. Unix opening uses
+nonblocking mode so a path swapped to a FIFO cannot stall before validation.
+This is not a general process timeout or filesystem sandbox.
+
 Extraction includes supported visible normal annotation/widget appearances and
 their invoked Form XObjects, preserving appearance state and ignoring hidden
 annotations and unrelated field values. Standard checkbox Dingbats are supported;
