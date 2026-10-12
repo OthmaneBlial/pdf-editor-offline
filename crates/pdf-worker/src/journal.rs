@@ -3,7 +3,7 @@
 //! Eight combined undo/redo entries and 256 MiB of snapshot occurrences per document,
 //! sixteen documents and 512 MiB recovered occurrences/retained unique blobs are capped.
 //! Previous-manifest blobs count toward the disk budget; ordinary close/edit is not erasure.
-//! Saved paths must be UTF-8. Save intents bind source revision and a separately verified
+//! Paths retain native Unix bytes/Windows wide units. Save intents bind source revision and a separately verified
 //! artifact; this module never publishes or overwrites user output files.
 
 use pdf_core::DocumentInfo;
@@ -13,6 +13,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{File, OpenOptions};
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
+
+mod native_path;
+mod session;
+pub use session::{SessionCandidate, SessionState, SessionStore};
 
 #[cfg(windows)]
 #[path = "journal_windows.rs"]
@@ -38,6 +42,14 @@ pub enum JournalError {
     Json(#[from] serde_json::Error),
 }
 pub type Result<T> = std::result::Result<T, JournalError>;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SessionSummary {
+    pub document_count: usize,
+    /// Combined current/undo/redo snapshot occurrences, not resident memory.
+    pub bytes: usize,
+    pub save_intents: usize,
+}
 
 #[derive(Debug, Clone)]
 pub struct Snapshot {
@@ -102,10 +114,16 @@ pub struct SaveIntent {
     pub token: String,
     pub document_id: String,
     pub revision: u64,
+    #[serde(with = "native_path")]
     pub destination: PathBuf,
     pub source_hash: String,
     pub artifact_hash: String,
     pub artifact_bytes: usize,
+}
+
+pub struct SaveIntentRef<'a> {
+    pub intent: &'a SaveIntent,
+    pub artifact: &'a [u8],
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -125,6 +143,7 @@ struct StoredDocument {
     redo: Vec<StoredSnapshot>,
     saved_revision: Option<u64>,
     next_revision: u64,
+    #[serde(with = "native_path::optional")]
     path: Option<PathBuf>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -138,6 +157,7 @@ struct Manifest {
 
 pub struct Journal {
     directory: PathBuf,
+    directory_handle: File,
     _lock: File,
     manifest: Manifest,
     backup: Option<Manifest>,
@@ -145,6 +165,9 @@ pub struct Journal {
 }
 
 impl Journal {
+    pub fn directory(&self) -> &Path {
+        &self.directory
+    }
     /// Windows lacks the directory fsync step used on Unix; power-loss guarantees differ.
     pub fn durability(&self) -> &'static str {
         if cfg!(unix) {
@@ -156,7 +179,10 @@ impl Journal {
     /// Opens an existing recovery directory or creates a new private session directory.
     /// A missing current manifest may use its valid backup; a corrupt current is an error.
     pub fn open(directory: impl AsRef<Path>) -> Result<Self> {
-        let directory = directory.as_ref();
+        Self::open_internal(directory.as_ref(), true, true)
+    }
+
+    fn open_internal(directory: &Path, verify_blobs: bool, read_manifests: bool) -> Result<Self> {
         match directory.symlink_metadata() {
             Ok(metadata) => {
                 if !metadata.is_dir() || metadata.file_type().is_symlink() {
@@ -212,8 +238,31 @@ impl Journal {
             Err(std::fs::TryLockError::WouldBlock) => return Err(JournalError::Locked),
             Err(std::fs::TryLockError::Error(error)) => return Err(error.into()),
         }
-        let current = read_manifest_optional(&directory.join("manifest.json"))?;
-        let backup = read_manifest_optional(&directory.join("manifest.previous.json"))?;
+        let directory_handle = session::open_directory(directory, true)?;
+        // Bind the advisory lock to the pinned directory, even if its pathname changed during open.
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::MetadataExt;
+            let witness =
+                open_private_relative(&directory_handle, directory, "session.lock", false)?;
+            let original = lock.metadata()?;
+            let actual = witness.metadata()?;
+            if original.dev() != actual.dev() || original.ino() != actual.ino() {
+                return Err(JournalError::Invalid("session lock directory was replaced"));
+            }
+        }
+        #[cfg(windows)]
+        windows::verify_path_identity(&lock, &directory.join("session.lock"))?;
+        let current = if read_manifests {
+            read_private_manifest(&directory_handle, directory, "manifest.json")?
+        } else {
+            None
+        };
+        let backup = if read_manifests {
+            read_private_manifest(&directory_handle, directory, "manifest.previous.json")?
+        } else {
+            None
+        };
         let manifest = current.or_else(|| backup.clone()).unwrap_or(Manifest {
             schema: 1,
             generation: 0,
@@ -226,16 +275,19 @@ impl Journal {
         }
         let result = Self {
             directory: directory.to_owned(),
+            directory_handle,
             _lock: lock,
             manifest,
             backup,
             poisoned: false,
         };
         result.validate_retained(&result.manifest, result.backup.as_ref())?;
-        for (hash, length) in retained(&result.manifest, result.backup.as_ref())? {
-            result.read_blob(&hash, length)?;
+        if verify_blobs {
+            for (hash, length) in retained(&result.manifest, result.backup.as_ref())? {
+                result.read_blob(&hash, length)?;
+            }
+            result.cleanup()?;
         }
-        result.cleanup()?;
         Ok(result)
     }
 
@@ -268,65 +320,143 @@ impl Journal {
         &self.manifest.save_intents
     }
 
+    pub fn save_artifact(&self, token: &str) -> Result<Vec<u8>> {
+        let intent = self
+            .manifest
+            .save_intents
+            .iter()
+            .find(|intent| intent.token == token)
+            .ok_or(JournalError::Invalid("unknown save intent"))?;
+        self.read_blob(&intent.artifact_hash, intent.artifact_bytes)
+    }
+
+    /// Metadata only: opaque PDF blobs are neither loaded nor parsed.
+    pub fn summary(&self) -> SessionSummary {
+        SessionSummary {
+            document_count: self.manifest.documents.len(),
+            bytes: self
+                .manifest
+                .documents
+                .iter()
+                .flat_map(snapshots)
+                .map(|s| s.length)
+                .sum(),
+            save_intents: self.manifest.save_intents.len(),
+        }
+    }
+
+    /// Actual known journal files, including backup/orphan blobs. Closing a tab is not erasure.
+    pub fn owned_disk_bytes(&self) -> Result<u64> {
+        session::disk_usage(self)
+    }
+
+    /// Cancel an unpublished/uncertain save; this never changes the saved revision or user files.
+    pub fn cancel_save(&mut self, token: &str) -> Result<()> {
+        if !self
+            .manifest
+            .save_intents
+            .iter()
+            .any(|intent| intent.token == token)
+        {
+            return Err(JournalError::Invalid("unknown save intent"));
+        }
+        let mut candidate = self.manifest.clone();
+        candidate
+            .save_intents
+            .retain(|intent| intent.token != token);
+        self.prepare(&mut candidate)?;
+        self.publish(candidate)
+    }
+
+    /// Explicit discard only. Unknown/private-file violations refuse before removing anything.
+    pub fn discard(self) -> Result<()> {
+        session::discard(self)
+    }
+
     /// Writes blobs and the new manifest durably before returning success.
     pub fn commit_document(&mut self, document: &DocumentState) -> Result<()> {
         self.commit_document_ref(&document.as_ref())
     }
 
     pub fn commit_document_ref(&mut self, document: &DocumentStateRef<'_>) -> Result<()> {
-        validate_id(document.id)?;
-        if document.undo.len().saturating_add(document.redo.len()) > MAX_HISTORY {
+        self.commit_documents_ref(std::slice::from_ref(document))
+    }
+
+    /// One transaction for several incoming documents, preserving other existing documents.
+    pub fn commit_documents_ref(&mut self, documents: &[DocumentStateRef<'_>]) -> Result<()> {
+        self.commit_documents_with_intents_ref(documents, &[])
+    }
+
+    /// Atomic recovery import, including still-uncertain save intents. No destination is inspected.
+    pub fn commit_documents_with_intents_ref(
+        &mut self,
+        documents: &[DocumentStateRef<'_>],
+        intents: &[SaveIntentRef<'_>],
+    ) -> Result<()> {
+        if documents.len() > MAX_DOCUMENTS {
+            return Err(JournalError::Limit("more than sixteen incoming documents"));
+        }
+        if intents.len() > MAX_DOCUMENTS {
             return Err(JournalError::Limit(
-                "combined undo/redo exceeds eight snapshots",
+                "more than sixteen incoming save intents",
             ));
         }
-        // Check byte bounds before hashing, cloning metadata or allocating a manifest.
-        let snapshots: Vec<_> = std::iter::once(&document.current)
-            .chain(&document.undo)
-            .chain(&document.redo)
-            .collect();
-        for snapshot in &snapshots {
-            if snapshot.bytes.is_empty() || snapshot.bytes.len() > crate::MAX_PDF_BYTES {
-                return Err(JournalError::Limit(
-                    "snapshot must contain 1..128 MiB opaque bytes",
+        let mut candidate = self.manifest.clone();
+        let mut ids = BTreeSet::new();
+        for document in documents {
+            if !ids.insert(document.id) {
+                return Err(JournalError::Invalid(
+                    "duplicate incoming document identifier",
                 ));
             }
-            validate_info(snapshot.info)?;
-        }
-        let stored = |snapshot: &SnapshotRef<'_>| StoredSnapshot {
-            revision: snapshot.revision,
-            hash: hash_bytes(snapshot.bytes),
-            length: snapshot.bytes.len(),
-            info: snapshot.info.clone(),
-        };
-        let candidate_document = StoredDocument {
-            id: document.id.to_owned(),
-            current: stored(&document.current),
-            undo: document.undo.iter().map(stored).collect(),
-            redo: document.redo.iter().map(stored).collect(),
-            saved_revision: document.saved_revision,
-            next_revision: document.next_revision,
-            path: document.path.map(Path::to_owned),
-        };
-        let mut candidate = self.manifest.clone();
-        if let Some(old) = candidate
-            .documents
-            .iter_mut()
-            .find(|old| old.id == document.id)
-        {
-            *old = candidate_document;
-        } else {
-            candidate.documents.push(candidate_document);
+            let stored = stored_document(document)?;
+            if let Some(old) = candidate
+                .documents
+                .iter_mut()
+                .find(|old| old.id == document.id)
+            {
+                *old = stored;
+            } else {
+                candidate.documents.push(stored);
+            }
         }
         candidate
             .documents
             .sort_by(|left, right| left.id.cmp(&right.id));
         candidate
             .save_intents
-            .retain(|intent| intent.document_id != document.id);
+            .retain(|intent| !ids.contains(intent.document_id.as_str()));
+        for incoming in intents {
+            let intent = incoming.intent;
+            if !ids.contains(intent.document_id.as_str()) {
+                return Err(JournalError::Invalid(
+                    "incoming intent has no incoming document",
+                ));
+            }
+            if incoming.artifact.len() != intent.artifact_bytes
+                || incoming.artifact.len() > crate::MAX_PDF_BYTES
+                || hash_bytes(incoming.artifact) != intent.artifact_hash
+            {
+                return Err(JournalError::Invalid(
+                    "incoming save artifact differs from intent",
+                ));
+            }
+            candidate.save_intents.push(intent.clone());
+        }
         self.prepare(&mut candidate)?;
-        for snapshot in snapshots {
-            if let Err(error) = self.store_blob(snapshot.bytes) {
+        for document in documents {
+            for snapshot in std::iter::once(&document.current)
+                .chain(&document.undo)
+                .chain(&document.redo)
+            {
+                if let Err(error) = self.store_blob(snapshot.bytes) {
+                    self.poisoned = true;
+                    return Err(error);
+                }
+            }
+        }
+        for incoming in intents {
+            if let Err(error) = self.store_blob(incoming.artifact) {
                 self.poisoned = true;
                 return Err(error);
             }
@@ -473,11 +603,13 @@ impl Journal {
     fn publish(&mut self, candidate: Manifest) -> Result<()> {
         let result = (|| -> Result<()> {
             atomic_write(
+                &self.directory_handle,
                 &self.directory,
                 "manifest.previous.json",
                 &encode_manifest(&self.manifest)?,
             )?;
             atomic_write(
+                &self.directory_handle,
                 &self.directory,
                 "manifest.json",
                 &encode_manifest(&candidate)?,
@@ -494,10 +626,14 @@ impl Journal {
     }
     fn read_blob(&self, hash: &str, length: usize) -> Result<Vec<u8>> {
         validate_hash(hash)?;
-        let path = self.directory.join(format!("{hash}.blob"));
-        let mut options = private_options();
-        validate_handle(&options.read(true).open(&path)?, crate::MAX_PDF_BYTES)?;
-        let bytes = read_regular(&path, crate::MAX_PDF_BYTES)?;
+        let file = open_private_relative(
+            &self.directory_handle,
+            &self.directory,
+            &format!("{hash}.blob"),
+            false,
+        )?;
+        validate_handle(&file, crate::MAX_PDF_BYTES)?;
+        let bytes = read_bounded(file, crate::MAX_PDF_BYTES)?;
         if bytes.len() != length || hash_bytes(&bytes) != hash {
             return Err(JournalError::Invalid("snapshot blob length/hash mismatch"));
         }
@@ -505,30 +641,27 @@ impl Journal {
     }
     fn store_blob(&self, bytes: &[u8]) -> Result<()> {
         let hash = hash_bytes(bytes);
-        let path = self.directory.join(format!("{hash}.blob"));
-        match path.symlink_metadata() {
+        let name = format!("{hash}.blob");
+        match open_private_relative(&self.directory_handle, &self.directory, &name, false) {
             Ok(_) => {
                 self.read_blob(&hash, bytes.len())?;
                 return Ok(());
             }
-            Err(error) if error.kind() == io::ErrorKind::NotFound => {}
-            Err(error) => return Err(error.into()),
+            Err(JournalError::Io(error)) if error.kind() == io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error),
         }
-        let mut options = private_options();
-        let mut file = options.write(true).create_new(true).open(&path)?;
+        let mut file = open_private_relative(&self.directory_handle, &self.directory, &name, true)?;
         validate_handle(&file, crate::MAX_PDF_BYTES)?;
         let result = file.write_all(bytes).and_then(|()| file.sync_all());
         if result.is_err() {
-            let _ = std::fs::remove_file(&path);
+            let _ = remove_relative(&self.directory_handle, &self.directory, &name);
         }
         result?;
-        sync_directory(&self.directory)
+        sync_handle(&self.directory_handle)
     }
     fn cleanup(&self) -> Result<()> {
         let keep = retained(&self.manifest, self.backup.as_ref())?;
-        for entry in std::fs::read_dir(&self.directory)? {
-            let entry = entry?;
-            let name = entry.file_name();
+        for name in session::entries(&self.directory_handle, &self.directory)? {
             let Some(name) = name.to_str() else {
                 continue;
             };
@@ -536,15 +669,13 @@ impl Journal {
                 .strip_suffix(".blob")
                 .is_some_and(|hash| validate_hash(hash).is_ok() && !keep.contains_key(hash));
             if orphan || name == "manifest.json.tmp" || name == "manifest.previous.json.tmp" {
-                if !entry.file_type()?.is_file() {
-                    return Err(JournalError::Invalid(
-                        "cleanup candidate is not a regular file",
-                    ));
-                }
-                std::fs::remove_file(entry.path())?;
+                let file =
+                    open_private_relative(&self.directory_handle, &self.directory, name, false)?;
+                validate_handle(&file, crate::MAX_PDF_BYTES)?;
+                remove_relative(&self.directory_handle, &self.directory, name)?;
             }
         }
-        sync_directory(&self.directory)
+        sync_handle(&self.directory_handle)
     }
 }
 
@@ -556,6 +687,38 @@ fn hash_bytes(bytes: &[u8]) -> String {
         output.push(char::from(HEX[usize::from(byte & 15)]));
     }
     output
+}
+
+fn stored_document(document: &DocumentStateRef<'_>) -> Result<StoredDocument> {
+    validate_id(document.id)?;
+    if document.undo.len().saturating_add(document.redo.len()) > MAX_HISTORY {
+        return Err(JournalError::Limit(
+            "combined undo/redo exceeds eight snapshots",
+        ));
+    }
+    let stored = |snapshot: &SnapshotRef<'_>| -> Result<StoredSnapshot> {
+        if snapshot.bytes.is_empty() || snapshot.bytes.len() > crate::MAX_PDF_BYTES {
+            return Err(JournalError::Limit(
+                "snapshot must contain 1..128 MiB opaque bytes",
+            ));
+        }
+        validate_info(snapshot.info)?;
+        Ok(StoredSnapshot {
+            revision: snapshot.revision,
+            hash: hash_bytes(snapshot.bytes),
+            length: snapshot.bytes.len(),
+            info: snapshot.info.clone(),
+        })
+    };
+    Ok(StoredDocument {
+        id: document.id.to_owned(),
+        current: stored(&document.current)?,
+        undo: document.undo.iter().map(stored).collect::<Result<_>>()?,
+        redo: document.redo.iter().map(stored).collect::<Result<_>>()?,
+        saved_revision: document.saved_revision,
+        next_revision: document.next_revision,
+        path: document.path.map(Path::to_owned),
+    })
 }
 fn validate_hash(hash: &str) -> Result<()> {
     if hash.len() != 64
@@ -579,13 +742,7 @@ fn validate_id(id: &str) -> Result<()> {
     Ok(())
 }
 fn validate_path(path: &Path) -> Result<()> {
-    let Some(path) = path.to_str() else {
-        return Err(JournalError::Invalid("journal paths must be UTF-8"));
-    };
-    if path.is_empty() || path.len() > 4096 || path.contains('\0') {
-        return Err(JournalError::Invalid("invalid saved path"));
-    }
-    Ok(())
+    native_path::validate(path).map_err(|_| JournalError::Invalid("invalid saved path"))
 }
 fn validate_info(info: &DocumentInfo) -> Result<()> {
     if info.version.len() > 16
@@ -646,10 +803,7 @@ fn validate_manifest(manifest: &Manifest) -> Result<()> {
             if snapshot.length == 0 || snapshot.length > crate::MAX_PDF_BYTES {
                 return Err(JournalError::Limit("snapshot bytes outside 1..128 MiB"));
             }
-            if snapshot.revision == 0
-                || snapshot.revision >= document.next_revision
-                || !revisions.insert(snapshot.revision)
-            {
+            if snapshot.revision >= document.next_revision || !revisions.insert(snapshot.revision) {
                 return Err(JournalError::Invalid("invalid/duplicate snapshot revision"));
             }
             if lengths
@@ -664,7 +818,7 @@ fn validate_manifest(manifest: &Manifest) -> Result<()> {
         }
         if document
             .saved_revision
-            .is_some_and(|revision| revision == 0 || revision >= document.next_revision)
+            .is_some_and(|revision| revision >= document.next_revision)
         {
             return Err(JournalError::Invalid("invalid saved revision"));
         }
@@ -683,8 +837,9 @@ fn validate_manifest(manifest: &Manifest) -> Result<()> {
         ));
     }
     let mut intent_ids = BTreeSet::new();
+    let mut intent_tokens = BTreeSet::new();
     for intent in &manifest.save_intents {
-        if !intent_ids.insert(&intent.document_id) {
+        if !intent_ids.insert(&intent.document_id) || !intent_tokens.insert(&intent.token) {
             return Err(JournalError::Invalid("duplicate save intent"));
         }
         validate_path(&intent.destination)?;
@@ -780,10 +935,13 @@ fn validate_handle(file: &File, limit: usize) -> Result<()> {
     }
     #[cfg(unix)]
     {
-        use std::os::unix::fs::PermissionsExt;
-        if metadata.permissions().mode() & 0o077 != 0 {
+        use std::os::unix::fs::MetadataExt;
+        if metadata.mode() & 0o077 != 0
+            || metadata.uid() != rustix::process::geteuid().as_raw()
+            || metadata.nlink() != 1
+        {
             return Err(JournalError::Invalid(
-                "journal files must be private (0600)",
+                "journal files must be privately owned (0600) with one link",
             ));
         }
     }
@@ -813,15 +971,85 @@ fn read_regular(path: &Path, limit: usize) -> Result<Vec<u8>> {
     }
     Ok(bytes)
 }
-fn read_manifest_optional(path: &Path) -> Result<Option<Manifest>> {
-    let bytes = match read_regular(path, MAX_MANIFEST_BYTES) {
-        Ok(bytes) => bytes,
+fn read_private_manifest(handle: &File, directory: &Path, name: &str) -> Result<Option<Manifest>> {
+    let file = match open_private_relative(handle, directory, name, false) {
+        Ok(file) => file,
         Err(JournalError::Io(error)) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
         Err(error) => return Err(error),
     };
-    let mut options = private_options();
-    validate_handle(&options.read(true).open(path)?, MAX_MANIFEST_BYTES)?;
+    validate_handle(&file, MAX_MANIFEST_BYTES)?;
+    let bytes = read_bounded(file, MAX_MANIFEST_BYTES)?;
     Ok(Some(serde_json::from_slice(&bytes)?))
+}
+
+fn open_private_relative(
+    handle: &File,
+    directory: &Path,
+    name: &str,
+    create: bool,
+) -> Result<File> {
+    #[cfg(unix)]
+    {
+        let _ = directory;
+        let mut flags = rustix::fs::OFlags::NOFOLLOW
+            | rustix::fs::OFlags::NONBLOCK
+            | rustix::fs::OFlags::CLOEXEC;
+        flags |= if create {
+            rustix::fs::OFlags::WRONLY | rustix::fs::OFlags::CREATE | rustix::fs::OFlags::EXCL
+        } else {
+            rustix::fs::OFlags::RDONLY
+        };
+        Ok(File::from(
+            rustix::fs::openat(handle, name, flags, rustix::fs::Mode::from_raw_mode(0o600))
+                .map_err(io::Error::from)?,
+        ))
+    }
+    #[cfg(windows)]
+    {
+        let _ = handle;
+        let mut options = private_options();
+        if create {
+            options.write(true).create_new(true);
+        } else {
+            options.read(true);
+        }
+        Ok(options.open(directory.join(name))?)
+    }
+}
+
+fn read_bounded(file: File, limit: usize) -> Result<Vec<u8>> {
+    let mut bytes = Vec::new();
+    file.take(limit as u64 + 1).read_to_end(&mut bytes)?;
+    if bytes.len() > limit {
+        return Err(JournalError::Limit("journal file grew beyond byte limit"));
+    }
+    Ok(bytes)
+}
+
+fn remove_relative(handle: &File, directory: &Path, name: &str) -> Result<()> {
+    #[cfg(unix)]
+    {
+        let _ = directory;
+        rustix::fs::unlinkat(handle, name, rustix::fs::AtFlags::empty())
+            .map_err(io::Error::from)?;
+    }
+    #[cfg(windows)]
+    {
+        let _ = handle;
+        let file = windows::open_deletable_file(&directory.join(name))?;
+        windows::delete_handle(&file)?;
+    }
+    Ok(())
+}
+
+fn sync_handle(handle: &File) -> Result<()> {
+    #[cfg(unix)]
+    handle.sync_all()?;
+    #[cfg(windows)]
+    {
+        let _ = handle;
+    }
+    Ok(())
 }
 fn encode_manifest(manifest: &Manifest) -> Result<Vec<u8>> {
     struct Writer(Vec<u8>);
@@ -850,7 +1078,7 @@ fn encode_manifest(manifest: &Manifest) -> Result<Vec<u8>> {
     serde_json::to_writer(&mut writer, manifest)?;
     Ok(writer.0)
 }
-fn atomic_write(directory: &Path, name: &str, bytes: &[u8]) -> Result<()> {
+fn atomic_write(handle: &File, directory: &Path, name: &str, bytes: &[u8]) -> Result<()> {
     let destination = directory.join(name);
     if destination
         .symlink_metadata()
@@ -860,18 +1088,20 @@ fn atomic_write(directory: &Path, name: &str, bytes: &[u8]) -> Result<()> {
             "manifest destination must be regular",
         ));
     }
-    let temporary = directory.join(format!("{name}.tmp"));
-    let mut options = private_options();
-    let mut file = options.write(true).create_new(true).open(&temporary)?;
+    let temporary_name = format!("{name}.tmp");
+    let mut file = open_private_relative(handle, directory, &temporary_name, true)?;
     validate_handle(&file, MAX_MANIFEST_BYTES)?;
     let result = (|| -> Result<()> {
         file.write_all(bytes)?;
         file.sync_all()?;
-        std::fs::rename(&temporary, destination)?;
-        sync_directory(directory)
+        #[cfg(unix)]
+        rustix::fs::renameat(handle, &temporary_name, handle, name).map_err(io::Error::from)?;
+        #[cfg(windows)]
+        std::fs::rename(directory.join(&temporary_name), destination)?;
+        sync_handle(handle)
     })();
     if result.is_err() {
-        let _ = std::fs::remove_file(temporary);
+        let _ = remove_relative(handle, directory, &temporary_name);
     }
     result
 }

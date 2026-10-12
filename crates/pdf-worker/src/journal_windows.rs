@@ -115,6 +115,102 @@ pub(super) fn configure_options(options: &mut OpenOptions) {
     options.custom_flags(FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS);
 }
 
+pub(super) fn open_pinned_directory(path: &Path, deletable: bool) -> io::Result<File> {
+    use windows_sys::Win32::Storage::FileSystem::{
+        DELETE, FILE_GENERIC_READ, FILE_SHARE_READ, FILE_SHARE_WRITE,
+    };
+    let mut options = OpenOptions::new();
+    configure_options(&mut options);
+    // Denying delete sharing pins the pathname while all child files are inspected/removed.
+    options.access_mode(FILE_GENERIC_READ | if deletable { DELETE } else { 0 });
+    options.share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE);
+    let file = options.open(path)?;
+    validate_private(&file, true)?;
+    Ok(file)
+}
+
+pub(super) fn open_deletable_file(path: &Path) -> io::Result<File> {
+    use windows_sys::Win32::Storage::FileSystem::{
+        DELETE, FILE_GENERIC_READ, FILE_SHARE_READ, FILE_SHARE_WRITE,
+    };
+    let mut options = OpenOptions::new();
+    configure_options(&mut options);
+    options
+        .access_mode(FILE_GENERIC_READ | DELETE)
+        .share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE);
+    let file = options.open(path)?;
+    validate_private(&file, false)?;
+    let mut information: windows_sys::Win32::Storage::FileSystem::BY_HANDLE_FILE_INFORMATION =
+        unsafe { std::mem::zeroed() };
+    // SAFETY: live file handle, fixed writable output structure of documented API type.
+    if unsafe {
+        windows_sys::Win32::Storage::FileSystem::GetFileInformationByHandle(
+            file.as_raw_handle(),
+            &mut information,
+        )
+    } == 0
+    {
+        return Err(io::Error::last_os_error());
+    }
+    if information.nNumberOfLinks != 1 {
+        return Err(rejected("discard refuses hard-linked files"));
+    }
+    if !file.metadata()?.is_file() || file.metadata()?.len() > super::super::MAX_PDF_BYTES as u64 {
+        return Err(rejected("discard file is not a bounded regular file"));
+    }
+    Ok(file)
+}
+
+pub(super) fn delete_handle(file: &File) -> io::Result<()> {
+    use windows_sys::Win32::Storage::FileSystem::{
+        FILE_DISPOSITION_INFO, FileDispositionInfo, SetFileInformationByHandle,
+    };
+    let information = FILE_DISPOSITION_INFO { DeleteFile: true };
+    // SAFETY: a live exclusively pinned DELETE-capable handle and exact writable-structure size.
+    if unsafe {
+        SetFileInformationByHandle(
+            file.as_raw_handle(),
+            FileDispositionInfo,
+            (&information as *const FILE_DISPOSITION_INFO).cast(),
+            size_of::<FILE_DISPOSITION_INFO>() as u32,
+        )
+    } == 0
+    {
+        return Err(io::Error::last_os_error());
+    }
+    Ok(())
+}
+
+pub(super) fn verify_path_identity(file: &File, path: &Path) -> io::Result<()> {
+    use windows_sys::Win32::Storage::FileSystem::{
+        BY_HANDLE_FILE_INFORMATION, FILE_SHARE_DELETE, FILE_SHARE_READ, FILE_SHARE_WRITE,
+        GetFileInformationByHandle,
+    };
+    let mut options = OpenOptions::new();
+    configure_options(&mut options);
+    let current = options
+        .read(true)
+        .share_mode(FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE)
+        .open(path)?;
+    reject_reparse(&current)?;
+    let identity = |handle: &File| -> io::Result<(u32, u32, u32)> {
+        let mut information: BY_HANDLE_FILE_INFORMATION = unsafe { std::mem::zeroed() };
+        // SAFETY: live handle and fixed writable documented file identity structure.
+        if unsafe { GetFileInformationByHandle(handle.as_raw_handle(), &mut information) } == 0 {
+            return Err(io::Error::last_os_error());
+        }
+        Ok((
+            information.dwVolumeSerialNumber,
+            information.nFileIndexHigh,
+            information.nFileIndexLow,
+        ))
+    };
+    if identity(file)? != identity(&current)? {
+        return Err(rejected("recovery directory was replaced"));
+    }
+    Ok(())
+}
+
 pub(super) fn create_directory(path: &Path) -> io::Result<()> {
     let sid = current_sid()?;
     let mut text = ptr::null_mut();

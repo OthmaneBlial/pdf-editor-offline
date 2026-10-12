@@ -46,6 +46,432 @@ fn rewrite(directory: &Path, value: &Value) {
     .unwrap();
 }
 
+fn write_private(path: &Path, bytes: &[u8]) {
+    let mut options = std::fs::OpenOptions::new();
+    options.write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    use std::io::Write;
+    options.open(path).unwrap().write_all(bytes).unwrap();
+}
+
+#[test]
+fn session_discovery_locks_revision_zero_and_explicit_discard_are_bounded() {
+    use pdf_worker::journal::{SessionState, SessionStore};
+    let directory = tempfile::tempdir().unwrap();
+    let store = SessionStore::open(directory.path().join("app/recovery/sessions")).unwrap();
+    let mut journal = store.create().unwrap();
+    let mut initial = state("tab0", 0, b"opaque revision zero");
+    initial.saved_revision = Some(0);
+    journal.commit_document(&initial).unwrap();
+    assert_eq!(journal.summary().bytes, initial.current.bytes.len());
+    let candidates = store.discover().unwrap();
+    assert_eq!(candidates.len(), 1);
+    assert!(matches!(candidates[0].state, SessionState::Active));
+    let session_path = candidates[0].path.clone();
+    drop(journal);
+    assert!(matches!(
+        store.discover().unwrap()[0].state,
+        SessionState::Available(_)
+    ));
+    let reopened = store.open_session(&session_path).unwrap();
+    assert_eq!(reopened.recover().unwrap()[0].saved_revision, Some(0));
+    reopened.discard().unwrap();
+    assert!(!session_path.exists());
+    assert!(store.discover().unwrap().is_empty());
+    assert!(
+        store
+            .open_session(directory.path().join("unrelated"))
+            .is_err()
+    );
+}
+
+#[test]
+fn discard_refuses_unknown_files_before_removal_and_never_touches_save_destinations() {
+    use pdf_worker::journal::SessionStore;
+    let directory = tempfile::tempdir().unwrap();
+    let store = SessionStore::open(directory.path().join("sessions")).unwrap();
+    let mut journal = store.create().unwrap();
+    journal
+        .commit_document(&state("tab", 0, b"opaque original"))
+        .unwrap();
+    let destination = directory.path().join("saved.pdf");
+    journal
+        .begin_save("tab", 0, &destination, b"published bytes")
+        .unwrap();
+    std::fs::write(&destination, b"published bytes").unwrap();
+    let session = store.discover().unwrap()[0].path.clone();
+    std::fs::write(session.join("unknown.txt"), b"not app-owned").unwrap();
+    let before = std::fs::read(session.join("manifest.json")).unwrap();
+    assert!(journal.discard().is_err());
+    assert_eq!(
+        std::fs::read(session.join("manifest.json")).unwrap(),
+        before
+    );
+    assert!(session.join("session.lock").exists());
+    std::fs::remove_file(session.join("unknown.txt")).unwrap();
+    store.open_session(&session).unwrap().discard().unwrap();
+    assert_eq!(std::fs::read(destination).unwrap(), b"published bytes");
+}
+
+#[test]
+fn batch_import_preserves_existing_tabs_intents_and_migrates_uncertain_artifacts() {
+    use pdf_worker::journal::{SaveIntentRef, SessionStore};
+    let directory = tempfile::tempdir().unwrap();
+    let store = SessionStore::open(directory.path().join("sessions")).unwrap();
+    let mut destination = store.create().unwrap();
+    destination
+        .commit_document(&state("existing", 0, b"existing bytes"))
+        .unwrap();
+    let existing_intent = destination
+        .begin_save(
+            "existing",
+            0,
+            &directory.path().join("existing.pdf"),
+            b"existing save",
+        )
+        .unwrap();
+    let mut source = store.create().unwrap();
+    source
+        .commit_document(&state("incoming", 0, b"incoming bytes"))
+        .unwrap();
+    let intent = source
+        .begin_save(
+            "incoming",
+            0,
+            &directory.path().join("incoming.pdf"),
+            b"incoming save",
+        )
+        .unwrap();
+    let artifact = source.save_artifact(&intent.token).unwrap();
+    let docs = source.recover().unwrap();
+    let before = destination.summary();
+    assert!(
+        destination
+            .commit_documents_with_intents_ref(
+                &[docs[0].as_ref()],
+                &[SaveIntentRef {
+                    intent: &intent,
+                    artifact: b"mismatch"
+                }]
+            )
+            .is_err()
+    );
+    assert_eq!(destination.summary(), before);
+    destination
+        .commit_documents_with_intents_ref(
+            &[docs[0].as_ref()],
+            &[SaveIntentRef {
+                intent: &intent,
+                artifact: &artifact,
+            }],
+        )
+        .unwrap();
+    assert_eq!(destination.summary().document_count, 2);
+    assert_eq!(
+        destination.save_intents(),
+        &[existing_intent, intent.clone()]
+    );
+    assert_eq!(destination.save_artifact(&intent.token).unwrap(), artifact);
+    assert_eq!(
+        source.recover().unwrap()[0].current.bytes,
+        b"incoming bytes"
+    );
+    destination.cancel_save(&intent.token).unwrap();
+    assert_eq!(destination.recover().unwrap()[1].saved_revision, None);
+    assert_eq!(destination.save_intents().len(), 1);
+}
+
+#[test]
+fn failed_later_blob_keeps_entire_old_manifest_and_existing_documents() {
+    use pdf_worker::journal::SessionStore;
+    use sha2::{Digest, Sha256};
+    let directory = tempfile::tempdir().unwrap();
+    let store = SessionStore::open(directory.path().join("sessions")).unwrap();
+    let mut journal = store.create().unwrap();
+    journal
+        .commit_document(&state("existing", 0, b"existing"))
+        .unwrap();
+    let path = store.discover().unwrap()[0].path.clone();
+    let before = std::fs::read(path.join("manifest.json")).unwrap();
+    let one = state("first", 0, b"first incoming");
+    let two = state("second", 0, b"second incoming");
+    let hash: String = Sha256::digest(&two.current.bytes)
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect();
+    std::fs::create_dir(path.join(format!("{hash}.blob"))).unwrap();
+    assert!(
+        journal
+            .commit_documents_ref(&[one.as_ref(), two.as_ref()])
+            .is_err()
+    );
+    assert_eq!(std::fs::read(path.join("manifest.json")).unwrap(), before);
+    assert_eq!(journal.recover().unwrap().len(), 1);
+    assert_eq!(journal.recover().unwrap()[0].current.bytes, b"existing");
+}
+
+#[test]
+fn journal_crash_child() {
+    let Some(path) = std::env::var_os("PDF_JOURNAL_CRASH_TEST_DIRECTORY") else {
+        return;
+    };
+    let mut journal = Journal::open(&path).unwrap();
+    journal
+        .commit_document(&state("crashed", 0, b"durable before abort"))
+        .unwrap();
+    let destination = Path::new(&path)
+        .parent()
+        .unwrap()
+        .join("published-before-abort.pdf");
+    journal
+        .begin_save("crashed", 0, &destination, b"published before finish")
+        .unwrap();
+    std::fs::write(destination, b"published before finish").unwrap();
+    std::process::abort();
+}
+
+#[test]
+fn actual_process_abort_releases_session_lock_and_preserves_durable_state() {
+    use pdf_worker::journal::{SessionState, SessionStore};
+    let directory = tempfile::tempdir().unwrap();
+    let store = SessionStore::open(directory.path().join("sessions")).unwrap();
+    let session = store.create().unwrap();
+    let path = store.discover().unwrap()[0].path.clone();
+    drop(session);
+    let outcome = std::process::Command::new(std::env::current_exe().unwrap())
+        .args(["--exact", "journal_crash_child", "--nocapture"])
+        .env("PDF_JOURNAL_CRASH_TEST_DIRECTORY", &path)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .unwrap();
+    assert!(!outcome.success());
+    assert!(matches!(
+        store.discover().unwrap()[0].state,
+        SessionState::Available(_)
+    ));
+    let mut reopened = store.open_session(path).unwrap();
+    assert_eq!(
+        reopened.recover().unwrap()[0].current.bytes,
+        b"durable before abort"
+    );
+    assert_eq!(reopened.recover().unwrap()[0].saved_revision, None);
+    assert_eq!(reopened.save_intents().len(), 1);
+    let intent = reopened.save_intents()[0].clone();
+    assert_eq!(
+        reopened.save_artifact(&intent.token).unwrap(),
+        b"published before finish"
+    );
+    reopened.finish_save(&intent.token).unwrap();
+    assert_eq!(reopened.recover().unwrap()[0].saved_revision, Some(0));
+    reopened.discard().unwrap();
+    assert_eq!(
+        std::fs::read(intent.destination).unwrap(),
+        b"published before finish"
+    );
+}
+
+#[test]
+fn closed_backups_and_corrupt_sessions_remain_visible_until_explicit_discard() {
+    use pdf_worker::journal::{SessionState, SessionStore};
+    let directory = tempfile::tempdir().unwrap();
+    let store = SessionStore::open(directory.path().join("sessions")).unwrap();
+    let mut journal = store.create().unwrap();
+    journal
+        .commit_document(&state("tab", 0, b"retained private PDF copy"))
+        .unwrap();
+    journal.close_document("tab").unwrap();
+    assert_eq!(journal.summary().document_count, 0);
+    assert!(journal.owned_disk_bytes().unwrap() > 24);
+    let path = journal.directory().to_owned();
+    drop(journal);
+    let candidate = store.discover().unwrap().remove(0);
+    assert!(matches!(candidate.state, SessionState::Available(_)));
+    assert!(candidate.disk_bytes.unwrap() > 24);
+    assert!(candidate.modified.is_some());
+    std::fs::write(path.join("manifest.json"), b"corrupt JSON").unwrap();
+    let candidate = store.discover().unwrap().remove(0);
+    assert!(matches!(candidate.state, SessionState::Invalid(_)));
+    assert!(candidate.disk_bytes.is_some());
+    assert!(store.open_session(&path).is_err());
+    store.discard_session(&path).unwrap();
+    assert!(!path.exists());
+}
+
+#[test]
+fn native_non_unicode_source_and_save_paths_survive_reopen_and_publication_ack() {
+    use pdf_worker::journal::SessionStore;
+    let directory = tempfile::tempdir().unwrap();
+    let store = SessionStore::open(directory.path().join("sessions")).unwrap();
+    #[cfg(unix)]
+    let name = {
+        use std::os::unix::ffi::OsStringExt;
+        std::ffi::OsString::from_vec(b"native-\xff.pdf".to_vec())
+    };
+    #[cfg(windows)]
+    let name = {
+        use std::os::windows::ffi::OsStringExt;
+        std::ffi::OsString::from_wide(&[110, 97, 116, 105, 118, 101, 45, 0xd800, 46, 112, 100, 102])
+    };
+    let destination = directory.path().join(name);
+    let mut document = state("native", 0, b"native document");
+    document.path = Some(destination.clone());
+    let mut journal = store.create().unwrap();
+    journal.commit_document(&document).unwrap();
+    let intent = journal
+        .begin_save("native", 0, &destination, b"native artifact")
+        .unwrap();
+    let path = journal.directory().to_owned();
+    drop(journal);
+    let mut reopened = store.open_session(&path).unwrap();
+    assert_eq!(
+        reopened.recover().unwrap()[0].path.as_ref(),
+        Some(&destination)
+    );
+    assert_eq!(reopened.save_intents()[0].destination, destination);
+    #[cfg(not(target_os = "macos"))]
+    {
+        std::fs::write(&destination, b"native artifact").unwrap();
+        reopened.finish_save(&intent.token).unwrap();
+        assert_eq!(reopened.recover().unwrap()[0].saved_revision, Some(0));
+    }
+    #[cfg(target_os = "macos")]
+    {
+        // APFS rejects this byte sequence; the journal still retains the native path exactly.
+        assert!(std::fs::write(&destination, b"native artifact").is_err());
+        assert!(reopened.finish_save(&intent.token).is_err());
+        assert_eq!(reopened.recover().unwrap()[0].saved_revision, None);
+    }
+    reopened.discard().unwrap();
+    #[cfg(not(target_os = "macos"))]
+    assert_eq!(std::fs::read(destination).unwrap(), b"native artifact");
+}
+
+#[cfg(unix)]
+#[test]
+fn descriptor_io_survives_directory_rename_and_discard_refuses_replacement() {
+    use pdf_worker::journal::SessionStore;
+    let directory = tempfile::tempdir().unwrap();
+    let store = SessionStore::open(directory.path().join("sessions")).unwrap();
+    let mut journal = store.create().unwrap();
+    let path = journal.directory().to_owned();
+    let renamed = path.with_file_name("retained-original");
+    std::fs::rename(&path, &renamed).unwrap();
+    std::fs::create_dir(&path).unwrap();
+    journal
+        .commit_document(&state("tab", 0, b"anchored bytes"))
+        .unwrap();
+    assert_eq!(
+        journal.recover().unwrap()[0].current.bytes,
+        b"anchored bytes"
+    );
+    assert!(renamed.join("manifest.json").exists());
+    assert!(!path.join("manifest.json").exists());
+    assert!(journal.discard().is_err());
+    assert!(renamed.join("manifest.json").exists());
+}
+
+#[cfg(unix)]
+#[test]
+fn discard_rejects_symlink_and_hardlink_before_any_file_is_removed() {
+    use pdf_worker::journal::SessionStore;
+    use std::os::unix::fs::symlink;
+    let directory = tempfile::tempdir().unwrap();
+    let store = SessionStore::open(directory.path().join("sessions")).unwrap();
+    let journal = store.create().unwrap();
+    let path = journal.directory().to_owned();
+    let outside = directory.path().join("outside");
+    write_private(&outside, b"outside private bytes");
+    let candidate = path.join(format!("{}.blob", "a".repeat(64)));
+    symlink(&outside, &candidate).unwrap();
+    assert!(journal.discard().is_err());
+    assert!(path.join("session.lock").exists());
+    std::fs::remove_file(&candidate).unwrap();
+    std::fs::hard_link(&outside, &candidate).unwrap();
+    assert!(store.discard_session(&path).is_err());
+    assert!(path.join("session.lock").exists());
+    assert_eq!(std::fs::read(&outside).unwrap(), b"outside private bytes");
+}
+
+#[test]
+fn discovery_budget_refuses_excess_entries_without_deleting_sessions() {
+    use pdf_worker::journal::SessionStore;
+    let directory = tempfile::tempdir().unwrap();
+    let root = directory.path().join("sessions");
+    let store = SessionStore::open(&root).unwrap();
+    for number in 0..65u64 {
+        let path = root.join(format!("session-{number:032x}"));
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::DirBuilderExt;
+            std::fs::DirBuilder::new().mode(0o700).create(path).unwrap();
+        }
+        #[cfg(windows)]
+        {
+            std::fs::create_dir(path).unwrap();
+        }
+    }
+    assert!(matches!(store.discover(), Err(JournalError::Limit(_))));
+    assert!(matches!(store.create(), Err(JournalError::Limit(_))));
+    assert_eq!(std::fs::read_dir(root).unwrap().count(), 65);
+}
+
+#[test]
+fn concurrent_instances_create_private_parents_and_keep_distinct_active_locks() {
+    use pdf_worker::journal::{SessionState, SessionStore};
+    let directory = tempfile::tempdir().unwrap();
+    let root = directory.path().join("app/state/sessions");
+    let threads: Vec<_> = (0..4)
+        .map(|_| {
+            let root = root.clone();
+            std::thread::spawn(move || SessionStore::open(root).unwrap().create().unwrap())
+        })
+        .collect();
+    let journals: Vec<_> = threads
+        .into_iter()
+        .map(|thread| thread.join().unwrap())
+        .collect();
+    let store = SessionStore::open(root).unwrap();
+    let candidates = store.discover().unwrap();
+    assert_eq!(candidates.len(), 4);
+    assert!(
+        candidates
+            .iter()
+            .all(|candidate| matches!(candidate.state, SessionState::Active))
+    );
+    drop(journals);
+    for candidate in store.discover().unwrap() {
+        store.discard_session(candidate.path).unwrap();
+    }
+    assert!(store.discover().unwrap().is_empty());
+}
+
+#[cfg(windows)]
+#[test]
+fn windows_private_acl_cleanup_and_hardlink_refusal_run_on_native_ci() {
+    use pdf_worker::journal::SessionStore;
+    let directory = tempfile::tempdir().unwrap();
+    let store = SessionStore::open(directory.path().join("sessions")).unwrap();
+    let mut journal = store.create().unwrap();
+    journal
+        .commit_document(&state("tab", 0, b"private Windows copy"))
+        .unwrap();
+    let path = journal.directory().to_owned();
+    let copy = directory.path().join("hardlinked-private-copy");
+    std::fs::hard_link(path.join("manifest.json"), &copy).unwrap();
+    assert!(journal.discard().is_err());
+    assert!(path.join("session.lock").exists());
+    std::fs::remove_file(&copy).unwrap();
+    store.discard_session(&path).unwrap();
+    assert!(!path.exists());
+    // The parent temp directory's inherited ACL is deliberately not the app's protected DACL.
+    assert!(SessionStore::open(directory.path()).is_err());
+}
+
 #[test]
 fn durable_opaque_snapshots_history_and_saved_revision_recover_after_unlock() {
     let dir = tempfile::tempdir().unwrap();
@@ -143,7 +569,7 @@ fn missing_current_recovers_previous_manifest_and_cleans_only_unreferenced_blobs
     drop(journal);
     std::fs::remove_file(session.join("manifest.json")).unwrap();
     let orphan = session.join(format!("{}.blob", "a".repeat(64)));
-    std::fs::write(&orphan, b"orphan").unwrap();
+    write_private(&orphan, b"orphan");
     let unrelated = session.join("user-file.txt");
     std::fs::write(&unrelated, b"keep").unwrap();
     let recovered = Journal::open(&session).unwrap();
@@ -212,7 +638,7 @@ fn failed_manifest_publication_keeps_parent_state_and_requires_reopen() {
     journal
         .commit_document(&state("tab", 1, b"original"))
         .unwrap();
-    std::fs::write(session.join("manifest.json.tmp"), b"interrupted temporary").unwrap();
+    write_private(&session.join("manifest.json.tmp"), b"interrupted temporary");
     assert!(
         journal
             .commit_document(&state("tab", 2, b"candidate"))
