@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">PDF Editor Offline logo</title>
+  <desc id="desc">An ivory folded page on a forest green tile, with copper binding dots and offset paper edges.</desc>
+  <rect width="256" height="256" rx="58" fill="#063e32"/>
+  <path d="M55 83h119a12 12 0 0 1 12 12v112a12 12 0 0 1-12 12H55a12 12 0 0 1-12-12V95a12 12 0 0 1 12-12Z" fill="#ad5b2f"/>
+  <path d="M68 66h116a12 12 0 0 1 12 12v122a12 12 0 0 1-12 12H68a12 12 0 0 1-12-12V78a12 12 0 0 1 12-12Z" fill="#d8d3bd"/>
+  <path d="M80 43h70l47 47v99a12 12 0 0 1-12 12H80a12 12 0 0 1-12-12V55a12 12 0 0 1 12-12Z" fill="#faf6ea"/>
+  <path d="M150 43v35a12 12 0 0 0 12 12h35Z" fill="#c8d9cb"/>
+  <path d="M150 43v35a12 12 0 0 0 12 12h35" fill="none" stroke="#063e32" stroke-opacity=".15" stroke-width="2"/>
+  <path d="M88 112v52" fill="none" stroke="#ad5b2f" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="88" cy="112" r="6" fill="#ad5b2f"/>
+  <circle cx="88" cy="164" r="6" fill="#ad5b2f"/>
+  <path d="M107 112h48M107 138h36M107 164h25" fill="none" stroke="#063e32" stroke-width="10" stroke-linecap="round"/>
+</svg>

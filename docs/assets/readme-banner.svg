@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
+  <title id="title">PDF Editor Offline — native Rust preview</title>
+  <desc id="desc">Editorial ivory and forest banner with an original folded-page logo. Your PDFs. Your computer. Open source, local PDF tools built in Rust.</desc>
+  <defs>
+    <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
+      <path d="M30 0H0v30" fill="none" stroke="#063e32" stroke-opacity=".045"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="360" rx="24" fill="#f8f4e8"/>
+  <rect width="1200" height="360" rx="24" fill="url(#grid)"/>
+  <path d="M808 0h368a24 24 0 0 1 24 24v312a24 24 0 0 1-24 24H732Z" fill="#063e32"/>
+  <path d="M818 0 742 360" stroke="#ad5b2f" stroke-width="4"/>
+  <g transform="translate(52 45) scale(.34)">
+    <rect width="256" height="256" rx="58" fill="#063e32"/>
+    <path d="M55 83h119a12 12 0 0 1 12 12v112a12 12 0 0 1-12 12H55a12 12 0 0 1-12-12V95a12 12 0 0 1 12-12Z" fill="#ad5b2f"/>
+    <path d="M68 66h116a12 12 0 0 1 12 12v122a12 12 0 0 1-12 12H68a12 12 0 0 1-12-12V78a12 12 0 0 1 12-12Z" fill="#d8d3bd"/>
+    <path d="M80 43h70l47 47v99a12 12 0 0 1-12 12H80a12 12 0 0 1-12-12V55a12 12 0 0 1 12-12Z" fill="#faf6ea"/>
+    <path d="M150 43v35a12 12 0 0 0 12 12h35Z" fill="#c8d9cb"/>
+    <path d="M88 112v52" fill="none" stroke="#ad5b2f" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="88" cy="112" r="6" fill="#ad5b2f"/>
+    <circle cx="88" cy="164" r="6" fill="#ad5b2f"/>
+    <path d="M107 112h48M107 138h36M107 164h25" fill="none" stroke="#063e32" stroke-width="10" stroke-linecap="round"/>
+  </g>
+  <g fill="#063e32">
+    <text x="164" y="80" font-family="'IBM Plex Sans', 'Trebuchet MS', sans-serif" font-size="14" font-weight="700" letter-spacing="2">LOCAL PDF TOOLS</text>
+    <text x="162" y="125" font-family="'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif" font-size="47" font-weight="700" letter-spacing="-1.5">PDF Editor Offline</text>
+    <text x="52" y="205" font-family="'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif" font-size="39" letter-spacing="-.7">Your PDFs. Your computer.</text>
+    <text x="54" y="242" font-family="'IBM Plex Sans', 'Trebuchet MS', sans-serif" font-size="18">Open, organize and save a new copy.</text>
+  </g>
+  <rect x="52" y="282" width="176" height="32" rx="16" fill="#063e32"/>
+  <text x="140" y="303" text-anchor="middle" fill="#faf6ea" font-family="'IBM Plex Sans', 'Trebuchet MS', sans-serif" font-size="12" font-weight="700" letter-spacing="1">NATIVE RUST PREVIEW</text>
+  <text x="248" y="303" fill="#38574b" font-family="'IBM Plex Sans', 'Trebuchet MS', sans-serif" font-size="14">Offline · Open source · MIT</text>
+  <g transform="translate(858 59) rotate(9 112 135)">
+    <rect x="24" y="20" width="198" height="254" rx="12" fill="#ad5b2f"/>
+    <rect x="12" y="10" width="198" height="254" rx="12" fill="#cad7c7"/>
+    <path d="M12 0h125l61 61v181a12 12 0 0 1-12 12H12a12 12 0 0 1-12-12V12A12 12 0 0 1 12 0Z" fill="#faf6ea"/>
+    <path d="M137 0v49a12 12 0 0 0 12 12h49Z" fill="#dfdfcc"/>
+    <path d="M30 95h104M30 115h80M30 135h93" stroke="#063e32" stroke-width="7" stroke-linecap="round"/>
+    <rect x="25" y="163" width="147" height="58" rx="6" fill="#e6e9d8"/>
+    <path d="m48 194 25-18 31 30 21-15 22 13" fill="none" stroke="#ad5b2f" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="139" cy="181" r="6" fill="#ad5b2f"/>
+  </g>
+  <path d="M818 287h25m-8-8 8 8-8 8" fill="none" stroke="#d0b180" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="1138" cy="46" r="5" fill="#d0b180"/>
+  <circle cx="1156" cy="46" r="5" fill="#8baf98"/>
+</svg>

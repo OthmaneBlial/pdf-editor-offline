@@ -33,7 +33,7 @@ Rust 1.95 以降と各 OS のネイティブビルド用ライブラリをイン
 ```sh
 git clone https://github.com/OthmaneBlial/pdf-editor-offline.git
 cd pdf-editor-offline
-cargo build --release --locked -p pdf-editor-offline-native -p pdf-editor-offline-cli -p pdf-worker
+cargo build --release --locked -p pdf-editor-offline-native -p pdf-editor-offline-cli
 ./target/release/pdf-editor-offline-native
 ```
 
@@ -44,7 +44,7 @@ cargo build --release --locked -p pdf-editor-offline-native -p pdf-editor-offlin
 ./target/release/pdf-editor-offline capabilities --json
 ```
 
-worker 実行ファイルはデスクトップ実行ファイルと同じ場所に置いてください。Windows では `target\release\pdf-editor-offline-native.exe` を実行します。ページ番号は 1 から始まります。`--dry-run` は検証のみで書き込みません。既存のファイルやシンボリックリンクを上書きしないため、新しい出力先を選んでください。
+Windows では `target\release\pdf-editor-offline-native.exe` を実行します。ページ番号は 1 から始まります。`--dry-run` は検証のみで書き込みません。既存のファイルやシンボリックリンクを上書きしないため、新しい出力先を選んでください。
 
 ## ローカル処理と検証
 
@@ -62,4 +62,3 @@ cargo clippy --workspace --all-targets --locked -- -D warnings
 ローカルで使える PDF エディターを応援したい方は、リポジトリにスターを付けて見つけやすくしてください。
 
 MIT ライセンス。フォントや依存関係にはそれぞれのライセンス表記があります。
-

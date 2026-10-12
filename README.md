@@ -1,5 +1,7 @@
 # PDF Editor Offline
 
+![PDF Editor Offline: your PDFs, your computer. Original native Rust preview banner](docs/assets/readme-banner.svg)
+
 **An offline PDF editor built in Rust. Your files stay on your computer.**
 
 [English](README.md) · [Français](docs/languages/fr.md) · [العربية](docs/languages/ar.md) · [Español](docs/languages/es.md) · [Português](docs/languages/pt-BR.md) · [Deutsch](docs/languages/de.md) · [简体中文](docs/languages/zh-CN.md) · [日本語](docs/languages/ja.md) · [한국어](docs/languages/ko.md)
@@ -110,4 +112,3 @@ If you want a PDF editor that works locally, **star the repository** to help
 others find it.
 
 [MIT licensed](LICENSE). Bundled fonts and dependencies retain their own notices.
-

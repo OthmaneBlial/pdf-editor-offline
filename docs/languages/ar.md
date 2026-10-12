@@ -33,7 +33,7 @@
 ```sh
 git clone https://github.com/OthmaneBlial/pdf-editor-offline.git
 cd pdf-editor-offline
-cargo build --release --locked -p pdf-editor-offline-native -p pdf-editor-offline-cli -p pdf-worker
+cargo build --release --locked -p pdf-editor-offline-native -p pdf-editor-offline-cli
 ./target/release/pdf-editor-offline-native
 ```
 
@@ -44,7 +44,7 @@ cargo build --release --locked -p pdf-editor-offline-native -p pdf-editor-offlin
 ./target/release/pdf-editor-offline capabilities --json
 ```
 
-احتفظ بملف worker التنفيذي بجوار ملف التطبيق. على Windows شغّل `target\release\pdf-editor-offline-native.exe`. يبدأ ترقيم الصفحات من 1. يتحقق `--dry-run` دون كتابة ملفات. اختر مسار إخراج جديدًا؛ لا تُستبدل الملفات أو الروابط الرمزية الموجودة.
+على Windows شغّل `target\release\pdf-editor-offline-native.exe`. يبدأ ترقيم الصفحات من 1. يتحقق `--dry-run` دون كتابة ملفات. اختر مسار إخراج جديدًا؛ لا تُستبدل الملفات أو الروابط الرمزية الموجودة.
 
 ## معالجة محلية ونتائج قابلة للفحص
 
@@ -62,4 +62,3 @@ cargo clippy --workspace --all-targets --locked -- -D warnings
 إذا كان محرّر PDF محلي مفيدًا لك، امنح المستودع نجمة ليسهل على الآخرين العثور عليه.
 
 مرخّص وفق MIT؛ للخطوط والاعتماديات إشعارات ترخيص خاصة بها.
-

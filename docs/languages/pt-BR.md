@@ -33,7 +33,7 @@ Instale Rust 1.95+ e as bibliotecas nativas da sua plataforma. O primeiro downlo
 ```sh
 git clone https://github.com/OthmaneBlial/pdf-editor-offline.git
 cd pdf-editor-offline
-cargo build --release --locked -p pdf-editor-offline-native -p pdf-editor-offline-cli -p pdf-worker
+cargo build --release --locked -p pdf-editor-offline-native -p pdf-editor-offline-cli
 ./target/release/pdf-editor-offline-native
 ```
 
@@ -44,7 +44,7 @@ cargo build --release --locked -p pdf-editor-offline-native -p pdf-editor-offlin
 ./target/release/pdf-editor-offline capabilities --json
 ```
 
-Mantenha o executável worker ao lado do aplicativo. No Windows, execute `target\release\pdf-editor-offline-native.exe`. As páginas começam em 1. `--dry-run` valida sem gravar. Escolha um novo caminho de saída: arquivos e links simbólicos existentes nunca são sobrescritos.
+No Windows, execute `target\release\pdf-editor-offline-native.exe`. As páginas começam em 1. `--dry-run` valida sem gravar. Escolha um novo caminho de saída: arquivos e links simbólicos existentes nunca são sobrescritos.
 
 ## Local e verificável
 
@@ -62,4 +62,3 @@ cargo clippy --workspace --all-targets --locked -- -D warnings
 Se um editor de PDF local é útil para você, dê uma estrela ao repositório para ajudar outras pessoas a encontrá-lo.
 
 Licença MIT; fontes e dependências mantêm seus próprios avisos.
-

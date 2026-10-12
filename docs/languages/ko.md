@@ -44,7 +44,7 @@ cargo build --release --locked -p pdf-editor-offline-native -p pdf-editor-offlin
 ./target/release/pdf-editor-offline capabilities --json
 ```
 
-worker 실행 파일을 데스크톱 실행 파일과 같은 디렉터리에 두세요. Windows에서는 `target\release\pdf-editor-offline-native.exe`를 실행합니다. 페이지 번호는 1부터 시작합니다. `--dry-run`은 파일을 쓰지 않고 검증합니다. 기존 파일과 심볼릭 링크를 덮어쓰지 않으므로 새 출력 경로를 선택하세요.
+Windows에서는 `target\release\pdf-editor-offline-native.exe`를 실행합니다. 페이지 번호는 1부터 시작합니다. `--dry-run`은 파일을 쓰지 않고 검증합니다. 기존 파일과 심볼릭 링크를 덮어쓰지 않으므로 새 출력 경로를 선택하세요.
 
 ## 로컬 처리와 확인 가능한 결과
 
@@ -62,4 +62,3 @@ cargo clippy --workspace --all-targets --locked -- -D warnings
 로컬 PDF 편집기가 유용하다면 저장소에 별표를 눌러 다른 사람이 찾는 데 도움을 주세요.
 
 MIT 라이선스이며 글꼴과 의존성은 각자의 고지 사항을 유지합니다.
-

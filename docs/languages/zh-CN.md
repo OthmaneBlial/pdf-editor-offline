@@ -33,7 +33,7 @@
 ```sh
 git clone https://github.com/OthmaneBlial/pdf-editor-offline.git
 cd pdf-editor-offline
-cargo build --release --locked -p pdf-editor-offline-native -p pdf-editor-offline-cli -p pdf-worker
+cargo build --release --locked -p pdf-editor-offline-native -p pdf-editor-offline-cli
 ./target/release/pdf-editor-offline-native
 ```
 
@@ -44,7 +44,7 @@ cargo build --release --locked -p pdf-editor-offline-native -p pdf-editor-offlin
 ./target/release/pdf-editor-offline capabilities --json
 ```
 
-请将 worker 可执行文件与桌面程序放在同一目录。Windows 使用 `target\release\pdf-editor-offline-native.exe`。页码从 1 开始。`--dry-run` 只验证，不写文件。请选择新的输出路径；已有文件和符号链接不会被覆盖。
+Windows 使用 `target\release\pdf-editor-offline-native.exe`。页码从 1 开始。`--dry-run` 只验证，不写文件。请选择新的输出路径；已有文件和符号链接不会被覆盖。
 
 ## 本地处理，可核对结果
 
@@ -62,4 +62,3 @@ cargo clippy --workspace --all-targets --locked -- -D warnings
 如果你需要在本地工作的 PDF 编辑器，欢迎给仓库点一颗星，帮助更多人找到它。
 
 采用 MIT 许可证；字体和依赖保留各自的许可声明。
-
