@@ -11,6 +11,7 @@ mod organizer;
 mod pages;
 mod palette;
 mod recovery;
+mod sanitize;
 mod sidebar;
 
 const MAIN_PIXEL_BUDGET: usize = 64 * 1024 * 1024;
@@ -52,6 +53,7 @@ enum Action {
     ExtractPages,
     DeletePages,
     DuplicatePages,
+    Sanitize,
 }
 
 #[derive(Default, Clone, Copy, PartialEq, Eq)]
@@ -89,6 +91,7 @@ pub struct EditorApp {
     forms_dialog: Option<forms::Dialog>,
     forms_generation: u64,
     pages_dialog: Option<pages::Dialog>,
+    sanitize_dialog: Option<sanitize::Dialog>,
     recovery: recovery::State,
     discard_quit: bool,
     pending_saves: std::collections::BTreeMap<u64, recovery::PendingSave>,
@@ -125,6 +128,7 @@ impl EditorApp {
             forms_dialog: None,
             forms_generation: 0,
             pages_dialog: None,
+            sanitize_dialog: None,
             recovery: Default::default(),
             discard_quit: false,
             pending_saves: Default::default(),
@@ -174,6 +178,12 @@ impl EditorApp {
                 self.busy = false;
             }
             match event {
+                Event::Sanitized {
+                    id,
+                    path,
+                    status,
+                    report,
+                } => self.accept_sanitized(id, path, status, report, context),
                 Event::RecoveryListed { sessions } => self.accept_recovery_list(sessions),
                 Event::RecoveryRestored { documents } => self.accept_recovered(documents, context),
                 Event::SavePending { id, path, message } => {
@@ -397,6 +407,19 @@ impl EditorApp {
                 }
                 Event::Error { id, task, message } => {
                     if task.is_none()
+                        && self.sanitize_dialog.as_ref().is_some_and(|dialog| {
+                            dialog.expected_id.is_some()
+                                && (dialog.source == id || dialog.expected_id == Some(id))
+                        })
+                    {
+                        if let Some(dialog) = self.sanitize_dialog.as_mut() {
+                            dialog.expected_id = None;
+                            dialog.error = Some(message.clone());
+                        }
+                        self.message = message;
+                        continue;
+                    }
+                    if task.is_none()
                         && self.pages_dialog.as_ref().is_some_and(|dialog| {
                             dialog.submitting
                                 && (dialog.tab == id || dialog.expected_id == Some(id))
@@ -504,6 +527,7 @@ impl EditorApp {
             || self.recovery.open
             || !self.pending_saves.is_empty()
             || self.pages_dialog.is_some()
+            || self.sanitize_dialog.is_some()
         {
             return;
         }
@@ -815,6 +839,7 @@ impl EditorApp {
             Action::ExtractPages => self.open_page_ranges(pages::Mode::Extract),
             Action::DeletePages => self.open_page_ranges(pages::Mode::Delete),
             Action::DuplicatePages => self.open_page_ranges(pages::Mode::Duplicate),
+            Action::Sanitize => self.open_sanitization(),
         }
     }
 
@@ -885,6 +910,7 @@ impl eframe::App for EditorApp {
             && self.metadata_dialog.is_none()
             && !self.recovery.open
             && self.pages_dialog.is_none()
+            && self.sanitize_dialog.is_none()
             && self.pending_saves.is_empty()
         {
             self.shortcuts(&context);
@@ -901,7 +927,8 @@ impl eframe::App for EditorApp {
                 && self.forms_dialog.is_none()
                 && !self.recovery.open
                 && self.pending_saves.is_empty()
-                && self.pages_dialog.is_none(),
+                && self.pages_dialog.is_none()
+                && self.sanitize_dialog.is_none(),
             |ui| self.workstation(ui),
         );
         self.command_palette(&context);
@@ -912,6 +939,7 @@ impl eframe::App for EditorApp {
         self.recovery_dialog(&context);
         self.pending_save_dialog(&context);
         self.page_ranges_dialog(&context);
+        self.sanitization_dialog(&context);
     }
 }
 

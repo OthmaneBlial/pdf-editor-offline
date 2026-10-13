@@ -3,7 +3,8 @@
 The **PDF form fields…** action and command palette expose bounded AcroForm
 discovery and guarded checkbox/radio editing. Apply uses the actual document
 worker and durable history, with undo/redo, verified Save As, stale/tab/save guards
-and retained errors. Text/choice fields remain read-only; password values are
+and retained errors. Supported text fields use the font-backed tier described below;
+choice/signature fields remain read-only, and password values are
 omitted. [Form guide and limits](../../docs/FORMS_RUST.md). Automated controls and
 real document/history tests pass; visual review of this new dialog remains open.
 
@@ -12,6 +13,20 @@ The Organize menu now offers [page-range extraction, duplication and deletion](.
 ```sh
 cargo run -p pdf-editor-offline-native
 ```
+
+Edit → **Create targeted sanitized copy…** and the command palette remove
+supported Info/XMP, embedded-file associations, attachment annotations, actions
+and automatic triggers into a separate unsaved tab. The source bytes and history
+are retained. The new snapshot is journaled before success; errors, stale requests,
+tab/resource limits or unresolved saves cannot partially replace the source.
+The dialog reports removed categories and keeps the incomplete-privacy limitation
+visible. Save As publishes the verified full rewrite without overwriting a file.
+This is not text/image redaction or proof that no private data remains. Default
+FileAttachment fallback icons still do not display in the native renderer; their
+supported removal is independently checked with Poppler. See the
+[targeted removal scope](../../crates/pdf-core/README.md). Headless control/actor
+tests and actual bounded child tests cover the implementation; manual review of
+this new dialog and platform accessibility behavior remains open.
 
 Eframe/egui 0.36.2 provides a native accessible widget tree and window; rfd provides native file dialogs. The app runs without a web server, webview or remote renderer. A background coordinator sends document operations to bounded child processes using the app's own `--pdf-worker` entry point. A one-slot command channel and one active UI request prevent render-request accumulation. Page, zoom, document and revision keys discard stale results.
 

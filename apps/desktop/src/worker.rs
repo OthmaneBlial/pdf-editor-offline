@@ -83,6 +83,11 @@ pub enum Edit {
 }
 
 pub enum Command {
+    Sanitize {
+        id: u64,
+        new_id: u64,
+        revision: u64,
+    },
     ExtractPages {
         id: u64,
         new_id: u64,
@@ -137,6 +142,7 @@ impl Command {
         match self {
             Self::RecoveryList | Self::RestoreSession { .. } | Self::DiscardSession { .. } => 0,
             Self::Load { id, .. }
+            | Self::Sanitize { id, .. }
             | Self::ExtractPages { id, .. }
             | Self::Images { id, .. }
             | Self::Edit { id, .. }
@@ -165,6 +171,12 @@ pub enum TaskKey {
 }
 
 pub enum Event {
+    Sanitized {
+        id: u64,
+        path: PathBuf,
+        status: DocumentStatus,
+        report: pdf_core::SanitizationReport,
+    },
     Extracted {
         id: u64,
         path: PathBuf,
@@ -333,6 +345,8 @@ mod document;
 mod forms_tests;
 mod recovery;
 #[cfg(test)]
+mod sanitize_tests;
+#[cfg(test)]
 mod subset_tests;
 use document::WorkingDocument;
 pub use recovery::{RecoveredDocument, RecoverySession};
@@ -381,6 +395,53 @@ fn process_with_journal(
     command: Command,
     mut journal: Option<&mut Journal>,
 ) -> Result<Event, String> {
+    if let Command::Sanitize {
+        id,
+        new_id,
+        revision,
+    } = command
+    {
+        if documents.len() >= MAX_TABS
+            || new_id == 0
+            || new_id == u64::MAX
+            || documents.contains_key(&new_id)
+        {
+            return Err("A fresh document identifier and an available tab are required for a sanitized copy".into());
+        }
+        if journal.as_deref().is_some_and(|journal| {
+            journal
+                .save_intents()
+                .iter()
+                .any(|intent| intent.document_id == id.to_string())
+        }) {
+            return Err(
+                "Resolve or cancel the pending save before creating a sanitized copy".into(),
+            );
+        }
+        let source = documents.get(&id).ok_or("Source document is unavailable")?;
+        let (sanitized, report) = source.sanitize(revision)?;
+        check_snapshot_budget(documents, &sanitized)?;
+        let mut label = source
+            .path
+            .as_deref()
+            .and_then(std::path::Path::file_stem)
+            .unwrap_or(std::ffi::OsStr::new("Document"))
+            .to_os_string();
+        label.push(" — targeted copy.pdf");
+        let path = PathBuf::from(label);
+        let status = sanitized.status()?;
+        persist(
+            journal.as_deref_mut(),
+            &sanitized.as_ref(&new_id.to_string()),
+        )?;
+        documents.insert(new_id, sanitized);
+        return Ok(Event::Sanitized {
+            id: new_id,
+            path,
+            status,
+            report,
+        });
+    }
     if let Command::ExtractPages {
         id,
         new_id,
@@ -675,6 +736,7 @@ fn process_with_journal(
         Command::Load { .. }
         | Command::Images { .. }
         | Command::ExtractPages { .. }
+        | Command::Sanitize { .. }
         | Command::Close(_) => {
             unreachable!("load and close handled before lookup")
         }

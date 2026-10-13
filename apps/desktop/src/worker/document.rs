@@ -552,6 +552,68 @@ impl WorkingDocument {
         })
     }
 
+    pub fn sanitize(&self, revision: u64) -> Result<(Self, pdf_core::SanitizationReport), String> {
+        if revision != self.current.revision {
+            return Err("Sanitization request is stale. Review the current document again.".into());
+        }
+        let (result, reply) = execute(Operation::Sanitize, &self.current.bytes)?;
+        let DocumentResult::Sanitized { info, report } = result else {
+            return Err("Unexpected sanitization response".into());
+        };
+        validate_info(&info)?;
+        if reply.kind != PayloadKind::Pdf
+            || reply.payload.is_empty()
+            || reply.payload.len() > HISTORY_BYTES
+            || info.pages != self.current.info.pages
+            || !report.full_rewrite
+            || report.attachment_annotations_removed.len() > 20_000
+            || report.limitations.len() > 16
+            || report.limitations.iter().any(|text| text.len() > 512)
+            || report.limitations.is_empty()
+            || [
+                report.info_links_removed,
+                report.xmp_links_removed,
+                report.associated_file_links_removed,
+                report.embedded_file_name_trees_removed,
+                report.javascript_name_trees_removed,
+                report.collections_removed,
+                report.action_links_removed,
+                report.automatic_triggers_removed,
+                report.unreachable_objects_removed,
+                report.transport_containers_removed,
+            ]
+            .iter()
+            .any(|count| *count > 2_000_000)
+            || report
+                .attachment_annotations_removed
+                .iter()
+                .any(|annotation| {
+                    annotation.page == 0
+                        || annotation.page as usize > info.page_count
+                        || annotation.rectangle.iter().any(|value| !value.is_finite())
+                        || annotation.rectangle[0] >= annotation.rectangle[2]
+                        || annotation.rectangle[1] >= annotation.rectangle[3]
+                })
+        {
+            return Err("Invalid sanitized payload or removal report".into());
+        }
+        Ok((
+            Self {
+                current: Snapshot {
+                    bytes: reply.payload,
+                    info,
+                    revision: 0,
+                },
+                undo: vec![],
+                redo: vec![],
+                saved_revision: None,
+                next_revision: 1,
+                path: None,
+            },
+            report,
+        ))
+    }
+
     pub fn metadata(&self) -> Result<pdf_core::DocumentMetadata, String> {
         let (result, reply) = execute(Operation::Metadata, &self.current.bytes)?;
         let DocumentResult::Metadata { metadata } = result else {
