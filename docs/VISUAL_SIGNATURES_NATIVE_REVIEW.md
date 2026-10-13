@@ -5,6 +5,11 @@ On 13 October 2026, the isolated source commit
 macOS window using the supported computer-use app APIs. This evidence is for
 current source; it does not describe the published preview or certificate signing.
 
+These captures and saved-output checks belong to that exact isolated commit.
+Integration with later chosen-font and image-redaction features requires its own
+checks; the unchanged earlier screenshots do not establish combined-build runtime
+coverage.
+
 The normal debug executable SHA-256 was
 `09377565cf8f92bb67737b5bae73893138fdd13ef82360a51284891942ca1ea8`.
 It ran in the owned `/tmp/PDF Editor Offline Signatures Review.app`, bundle ID

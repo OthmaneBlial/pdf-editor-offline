@@ -33,8 +33,9 @@ tamper protection. Asset files remain unchanged; no signature library is created
 Applied artwork is part of the PDF and its normal history/recovery copies.
 Unapplied drafts are protected by close/quit guards and are not restored by recovery.
 An [actual macOS window review](../../docs/VISUAL_SIGNATURES_NATIVE_REVIEW.md)
-verified both pickers, typed Unicode, draft protection, Apply and new-copy saving,
-with independent saved-output checks. Manual short-window and canvas drag/resize
+of isolated source `fa123d2` verified both pickers, typed Unicode, draft protection,
+Apply and new-copy saving, with independent saved-output checks. That review does
+not establish runtime coverage of the later combined source. Manual short-window and canvas drag/resize
 coverage remain open; 640×420 headless controls are separate evidence.
 The published preview remains separate from these source changes.
 
