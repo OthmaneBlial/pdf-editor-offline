@@ -13,6 +13,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 mod appearance;
 pub use appearance::TextChange;
+mod image_overlay;
+pub use image_overlay::ImageOverlay;
 mod overlay;
 pub use overlay::{TextAlignment, TextOverlay};
 mod vector;

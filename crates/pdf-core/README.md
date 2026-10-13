@@ -287,3 +287,21 @@ The supported paired-option tier writes export strings in `/V` and matching
 indices in `/I`, as expected by the independently tested Poppler 26.10.0 behavior.
 Inconsistent existing values/indices are refused rather than choosing a viewer's
 precedence rule. This is a compatibility tier, not a universal form-fidelity claim.
+
+Image overlay insertion imports the sole image XObject from an already validated
+single-image PDF, such as the result of `pdf_convert::images_to_pdf`. The public
+`ImageOverlay` supplies a one-based page, unrotated PDF rectangle and 0/90/180/270
+counterclockwise rotation within that rectangle. This adds real image content;
+it does not replace an existing image. Rectangle sizing can stretch aspect ratio.
+
+The core importer accepts bounded eight-bit RGB/gray images, supported lossless
+samples or retained DCT data, matching gray soft masks and a bounded RGB ICC
+profile. It validates the PDF asset graph; raw PNG/JPEG decoding and supported
+color/orientation policy belong to `pdf-convert`. Donor catalogs, page content,
+actions and unrelated objects are not imported. Existing resource references and
+other pages remain intact. Resource-name collisions allocate a fresh name.
+Balanced source graphics/text are wrapped and restored before painting the image.
+Tagged pages, signed/decrypted inputs, unsupported assets and invalid placement
+are refused transactionally. The existing 32 MiB stream, 128 MiB input/output,
+8192-side and eight-million-pixel limits apply. This is insertion, not existing
+image editing, sanitization or redaction.

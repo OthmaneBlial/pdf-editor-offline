@@ -238,3 +238,21 @@ impl Write for BoundedOutput {
         Ok(())
     }
 }
+
+/// Decode one PNG/JPEG with the existing bounded color/orientation policy and
+/// insert its real image XObject into a page. This adds content; it does not edit
+/// or replace an existing image. The destination rectangle controls aspect ratio.
+pub fn add_image_overlay(
+    document: &mut PdfDocument,
+    placement: &pdf_core::ImageOverlay,
+    image: &[u8],
+) -> Result<ImagePageInfo> {
+    document.ensure_editable()?;
+    let conversion = images_to_pdf(&[image])?;
+    document.add_image_overlay(placement, &conversion.document)?;
+    conversion
+        .pages
+        .into_iter()
+        .next()
+        .ok_or(Error::Invalid("converted image report missing"))
+}

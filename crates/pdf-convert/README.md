@@ -51,3 +51,18 @@ differently at density 1. The initial pinned Poppler reference rendered one gree
 half-alpha pixel as `[132,224,102]` where Hayro produced `[127,255,127]`, although
 both PDF color and mask samples were exact. Density-8 interior checks avoid those
 boundary samples without enlarging their color tolerance.
+
+`add_image_overlay(&mut document, &placement, image_bytes)` uses the same bounded
+PNG/JPEG decoder and refusal policy, then imports the real image asset through
+`pdf-core`. PNG samples/alpha and supported sRGB metadata are retained; validated
+JPEG codestreams are preserved. The destination rectangle sets placement and
+aspect ratio, with supported quarter-turn rotations. Existing page content and
+source files are preserved; image replacement remains a separate feature.
+
+The independent overlay gate checks PNG/JPEG, all four rotations and alpha with
+pinned qpdf/Poppler, including unchanged text and pixels outside the rectangle:
+
+```sh
+PDF_QPDF_BIN=/path/to/qpdf PDF_REFERENCE_BIN_DIR=/path/to/poppler/bin \
+cargo test -p pdf-convert --test overlay independent_png_jpeg_rotation_and_alpha_preserve_original_page_artwork --locked -- --ignored
+```
