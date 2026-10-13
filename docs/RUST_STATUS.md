@@ -1,12 +1,17 @@
 # Native Rust migration status
 
-Current source version: **4.0.0-preview.3** (in preparation). The public
+Current source version: **4.0.0-preview.4** (in preparation). The public
 **4.0.0-preview.1** [CLI and npm package](NATIVE_RELEASE_EVIDENCE.md)
 have verified five-platform installation evidence. Preview 2 release construction
 failed a Linux concurrent-installer gate; the preserved tag is not a publication.
 [Release preparation](../distribution/npm/RELEASE_PREPARATION.md) records the
 correction and next-version requirement. Desktop installers and complete
 feature parity remain open.
+
+Preview 3 is frozen at `d711a6f` after native and security CI passed. Its
+[five-platform release build](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38333220611)
+is separate from this later text/CFF source. A tag or preparation version alone
+does not establish GitHub or npm publication.
 
 The checkbox/radio milestone adds bounded AcroForm discovery, existing-appearance
 filling and transactional `/V`/`/AS` updates to the core, isolated CLI and typed

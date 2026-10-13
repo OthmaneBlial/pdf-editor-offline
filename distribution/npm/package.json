@@ -1,6 +1,6 @@
 {
   "name": "pdf-editor-offline",
-  "version": "4.0.0-preview.3",
+  "version": "4.0.0-preview.4",
   "description": "Native Rust PDF CLI preview; verified platform binary installer and launcher",
   "license": "MIT",
   "type": "module",

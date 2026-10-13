@@ -1,6 +1,14 @@
 Native Rust CLI migration preview. This is a breaking preview; command help and
 project documentation describe the implemented features and remaining limits.
 
+Preview 4 adds `fill-text` for supported single-line AcroForm fields with an
+explicit complete covering TrueType or static CID-keyed CFF1 OpenType font.
+It shapes and embeds real appearances, retains logical Unicode values and
+cluster mappings, and validates embedding rights, outlines, metrics and fit.
+Unsupported fonts/layouts, missing glyphs, overflow and dependent surrounding
+artwork are refused. Clearing and refilling are supported. Existing page text,
+choice fields, advanced text fields and secure erasure remain separate stages.
+
 Preview 3 runs document commands in bounded self-hosted child processes, retaining
 password stdin, native paths, structured errors and verified no-clobber copies.
 It adds guarded `duplicate-pages`: each copy follows its original, with a fresh
@@ -13,8 +21,8 @@ these release assets install only the CLI.
 It adds `list-forms` and guarded `fill-button` for existing AcroForm checkbox/radio
 appearances. Discovery includes inherited names/types/flags, values and widget
 placements; password values are omitted. Filling updates `/V` and `/AS` together,
-retains appearance streams, and refuses unsupported form structures. Text/choice
-appearance generation, flattening and signing remain separate stages.
+retains appearance streams, and refuses unsupported form structures. Advanced
+text/choice appearance generation, flattening and signing remain separate stages.
 
 Form strings, metadata, notes and attachment filenames share strict PDF text
 decoding. Undefined PDFDocEncoding bytes and malformed Unicode are refused rather
