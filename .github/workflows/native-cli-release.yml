@@ -3,17 +3,16 @@ name: Native CLI prerelease
 on:
   workflow_dispatch:
   push:
-    tags: [v4.0.0-preview.1]
+    tags: [v4.0.0-preview.*]
 
 permissions:
   contents: read
 
 concurrency:
-  group: native-cli-release-v4.0.0-preview.1
+  group: native-cli-release-${{ github.ref }}
   cancel-in-progress: false
 
 env:
-  RELEASE_VERSION: 4.0.0-preview.1
   CARGO_INCREMENTAL: '0'
 
 jobs:
@@ -90,13 +89,17 @@ jobs:
       - name: Verify all assets, evidence and tagged source
         shell: bash
         run: |
-          test "$(git rev-parse 'v4.0.0-preview.1^{commit}')" = "$GITHUB_SHA"
+          native_release_version="$(node -p "require('./distribution/npm/package.json').version")"
+          [[ "$native_release_version" =~ ^4\.0\.0-preview\.[1-9][0-9]*$ ]]
+          test "$(git rev-parse "v${native_release_version}^{commit}")" = "$GITHUB_SHA"
           node distribution/npm/tools/assemble-release.mjs release-assets
+          printf 'RELEASE_VERSION=%s\n' "$native_release_version" >> "$GITHUB_ENV"
       - name: Create immutable prerelease draft with verified uncompressed assets
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v4.0.0-preview.1 release-assets/pdf-editor-offline-* release-assets/release-manifest.json release-assets/THIRD_PARTY_NOTICES.txt release-assets/release-evidence.json --verify-tag --draft --prerelease --title '4.0.0-preview.1 — native Rust CLI' --notes-file distribution/npm/RELEASE_NOTES.md
+          gh release create "v${RELEASE_VERSION}" release-assets/pdf-editor-offline-* release-assets/release-manifest.json release-assets/THIRD_PARTY_NOTICES.txt release-assets/release-evidence.json --verify-tag --draft --prerelease --title "${RELEASE_VERSION} — native Rust CLI" --notes-file distribution/npm/RELEASE_NOTES.md
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: verified-native-cli-release

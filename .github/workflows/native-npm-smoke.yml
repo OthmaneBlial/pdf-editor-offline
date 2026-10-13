@@ -21,7 +21,9 @@ jobs:
         run: npm pack ./distribution/npm --pack-destination "$RUNNER_TEMP"
       - name: Install package globally in an isolated prefix using real HTTPS assets
         shell: bash
-        run: npm install --global --prefix "$RUNNER_TEMP/npm-native" "$RUNNER_TEMP/pdf-editor-offline-4.0.0-preview.1.tgz"
+        run: |
+          native_package_version="$(node -p "require('./distribution/npm/package.json').version")"
+          npm install --global --prefix "$RUNNER_TEMP/npm-native" "$RUNNER_TEMP/pdf-editor-offline-${native_package_version}.tgz"
       - name: Execute installed launcher against synthetic PDF
         shell: bash
         run: node distribution/npm/tools/smoke-installed.mjs "$RUNNER_TEMP/npm-native"
