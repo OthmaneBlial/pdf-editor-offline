@@ -140,6 +140,24 @@ fn target_absence(
     crate::redaction::verify_payload_absence(&pdf.document, bytes, patterns)
 }
 impl PdfDocument {
+    /// Verify supplied output bytes against the deterministic bounded removal of
+    /// these source-bound draws. This is not an arbitrary-PDF privacy verifier.
+    pub fn verify_image_redaction_bytes(
+        &self,
+        selections: &[ImageSelection],
+        output: &[u8],
+    ) -> Result<()> {
+        if output.is_empty() || output.len() > crate::MAX_INPUT_BYTES {
+            return Err(Error::Limit("image redaction verification output bytes"));
+        }
+        let (expected, _) = self.redact_images_copy(selections)?;
+        if expected.verified_bytes()? != output {
+            return Err(Error::Verification(
+                "image removal bytes differ from the verified source-bound rewrite",
+            ));
+        }
+        Ok(())
+    }
     /// Permanently remove complete selected Image Do assets into a verified new
     /// document. All uses of shared target images/masks must be included. Original
     /// files/history remain; this does not certify arbitrary visual keyword absence.
