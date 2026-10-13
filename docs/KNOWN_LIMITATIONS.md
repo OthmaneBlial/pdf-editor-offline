@@ -2,11 +2,27 @@
 
 The current native source is a preview. Historical releases have a different
 feature set; their capabilities do not describe this Rust implementation.
+Current source adds supported text properties, page numbering,
+image placement/replacement and visual drawings. Its combined validation belongs
+to [native status](RUST_STATUS.md); source support is not a published-release or
+manual platform verification claim.
 
 - Desktop installers are not published. Build the desktop from source; native
   CLI downloads and the optional npm installer are available for five platforms.
 - Rendering may omit unsupported PDF content. Reopen exported copies in another
   reader; the tested fixtures do not establish all-document fidelity.
+- [Existing text editing](CONTENT_TEXT_EDITING_RUST.md) supports one final direct
+  ASCII `Tj` in twelve unembedded standard Courier/Helvetica/Times faces. It can
+  replace the operand or change size, matrix translation and ordinary RGB fill;
+  source-bound raw splices preserve untouched content-program bytes. Embedded/CID
+  fonts, `TJ`/Form text, marked content and complex color/state contexts remain
+  outside this tier. Width/size/position can overlap artwork or leave the page;
+  there is no arbitrary reflow, font replacement or secure erasure. This byte
+  guarantee concerns content streams, not byte-identical PDF-file serialization.
+- [Page numbering](PAGE_NUMBERING_RUST.md) creates new header/footer overlays with
+  an explicit covering font. It does not remove prior numbers or implement
+  general watermarks/custom headers and footers. Unsupported structure, missing
+  glyphs, unfit layout and limits refuse the complete batch.
 - OCR, comb/rich-text forms/free-entry combos, digital signing, arbitrary page-text
   editing, secure redaction and broad Office conversion are not implemented.
   Supported buttons, single/multiline text and indexed choices have a guarded
@@ -15,17 +31,26 @@ feature set; their capabilities do not describe this Rust implementation.
   associations and actions through a new-copy full rewrite. It does not scrub all
   private information or redact page content; visible text, images, form values,
   hidden content and unrelated custom payloads can remain.
-- Signed and successfully decrypted inputs are read-only. The desktop has no
-  encrypted writing workflow; current source offers a masked password prompt
-  for supported read-only sessions. Credentials/decrypted snapshots are excluded
-  from recovery. See [encrypted viewing](ENCRYPTED_VIEWING_RUST.md).
-- Supported existing-text edits splice selected operands and retain untouched
-  numeric tokens. Text size/position/color changes preserve the original font
-  and matrix basis, but new ink can overlap other content or leave the page.
-  Embedded fonts, arbitrary font replacement and reflow remain unsupported;
-  original streams are retained, so ordinary editing is not secure deletion.
-- Cropping hides content. Removed metadata and ordinary notes can remain in the
-  file. These operations do not erase private data.
+- [Masked password opening](ENCRYPTED_VIEWING_RUST.md) provides explicit session-only
+  read-only viewing, including an empty-password challenge. The tested tiers are
+  RC4-40/128 and AES-128/256; custom handlers/R5 and arbitrary damaged files are
+  not claimed supported. Passwords/plaintext PDFs are not journaled or exported;
+  a restart requires reopening and authenticating. Signed and decrypted inputs
+  remain read-only. Password creation/removal and encrypted export are unavailable;
+  this does not promise secure memory erasure or prevent OS swap/crash capture.
+- [Drawn visual signatures](VISUAL_SIGNATURES_RUST.md) are vector artwork only.
+  They add no certificate, signature field, identity proof or tamper protection.
+  Typed/image signature assets, an asset library and certificate signing remain open.
+- Cropping hides content. Ordinary metadata/note removal, text replacement and
+  image replacement can retain old values/streams/images. Overlays can conceal
+  visible information while leaving it recoverable. These operations do not
+  establish permanent redaction or secure deletion.
+- [Image insertion](IMAGE_OVERLAYS_RUST.md), [eligible placement replacement](IMAGE_REPLACEMENT_RUST.md)
+  and images-to-PDF use a restricted PNG/JPEG/color/orientation tier. Replacement
+  keeps the selected placement and preserves shared aliases; Form/inline/complex
+  placements and general extraction/optimization are unsupported. Original image
+  objects can remain recoverable. Manual picker/canvas/other-platform behavior
+  remains a separate gate; an insertion frame is a placement guide before Apply.
 - Merge, subsets, notes and image import support restricted structures. See the
   [CLI guide](../apps/cli/README.md) for refusal boundaries. Indexed page labels
   prevent unsupported reordering/insertion rather than being silently dropped.
@@ -37,7 +62,8 @@ feature set; their capabilities do not describe this Rust implementation.
   property drafts and presentation state are not restored.
 - The GUI is English. Translated documentation does not imply a localized or
   complete right-to-left interface. Bundled fonts do not cover every script.
-- New recovery dialogs, other-platform GUI interactions, broader screen-reader
+- New recovery, password, form, numbering, signature, image and text-property
+  dialogs, other-platform GUI interactions, broader screen-reader
   behavior, native Dock/system termination and power-loss durability remain
   unverified. Earlier macOS captures cover their recorded builds.
 
