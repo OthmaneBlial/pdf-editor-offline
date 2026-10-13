@@ -249,6 +249,9 @@ impl EditorApp {
             return false;
         }
         let text = dialog.text_changes();
+        if text.iter().any(|change| change.value.len() > 65_536) {
+            return false;
+        }
         let choices = dialog.choice_changes();
         let edit = if text.is_empty() && choices.is_empty() {
             Edit::FillButtons {
@@ -320,7 +323,7 @@ impl EditorApp {
                     && let Some(path) = rfd::FileDialog::new().add_filter("OpenType font", &["ttf", "otf"]).pick_file() { dialog.font_file=Some(path); }
                 ui.label(dialog.font_file.as_ref().map(|path|path.file_name().unwrap_or_default().to_string_lossy().into_owned()).unwrap_or_else(||"No text font selected".into()));
             }
-            if dialog.stale { ui.colored_label(ui.visuals().error_fg_color, "This draft is stale. Close and read the form again before applying."); }
+            if dialog.stale { ui.colored_label(ui.visuals().error_fg_color, "The document changed. Copy your draft, then close and read the form again before applying."); }
             if let Some(error) = &dialog.error { ui.colored_label(ui.visuals().error_fg_color, preview(error)); }
             if !self.pending_saves.is_empty() { ui.label("Resolve the recorded save attempt before applying form changes."); }
             egui::ScrollArea::vertical().id_salt("forms-body").max_height((context.content_rect().height()-240.0).clamp(90.0,420.0)).show(ui, |ui| {
@@ -384,10 +387,16 @@ impl EditorApp {
                     if field.writable_text {
                         let unique=fields.iter().filter(|other|other.name==field.name).take(2).count()==1;
                         let value=&mut dialog.text_drafts[dialog.selected];
-                        ui.label("Text field value");
-                        ui.add_enabled(editable && unique && field.flags&1==0, egui::TextEdit::singleline(value).id_salt(("form-text",field.object_id)).hint_text("Text field value"));
+                        let multiline=field.flags&(1<<12)!=0;
+                        ui.label(if multiline {"Multiline text field value"} else {"Text field value"});
+                        let input=if multiline {
+                            egui::TextEdit::multiline(value).desired_rows(4).desired_width(ui.available_width())
+                        } else {egui::TextEdit::singleline(value)};
+                        ui.add_enabled(editable && unique && field.flags&1==0, input.id_salt(("form-text",field.object_id)).hint_text(if multiline {"Enter adds a line break"} else {"Text field value"}));
                         if value.len()>65_536 { ui.colored_label(ui.visuals().error_fg_color,"Value exceeds the 64 KiB UTF-8 limit; Apply will refuse it."); }
+                        if ui.button("Copy text draft").clicked(){context.copy_text(value.clone());}
                         ui.small("The selected font must cover the complete value. Apply validates fit and supported layout before any document change.");
+                        if multiline {ui.small("Enter adds a line break. Text wraps within the PDF field; overflow is refused.");}
                         return;
                     }
                 }
@@ -430,7 +439,8 @@ impl EditorApp {
             ui.separator();
             ui.horizontal_wrapped(|ui| {
                 let text_ready = dialog.text_changes().is_empty() && dialog.choice_changes().is_empty() || dialog.font_file.is_some();
-                apply = ui.add_enabled(editable && dialog.has_changes() && text_ready, crate::style::primary("Apply form changes", ui.visuals().dark_mode)).clicked();
+                let within_bounds=dialog.text_drafts.iter().all(|value|value.len()<=65_536);
+                apply = ui.add_enabled(editable && dialog.has_changes() && text_ready && within_bounds, crate::style::primary("Apply form changes", ui.visuals().dark_mode)).clicked();
                 close = ui.add_enabled(!dialog.submitting, egui::Button::new("Close form fields")).clicked();
                 if dialog.submitting { ui.spinner(); ui.label("Working…"); }
             });
@@ -554,7 +564,7 @@ mod tests {
         output.textures_delta.clear();
         output
     }
-    fn click(app: &mut EditorApp, context: &egui::Context, label: &str) {
+    fn click(app: &mut EditorApp, context: &egui::Context, label: &str) -> egui::FullOutput {
         let _ = draw(app, context, vec![]);
         let output = draw(app, context, vec![]);
         let position = output
@@ -585,7 +595,7 @@ mod tests {
                 },
             ],
         );
-        let _ = draw(
+        draw(
             app,
             context,
             vec![egui::Event::PointerButton {
@@ -594,8 +604,92 @@ mod tests {
                 pressed: false,
                 modifiers: egui::Modifiers::NONE,
             }],
-        );
+        )
     }
+    #[test]
+    fn actual_multiline_widget_keeps_paste_enter_and_stale_copy_without_dispatch() {
+        let mut app = app();
+        let dialog = app.forms_dialog.as_mut().expect("dialog");
+        let field = &mut dialog.fields.as_mut().expect("fields")[2];
+        field.flags = 1 << 12;
+        field.writable_text = true;
+        field.text_refusal_reason = None;
+        dialog.selected = 2;
+        let context = egui::Context::default();
+        click(&mut app, &context, "Existing text remains read only");
+        let _ = draw(
+            &mut app,
+            &context,
+            vec![egui::Event::Key {
+                key: egui::Key::A,
+                physical_key: None,
+                pressed: true,
+                repeat: false,
+                modifiers: egui::Modifiers::COMMAND,
+            }],
+        );
+        let value = "Résumé e\u{301}\r\nΩЖ\nLast";
+        let _ = draw(&mut app, &context, vec![egui::Event::Paste(value.into())]);
+        let _ = draw(
+            &mut app,
+            &context,
+            vec![egui::Event::Key {
+                key: egui::Key::Enter,
+                physical_key: None,
+                pressed: true,
+                repeat: false,
+                modifiers: egui::Modifiers::NONE,
+            }],
+        );
+        let expected = format!("{value}\n");
+        assert_eq!(
+            app.forms_dialog.as_ref().expect("dialog").text_changes()[0].value,
+            expected
+        );
+        assert!(app.needs_exit_guard());
+        assert!(!app.busy, "Enter adds a line instead of applying");
+        assert!(!app.apply_forms(), "a complete font must be chosen");
+        let key = app.forms_dialog.as_ref().expect("dialog").key;
+        app.tabs[0].status.revision = 1;
+        app.forms_dialog.as_mut().expect("dialog").font_file = Some("chosen.ttf".into());
+        let _ = draw(&mut app, &context, vec![]);
+        assert!(app.forms_dialog.as_ref().expect("dialog").stale);
+        assert!(!app.apply_forms());
+        app.accept_forms(FormsReadKey { revision: 1, ..key }, vec![], vec![]);
+        assert_eq!(
+            app.forms_dialog
+                .as_ref()
+                .expect("retained stale")
+                .text_drafts[2],
+            expected
+        );
+        let output = click(&mut app, &context, "Copy text draft");
+        assert!(output.platform_output.commands.iter().any(
+            |command| matches!(command,egui::OutputCommand::CopyText(text) if text==&expected)
+        ));
+        assert!(app.needs_exit_guard());
+        assert!(!app.busy);
+    }
+
+    #[test]
+    fn oversized_multiline_draft_cannot_dispatch_or_be_truncated() {
+        let mut app = app();
+        let dialog = app.forms_dialog.as_mut().expect("dialog");
+        let field = &mut dialog.fields.as_mut().expect("fields")[2];
+        field.flags = 1 << 12;
+        field.writable_text = true;
+        field.text_refusal_reason = None;
+        dialog.text_drafts[2] = "界".repeat(21846);
+        dialog.font_file = Some("chosen.otf".into());
+        assert!(!app.apply_forms());
+        assert!(!app.busy);
+        assert_eq!(
+            app.forms_dialog.as_ref().expect("draft").text_drafts[2].len(),
+            65538
+        );
+        assert!(app.needs_exit_guard());
+    }
+
     #[test]
     fn actual_textbox_keeps_unicode_draft_and_requires_explicit_font_for_mixed_apply() {
         let mut app = app();

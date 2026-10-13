@@ -343,6 +343,8 @@ impl Worker {
 mod document;
 #[cfg(test)]
 mod forms_tests;
+#[cfg(test)]
+mod multiline_tests;
 mod recovery;
 #[cfg(test)]
 mod sanitize_tests;

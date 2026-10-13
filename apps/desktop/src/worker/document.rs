@@ -74,7 +74,7 @@ fn validate_forms(fields: &[pdf_core::FormField], pages: usize) -> Result<(), St
             || field.writable_text
                 && (field.kind != FormFieldKind::Text
                     || field.name.is_empty()
-                    || field.flags & (1 | 1 << 12 | 1 << 13 | 1 << 20 | 1 << 24 | 1 << 25) != 0
+                    || field.flags & (1 | 1 << 13 | 1 << 20 | 1 << 24 | 1 << 25) != 0
                     || field.widgets.is_empty()
                     || field.text_refusal_reason.is_some()
                     || !matches!(field.value, FormValue::Text(_) | FormValue::Empty))
