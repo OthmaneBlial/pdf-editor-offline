@@ -1,5 +1,12 @@
 # Native Rust CLI preview
 
+Current source adds atomic page numbering through `number-pages`. Select a unique
+page range, start value, header/footer position, margin, band height, explicit
+font file, font size, alignment and RGB color. Numbers follow document order and
+remain upright on quarter-turn pages. `--dry-run` validates without writing;
+normal output is a verified new copy and refuses an existing destination.
+See [the actual scope and command](../../docs/PAGE_NUMBERING_RUST.md).
+
 Current source adds rectangles, ellipses, lines and bounded polylines with
 `add-vector-overlay`. A strict JSON request controls page, geometry, stroke,
 fill and paint opacity; dry-run and verified no-clobber saving are supported.

@@ -95,6 +95,11 @@ pub enum Mutation {
         overlay: pdf_core::TextOverlay,
         font_bytes_len: u32,
     },
+    PageNumbers {
+        numbering: pdf_core::PageNumbering,
+        page: u32,
+        font_bytes_len: u32,
+    },
     Note {
         change: NoteChange,
     },
@@ -444,6 +449,35 @@ fn execute(request: Request) -> Result<Reply, String> {
     }
     if let Operation::Merge { lengths } = operation {
         return merge(&request.payload, &lengths);
+    }
+    if let Operation::Edit {
+        mutation:
+            Mutation::PageNumbers {
+                numbering,
+                page,
+                font_bytes_len,
+            },
+    } = &operation
+    {
+        let font_len = *font_bytes_len as usize;
+        if font_len == 0 || font_len > 16 * 1024 * 1024 {
+            return Err("Numbering font must contain 1 byte to 16 MiB".into());
+        }
+        let split = request
+            .payload
+            .len()
+            .checked_sub(font_len)
+            .filter(|n| *n > 0)
+            .ok_or("Numbering font length leaves no PDF input")?;
+        let (pdf, font) = request.payload.split_at(split);
+        let mut document = PdfDocument::from_bytes(pdf, None).map_err(|e| e.to_string())?;
+        document
+            .validate_selection(&[*page])
+            .map_err(|e| e.to_string())?;
+        document
+            .add_page_numbers(numbering, font)
+            .map_err(|e| e.to_string())?;
+        return document_reply(document, Some(*page as usize - 1));
     }
     if let Operation::Edit {
         mutation:
@@ -969,6 +1003,7 @@ fn apply(document: &mut PdfDocument, mutation: Mutation) -> Result<Option<usize>
         }
         Mutation::FillText { .. }
         | Mutation::TextOverlay { .. }
+        | Mutation::PageNumbers { .. }
         | Mutation::ImageOverlay { .. } => {
             return Err("Text font payload was not split before PDF parsing".into());
         }

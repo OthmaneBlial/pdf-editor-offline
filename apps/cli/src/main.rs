@@ -122,6 +122,32 @@ enum Command {
         #[arg(long)]
         dry_run: bool,
     },
+    /// Add upright page numbers as new text overlays, atomically in document order.
+    NumberPages {
+        input: PathBuf,
+        #[arg(long, help = "Unique page range, e.g. 1-5,8")]
+        pages: String,
+        #[arg(long, default_value_t = 1)]
+        start: u64,
+        #[arg(long, default_value = "footer", value_parser = ["header", "footer"])]
+        position: String,
+        #[arg(long, default_value_t = 18.0)]
+        margin: f64,
+        #[arg(long, default_value_t = 24.0)]
+        height: f64,
+        #[arg(long)]
+        font_file: PathBuf,
+        #[arg(long, default_value_t = 12.0)]
+        font_size: f64,
+        #[arg(long, num_args = 3, default_values = ["0", "0", "0"], value_names = ["R", "G", "B"])]
+        color: Vec<f64>,
+        #[arg(long, default_value = "center", value_parser = ["left", "center", "right"])]
+        align: String,
+        #[arg(short, long)]
+        output: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Remove supported metadata, attachment and action structures into a full-rewrite new copy.
     /// This is targeted sanitization, not text/image redaction or a privacy certificate.
     Sanitize {
@@ -559,6 +585,55 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
                 json!({"operation":"add-image-overlay","page":page,"rectangle":rect,"rotation":rotation,"image":image,"output":json_path(output),"dry_run":dry_run,"info":document.info()?,"scope":"restricted_png_jpeg_color_metadata_orientation_tier","existing_images_replaced":false,"secure_erasure":false}),
             )
         }
+        Command::NumberPages {
+            input,
+            pages,
+            start,
+            position,
+            margin,
+            height,
+            font_file,
+            font_size,
+            color,
+            align,
+            output,
+            dry_run,
+        } => {
+            let font = pdf_core::read_input_bytes(font_file, 16 * 1024 * 1024)?;
+            let bytes = pdf_core::read_input_bytes(input, pdf_core::MAX_INPUT_BYTES - font.len())?;
+            let mut document = PdfDocument::from_bytes(&bytes, password)?;
+            let mut selected =
+                pdf_core::selection::parse_unique(pages, document.info()?.page_count)?;
+            selected.sort_unstable();
+            let numbering = pdf_core::PageNumbering {
+                pages: selected,
+                start: *start,
+                position: if position == "header" {
+                    pdf_core::NumberPosition::Header
+                } else {
+                    pdf_core::NumberPosition::Footer
+                },
+                margin: *margin,
+                height: *height,
+                size: *font_size,
+                color: color
+                    .as_slice()
+                    .try_into()
+                    .map_err(|_| Error::Invalid("numbering RGB needs three components"))?,
+                alignment: match align.as_str() {
+                    "left" => pdf_core::TextAlignment::Left,
+                    "center" => pdf_core::TextAlignment::Center,
+                    _ => pdf_core::TextAlignment::Right,
+                },
+            };
+            document.add_page_numbers(&numbering, &font)?;
+            if !dry_run {
+                document.save_new(output)?;
+            }
+            Ok(
+                json!({"operation":"number-pages","numbering":numbering,"output":json_path(output),"dry_run":dry_run,"info":document.info()?,"existing_text_edited":false,"secure_erasure":false,"font_fallback":false}),
+            )
+        }
         Command::AddTextOverlay {
             input,
             page,
@@ -981,7 +1056,7 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
         }
         Command::Capabilities => Ok(
             json!({ "runtime": "rust-native", "version": env!("CARGO_PKG_VERSION"), "migration_preview": true,
-            "commands": ["add-image-overlay", "add-vector-overlay", "split", "add-text-overlay", "inspect-content-text", "replace-content-text", "info", "sanitize", "list-forms", "list-choices", "fill-button", "fill-text", "fill-choice", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "images-to-pdf", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "duplicate-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
+            "commands": ["number-pages", "add-image-overlay", "add-vector-overlay", "split", "add-text-overlay", "inspect-content-text", "replace-content-text", "info", "sanitize", "list-forms", "list-choices", "fill-button", "fill-text", "fill-choice", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "images-to-pdf", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "duplicate-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
             "vector_overlays":"new_rectangle_ellipse_line_bounded_polyline_and_multi_stroke_visual_signatures_with_stroke_fill_paint_alpha_not_redaction_or_cryptographic_signing",
             "image_overlay":"restricted_png_jpeg_insert_quarter_turns_pdf_rectangle_no_existing_image_replacement",
             "existing_content_editing": "guarded_direct_standard_courier_helvetica_times_ascii_operands_preserve_word_advances_or_explicit_bounded_width_change_no_reflow_or_secure_erasure",
