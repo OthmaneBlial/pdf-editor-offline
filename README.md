@@ -116,6 +116,18 @@ text again using its embedded font. [Try the font workflow](docs/EXISTING_TEXT_F
 This feature is newer than the published CLI preview. Editing preserves old
 source streams; use the separate supported redaction workflow for removal.
 
+### Remove the asset. Keep the original.
+
+![Actual native macOS report after removing both uses of a shared image into a separate PDF copy](docs/assets/screenshots/native/image-redaction-copy-2026-10-13.png)
+
+The source build can remove complete supported image assets into a verified new
+copy. Select every shared use, review the result and Save As. This real macOS
+session also tested incomplete-selection refusal and reopened both saved copies.
+[Try whole-image redaction](docs/IMAGE_REDACTION_RUST.md) ·
+[Inspect the real saved-file proof](docs/IMAGE_REDACTION_NATIVE_REVIEW.md).
+The current profile covers plain/Flate RGB/Gray8 images and supported masks;
+partial-pixel regions and arbitrary-PDF privacy verification remain unfinished.
+
 [Latest changes](CHANGELOG.md) · [Live CI](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml)
 · [Source status and remaining work](docs/RUST_STATUS.md)
 

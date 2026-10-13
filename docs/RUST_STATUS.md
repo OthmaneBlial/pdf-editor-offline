@@ -10,11 +10,16 @@ CLI/worker and native controls remove complete selected image assets into a
 verified full-rewrite copy. Shared uses must all be selected; strict privacy
 decoding refuses unsupported images and carriers. The original files and history
 remain. [Actual scope, commands and limits](IMAGE_REDACTION_RUST.md).
+An [actual macOS review](IMAGE_REDACTION_NATIVE_REVIEW.md) on source `57ec7e8`
+passed selection/refusal, separate-copy creation, Save As/reopen and disabled
+copy Undo/Redo. Independent checks of both actual UI-saved PDFs matched control
+pixels exactly and retained page/text geometry. That review names its own binary
+and source separately from the composed workspace gate.
 
 This composition retains chosen TrueType editing, supported text redaction and
 decoder/renderer fixes. Automated native controls and real production child/save
-checks passed; manual window review, new platform CI and release gates remain
-separate. It is newer than published preview.4. Partial-pixel redaction, arbitrary
+checks passed; full-composition manual review, new platform CI and release gates
+remain separate. It is newer than published preview.4. Partial-pixel redaction, arbitrary
 fonts/layouts/codecs and general privacy verification remain unfinished.
 
 ## 13 October: composed original-text font editing

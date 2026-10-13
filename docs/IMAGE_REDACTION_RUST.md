@@ -87,6 +87,14 @@ and production-native tests cover dry-run, saved bytes, tampering, source histor
 durable acknowledgement and no-clobber saving. Headless controls do not prove
 manual window interaction or all-platform behavior.
 
+An [actual macOS review](IMAGE_REDACTION_NATIVE_REVIEW.md) separately used a
+fresh normal binary on source `57ec7e8`. It exercised multi-page selection,
+incomplete-shared-use refusal, confirmation, separate-copy creation, disabled
+copy Undo/Redo and actual Save As/reopening. Both UI-saved plain/Flate outputs
+passed qpdf/Poppler checks and exactly matched independent control pixels.
+The review records exact source, hashes and unmodified window captures; it does
+not establish manual behavior for this entire later composition or other OSes.
+
 A regression first reproduced excessive inherited-resource revisits under the
 old per-page allowance, then passed with the shared aggregate budget. The failed
 before log remains `/tmp/pdf-image-redaction-budget-failed-before.log`; runtime
