@@ -50,10 +50,10 @@ impl VectorOverlay {
         if self.stroke.is_none() && self.fill.is_none()
             || !self.opacity.is_finite()
             || !(0.0..=1.0).contains(&self.opacity)
-            || self.opacity == 0.0
+            || self.opacity as f32 == 0.0
         {
             return Err(Error::Invalid(
-                "vector overlay needs visible paint and opacity in (0,1]",
+                "vector overlay needs paint and opacity in (0,1] representable at PDF number precision",
             ));
         }
         if self.fill.as_ref().is_some_and(|c| !color(c))

@@ -179,6 +179,52 @@ fn vector_placement_honors_crop_origins_and_all_quarter_turns() {
     }
 }
 #[test]
+fn opacity_underflow_at_pdf_precision_is_refused_atomically() {
+    let input = source(ART);
+    let mut pdf = PdfDocument::from_bytes(&input, None).unwrap();
+    let before = pdf.verified_bytes().unwrap();
+    let mut request = requests()[0].clone();
+    for opacity in [1e-300, f64::from(f32::from_bits(1)) / 4.0] {
+        request.opacity = opacity;
+        assert!(
+            pdf.add_vector_overlay(&request).is_err(),
+            "positive f64 opacity must not become zero PDF paint alpha"
+        );
+        assert_eq!(pdf.verified_bytes().unwrap(), before);
+    }
+    request.opacity = f64::from(f32::from_bits(1));
+    pdf.add_vector_overlay(&request).unwrap();
+    let saved = Document::load_mem(&pdf.verified_bytes().unwrap()).unwrap();
+    let alpha = saved
+        .objects
+        .values()
+        .find_map(|o| {
+            o.as_stream()
+                .ok()?
+                .dict
+                .get(b"Resources")
+                .ok()?
+                .as_dict()
+                .ok()?
+                .get(b"ExtGState")
+                .ok()?
+                .as_dict()
+                .ok()?
+                .get(b"Paint")
+                .ok()?
+                .as_dict()
+                .ok()?
+                .get(b"ca")
+                .ok()
+        })
+        .unwrap();
+    assert_eq!(
+        alpha,
+        &Object::Real(f32::from_bits(1)),
+        "representable positive alpha must survive serialization"
+    );
+}
+#[test]
 fn invalid_geometry_paint_paths_and_source_fail_atomically() {
     let input = source(ART);
     let mut p = PdfDocument::from_bytes(&input, None).unwrap();
