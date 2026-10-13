@@ -11,7 +11,7 @@ authors = ["Othmane BLIAL"]
 repository = "https://github.com/OthmaneBlial/pdf-editor-offline"
 
 [workspace.dependencies]
-lopdf = { version = "0.45.0", default-features = false }
+lopdf = { version = "=0.45.0", default-features = false }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
@@ -26,4 +26,5 @@ expect_used = "warn"
 
 [patch.crates-io]
 hayro-interpret = { path = "vendor/hayro-interpret" }
+lopdf = { path = "vendor/lopdf" }
 

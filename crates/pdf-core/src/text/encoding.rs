@@ -101,20 +101,31 @@ pub(super) fn append_encoded(
             };
             for byte in bytes {
                 if length == 4 {
-                    emit(map.get_or_replacement_char(code, length))?;
+                    emit(
+                        map.get_checked(code, length)
+                            .map_err(|_| Error::Invalid("undefined Unicode range mapping"))?
+                            .unwrap_or_else(|| vec![0xfffd]),
+                    )?;
                     code = 0;
                     length = 0;
                 }
                 code = code * 256 + u32::from(*byte);
                 length += 1;
-                if let Some(units) = map.get(code, length) {
+                if let Some(units) = map
+                    .get_checked(code, length)
+                    .map_err(|_| Error::Invalid("undefined Unicode range mapping"))?
+                {
                     emit(units)?;
                     code = 0;
                     length = 0;
                 }
             }
             if length > 0 {
-                emit(map.get_or_replacement_char(code, length))?;
+                emit(
+                    map.get_checked(code, length)
+                        .map_err(|_| Error::Invalid("undefined Unicode range mapping"))?
+                        .unwrap_or_else(|| vec![0xfffd]),
+                )?;
             }
             decoder.finish(output, limit)
         }
@@ -292,5 +303,36 @@ mod bounded_encoding_tests {
             assert!(append_encoded(&encoding, &bytes, &mut refused, text.len() - 1).is_err());
             assert!(refused.len() < text.len());
         }
+    }
+    #[test]
+    fn checked_lookup_distinguishes_missing_codes_from_empty_programmatic_destinations() {
+        let Encoding::UnicodeMapEncoding(mut map) = unicode(&[("01".into(), "0041".into())]) else {
+            unreachable!()
+        };
+        assert_eq!(map.get_checked(1, 1).unwrap(), Some(vec![65]));
+        assert_eq!(map.get_checked(2, 1).unwrap(), None);
+        map.put_char(1, 1, vec![]);
+        assert!(map.get_checked(1, 1).is_err());
+        assert_eq!(map.get(1, 1), None);
+        assert!(map.get_checked(1, 0).is_err());
+        assert!(map.get_checked(1, 5).is_err());
+    }
+    #[test]
+    fn original_origins_keep_duplicate_sequences_and_reverse_lookup_consistent() {
+        let Encoding::UnicodeMapEncoding(map) = unicode(&[
+            ("00".into(), "00660069".into()),
+            ("01".into(), "00660069".into()),
+        ]) else {
+            unreachable!()
+        };
+        assert_eq!(map.get_checked(0, 1).unwrap(), Some(vec![102, 105]));
+        assert_eq!(map.get_checked(1, 1).unwrap(), Some(vec![102, 105]));
+        let sources = map
+            .get_source_codes_for_unicode(&[102, 105])
+            .unwrap()
+            .iter()
+            .map(|entry| entry.source_code)
+            .collect::<Vec<_>>();
+        assert_eq!(sources, vec![0, 1]);
     }
 }
