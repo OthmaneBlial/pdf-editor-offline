@@ -8,6 +8,20 @@ read-only and pending-save guards apply; unapplied settings require explicit
 discard. See [page-numbering scope](../../docs/PAGE_NUMBERING_RUST.md).
 Headless widget and real subprocess checks do not establish a new manual window review.
 
+Edit → **Create permanent text redacted copy…** accepts exact ASCII targets,
+requires explicit confirmation, and creates a separate unsaved tab. A bounded
+child removes matching glyphs and supported metadata/attachment/action/comment
+carriers; a second child verifies the actual returned bytes before the copy is
+journaled and acknowledged. The new tab has no undo history containing the source
+secret. Save As writes a verified new file; the original tab, its history and other
+recovery copies remain. Drafts survive errors and participate in close/quit guards.
+The versioned semantic-text profile accepts standard Latin Type1 fonts and one
+uniform full-page background; arbitrary painted paths, clipping, transforms,
+images and opaque structures refuse. This is not general privacy verification or
+arbitrary-PDF redaction. [Proof boundary](../../docs/TEXT_REDACTION_RUST.md).
+Automated keyboard/pointer controls and real subprocess saved-output checks pass;
+manual interaction with the native dialog remains unverified.
+
 Edit → **Draw shapes and freehand…** places new rectangles, ellipses, lines and
 bounded freehand paths on the page canvas. Stroke/fill color, width, paint opacity,
 snapping, numerical coordinates and keyboard nudges are available. Changing tools

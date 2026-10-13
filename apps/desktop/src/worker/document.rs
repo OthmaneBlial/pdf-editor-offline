@@ -753,6 +753,119 @@ impl WorkingDocument {
         })
     }
 
+    pub fn redact(
+        &self,
+        revision: u64,
+        request: &pdf_core::TextRedactionRequest,
+    ) -> Result<(Self, pdf_core::TextRedactionReport), String> {
+        if revision != self.current.revision {
+            return Err("Redaction request is stale. Review the current source again.".into());
+        }
+        if self.session_only() || self.current.info.signature_fields != 0 {
+            return Err("Signed and encrypted inputs remain read-only for redaction".into());
+        }
+        request.validate().map_err(|error| error.to_string())?;
+        let (result, reply) = execute(
+            Operation::RedactText {
+                request: request.clone(),
+            },
+            &self.current.bytes,
+        )?;
+        let DocumentResult::Redacted { info, report } = result else {
+            return Err("Unexpected redaction reply".into());
+        };
+        validate_info(&info)?;
+        let counts = [
+            report.changed_text_shows,
+            report.matched_targets,
+            report.rewritten_stream_orphans_removed,
+            report.content_comments_removed,
+            report.cleanup.info_links_removed,
+            report.cleanup.xmp_links_removed,
+            report.cleanup.associated_file_links_removed,
+            report.cleanup.embedded_file_name_trees_removed,
+            report.cleanup.javascript_name_trees_removed,
+            report.cleanup.collections_removed,
+            report.cleanup.action_links_removed,
+            report.cleanup.automatic_triggers_removed,
+            report.cleanup.unreachable_objects_removed,
+            report.cleanup.transport_containers_removed,
+        ];
+        if reply.kind != PayloadKind::Pdf
+            || reply.payload.is_empty()
+            || reply.payload.len() > pdf_core::MAX_INPUT_BYTES
+            || info.pages != self.current.info.pages
+            || info.encrypted
+            || info.signature_fields != 0
+            || !report.full_rewrite
+            || !report.cleanup.full_rewrite
+            || report.profile != "ascii-standard-type1-uniform-background-v2"
+            || report.changed_text_shows == 0
+            || report.matched_targets == 0
+            || report.matched_targets > 100_000
+            || report.affected_pages.is_empty()
+            || report.affected_pages.len() > info.page_count
+            || report
+                .affected_pages
+                .iter()
+                .any(|page| *page == 0 || *page as usize > info.page_count)
+            || report.affected_pages.windows(2).any(|p| p[0] >= p[1])
+            || counts.iter().any(|n| *n > 2_000_000)
+            || report.limitations.is_empty()
+            || report.limitations.len() > 16
+            || report.limitations.iter().any(|text| text.len() > 1024)
+            || report.cleanup.limitations.len() > 16
+            || report
+                .cleanup
+                .limitations
+                .iter()
+                .any(|text| text.len() > 1024)
+            || report.cleanup.attachment_annotations_removed.len() > 20_000
+            || report
+                .cleanup
+                .attachment_annotations_removed
+                .iter()
+                .any(|a| {
+                    a.page == 0
+                        || a.page as usize > info.page_count
+                        || a.rectangle.iter().any(|v| !v.is_finite())
+                        || a.rectangle[0] >= a.rectangle[2]
+                        || a.rectangle[1] >= a.rectangle[3]
+                })
+        {
+            return Err("Invalid redacted copy or bounded removal report; source retained".into());
+        }
+        // Parent treats the PDF as opaque. A second bounded child verifies the
+        // actual returned blob against the same targets before any journal commit.
+        let (verified, verification) = execute(
+            Operation::VerifyRedaction {
+                request: request.clone(),
+            },
+            &reply.payload,
+        )?;
+        if !matches!(verified, DocumentResult::RedactionVerified {})
+            || verification.kind != PayloadKind::None
+            || !verification.payload.is_empty()
+        {
+            return Err("Redacted payload did not receive strict byte verification".into());
+        }
+        Ok((
+            Self {
+                current: Snapshot {
+                    bytes: reply.payload,
+                    info,
+                    revision: 0,
+                },
+                undo: Vec::new(),
+                redo: Vec::new(),
+                saved_revision: None,
+                next_revision: 1,
+                path: None,
+                password: None,
+            },
+            report,
+        ))
+    }
     pub fn sanitize(&self, revision: u64) -> Result<(Self, pdf_core::SanitizationReport), String> {
         if revision != self.current.revision {
             return Err("Sanitization request is stale. Review the current document again.".into());

@@ -25,6 +25,7 @@ impl EditorApp {
                                     if self.vector_dialog.as_ref().is_some_and(|d|d.key.tab==id){self.vector_dialog=None;}
                                     if self.image_dialog.as_ref().is_some_and(|d|d.key.tab==id){self.image_dialog=None;}
                                     if self.content_dialog.as_ref().is_some_and(|d|d.key.tab==id){self.content_dialog=None;}
+                                    if self.redaction_dialog.as_ref().is_some_and(|d|d.source==id){self.redaction_dialog=None;}
                                     self.close_target=None;self.request_close(id);
                                 }
                                 return;
@@ -41,16 +42,17 @@ impl EditorApp {
                         CloseTarget::Exit => {
                             let dirty = self.tabs.iter().filter(|tab| tab.status.dirty).count();
                             let properties_draft=self.metadata_dialog.as_ref().is_some_and(super::metadata::Dialog::has_changes) || self.forms_dialog.as_ref().is_some_and(super::forms::Dialog::has_changes) || self.overlay_dialog.as_ref().is_some_and(super::text_overlay::Dialog::has_changes) || self.notes_dialog.as_ref().is_some_and(super::notes::Dialog::has_changes);
-                            let properties_draft=properties_draft || self.numbering_dialog.as_ref().is_some_and(super::numbering::Dialog::has_changes) || self.vector_dialog.as_ref().is_some_and(super::vector::Dialog::has_changes) || self.image_dialog.as_ref().is_some_and(super::image_overlay::Dialog::has_changes) || self.content_dialog.as_ref().is_some_and(super::content_text::Dialog::has_changes);
+                            let properties_draft=properties_draft || self.numbering_dialog.as_ref().is_some_and(super::numbering::Dialog::has_changes) || self.vector_dialog.as_ref().is_some_and(super::vector::Dialog::has_changes) || self.image_dialog.as_ref().is_some_and(super::image_overlay::Dialog::has_changes) || self.content_dialog.as_ref().is_some_and(super::content_text::Dialog::has_changes) || self.redaction_dialog.as_ref().is_some_and(super::redaction::Dialog::has_changes);
                             let pending_save = !self.pending_saves.is_empty();
                             if pending_save { ui.label("A recorded save attempt needs attention. Return to resolve or cancel it, or keep the recovery session and quit."); }
-                            else if properties_draft { ui.label("Unapplied properties, form, note, text/image overlay, drawing or existing-text drafts are not recorded in recovery. Return to apply them, or explicitly discard the drafts before quitting."); }
+                            else if properties_draft { ui.label("Unapplied properties, form, note, text/image overlay, drawing, existing-text or redaction target drafts are not recorded in recovery. Return to apply them, or explicitly discard the drafts before quitting."); }
                             else if dirty == 0 { ui.label("The operation finished. There are no unsaved edits."); }
                             else { ui.label(format!("{dirty} PDF(s) have unsaved edits. Return to Save As, keep recorded recovery copies, or discard the edits before quitting.")); }
                             ui.horizontal(|ui| {
                                 if ui.button("Return to editing").clicked() { self.close_target = None; }
                                 if (dirty > 0 || pending_save || properties_draft) && ui.button(if properties_draft { "Discard unapplied drafts, keep recovery and quit" } else { "Keep recovery copies and quit" }).clicked() {
                                     self.metadata_dialog = None;
+                                    self.redaction_dialog=None;
                                     self.forms_dialog = None;
                                     self.numbering_dialog = None;
                                     self.overlay_dialog = None;

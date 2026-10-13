@@ -163,6 +163,12 @@ pub enum Command {
         new_id: u64,
         revision: u64,
     },
+    RedactText {
+        id: u64,
+        new_id: u64,
+        revision: u64,
+        request: pdf_core::TextRedactionRequest,
+    },
     ExtractPages {
         id: u64,
         new_id: u64,
@@ -226,6 +232,7 @@ impl Command {
             | Self::Unlock { id, .. }
             | Self::Split { id, .. }
             | Self::Sanitize { id, .. }
+            | Self::RedactText { id, .. }
             | Self::Merge { id, .. }
             | Self::ExtractPages { id, .. }
             | Self::Images { id, .. }
@@ -306,6 +313,12 @@ pub enum Event {
         path: PathBuf,
         status: DocumentStatus,
         report: pdf_core::SanitizationReport,
+    },
+    Redacted {
+        id: u64,
+        path: PathBuf,
+        status: DocumentStatus,
+        report: pdf_core::TextRedactionReport,
     },
     Extracted {
         id: u64,
@@ -507,6 +520,8 @@ mod overlay_tests;
 #[cfg(test)]
 pub(crate) mod password_tests;
 mod recovery;
+#[cfg(test)]
+pub(crate) mod redaction_tests;
 #[cfg(test)]
 mod sanitize_tests;
 #[cfg(test)]
@@ -729,6 +744,57 @@ fn process_with_journal(
             id: new_id,
             path: PathBuf::from("Merged — unsaved.pdf"),
             status,
+        });
+    }
+    if let Command::RedactText {
+        id,
+        new_id,
+        revision,
+        request,
+    } = command
+    {
+        if documents.len() >= MAX_TABS
+            || new_id == 0
+            || new_id == u64::MAX
+            || documents.contains_key(&new_id)
+        {
+            return Err(
+                "A fresh document identifier and available tab are required for a redacted copy"
+                    .into(),
+            );
+        }
+        if journal.as_deref().is_some_and(|journal| {
+            journal
+                .save_intents()
+                .iter()
+                .any(|intent| intent.document_id == id.to_string())
+        }) {
+            return Err(
+                "Resolve or cancel the pending save before creating a redacted copy".into(),
+            );
+        }
+        let source = documents.get(&id).ok_or("Source document is unavailable")?;
+        let (redacted, report) = source.redact(revision, &request)?;
+        check_snapshot_budget(documents, &redacted)?;
+        let mut label = source
+            .path
+            .as_deref()
+            .and_then(std::path::Path::file_stem)
+            .unwrap_or(std::ffi::OsStr::new("Document"))
+            .to_os_string();
+        label.push(" — redacted copy.pdf");
+        let path = PathBuf::from(label);
+        let status = redacted.status()?;
+        persist(
+            journal.as_deref_mut(),
+            &redacted.as_ref(&new_id.to_string()),
+        )?;
+        documents.insert(new_id, redacted);
+        return Ok(Event::Redacted {
+            id: new_id,
+            path,
+            status,
+            report,
         });
     }
     if let Command::Sanitize {
@@ -1153,6 +1219,7 @@ fn process_with_journal(
         | Command::Images { .. }
         | Command::ExtractPages { .. }
         | Command::Sanitize { .. }
+        | Command::RedactText { .. }
         | Command::Split { .. }
         | Command::Merge { .. }
         | Command::Close(_) => {

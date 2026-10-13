@@ -66,7 +66,17 @@ JavaScript, embedded files, names and hidden orphans; cover literal, octal, hex,
 split-array and incremental-revision inputs; and prove target absence in qpdf's
 decoded full rewrite. Poppler verifies unchanged retained word coordinates for all
 twelve Latin standard faces. A hand-authored Courier blank-advance control also
-verifies native and Poppler raster equality, including unaffected artwork.
+verifies native and Poppler raster equality, including the full-page background.
+
+The CLI reads a bounded private `--targets-file` JSON request; targets are not
+command arguments. `redact-text` supports dry-run and verified no-clobber output;
+`verify-redaction` checks actual file bytes. The native action creates a separate
+unsaved tab, verifies the returned blob in a second bounded child and journals it
+before acknowledgement. Its new history does not retain the unredacted source.
+Source history and other recovery copies remain. Actual self-hosted child saving
+is checked with qpdf and Poppler extraction, retained word coordinates and changed
+glyph pixels. Headless keyboard/pointer controls pass; manual native interaction
+is still unverified.
 
 This stage is not complete arbitrary-PDF redaction. It does not erase the original
 file, another application copy, recovery journals, backups or filesystem history.

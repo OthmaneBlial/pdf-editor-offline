@@ -17,6 +17,7 @@ mod pages;
 mod palette;
 mod password;
 mod recovery;
+mod redaction;
 mod sanitize;
 mod sidebar;
 mod split;
@@ -71,6 +72,7 @@ enum Action {
     DeletePages,
     DuplicatePages,
     Sanitize,
+    RedactText,
     Split,
     Merge,
 }
@@ -119,6 +121,7 @@ pub struct EditorApp {
     forms_generation: u64,
     pages_dialog: Option<pages::Dialog>,
     sanitize_dialog: Option<sanitize::Dialog>,
+    redaction_dialog: Option<redaction::Dialog>,
     split_dialog: Option<split::Dialog>,
     merge_dialog: Option<merge::Dialog>,
     pending_open: Option<password::Opening>,
@@ -168,6 +171,7 @@ impl EditorApp {
             forms_generation: 0,
             pages_dialog: None,
             sanitize_dialog: None,
+            redaction_dialog: None,
             split_dialog: None,
             merge_dialog: None,
             pending_open: None,
@@ -253,6 +257,12 @@ impl EditorApp {
                     status,
                     report,
                 } => self.accept_sanitized(id, path, status, report, context),
+                Event::Redacted {
+                    id,
+                    path,
+                    status,
+                    report,
+                } => self.accept_redacted(id, path, status, report, context),
                 Event::RecoveryListed { sessions } => self.accept_recovery_list(sessions),
                 Event::RecoveryRestored { documents } => self.accept_recovered(documents, context),
                 Event::SavePending { id, path, message } => {
@@ -540,6 +550,13 @@ impl EditorApp {
                         self.numbering_dialog = None;
                     }
                     if self
+                        .redaction_dialog
+                        .as_ref()
+                        .is_some_and(|d| d.source == id)
+                    {
+                        self.redaction_dialog = None;
+                    }
+                    if self
                         .vector_dialog
                         .as_ref()
                         .is_some_and(|dialog| dialog.key.tab == id)
@@ -629,6 +646,18 @@ impl EditorApp {
                         if let Some(dialog) = self.merge_dialog.as_mut() {
                             dialog.expected_id = None;
                             dialog.error = Some(message.clone());
+                        }
+                        self.message = message;
+                        continue;
+                    }
+                    if task.is_none()
+                        && self.redaction_dialog.as_ref().is_some_and(|d| {
+                            d.expected_id.is_some() && (d.source == id || d.expected_id == Some(id))
+                        })
+                    {
+                        if let Some(d) = self.redaction_dialog.as_mut() {
+                            d.expected_id = None;
+                            d.error = Some(message.clone());
                         }
                         self.message = message;
                         continue;
@@ -794,6 +823,7 @@ impl EditorApp {
             || !self.pending_saves.is_empty()
             || self.pages_dialog.is_some()
             || self.sanitize_dialog.is_some()
+            || self.redaction_dialog.is_some()
             || self.merge_dialog.is_some()
             || self.split_dialog.is_some()
             || self.notes_dialog.is_some()
@@ -954,6 +984,10 @@ impl EditorApp {
             .as_ref()
             .is_some_and(|d| d.key.tab == id && d.has_changes())
             || self
+                .redaction_dialog
+                .as_ref()
+                .is_some_and(|d| d.source == id && d.has_changes())
+            || self
                 .vector_dialog
                 .as_ref()
                 .is_some_and(|d| d.key.tab == id && d.has_changes())
@@ -1001,6 +1035,10 @@ impl EditorApp {
     fn needs_exit_guard(&self) -> bool {
         !self.allow_exit
             && (self.busy
+                || self
+                    .redaction_dialog
+                    .as_ref()
+                    .is_some_and(redaction::Dialog::has_changes)
                 || self
                     .vector_dialog
                     .as_ref()
@@ -1183,6 +1221,7 @@ impl EditorApp {
             Action::DeletePages => self.open_page_ranges(pages::Mode::Delete),
             Action::DuplicatePages => self.open_page_ranges(pages::Mode::Duplicate),
             Action::Sanitize => self.open_sanitization(),
+            Action::RedactText => self.open_redaction(),
             Action::Split => self.open_split(),
             Action::Merge => self.open_merge(),
         }
@@ -1262,6 +1301,7 @@ impl eframe::App for EditorApp {
             && !self.recovery.open
             && self.pages_dialog.is_none()
             && self.sanitize_dialog.is_none()
+            && self.redaction_dialog.is_none()
             && self.merge_dialog.is_none()
             && self.password_dialog.is_none()
             && self.split_dialog.is_none()
@@ -1286,6 +1326,7 @@ impl eframe::App for EditorApp {
                 && self.pending_saves.is_empty()
                 && self.pages_dialog.is_none()
                 && self.sanitize_dialog.is_none()
+                && self.redaction_dialog.is_none()
                 && self.merge_dialog.is_none()
                 && self.password_dialog.is_none()
                 && self.split_dialog.is_none(),
@@ -1305,6 +1346,7 @@ impl eframe::App for EditorApp {
         self.pending_save_dialog(&context);
         self.page_ranges_dialog(&context);
         self.sanitization_dialog(&context);
+        self.redaction_dialog_ui(&context);
         self.split_dialog_ui(&context);
         self.notes_dialog_ui(&context);
         self.merge_dialog(&context);

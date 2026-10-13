@@ -137,6 +137,7 @@ impl EditorApp {
                 ui.separator();
                 if ui.add_enabled(self.selected().is_some(), egui::Button::new("Search text · Command/Ctrl+F")).clicked() { action = Some(Action::Search); ui.close(); }
                 if ui.add_enabled(!self.busy && self.pending_saves.is_empty() && self.selected().is_some_and(Tab::editable) && self.tabs.len()<crate::worker::MAX_TABS,egui::Button::new("Create targeted sanitized copy…")).clicked() {action=Some(Action::Sanitize);ui.close();}
+                if ui.add_enabled(!self.busy && self.pending_saves.is_empty() && self.selected().is_some_and(Tab::editable) && self.tabs.len()<crate::worker::MAX_TABS,egui::Button::new("Create permanent text redacted copy…")).clicked(){action=Some(Action::RedactText);ui.close();}
                 if ui.add_enabled(!self.busy && self.pending_saves.is_empty() && self.selected().is_some_and(Tab::editable) && self.tabs.len()<crate::worker::MAX_TABS,egui::Button::new("Merge PDF files…")).clicked() {action=Some(Action::Merge);ui.close();}
                 if ui.add_enabled(!self.busy && self.pending_saves.is_empty() && self.selected().is_some_and(Tab::editable) && self.tabs.len()<crate::worker::MAX_TABS,egui::Button::new("Split into new tabs…")).clicked() {action=Some(Action::Split);ui.close();}
                 if ui.add_enabled(!self.busy && self.pending_saves.is_empty() && self.selected().is_some_and(Tab::editable),egui::Button::new("Insert image content…")).clicked(){action=Some(Action::ImageOverlay);ui.close();}

@@ -312,6 +312,7 @@ impl EditorApp {
             return;
         }
         self.metadata_dialog = None;
+        self.redaction_dialog = None;
         self.notes_dialog = None;
         self.forms_dialog = None;
         self.numbering_dialog = None;

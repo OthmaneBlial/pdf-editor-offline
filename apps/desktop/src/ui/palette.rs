@@ -113,6 +113,13 @@ impl EditorApp {
                             && self.tabs.len() < crate::worker::MAX_TABS,
                     ),
                     (
+                        "Create permanent text redacted copy",
+                        Action::RedactText,
+                        editable
+                            && self.pending_saves.is_empty()
+                            && self.tabs.len() < crate::worker::MAX_TABS,
+                    ),
+                    (
                         "Delete page range",
                         Action::DeletePages,
                         editable && selected.is_some_and(|tab| tab.status.info.page_count > 1),
