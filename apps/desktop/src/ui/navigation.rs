@@ -20,7 +20,7 @@ impl EditorApp {
             )
             .show(ui, |ui| {
                 crate::style::chrome(ui);
-                self.navigation(ui);
+                ui.add_enabled_ui(self.overlay_dialog.is_none(), |ui| self.navigation(ui));
             });
         egui::Panel::top("tab-strip")
             .resizable(false)
@@ -34,7 +34,9 @@ impl EditorApp {
                         bottom: 6,
                     }),
             )
-            .show(ui, |ui| self.document_tabs(ui));
+            .show(ui, |ui| {
+                ui.add_enabled_ui(self.overlay_dialog.is_none(), |ui| self.document_tabs(ui));
+            });
         egui::Panel::bottom("status")
             .resizable(false)
             .frame(
@@ -54,7 +56,9 @@ impl EditorApp {
                 .min_size(196.0)
                 .max_size((width * 0.38).clamp(196.0, 360.0))
                 .frame(egui::Frame::new().fill(colors.panel).inner_margin(16))
-                .show(ui, |ui| self.sidebar(ui));
+                .show(ui, |ui| {
+                    ui.add_enabled_ui(self.overlay_dialog.is_none(), |ui| self.sidebar(ui))
+                });
         }
         if self.selected().is_some() && self.show_inspector && width >= 960.0 {
             egui::Panel::right("document-inspector")
@@ -66,7 +70,11 @@ impl EditorApp {
                     egui::ScrollArea::vertical()
                         .id_salt("inspector-scroll")
                         .auto_shrink([false, false])
-                        .show(ui, |ui| self.inspector(ui));
+                        .show(ui, |ui| {
+                            ui.add_enabled_ui(self.overlay_dialog.is_none(), |ui| {
+                                self.inspector(ui)
+                            })
+                        });
                 });
         }
         self.canvas(ui);
@@ -262,7 +270,10 @@ impl EditorApp {
                 }
                 ui.separator();
                 if ui
-                    .add_enabled(tab.page > 0, egui::Button::new("Prev").small())
+                    .add_enabled(
+                        self.overlay_dialog.is_none() && tab.page > 0,
+                        egui::Button::new("Prev").small(),
+                    )
                     .on_hover_text("Previous page")
                     .clicked()
                 {
@@ -271,7 +282,7 @@ impl EditorApp {
                 ui.label(format!("{} / {}", tab.page + 1, tab.status.info.page_count));
                 if ui
                     .add_enabled(
-                        tab.page + 1 < tab.status.info.page_count,
+                        self.overlay_dialog.is_none() && tab.page + 1 < tab.status.info.page_count,
                         egui::Button::new("Next").small(),
                     )
                     .on_hover_text("Next page")

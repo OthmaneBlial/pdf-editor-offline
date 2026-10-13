@@ -6,6 +6,7 @@ use crate::{
 use eframe::egui;
 use pdf_core::{TextAlignment, TextOverlay};
 use std::path::PathBuf;
+mod placement;
 
 pub(super) struct Dialog {
     pub key: FormsReadKey,
@@ -17,6 +18,9 @@ pub(super) struct Dialog {
     pub stale: bool,
     pub error: Option<String>,
     focus: bool,
+    canvas_mode: bool,
+    snap: bool,
+    gesture: Option<placement::Gesture>,
 }
 impl Dialog {
     pub fn has_changes(&self) -> bool {
@@ -64,42 +68,7 @@ impl Dialog {
         if self.stale || self.request.page != page.number {
             return None;
         }
-        let [x0, y0, x1, y1] = self.request.rectangle;
-        if [x0, y0, x1, y1].iter().any(|v| !v.is_finite()) || x0 >= x1 || y0 >= y1 {
-            return None;
-        }
-        let bounds = [
-            page.media_box[0].max(page.crop_box[0]),
-            page.media_box[1].max(page.crop_box[1]),
-            page.media_box[2].min(page.crop_box[2]),
-            page.media_box[3].min(page.crop_box[3]),
-        ];
-        if x0 < f64::from(bounds[0])
-            || y0 < f64::from(bounds[1])
-            || x1 > f64::from(bounds[2])
-            || y1 > f64::from(bounds[3])
-        {
-            return None;
-        }
-        let w = f64::from(bounds[2] - bounds[0]);
-        let h = f64::from(bounds[3] - bounds[1]);
-        if w <= 0.0 || h <= 0.0 {
-            return None;
-        }
-        let point = |x: f64, y: f64| {
-            let u = (x - f64::from(bounds[0])) / w;
-            let v = (y - f64::from(bounds[1])) / h;
-            let (u, v) = match page.rotation.rem_euclid(360) {
-                0 => (u, 1.0 - v),
-                90 => (v, u),
-                180 => (1.0 - u, v),
-                270 => (1.0 - v, 1.0 - u),
-                _ => return None,
-            };
-            Some(image.min + egui::vec2(u as f32 * image.width(), v as f32 * image.height()))
-        };
-        let rect = egui::Rect::from_two_pos(point(x0, y0)?, point(x1, y1)?).intersect(image);
-        (rect.width() > 0.0 && rect.height() > 0.0).then_some(rect)
+        placement::PageMap::new(page, image)?.rectangle(self.request.rectangle)
     }
 }
 impl EditorApp {
@@ -159,9 +128,12 @@ impl EditorApp {
             stale: false,
             error: None,
             focus: true,
+            canvas_mode: false,
+            snap: false,
+            gesture: None,
         });
     }
-    fn overlay_current(&self) -> bool {
+    pub(super) fn overlay_current(&self) -> bool {
         self.overlay_dialog.as_ref().is_some_and(|d| {
             !d.stale
                 && self.active == Some(d.key.tab)
@@ -173,7 +145,7 @@ impl EditorApp {
                 })
         })
     }
-    fn apply_text_overlay(&mut self) -> bool {
+    pub(super) fn apply_text_overlay(&mut self) -> bool {
         if self.busy || !self.pending_saves.is_empty() || !self.overlay_current() {
             return false;
         }
@@ -217,6 +189,27 @@ impl EditorApp {
             return;
         };
         let enabled = !dialog.submitting && !dialog.stale && !self.busy;
+        if dialog.canvas_mode {
+            let mut apply = false;
+            let mut discard = false;
+            egui::Window::new("Place new text overlay").collapsible(false).resizable(false).anchor(egui::Align2::RIGHT_TOP,egui::vec2(-12.0,88.0)).show(context,|ui|{
+                ui.small("Drag to place · handles resize · inside moves · arrows nudge (Shift 10, Alt 0.1 PDF units)");
+                ui.add_enabled(enabled,egui::Checkbox::new(&mut dialog.snap,"Snap to 1 PDF unit"));
+                ui.horizontal_wrapped(|ui|{
+                    if ui.button("Show text controls").clicked(){dialog.canvas_mode=false;dialog.gesture=None;}
+                    apply=ui.add_enabled(enabled && dialog.validate().is_ok(),crate::style::primary("Add overlay",ui.visuals().dark_mode)).clicked();
+                    discard=ui.add_enabled(!dialog.submitting,egui::Button::new("Discard draft")).clicked();
+                });
+                if dialog.stale{ui.colored_label(ui.visuals().error_fg_color,"The document changed. Return to text controls to copy the draft.");}
+                if let Some(error)=&dialog.error{ui.colored_label(ui.visuals().error_fg_color,error);}
+            });
+            if discard {
+                self.overlay_dialog = None;
+            } else if apply {
+                self.apply_text_overlay();
+            }
+            return;
+        }
         let mut apply = false;
         let mut cancel = false;
         egui::Window::new("Add text overlay").default_width(380.0).max_width((context.content_rect().width()-32.0).max(220.0)).max_height((context.content_rect().height()-32.0).max(180.0)).collapsible(false).anchor(egui::Align2::RIGHT_CENTER,egui::vec2(-16.0,0.0)).show(context,|ui|{
@@ -230,6 +223,8 @@ impl EditorApp {
                     ui.small("Right-to-left text may look different in this input box; the PDF is shaped with your chosen font.");
                 }
                 ui.separator();ui.label("Placement · unrotated PDF coordinates");
+                if ui.add_enabled(enabled,egui::Button::new("Place on page")).clicked(){dialog.canvas_mode=true;dialog.focus=false;}
+                ui.add_enabled(enabled,egui::Checkbox::new(&mut dialog.snap,"Snap to 1 PDF unit"));
                 ui.add_enabled_ui(enabled,|ui|{
                     egui::Grid::new("overlay-rectangle").num_columns(2).show(ui,|ui|{for (name,value) in ["Left X","Bottom Y","Right X","Top Y"].into_iter().zip(dialog.request.rectangle.iter_mut()){let label=ui.label(name);ui.add(egui::DragValue::new(value).speed(0.25)).labelled_by(label.id);ui.end_row();}});
                     ui.horizontal(|ui|{let label=ui.label("Font size · PDF units");ui.add(egui::DragValue::new(&mut dialog.request.size).speed(0.25)).labelled_by(label.id);});
@@ -238,7 +233,7 @@ impl EditorApp {
                     if ui.button("Choose covering font…").clicked() && let Some(path)=rfd::FileDialog::new().add_filter("TrueType or OpenType font",&["ttf","otf"]).pick_file(){dialog.font_file=Some(path);}
                 });
                 if let Some(path)=&dialog.font_file {ui.label(path.file_name().map(|name|name.to_string_lossy()).unwrap_or_default());}
-                ui.small("The outline shows the rectangle. Missing glyphs, font restrictions and text that does not fit are refused. Existing text is unchanged; this is not redaction.");
+                ui.small("Drag on the page to place a rectangle, move it, or resize its handles. PDF coordinates remain available here. Missing glyphs, font restrictions and text that does not fit are refused. Existing text is unchanged; this is not redaction.");
                 if let Err(message)=dialog.validate(){ui.small(message);}
                 if let Some(message)=&dialog.error{ui.colored_label(ui.visuals().error_fg_color,message);}
             });
@@ -257,7 +252,7 @@ impl EditorApp {
 mod tests {
     #![allow(clippy::unwrap_used)]
     use super::*;
-    fn app(context: &egui::Context) -> EditorApp {
+    pub(super) fn app(context: &egui::Context) -> EditorApp {
         let mut app = EditorApp::new(&eframe::CreationContext::_new_kittest(context.clone()));
         let pdf = pdf_core::PdfDocument::from_bytes(
             include_bytes!("../../../../tests/fixtures/pdfs/forms.pdf"),

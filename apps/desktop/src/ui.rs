@@ -1042,7 +1042,6 @@ impl eframe::App for EditorApp {
                 && self.metadata_dialog.is_none()
                 && self.notes_dialog.is_none()
                 && self.forms_dialog.is_none()
-                && self.overlay_dialog.is_none()
                 && !self.recovery.open
                 && self.pending_saves.is_empty()
                 && self.pages_dialog.is_none()

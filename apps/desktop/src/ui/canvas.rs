@@ -3,6 +3,7 @@ use eframe::egui;
 
 impl EditorApp {
     pub(super) fn canvas(&mut self, ui: &mut egui::Ui) {
+        let mut overlay_page = None;
         let colors = crate::style::palette(ui.ctx().global_style().visuals.dark_mode);
         egui::CentralPanel::default().frame(egui::Frame::new().fill(colors.canvas)).show(ui, |ui| {
             if let Some(tab) = self.selected() {
@@ -25,11 +26,7 @@ impl EditorApp {
                                 .shadow(egui::epaint::Shadow { offset: [0, 5], blur: 24, spread: 0, color: egui::Color32::from_black_alpha(if ui.visuals().dark_mode { 60 } else { 24 }) })
                                 .show(ui, |ui| {
                                     let image=ui.add(egui::Image::new((texture.id(), size)).alt_text(format!("PDF page {}. Read its extracted text using the Text sidebar.", tab.page + 1)));
-                                    if let Some(dialog)=self.overlay_dialog.as_ref().filter(|d|d.key.tab==tab.id && d.key.revision==tab.status.revision)
-                                        && let Some(page)=tab.status.info.pages.get(tab.page)
-                                        && let Some(rectangle)=dialog.placement(page,image.rect) {
-                                        ui.painter().rect_stroke(rectangle,2.0,egui::Stroke::new(1.5,colors.copper),egui::StrokeKind::Inside);
-                                    }
+                                    if let Some(page)=tab.status.info.pages.get(tab.page){overlay_page=Some((tab.id,tab.status.revision,page.clone(),image.rect,ui.clip_rect()));}
 
                                 });
                         });
@@ -52,5 +49,11 @@ impl EditorApp {
                 });
             }
         });
+        if let Some((id, revision, page, image, clip)) = overlay_page {
+            let old_clip = ui.clip_rect();
+            ui.set_clip_rect(old_clip.intersect(clip));
+            self.overlay_canvas(ui, id, revision, &page, image);
+            ui.set_clip_rect(old_clip);
+        }
     }
 }
