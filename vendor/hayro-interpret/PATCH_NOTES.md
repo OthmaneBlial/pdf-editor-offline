@@ -4,7 +4,7 @@ This directory vendors only `hayro-interpret` 0.8.0. Its Rust source, examples,
 normalized/original manifests, bundled assets and license files were copied from
 the downloaded crates.io package. The unused package lockfile and Cargo installation
 marker were omitted. Local code changes are confined to `src/interpret/mod.rs`
-and the original `src/interpret/attachment_icon.rs` helper.
+and the original `src/interpret/annotation_icon.rs` helper.
 
 - Registry archive: [hayro-interpret-0.8.0.crate](https://static.crates.io/crates/hayro-interpret/hayro-interpret-0.8.0.crate).
 - Verified archive SHA-256: `ac9df074ff163a63864cec9b0bf640ccbff8abf4e44481df7369ce0ac172ffbe`, matching the original Cargo.lock checksum.

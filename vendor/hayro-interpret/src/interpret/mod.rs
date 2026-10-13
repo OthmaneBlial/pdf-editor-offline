@@ -25,7 +25,7 @@ use rustc_hash::FxHashMap;
 use smallvec::smallvec;
 use std::sync::Arc;
 
-mod attachment_icon;
+mod annotation_icon;
 pub(crate) mod path;
 pub(crate) mod state;
 pub(crate) mod text;
@@ -312,7 +312,7 @@ pub fn interpret_page<'a>(
                     (context.settings.warning_sink)(
                         InterpreterWarning::UnresolvedAnnotationAppearance,
                     );
-                } else if attachment_icon::draw(&annot, page.rotation(), flags, context, device)
+                } else if annotation_icon::draw(&annot, page.rotation(), flags, context, device)
                     .is_none()
                 {
                     (context.settings.warning_sink)(InterpreterWarning::InvalidAnnotationGeometry);
