@@ -67,6 +67,11 @@ impl EditorApp {
                         editable && self.tabs.len() < crate::worker::MAX_TABS,
                     ),
                     (
+                        "Insert image content",
+                        Action::ImageOverlay,
+                        editable && self.pending_saves.is_empty(),
+                    ),
+                    (
                         "Split into new tabs",
                         Action::Split,
                         editable

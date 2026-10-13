@@ -5,6 +5,7 @@ use eframe::egui;
 mod canvas;
 mod dialogs;
 mod forms;
+mod image_overlay;
 mod merge;
 mod metadata;
 mod navigation;
@@ -44,6 +45,7 @@ enum Action {
     Forms,
     TextOverlay,
     VectorOverlay,
+    ImageOverlay,
     Undo,
     Redo,
     Previous,
@@ -104,6 +106,7 @@ pub struct EditorApp {
     forms_dialog: Option<forms::Dialog>,
     overlay_dialog: Option<text_overlay::Dialog>,
     vector_dialog: Option<vector::Dialog>,
+    image_dialog: Option<image_overlay::Dialog>,
     forms_generation: u64,
     pages_dialog: Option<pages::Dialog>,
     sanitize_dialog: Option<sanitize::Dialog>,
@@ -149,6 +152,7 @@ impl EditorApp {
             forms_dialog: None,
             overlay_dialog: None,
             vector_dialog: None,
+            image_dialog: None,
             forms_generation: 0,
             pages_dialog: None,
             sanitize_dialog: None,
@@ -310,6 +314,17 @@ impl EditorApp {
                         {
                             self.forms_dialog = None;
                         } else if let Some(dialog) = self.forms_dialog.as_mut() {
+                            dialog.stale = true;
+                        }
+                    }
+                    if let Some(dialog) = self
+                        .image_dialog
+                        .as_mut()
+                        .filter(|dialog| dialog.key.tab == id)
+                    {
+                        if dialog.submitting {
+                            self.image_dialog = None;
+                        } else {
                             dialog.stale = true;
                         }
                     }
@@ -502,6 +517,13 @@ impl EditorApp {
                     {
                         self.cancel_password();
                     }
+                    if self
+                        .image_dialog
+                        .as_ref()
+                        .is_some_and(|dialog| dialog.key.tab == id)
+                    {
+                        self.image_dialog = None;
+                    }
                     self.pending_saves.remove(&id);
                     self.tabs.retain(|tab| tab.id != id);
                     if self.active == Some(id) {
@@ -605,6 +627,15 @@ impl EditorApp {
                         if let Some(d) = self.vector_dialog.as_mut().filter(|d| d.key == key) {
                             d.error = Some(message.clone());
                             d.submitting = false;
+                        }
+                        if let Some(dialog) = self
+                            .image_dialog
+                            .as_mut()
+                            .filter(|dialog| dialog.key == key)
+                        {
+                            self.message = message.clone();
+                            dialog.error = Some(message.clone());
+                            dialog.submitting = false;
                         }
                         if let Some(d) = self.overlay_dialog.as_mut().filter(|d| d.key == key) {
                             d.error = Some(message);
@@ -846,6 +877,10 @@ impl EditorApp {
             .as_ref()
             .is_some_and(|d| d.key.tab == id && d.has_changes())
             || self
+                .image_dialog
+                .as_ref()
+                .is_some_and(|d| d.key.tab == id && d.has_changes())
+            || self
                 .metadata_dialog
                 .as_ref()
                 .is_some_and(|dialog| dialog.key.tab == id && dialog.has_changes())
@@ -895,6 +930,10 @@ impl EditorApp {
                     .forms_dialog
                     .as_ref()
                     .is_some_and(forms::Dialog::has_changes)
+                || self
+                    .image_dialog
+                    .as_ref()
+                    .is_some_and(image_overlay::Dialog::has_changes)
                 || self
                     .overlay_dialog
                     .as_ref()
@@ -994,6 +1033,7 @@ impl EditorApp {
             Action::Forms => self.open_forms(),
             Action::TextOverlay => self.open_text_overlay(),
             Action::VectorOverlay => self.open_vector(),
+            Action::ImageOverlay => self.open_image_overlay(),
             Action::Undo => {
                 if let Some(tab) = self.selected().filter(|tab| tab.status.can_undo) {
                     self.send(
@@ -1113,6 +1153,7 @@ impl eframe::App for EditorApp {
             && self.forms_dialog.is_none()
             && self.overlay_dialog.is_none()
             && self.vector_dialog.is_none()
+            && self.image_dialog.is_none()
             && self.metadata_dialog.is_none()
             && self.notes_dialog.is_none()
             && !self.recovery.open
@@ -1152,6 +1193,7 @@ impl eframe::App for EditorApp {
         self.forms_dialog_ui(&context);
         self.text_overlay_dialog(&context);
         self.vector_dialog_ui(&context);
+        self.image_overlay_dialog(&context);
         self.recovery_dialog(&context);
         self.pending_save_dialog(&context);
         self.page_ranges_dialog(&context);

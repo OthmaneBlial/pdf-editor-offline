@@ -1,7 +1,6 @@
 #![allow(clippy::unwrap_used)]
+use super::test_pdf as support;
 use super::*;
-#[path = "../../../../tests/support/split_fixture.rs"]
-mod support;
 fn load(temp: &std::path::Path) -> (HashMap<u64, WorkingDocument>, Journal, PathBuf) {
     let path = temp.join("source.pdf");
     std::fs::write(&path, support::fixture(5)).unwrap();

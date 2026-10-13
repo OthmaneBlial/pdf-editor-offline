@@ -21,7 +21,7 @@ impl EditorApp {
             .show(ui, |ui| {
                 crate::style::chrome(ui);
                 ui.add_enabled_ui(
-                    self.overlay_dialog.is_none() && self.vector_dialog.is_none(),
+                    self.overlay_dialog.is_none() && self.vector_dialog.is_none() && self.image_dialog.is_none(),
                     |ui| self.navigation(ui),
                 );
             });
@@ -39,7 +39,7 @@ impl EditorApp {
             )
             .show(ui, |ui| {
                 ui.add_enabled_ui(
-                    self.overlay_dialog.is_none() && self.vector_dialog.is_none(),
+                    self.overlay_dialog.is_none() && self.vector_dialog.is_none() && self.image_dialog.is_none(),
                     |ui| self.document_tabs(ui),
                 );
             });
@@ -64,7 +64,7 @@ impl EditorApp {
                 .frame(egui::Frame::new().fill(colors.panel).inner_margin(16))
                 .show(ui, |ui| {
                     ui.add_enabled_ui(
-                        self.overlay_dialog.is_none() && self.vector_dialog.is_none(),
+                        self.overlay_dialog.is_none() && self.vector_dialog.is_none() && self.image_dialog.is_none(),
                         |ui| self.sidebar(ui),
                     )
                 });
@@ -81,7 +81,7 @@ impl EditorApp {
                         .auto_shrink([false, false])
                         .show(ui, |ui| {
                             ui.add_enabled_ui(
-                                self.overlay_dialog.is_none() && self.vector_dialog.is_none(),
+                                self.overlay_dialog.is_none() && self.vector_dialog.is_none() && self.image_dialog.is_none(),
                                 |ui| self.inspector(ui),
                             )
                         });
@@ -126,6 +126,7 @@ impl EditorApp {
                 if ui.add_enabled(!self.busy && self.pending_saves.is_empty() && self.selected().is_some_and(Tab::editable) && self.tabs.len()<crate::worker::MAX_TABS,egui::Button::new("Create targeted sanitized copy…")).clicked() {action=Some(Action::Sanitize);ui.close();}
                 if ui.add_enabled(!self.busy && self.pending_saves.is_empty() && self.selected().is_some_and(Tab::editable) && self.tabs.len()<crate::worker::MAX_TABS,egui::Button::new("Merge PDF files…")).clicked() {action=Some(Action::Merge);ui.close();}
                 if ui.add_enabled(!self.busy && self.pending_saves.is_empty() && self.selected().is_some_and(Tab::editable) && self.tabs.len()<crate::worker::MAX_TABS,egui::Button::new("Split into new tabs…")).clicked() {action=Some(Action::Split);ui.close();}
+                if ui.add_enabled(!self.busy && self.pending_saves.is_empty() && self.selected().is_some_and(Tab::editable),egui::Button::new("Insert image content…")).clicked(){action=Some(Action::ImageOverlay);ui.close();}
                 if ui.add_enabled(!self.busy && self.selected().is_some(),egui::Button::new("Sticky notes on this page…")).clicked(){action=Some(Action::Notes);ui.close();}
                 if ui.add_enabled(self.selected().is_some(), egui::Button::new("Read extracted page text")).clicked() { action = Some(Action::PageText); ui.close(); }
             });
@@ -285,6 +286,7 @@ impl EditorApp {
                     .add_enabled(
                         self.overlay_dialog.is_none()
                             && self.vector_dialog.is_none()
+                            && self.image_dialog.is_none()
                             && tab.page > 0,
                         egui::Button::new("Prev").small(),
                     )
@@ -298,6 +300,7 @@ impl EditorApp {
                     .add_enabled(
                         self.overlay_dialog.is_none()
                             && self.vector_dialog.is_none()
+                            && self.image_dialog.is_none()
                             && tab.page + 1 < tab.status.info.page_count,
                         egui::Button::new("Next").small(),
                     )

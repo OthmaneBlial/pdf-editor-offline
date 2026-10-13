@@ -54,6 +54,7 @@ impl EditorApp {
             ui.set_clip_rect(old_clip.intersect(clip));
             self.overlay_canvas(ui, id, revision, &page, image);
             self.vector_canvas(ui, id, revision, &page, image);
+            self.image_canvas(ui, id, revision, &page, image);
             ui.set_clip_rect(old_clip);
         }
     }

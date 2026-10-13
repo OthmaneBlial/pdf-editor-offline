@@ -48,6 +48,11 @@ pub enum Edit {
         key: FormsReadKey,
         overlay: pdf_core::VectorOverlay,
     },
+    ImageOverlay {
+        key: FormsReadKey,
+        overlay: pdf_core::ImageOverlay,
+        image_file: PathBuf,
+    },
     TextOverlay {
         key: FormsReadKey,
         overlay: pdf_core::TextOverlay,
@@ -361,7 +366,7 @@ impl Worker {
                     Command::Notes(key) => Some(TaskKey::Notes(*key)),
                     Command::Forms(key) => Some(TaskKey::Forms(*key)),
                     Command::Edit {
-                        edit: Edit::TextOverlay { key, .. } | Edit::VectorOverlay { key, .. },
+                        edit: Edit::TextOverlay { key, .. } | Edit::VectorOverlay { key, .. } | Edit::ImageOverlay { key, .. },
                         ..
                     } => Some(TaskKey::Overlay(*key)),
                     Command::Edit {
@@ -428,6 +433,8 @@ mod document;
 #[cfg(test)]
 mod forms_tests;
 #[cfg(test)]
+mod image_tests;
+#[cfg(test)]
 mod merge_tests;
 #[cfg(test)]
 mod multiline_tests;
@@ -446,6 +453,9 @@ mod split_tests;
 mod subset_tests;
 #[cfg(test)]
 mod vector_tests;
+#[cfg(test)]
+#[path = "../../../tests/support/split_fixture.rs"]
+pub(crate) mod test_pdf;
 use document::WorkingDocument;
 pub use recovery::{RecoveredDocument, RecoverySession};
 
@@ -947,7 +957,8 @@ fn process_with_journal(
             if let Edit::FillButtons { key, .. }
             | Edit::FillText { key, .. }
             | Edit::TextOverlay { key, .. }
-            | Edit::VectorOverlay { key, .. } = &edit
+            | Edit::VectorOverlay { key, .. }
+            | Edit::ImageOverlay { key, .. } = &edit
                 && key.tab != id
             {
                 return Err("Form draft belongs to another document".into());

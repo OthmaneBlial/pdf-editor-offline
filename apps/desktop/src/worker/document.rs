@@ -1022,6 +1022,45 @@ impl WorkingDocument {
                 expected_overlay = true;
                 Mutation::VectorOverlay { overlay }
             }
+            Edit::ImageOverlay {
+                key,
+                overlay,
+                image_file,
+            } => {
+                if self.current.info.encrypted || self.current.info.signature_fields > 0 {
+                    return Err("Signed or encrypted documents are read only".into());
+                }
+                if key.revision != self.current.revision
+                    || overlay.page == 0
+                    || overlay.page as usize > self.current.info.page_count
+                {
+                    return Err("Image draft revision or page is stale".into());
+                }
+                let remaining = pdf_worker::MAX_PDF_BYTES
+                    .saturating_sub(self.current.bytes.len())
+                    .min(pdf_core::MAX_STREAM_BYTES);
+                if remaining == 0 {
+                    return Err("No input budget remains for the image".into());
+                }
+                let image = pdf_core::read_input_bytes(&image_file, remaining)
+                    .map_err(|error| error.to_string())?;
+                if image.is_empty() {
+                    return Err("Choose a nonempty PNG/JPEG".into());
+                }
+                let mut payload = Vec::new();
+                payload
+                    .try_reserve_exact(self.current.bytes.len() + image.len())
+                    .map_err(|_| "Cannot allocate bounded image overlay payload")?;
+                payload.extend_from_slice(&self.current.bytes);
+                payload.extend_from_slice(&image);
+                expected_fill = Some((self.current.info.page_count, overlay.page as usize - 1));
+                expected_overlay = true;
+                text_payload = Some(payload);
+                Mutation::ImageOverlay {
+                    overlay,
+                    image_bytes_len: image.len() as u32,
+                }
+            }
             Edit::TextOverlay {
                 key,
                 overlay,
@@ -1282,7 +1321,7 @@ impl WorkingDocument {
         };
         validate_info(&info)?;
         if expected_overlay && info.pages != self.current.info.pages {
-            return Err("Text overlay changed the original page geometry".into());
+            return Err("Overlay changed the original page geometry".into());
         }
         if expected_note.is_some_and(|page| {
             info.pages != self.current.info.pages || selected_page != Some(page)

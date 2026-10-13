@@ -310,6 +310,7 @@ impl EditorApp {
         self.forms_dialog = None;
         self.overlay_dialog = None;
         self.vector_dialog = None;
+        self.image_dialog = None;
         self.organizer_dialog = None;
         self.discard_quit = true;
         self.continue_discard_quit(context);

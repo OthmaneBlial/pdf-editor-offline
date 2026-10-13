@@ -153,3 +153,36 @@ cargo test -p pdf-editor-offline-native production_native_split_saved_chunks_pas
 
 The split dialog has headless control and stale-result tests. Manual desktop
 interaction has not been verified for this milestone.
+
+Insert image content opens a PNG/JPEG picker and a draft placement frame. On
+Place on page, drag outside the frame to choose a rectangle, drag inside to move,
+and drag a corner to resize. Arrow keys move by one PDF unit (Shift: ten; Alt:
+0.1). The frame uses the same crop/rotation mapping as text placement. Numeric
+PDF coordinates and 0/90/180/270 counterclockwise rotation are also available.
+The rectangle controls size and can stretch aspect ratio. Actual image pixels
+appear after Apply; the frame is a guide, not an image preview.
+
+The parent reads a bounded regular file; the child receives only PDF/image bytes,
+decodes through `pdf-convert`, and returns a verified PDF. The actor commits the
+new snapshot/history to the journal before success. Undo/Redo and Save As retain
+the original PDF and image. Stale/other-tab drafts, signed/encrypted inputs,
+pending saves, unsupported color/orientation data, tagged pages and budget errors
+are refused without changing committed state. Image input is at most 32 MiB;
+PDF/image input together is at most 128 MiB, with 8192-per-side/eight-million-pixel
+image limits. Unapplied image drafts are not recovered; close/quit requires an
+explicit discard choice. This inserts new content, not existing-image editing,
+image metadata sanitization or secure redaction.
+
+Headless tests drive rectangle creation/move/corner resize, keyboard nudge,
+rotation, Apply/error retention and draft close protection. A real UI-command to
+worker test applies and saves the image; actor tests cover history, durable save,
+source bytes and child/journal failures. The normal desktop's `--pdf-worker` gate
+checks a saved result with pinned qpdf/Poppler:
+
+```sh
+PDF_QPDF_BIN=/path/to/qpdf PDF_REFERENCE_BIN_DIR=/path/to/poppler/bin \
+cargo test -p pdf-editor-offline-native production_native_image_worker_save_history_and_independent_pixels --locked -- --ignored
+```
+
+Manual interaction with the OS picker and a visible desktop window has not been
+verified for this milestone.
