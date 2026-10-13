@@ -669,6 +669,10 @@ mod tests {
         ));
         assert!(app.needs_exit_guard());
         assert!(!app.busy);
+        assert!(!app.tabs[0].status.dirty);
+        app.request_close(1);
+        assert_eq!(app.close_target, Some(super::super::CloseTarget::Tab(1)));
+        assert!(!app.busy, "closing must retain the unapplied form draft");
     }
 
     #[test]

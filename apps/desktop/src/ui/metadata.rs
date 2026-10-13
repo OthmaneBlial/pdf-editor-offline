@@ -325,6 +325,13 @@ mod tests {
             "Changed"
         );
         assert!(!app.apply_metadata());
+        assert!(!app.tabs[0].status.dirty);
+        app.request_close(1);
+        assert_eq!(app.close_target, Some(super::super::CloseTarget::Tab(1)));
+        assert!(
+            !app.busy,
+            "closing must retain the unapplied metadata draft"
+        );
     }
 
     fn draw(app: &mut EditorApp, width: f32, height: f32) {

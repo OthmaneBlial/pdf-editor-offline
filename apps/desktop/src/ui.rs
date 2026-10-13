@@ -720,16 +720,25 @@ impl EditorApp {
         }
     }
 
-    fn request_close(&mut self, id: u64) {
-        if self.busy {
-            return;
-        }
-        if self.tabs.iter().any(|tab| tab.id == id && tab.status.dirty)
+    fn has_tab_draft(&self, id: u64) -> bool {
+        self.metadata_dialog
+            .as_ref()
+            .is_some_and(|dialog| dialog.key.tab == id && dialog.has_changes())
+            || self
+                .forms_dialog
+                .as_ref()
+                .is_some_and(|dialog| dialog.key.tab == id && dialog.has_changes())
             || self
                 .overlay_dialog
                 .as_ref()
                 .is_some_and(|dialog| dialog.key.tab == id && dialog.has_changes())
-        {
+    }
+
+    fn request_close(&mut self, id: u64) {
+        if self.busy {
+            return;
+        }
+        if self.tabs.iter().any(|tab| tab.id == id && tab.status.dirty) || self.has_tab_draft(id) {
             self.close_target = Some(CloseTarget::Tab(id));
         } else {
             self.send(Command::Close(id), "Closing PDF…");

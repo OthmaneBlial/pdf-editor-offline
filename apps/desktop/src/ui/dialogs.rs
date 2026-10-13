@@ -13,10 +13,15 @@ impl EditorApp {
                 else {
                     match target {
                         CloseTarget::Tab(id) => {
-                            if self.overlay_dialog.as_ref().is_some_and(|d|d.key.tab==id && d.has_changes()) {
-                                ui.label("This tab has an unapplied text overlay. Return to apply it, or explicitly discard the draft before closing.");
-                                if ui.button("Return to overlay draft").clicked(){self.close_target=None;}
-                                if ui.button("Discard overlay draft").clicked(){self.overlay_dialog=None;self.close_target=None;self.request_close(id);}
+                            if self.has_tab_draft(id) {
+                                ui.label("This tab has unapplied drafts. Return to apply or copy them, or explicitly discard them before closing. Save As saves only applied document edits.");
+                                if ui.button("Return to drafts").clicked(){self.close_target=None;}
+                                if ui.button("Discard tab drafts").clicked(){
+                                    if self.metadata_dialog.as_ref().is_some_and(|d|d.key.tab==id){self.metadata_dialog=None;}
+                                    if self.forms_dialog.as_ref().is_some_and(|d|d.key.tab==id){self.forms_dialog=None;}
+                                    if self.overlay_dialog.as_ref().is_some_and(|d|d.key.tab==id){self.overlay_dialog=None;}
+                                    self.close_target=None;self.request_close(id);
+                                }
                                 return;
                             }
                             ui.label("This PDF has unsaved edits. Save a new file or discard the edits before closing.");
