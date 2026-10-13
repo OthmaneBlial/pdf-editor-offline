@@ -187,7 +187,19 @@ impl<'a> FontPlan<'a> {
     }
 
     pub fn shape(&mut self, text: &str) -> Result<Line> {
-        if text.is_empty() {
+        self.shape_in_paragraph(text, 0..text.len())
+    }
+
+    /// Keep paragraph embedding levels/base direction when laying out a wrapped line.
+    pub fn shape_in_paragraph(
+        &mut self,
+        text: &str,
+        range: std::ops::Range<usize>,
+    ) -> Result<Line> {
+        if range.start > range.end || text.get(range.clone()).is_none() {
+            return Err(Error::Invalid("invalid wrapped text boundary"));
+        }
+        if range.is_empty() {
             return Ok(Line {
                 glyphs: Vec::new(),
                 bounds: [0.0, self.descent, 0.0, self.ascent],
@@ -196,7 +208,10 @@ impl<'a> FontPlan<'a> {
         if text.len() > 64 * 1024 {
             return Err(Error::Limit("text field value exceeds 64 KiB"));
         }
-        if text
+        let fragment = text
+            .get(range.clone())
+            .ok_or(Error::Invalid("invalid wrapped text boundary"))?;
+        if fragment
             .chars()
             .any(|c| c.is_control() || matches!(c, '\u{2028}' | '\u{2029}'))
         {
@@ -204,7 +219,7 @@ impl<'a> FontPlan<'a> {
                 "single-line text cannot contain line breaks or control characters",
             ));
         }
-        if text.chars().any(|c| {
+        if fragment.chars().any(|c| {
             !ignorable(c)
                 && self
                     .face
@@ -222,7 +237,7 @@ impl<'a> FontPlan<'a> {
             Level::ltr()
         };
         let bidi = ParagraphBidiInfo::new(text, Some(base));
-        let (levels, runs) = bidi.visual_runs(0..text.len());
+        let (levels, runs) = bidi.visual_runs(range);
         let mut glyphs = Vec::new();
         let mut pen = 0.0;
         let mut bounds = [0.0, self.descent, 0.0, self.ascent];
@@ -525,5 +540,49 @@ impl<'a> FontPlan<'a> {
             (descendant, Object::Name(b"Identity-H".to_vec()))
         };
         Ok(document.add_object(dictionary! {"Type"=>"Font","Subtype"=>"Type0","BaseFont"=>Object::Name(self.name.as_bytes().to_vec()),"Encoding"=>encoding,"DescendantFonts"=>vec![descendant.into()],"ToUnicode"=>unicode}))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #![allow(clippy::unwrap_used)]
+    use super::*;
+    #[test]
+    fn wrapped_line_keeps_full_paragraph_base_direction() {
+        let mut font = FontPlan::new(include_bytes!(
+            "../../tests/fixtures/fonts/amiri/Amiri-Regular.ttf"
+        ))
+        .unwrap();
+        for (paragraph, start) in [("ABC 123 مرحبا", 4), ("ABC\u{2028}123 مرحبا", 6)] {
+            let wrapped = font
+                .shape_in_paragraph(paragraph, start..paragraph.len())
+                .unwrap();
+            let standalone = font.shape(&paragraph[start..]).unwrap();
+            let mapped = |line: &Line| {
+                line.glyphs
+                    .iter()
+                    .map(|glyph| {
+                        font.mappings
+                            .iter()
+                            .find(|(_, cid)| **cid == glyph.cid)
+                            .unwrap()
+                            .0
+                            .1
+                            .as_str()
+                    })
+                    .collect::<String>()
+            };
+            let wrapped = mapped(&wrapped);
+            let standalone = mapped(&standalone);
+            assert!(wrapped.starts_with("123"), "{wrapped:?}");
+            assert_ne!(
+                wrapped, standalone,
+                "re-guessing an Arabic fragment loses the LTR paragraph context"
+            );
+            assert!(
+                font.shape_in_paragraph(paragraph, 5..paragraph.len() + 1)
+                    .is_err()
+            );
+        }
     }
 }

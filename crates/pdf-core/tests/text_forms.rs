@@ -773,7 +773,7 @@ fn shared_appearance_and_unrelated_artwork_survive_widget_local_replacement() {
 
 #[test]
 fn unsupported_layout_fonts_values_and_late_transaction_errors_are_atomic() {
-    for flags in [1, 1 << 12, 1 << 13, 1 << 20, 1 << 24, 1 << 25] {
+    for flags in [1, 1 << 13, 1 << 20, 1 << 24, 1 << 25] {
         let mut source = Document::load_mem(SOURCE).unwrap();
         source.get_dictionary_mut((8, 0)).unwrap().set("Ff", flags);
         let source = bytes(&mut source);

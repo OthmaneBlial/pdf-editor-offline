@@ -1,7 +1,9 @@
-//! Single-line text with an explicitly supplied editable TrueType or CID CFF1 font.
+//! Single-line and multiline text with an explicitly supplied editable outline font.
 //! No viewer regeneration, missing-glyph substitution, truncation or font fallback.
 #[path = "fonts.rs"]
 pub(super) mod fonts;
+#[path = "multiline.rs"]
+mod multiline;
 use super::{Budget, FormField, FormFieldKind, MAX_FIELDS, MAX_REPORT_BYTES, inherited, numeric};
 use crate::{Error, PdfDocument, Result};
 use fonts::{FontPlan, Line, unicode_string};
@@ -39,6 +41,7 @@ pub(super) struct WidgetPlan {
     pub style: Style,
     pub line: Line,
     pub value: String,
+    multiline: Option<multiline::Layout>,
 }
 
 fn number(object: &Object) -> Result<f64> {
@@ -490,9 +493,9 @@ pub(super) fn text_eligibility(
             "an unambiguous visible text field is required",
         ));
     }
-    if field.flags & (1 | 1 << 12 | 1 << 13 | 1 << 20 | 1 << 24 | 1 << 25) != 0 {
+    if field.flags & (1 | 1 << 13 | 1 << 20 | 1 << 24 | 1 << 25) != 0 {
         return Err(Error::Refused(
-            "read-only, multiline, password, file-select, comb and rich text fields need separate implementations",
+            "read-only, password, file-select, comb and rich text fields need separate implementations",
         ));
     }
     for key in [b"AA".as_slice(), b"A", b"RV", b"DS"] {
@@ -711,6 +714,7 @@ pub(super) fn widget_plan(
         style,
         line,
         value: value.to_owned(),
+        multiline: None,
     })
 }
 
@@ -729,6 +733,27 @@ pub(super) struct LineLayout<'a> {
     pub rectangle: [f64; 4],
 }
 pub(super) fn generated(plan: &WidgetPlan, font_name: &[u8]) -> Result<Vec<Operation>> {
+    if let Some(multiline) = &plan.multiline {
+        return text_operations(
+            LineLayout {
+                line: &plan.line,
+                value: &plan.value,
+                style: &plan.style,
+                q: plan.q,
+                rectangle: [
+                    plan.padding,
+                    plan.padding,
+                    plan.width - 2.0 * plan.padding,
+                    plan.height - 2.0 * plan.padding,
+                ],
+            },
+            font_name,
+            multiline.size,
+            &multiline.glyphs,
+            plan.padding,
+            plan.height - plan.padding,
+        );
+    }
     generated_line(
         LineLayout {
             line: &plan.line,
@@ -779,6 +804,19 @@ pub(super) fn generated_line(layout: LineLayout<'_>, font_name: &[u8]) -> Result
             _ => 0.0,
         };
     let y = layout.rectangle[1] + (inner_h - extent_h * size) / 2.0 - bounds[1] * size;
+    let line = layout.line;
+    text_operations(layout, font_name, size, &line.glyphs, x, y)
+}
+fn text_operations(
+    layout: LineLayout<'_>,
+    font_name: &[u8],
+    size: f64,
+    glyphs: &[fonts::Glyph],
+    x: f64,
+    y: f64,
+) -> Result<Vec<Operation>> {
+    let inner_w = layout.rectangle[2];
+    let inner_h = layout.rectangle[3];
     let mut ops = vec![
         operation("q", []),
         operation(
@@ -808,7 +846,7 @@ pub(super) fn generated_line(layout: LineLayout<'_>, font_name: &[u8]) -> Result
         layout.style.color.clone(),
         operation("Tf", [Object::Name(font_name.to_vec()), real(size)]),
     ];
-    for glyph in &layout.line.glyphs {
+    for glyph in glyphs {
         ops.push(operation(
             "Tr",
             [if glyph.invisible { 3.into() } else { 0.into() }],
@@ -867,11 +905,14 @@ pub(super) fn generated_row(layout: LineLayout<'_>, font_name: &[u8]) -> Result<
 }
 
 impl PdfDocument {
-    /// Fill single-line text using the caller's explicitly approved complete
+    /// Fill single-line or multiline text using the caller's explicitly approved complete
     /// TrueType or static CID-keyed CFF1 font. The caller must have permission to embed the font; its
     /// editable-embedding flags are validated. Color/bitmap/SVG fonts and unsupported
     /// layout or CFF matrices are refused; non-whitespace text requires visible outlines.
     /// Appearances whose surrounding artwork depends on removed text state are refused.
+    /// Multiline layout preserves logical breaks, wraps at grapheme-safe Unicode 15.0
+    /// line opportunities, and refuses overflow or unbreakable spans at the minimum
+    /// one-point size. It plans at most 1024 lines and two million text bytes.
     pub fn fill_text(&mut self, changes: &[TextChange], font_bytes: &[u8]) -> Result<()> {
         self.ensure_editable()?;
         if changes.is_empty() || changes.len() > MAX_FIELDS {
@@ -897,6 +938,7 @@ impl PdfDocument {
         let mut plans = Vec::new();
         let mut updates = Vec::new();
         let mut glyph_count = 0usize;
+        let mut multiline_work = 0usize;
         for change in changes {
             budget.report(change.name.len() + change.value.len())?;
             if !names.insert(change.name.as_str()) {
@@ -927,21 +969,35 @@ impl PdfDocument {
                 }
             }
             for widget in &field.widgets {
-                let line = font.shape(&change.value)?;
-                glyph_count = glyph_count
-                    .checked_add(line.glyphs.len())
-                    .ok_or(Error::Limit("text planning overflow"))?;
-                if glyph_count > 100_000 {
-                    return Err(Error::Limit("text transaction exceeds 100000 drawn glyphs"));
-                }
-                plans.push(widget_plan(
+                let is_multiline = field.flags & (1 << 12) != 0;
+                let line = font.shape(if is_multiline { "" } else { &change.value })?;
+                let mut plan = widget_plan(
                     self,
                     widget.object_id,
                     field.object_id,
                     &change.value,
                     line,
                     &mut budget,
-                )?);
+                )?;
+                if is_multiline {
+                    plan.multiline = Some(multiline::layout(
+                        &mut font,
+                        &change.value,
+                        &plan,
+                        &mut multiline_work,
+                    )?);
+                }
+                glyph_count = glyph_count
+                    .checked_add(
+                        plan.multiline
+                            .as_ref()
+                            .map_or(plan.line.glyphs.len(), |layout| layout.glyphs.len()),
+                    )
+                    .ok_or(Error::Limit("text planning overflow"))?;
+                if glyph_count > 100_000 {
+                    return Err(Error::Limit("text transaction exceeds 100000 drawn glyphs"));
+                }
+                plans.push(plan);
             }
             updates.push((field.object_id, change.value.clone()));
         }

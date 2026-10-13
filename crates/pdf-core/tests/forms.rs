@@ -890,7 +890,7 @@ fn text_structural_eligibility_is_authoritative_and_does_not_hide_buttons() {
     assert!(target.text_refusal_reason.is_none());
     for mode in [
         "readonly",
-        "multiline",
+        "comb",
         "actions",
         "bad-appearance",
         "signed",
@@ -900,7 +900,7 @@ fn text_structural_eligibility_is_authoritative_and_does_not_hide_buttons() {
         let dict = document.get_dictionary_mut(target.object_id).unwrap();
         match mode {
             "readonly" => dict.set("Ff", 1),
-            "multiline" => dict.set("Ff", 1 << 12),
+            "comb" => dict.set("Ff", 1 << 24),
             "actions" => dict.set("AA", dictionary! {}),
             "bad-appearance" => {
                 dict.remove(b"AP");
