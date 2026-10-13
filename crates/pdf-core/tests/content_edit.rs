@@ -3,6 +3,8 @@ use lopdf::{Document, Object, Stream, dictionary};
 use pdf_core::{ContentTextChange, PdfDocument};
 use std::path::PathBuf;
 use std::process::Command;
+#[path = "content_edit/proportional.rs"]
+mod proportional;
 
 const CONTENT: &[u8] = b"0.2 0.4 0.6 rg 10 10 20 20 re f\nBT /F 20 Tf 1 0 0 1 40 140 Tm 0 Tr (Original) Tj ET\nBT /F 12 Tf 1 0 0 1 40 110 Tm 0 Tr (A B) Tj ET\n";
 
@@ -41,6 +43,7 @@ fn change(pdf: &PdfDocument, index: usize, replacement: &str) -> ContentTextChan
     let runs = pdf.content_text_runs(1).unwrap();
     assert!(runs[index].writable, "{:?}", runs[index].refusal_reason);
     ContentTextChange {
+        layout_policy: Default::default(),
         identity: runs[index].identity.clone(),
         expected: runs[index].text.clone().unwrap(),
         replacement: replacement.into(),

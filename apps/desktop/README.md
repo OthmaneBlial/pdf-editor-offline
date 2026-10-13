@@ -188,8 +188,11 @@ Manual interaction with the OS picker and a visible desktop window has not been
 verified for this milestone.
 
 Current source includes **Edit → Edit existing text…**: select an inventoried
-direct Courier run and replace its original operand with equal-length ASCII
-that preserves spaces. Unsupported structures show explicit refusal reasons.
+direct standard Courier/Helvetica/Times run and replace its original ASCII
+operand. Default mode preserves each word's nominal advance. **Allow line width
+change** opts into measured variable length/width with a fixed font and baseline;
+the dialog shows old/new advances and endpoints. It does not wrap, fit or clip
+ink to the old footprint. Unsupported structures show explicit refusal reasons.
 Apply uses a fresh bounded child and a single durable history update; Undo,
 Redo and Save As preserve untouched shared pages. Stale tab/page/revision,
 pending-save and read-only guards also apply to this dialog. Real headless

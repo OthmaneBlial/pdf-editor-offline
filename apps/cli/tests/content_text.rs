@@ -10,6 +10,91 @@ fn run(args: &[&str]) -> Output {
         .unwrap()
 }
 #[test]
+fn proportional_variable_width_requires_explicit_opt_in_and_reports_actual_layout() {
+    let temp = tempfile::tempdir().unwrap();
+    let input = temp.path().join("source.pdf");
+    let output = temp.path().join("new.pdf");
+    let bytes = fixture::source_with_font(fixture::CONTENT, "Times-Roman");
+    std::fs::write(&input, &bytes).unwrap();
+    let inspected = run(&[
+        "inspect-content-text",
+        input.to_str().unwrap(),
+        "--page",
+        "1",
+    ]);
+    assert!(inspected.status.success());
+    let data: serde_json::Value = serde_json::from_slice(&inspected.stdout).unwrap();
+    let hash = data["data"]["source_sha256"].as_str().unwrap();
+    let operation = data["data"]["inventory"]["runs"][0]["identity"]["operation"]
+        .as_u64()
+        .unwrap()
+        .to_string();
+    let mut args = vec![
+        "replace-content-text",
+        input.to_str().unwrap(),
+        "--page",
+        "1",
+        "--operation",
+        &operation,
+        "--source-sha256",
+        hash,
+        "--expected",
+        "Original",
+        "--replacement",
+        "Longer text",
+        "-o",
+        output.to_str().unwrap(),
+    ];
+    let refused = run(&args);
+    assert_eq!(refused.status.code(), Some(4));
+    assert!(!output.exists());
+    args.push("--allow-width-change");
+    args.push("--dry-run");
+    let preview = run(&args);
+    assert!(
+        preview.status.success(),
+        "{}",
+        String::from_utf8_lossy(&preview.stdout)
+    );
+    assert!(!output.exists());
+    let layout: serde_json::Value = serde_json::from_slice(&preview.stdout).unwrap();
+    assert_eq!(layout["data"]["layout_policy"], "allow_width_change");
+    assert_eq!(
+        layout["data"]["before"]["baseline_start"],
+        layout["data"]["after"]["baseline_start"]
+    );
+    assert_ne!(
+        layout["data"]["before"]["nominal_advance"],
+        layout["data"]["after"]["nominal_advance"]
+    );
+    args.pop();
+    let saved = run(&args);
+    assert!(
+        saved.status.success(),
+        "{}",
+        String::from_utf8_lossy(&saved.stdout)
+    );
+    let pdf = pdf_core::PdfDocument::open(&output, None).unwrap();
+    assert_eq!(
+        pdf.extract_text(&[1])
+            .unwrap()
+            .split_whitespace()
+            .collect::<Vec<_>>(),
+        ["Longer", "text", "A", "B"]
+    );
+    assert_eq!(
+        pdf.extract_text(&[2])
+            .unwrap()
+            .split_whitespace()
+            .collect::<Vec<_>>(),
+        ["Original", "A", "B"]
+    );
+    let existing = std::fs::read(&output).unwrap();
+    assert_eq!(run(&args).status.code(), Some(3));
+    assert_eq!(std::fs::read(&output).unwrap(), existing);
+    assert_eq!(std::fs::read(&input).unwrap(), bytes);
+}
+#[test]
 fn real_inspection_replace_dry_run_save_and_no_clobber() {
     let temp = tempfile::tempdir().unwrap();
     let input = temp.path().join("original.pdf");

@@ -8,8 +8,11 @@ that shared viewing boundary; ordinary rendering still uses original PDF bytes.
 See [encrypted viewing](../../docs/ENCRYPTED_VIEWING_RUST.md) for the tested tiers
 and explicit session-only desktop privacy policy.
 
-Existing content text editing now has a narrow transactional core tier: equal-length
-unambiguous ASCII replacements in explicitly positioned standard Courier `Tj` runs.
+Existing content text editing has a transactional standard Courier/Helvetica/Times
+tier for unambiguous ASCII in one explicitly positioned final `Tj`. Default policy
+preserves every word's nominal advance. Explicit width-change policy permits
+variable lengths with bounded inherited-spacing/matrix measurements, without
+wrapping or fitting.
 It replaces original operands and preserves shared-page resources, with stale
 identity and unsupported-layout refusals. This is not redaction; original streams
 remain retained. See [the supported tier and evidence](../../docs/CONTENT_TEXT_EDITING_RUST.md).

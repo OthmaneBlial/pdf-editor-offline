@@ -26,6 +26,59 @@ fn inventory(bytes: &[u8], offset: u32) -> pdf_worker::document::ContentTextPage
     inventory
 }
 #[test]
+fn real_child_proportional_width_policy_is_explicit_strict_and_atomic() {
+    let bytes = fixture::source_with_font(fixture::CONTENT, "Helvetica");
+    let read = inventory(&bytes, 0);
+    let mutation = |policy| Operation::Edit {
+        mutation: Mutation::ReplaceContentText {
+            page: 1,
+            source_fingerprint: read.source_fingerprint,
+            changes: vec![pdf_core::ContentTextChange {
+                layout_policy: policy,
+                identity: read.runs[0].identity.clone(),
+                expected: "Original".into(),
+                replacement: "Longer text".into(),
+            }],
+        },
+    };
+    let rejected = execute(mutation(Default::default()), &bytes);
+    assert!(rejected.payload.is_empty());
+    assert_eq!(rejected.control["ok"], false);
+    let approved = execute(
+        mutation(pdf_core::ContentTextLayoutPolicy::AllowWidthChange),
+        &bytes,
+    );
+    assert_eq!(approved.kind, PayloadKind::Pdf);
+    let pdf = pdf_core::PdfDocument::from_bytes(&approved.payload, None).unwrap();
+    assert_eq!(
+        pdf.extract_text(&[1])
+            .unwrap()
+            .split_whitespace()
+            .collect::<Vec<_>>(),
+        ["Longer", "text", "A", "B"]
+    );
+    assert_eq!(
+        pdf.extract_text(&[2])
+            .unwrap()
+            .split_whitespace()
+            .collect::<Vec<_>>(),
+        ["Original", "A", "B"]
+    );
+    let mut control = serde_json::to_value(mutation(Default::default())).unwrap();
+    control["mutation"]["changes"][0]["layout_policy"] = serde_json::json!("guess_or_fit");
+    assert!(
+        execute_document(Request {
+            control,
+            payload: bytes.clone()
+        })
+        .is_err()
+    );
+    assert_eq!(
+        pdf_render::render_page(&bytes, 1, 1.0).unwrap(),
+        pdf_render::render_page(&approved.payload, 1, 1.0).unwrap()
+    );
+}
+#[test]
 fn production_child_replaces_original_operand_and_preserves_shared_page() {
     let bytes = fixture::source(fixture::CONTENT);
     let read = inventory(&bytes, 0);
@@ -41,6 +94,7 @@ fn production_child_replaces_original_operand_and_preserves_shared_page() {
                 page: 1,
                 source_fingerprint: read.source_fingerprint,
                 changes: vec![pdf_core::ContentTextChange {
+                    layout_policy: Default::default(),
                     identity: run.identity.clone(),
                     expected: "Original".into(),
                     replacement: "Replaced".into(),
@@ -140,6 +194,7 @@ fn forged_stale_wrong_page_and_nested_unknown_fields_return_no_pdf() {
                     page,
                     source_fingerprint: hash,
                     changes: vec![pdf_core::ContentTextChange {
+                        layout_policy: Default::default(),
                         identity,
                         expected,
                         replacement: "Replaced".into(),
@@ -165,6 +220,7 @@ fn forged_stale_wrong_page_and_nested_unknown_fields_return_no_pdf() {
             page: 1,
             source_fingerprint: read.source_fingerprint,
             changes: vec![pdf_core::ContentTextChange {
+                layout_policy: Default::default(),
                 identity: read.runs[0].identity.clone(),
                 expected: "Original".into(),
                 replacement: "Replaced".into(),

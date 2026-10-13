@@ -2,6 +2,9 @@
 
 #![forbid(unsafe_code)]
 
+mod standard_metrics;
+pub use standard_metrics::standard_ascii_width;
+
 use hayro::hayro_syntax::{LoadPdfError, Pdf};
 use hayro::vello_cpu::{Pixmap, RasterizerSettings, RenderContext, Resources, TargetInit};
 use std::fmt;

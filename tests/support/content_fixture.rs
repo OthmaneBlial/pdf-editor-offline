@@ -3,12 +3,15 @@
 use lopdf::{Document, Stream, dictionary};
 pub const CONTENT:&[u8]=b"0.2 0.4 0.6 rg 10 10 20 20 re f\nBT /F 20 Tf 1 0 0 1 40 140 Tm 0 Tr (Original) Tj ET\nBT /F 12 Tf 1 0 0 1 40 110 Tm 0 Tr (A B) Tj ET\n";
 pub fn source(content: &[u8]) -> Vec<u8> {
+    source_with_font(content, "Courier")
+}
+pub fn source_with_font(content: &[u8], family: &str) -> Vec<u8> {
     let mut document = Document::with_version("1.4");
     let root = document.new_object_id();
     let pages = document.new_object_id();
     let first = document.new_object_id();
     let second = document.new_object_id();
-    let font=document.add_object(dictionary!{"Type"=>"Font","Subtype"=>"Type1","BaseFont"=>"Courier","Encoding"=>"WinAnsiEncoding"});
+    let font=document.add_object(dictionary!{"Type"=>"Font","Subtype"=>"Type1","BaseFont"=>family,"Encoding"=>"WinAnsiEncoding"});
     let mut stream = Stream::new(dictionary! {}, content.to_vec());
     stream.compress().unwrap();
     let stream = document.add_object(stream);

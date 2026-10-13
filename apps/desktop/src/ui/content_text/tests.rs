@@ -21,9 +21,20 @@ fn app() -> (
     std::path::PathBuf,
     Vec<u8>,
 ) {
+    app_with_font("Courier")
+}
+fn app_with_font(
+    family: &str,
+) -> (
+    tempfile::TempDir,
+    EditorApp,
+    egui::Context,
+    std::path::PathBuf,
+    Vec<u8>,
+) {
     let temp = tempfile::tempdir().unwrap();
     let path = temp.path().join("original.pdf");
-    let bytes = fixture::source(fixture::CONTENT);
+    let bytes = fixture::source_with_font(fixture::CONTENT, family);
     std::fs::write(&path, &bytes).unwrap();
     let ctx = egui::Context::default();
     let mut app = EditorApp::new(&eframe::CreationContext::_new_kittest(ctx.clone()));
@@ -151,6 +162,52 @@ fn replacement(app: &mut EditorApp, ctx: &egui::Context, value: &str) {
         ],
     );
     assert_eq!(app.content_dialog.as_ref().unwrap().replacement, value);
+}
+#[test]
+fn actual_proportional_width_checkbox_dispatches_guarded_edit_with_durable_undo() {
+    let (_temp, mut app, ctx, path, bytes) = app_with_font("Helvetica");
+    replacement(&mut app, &ctx, "A broader value");
+    assert!(app.content_dialog.as_ref().unwrap().validate().is_err());
+    click(&mut app, &ctx, "Allow line width change");
+    assert!(app.content_dialog.as_ref().unwrap().allow_width_change);
+    assert!(app.content_dialog.as_ref().unwrap().validate().is_ok());
+    click(&mut app, &ctx, "Replace existing text");
+    wait(&mut app, &ctx);
+    assert!(app.content_dialog.is_none());
+    assert_eq!(app.selected().unwrap().status.revision, 1);
+    let id = app.active.unwrap();
+    let saved = path.with_file_name("proportional-copy.pdf");
+    app.send(
+        Command::Save {
+            id,
+            path: saved.clone(),
+        },
+        "Save actual proportional replacement",
+    );
+    wait(&mut app, &ctx);
+    let copy = pdf_core::PdfDocument::open(&saved, None).unwrap();
+    assert_eq!(
+        copy.extract_text(&[1])
+            .unwrap()
+            .split_whitespace()
+            .collect::<Vec<_>>(),
+        ["A", "broader", "value", "A", "B"]
+    );
+    assert_eq!(
+        copy.extract_text(&[2])
+            .unwrap()
+            .split_whitespace()
+            .collect::<Vec<_>>(),
+        ["Original", "A", "B"]
+    );
+    app.perform(super::super::Action::Undo, &ctx);
+    wait(&mut app, &ctx);
+    assert_eq!(app.selected().unwrap().status.revision, 0);
+    assert!(app.selected().unwrap().status.can_redo);
+    app.perform(super::super::Action::Redo, &ctx);
+    wait(&mut app, &ctx);
+    assert_eq!(app.selected().unwrap().status.revision, 1);
+    assert_eq!(std::fs::read(path).unwrap(), bytes);
 }
 #[test]
 fn content_edit_widget_click_applies_actual_history_and_verified_save() {

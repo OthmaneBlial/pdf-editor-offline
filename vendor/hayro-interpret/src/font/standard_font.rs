@@ -49,6 +49,24 @@ pub enum StandardFont {
 }
 
 impl StandardFont {
+    /// The nominal width of a printable ASCII code, in thousandths of text space.
+    /// This uses the same installed standard-font metrics as interpretation.
+    /// `win_ansi` selects WinAnsiEncoding rather than StandardEncoding; callers
+    /// must separately establish that the code's Unicode meaning is supported.
+    pub fn ascii_width(&self, code: u8, win_ansi: bool) -> Option<u16> {
+        if !(32..=126).contains(&code) {
+            return None;
+        }
+        let name = if win_ansi {
+            crate::font::generated::win_ansi::get(code)?
+        } else {
+            standard::get(code)?
+        };
+        let width = self.get_width(name)?;
+        (width.is_finite() && width >= 0.0 && width <= u16::MAX as f32 && width.fract() == 0.0)
+            .then_some(width as u16)
+    }
+
     pub(crate) fn code_to_name(&self, code: u8) -> Option<&'static str> {
         match self {
             Self::Symbol => symbol::get(code),

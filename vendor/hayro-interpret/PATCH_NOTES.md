@@ -3,8 +3,9 @@
 This directory vendors only `hayro-interpret` 0.8.0. Its Rust source, examples,
 normalized/original manifests, bundled assets and license files were copied from
 the downloaded crates.io package. The unused package lockfile and Cargo installation
-marker were omitted. Local code changes are confined to `src/interpret/mod.rs`
-and the original `src/interpret/annotation_icon.rs` helper.
+marker were omitted. Local code changes are confined to `src/interpret/mod.rs`,
+the original `src/interpret/annotation_icon.rs` helper, and a bounded metric
+accessor in `src/font/standard_font.rs`.
 
 - Registry archive: [hayro-interpret-0.8.0.crate](https://static.crates.io/crates/hayro-interpret/hayro-interpret-0.8.0.crate).
 - Verified archive SHA-256: `ac9df074ff163a63864cec9b0bf640ccbff8abf4e44481df7369ce0ac172ffbe`, matching the original Cargo.lock checksum.
@@ -16,6 +17,13 @@ and the original `src/interpret/annotation_icon.rs` helper.
 The workspace path override keeps version 0.8.0 and its existing runtime dependency
 versions. Native evidence hashes every vendor source/manifest/asset/license file.
 No installed registry source was modified.
+
+The `StandardFont::ascii_width` accessor exposes the existing generated width
+tables for printable codes in StandardEncoding or WinAnsiEncoding. It refuses
+nonintegral/unbounded values. The tables, encodings, font programs and assets
+are unchanged. The editor obtains nominal standard14 advances through this
+accessor rather than copying AFM tables or adding a second metric source.
+Original MIT/Apache licensing and upstream commit provenance still apply.
 
 The local patch implements screen Hidden/NoView flags and conditional Invisible
 handling, implicit NoZoom/NoRotate for Text annotations, anchored quarter-turn

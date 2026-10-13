@@ -55,7 +55,7 @@ enum Command {
         #[arg(long, default_value_t = 0)]
         offset: u32,
     },
-    /// Replace one existing ASCII Courier operand without overlays or reflow.
+    /// Replace a supported standard-font ASCII operand without overlays or reflow.
     ReplaceContentText {
         input: PathBuf,
         #[arg(long)]
@@ -68,6 +68,9 @@ enum Command {
         expected: String,
         #[arg(long, allow_hyphen_values = true)]
         replacement: String,
+        /// Explicitly allow a different nominal line width; no wrapping or fitting.
+        #[arg(long)]
+        allow_width_change: bool,
         #[arg(short, long)]
         output: PathBuf,
         #[arg(long)]
@@ -461,6 +464,7 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
             source_sha256,
             expected,
             replacement,
+            allow_width_change,
             output,
             dry_run,
         } => content::replace(
@@ -472,6 +476,7 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
                 source_sha256,
                 expected,
                 replacement,
+                allow_width_change: *allow_width_change,
                 output,
                 dry_run: *dry_run,
             },
@@ -977,9 +982,9 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
         Command::Capabilities => Ok(
             json!({ "runtime": "rust-native", "version": env!("CARGO_PKG_VERSION"), "migration_preview": true,
             "commands": ["add-image-overlay", "add-vector-overlay", "split", "add-text-overlay", "inspect-content-text", "replace-content-text", "info", "sanitize", "list-forms", "list-choices", "fill-button", "fill-text", "fill-choice", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "images-to-pdf", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "duplicate-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
-            "vector_overlays":"new_rectangle_ellipse_line_bounded_polyline_with_stroke_fill_paint_alpha_not_redaction",
+            "vector_overlays":"new_rectangle_ellipse_line_bounded_polyline_and_multi_stroke_visual_signatures_with_stroke_fill_paint_alpha_not_redaction_or_cryptographic_signing",
             "image_overlay":"restricted_png_jpeg_insert_quarter_turns_pdf_rectangle_no_existing_image_replacement",
-            "existing_content_editing": "guarded_direct_courier_ascii_same_length_operands_no_reflow_or_secure_erasure",
+            "existing_content_editing": "guarded_direct_standard_courier_helvetica_times_ascii_operands_preserve_word_advances_or_explicit_bounded_width_change_no_reflow_or_secure_erasure",
             "image_conversion":"restricted_png_jpeg_color_metadata_orientation_tier_one_pixel_one_pdf_point",
             "metadata":"six_standard_trailer_info_keys_custom_entries_and_xmp_preserved_no_sync_or_secure_erasure",
             "sanitization":"targeted_info_xmp_file_association_action_removal_full_rewrite_gc_not_redaction_or_privacy_proof",

@@ -4,6 +4,13 @@ Pure Rust CPU page rasterization using Hayro 0.8 (`Apache-2.0 OR MIT`), with emb
 
 `render_page(bytes, zero_based_page_index, pixels_per_point)` returns `RenderedPage { width, height, rgba }`: opaque, white-backed RGBA8 rows with no padding. It respects page crop and rotation and rounds fractional pixel dimensions up. It needs no external renderer, GPU or network access.
 
+`standard_ascii_width(exact_pdf_font_name, code, win_ansi)` exposes the same
+installed standard14 nominal metrics used by the interpreter for the twelve
+Latin Courier/Helvetica/Times faces. Unsupported aliases and nonprintable codes
+return `None`. It neither resolves custom font dictionaries nor bounds glyph
+ink; the core editor separately verifies encoding, absent metric overrides,
+layout and transactional publication.
+
 `render_view_page(bytes, page_index, pixels_per_point, logical_zoom)` adds screen
 magnification explicitly. NoZoom annotations cancel logical zoom while preserving
 pixel density/DPR and reduced preview resolution. Text notes implicitly have

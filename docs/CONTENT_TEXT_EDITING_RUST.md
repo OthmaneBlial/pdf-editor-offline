@@ -18,8 +18,9 @@ quote operators. Stream arrays and inline images are refused for this tier.
 An editable run must be the sole text show in its `BT`/`ET` object, with explicit
 `Tf`, finite `Tm` and `Tr 0`. Before the show it permits only those operators and
 finite `Tc`, `Tw`, `Tz`, `Ts`; the next operation must be `ET`. The font must be
-standard unembedded Type1 Courier, Courier-Bold, Courier-Oblique or
-Courier-BoldOblique, with default/named StandardEncoding or named WinAnsi encoding.
+one of the twelve standard unembedded Type1 Courier, Helvetica or Times faces,
+with default/named StandardEncoding or named WinAnsi encoding. Font aliases
+such as Arial and embedded/variable fonts are outside this tier.
 StandardEncoding runs require unambiguous ASCII source and replacement codes:
 codes 39 and 96 are refused because they represent curved quotes rather than the
 ASCII apostrophe/backtick. Explicit WinAnsi accepts those codes with their ASCII
@@ -34,11 +35,36 @@ Tagged catalogs, StructParents and marked content are refused, avoiding stale
 ActualText or structure-tree semantics. Signed and encrypted files are read-only.
 
 `replace_content_text(page, changes)` requires the exact inventory identity and
-expected text. Replacements must be printable ASCII, have the same byte count
-and keep spaces at the same positions. Standard Courier glyphs have equal
-advances, so these restrictions preserve the text advance even with existing
-character and word spacing. There is no reflow, fitting, shaping, font fallback
-or general existing-text layout claim.
+expected text. Default `PreserveWordAdvances` requires printable ASCII with the
+same number of spaces and exactly the same nominal standard-font advance for
+each corresponding word. Different glyph counts in this mode require explicit
+`0 Tc` in the original text object; equal counts cancel unchanged character
+spacing. Courier consequently retains its original equal-length/space-position
+rule. Proportional faces permit real metric-equivalent substitutions, including
+Helvetica `O` → `tti` and Times-Roman `M` → `fii` with zero character spacing.
+
+Explicit `AllowWidthChange` instead permits a different length and width in the
+one final `Tj` operand. It keeps the actual font, size, text matrix and baseline;
+it introduces no paragraph wrapping, fitting, shaping or fallback. Because `ET`
+immediately follows, no later show in that text object depends on the changed
+advance. A later `BT` resets text matrices; its original operators remain exact.
+Malformed text showing/positioning outside a text object is refused. The parser
+tracks inherited `Tc`, `Tw`, `Tz`, `Ts` and `cm` across text objects and `q`/`Q`
+rather than assuming that `BT` resets text-state parameters. The reported
+nominal layout includes character spacing after the final glyph, as required
+by the PDF text-displacement rule. It checks every glyph-origin prefix and the
+nominal glyph basis, not just the final endpoint, for finite values within one
+million content-space units. This is a layout bound, not a fit-to-page promise.
+
+The editor reads the unchanged installed Hayro standard14 generated metrics via
+a small accessor; it does not substitute a new font or copy a second AFM table.
+Source/license provenance is in [the interpreter patch notes](../vendor/hayro-interpret/PATCH_NOTES.md),
+with the [pinned upstream metric tables](https://github.com/LaurenzV/hayro/blob/ea9c81dc70cde40c64205986fdcfcd481fe934d8/hayro-interpret/src/font/generated/metrics.rs).
+Adobe describes the metric units in [AFM specification5004](https://adobe-type-tools.github.io/font-tech-notes/pdfs/5004.AFM_Spec.pdf);
+PDF text matrices/state/displacement are specified in sections9.3–9.4 of the
+PDF standard linked above. Nominal advances are not old glyph-ink bounds:
+replacement ink can differ, overlap artwork or extend off-page. Renderer
+rounding may differ slightly; no universal bit-identical word-edge promise is made.
 
 All changes validate before a candidate document is published. The editor
 clones the selected stream, replaces only selected operands, preserves all
@@ -78,11 +104,32 @@ pending saves and read-only documents cannot enable Apply. Close, quit and
 recovery retain or explicitly discard a draft; failures keep it available.
 Password-opened files can be inventoried only as session-only read-only data.
 
+CLI `--allow-width-change` opts into the broader mode and reports before/after
+nominal advances and baseline endpoints in JSON. The native **Allow line width
+change** checkbox uses the same core policy and displays those measurements
+before Apply. Its default remains preserve-advance. Read-only/stale/pending-save
+guards, durable Undo/Redo and verified new-copy saving apply to both modes.
+
 This is **not redaction or secure deletion**. The original stream remains as an
 orphan or as another page's live stream, and old bytes can remain recoverable.
-Unsupported fonts, variable-length replacements, Unicode, text clipping,
+Unsupported fonts, Unicode, text clipping,
 multiple shows per text object, embedded font edits and Form XObject traversal
 need separate implemented and verified tiers.
+
+Proportional tests cover all eight Helvetica/Times faces, exact metric-equivalent
+and explicit variable-width replacements, inherited state and graphics restore,
+unsafe/out-of-budget layout rollback and strict default-policy refusal. The
+pinned-reader gate verifies exact extracted text, baseline anchors, predicted
+tail displacement with inherited spacing/scaling (0.001-unit bbox tolerance),
+unchanged following text-object boxes, positive native/Poppler glyph changes
+inside a conservative source-defined union envelope, and exact shared-page
+pixels. This does not assert matching artwork between different renderers.
+The production-native gate additionally records a reference-mode distinction:
+default/layout Poppler infer `AB` for the fixture's narrow12pt Helvetica `(A B)`
+space, while `-raw` retains the literal space. It asserts both exact source
+baselines and both corresponding candidate outputs; core literal extraction
+and original operands are verified separately. No token merging or multiset
+comparison is used to hide this difference.
 
 Synthetic tests check real replacement and repeated saved/reopened edits,
 stale/forged identity, expected-value checks, multi-change rollback, source

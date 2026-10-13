@@ -860,6 +860,13 @@ impl WorkingDocument {
                             .encoding
                             .is_some_and(|encoding| encoding.accepts_ascii(text))
                 })
+                || run.standard_font.is_none() != run.encoding.is_none()
+                || run.allows_variable_length && run.standard_font.is_none()
+                || run.layout.is_some()
+                    && run
+                        .text
+                        .as_ref()
+                        .is_none_or(|text| run.replacement_position(text).is_err())
                 || run
                     .refusal_reason
                     .as_ref()

@@ -10,6 +10,7 @@ pub(super) struct Dialog {
     inventory: Option<ContentTextPage>,
     selected: Option<usize>,
     replacement: String,
+    allow_width_change: bool,
     pub submitting: bool,
     pub stale: bool,
     pub error: Option<String>,
@@ -22,6 +23,7 @@ impl Dialog {
             .is_some_and(|text| text != self.replacement)
     }
     fn select(&mut self, index: usize) {
+        self.allow_width_change = false;
         self.selected = Some(index);
         self.replacement = self
             .inventory
@@ -40,20 +42,30 @@ impl Dialog {
         if !run.writable {
             return Err("This run is outside the supported editing tier.");
         }
-        if run.validate_replacement(&self.replacement).is_err() {
+        if run
+            .validate_replacement_with_policy(&self.replacement, self.layout_policy())
+            .is_err()
+        {
             if matches!(run.encoding, Some(pdf_core::ContentTextEncoding::Standard))
                 && (self.replacement.contains('\'') || self.replacement.contains('`'))
             {
                 return Err("StandardEncoding quote codes are ambiguous; no value was truncated.");
             }
             return Err(
-                "Keep printable ASCII length and spaces unchanged; no value was truncated.",
+                "Preserve each word's nominal advance, or explicitly enable bounded width change. Use unambiguous printable ASCII; no value was truncated.",
             );
         }
         if !self.has_changes() {
             return Err("Enter a changed value.");
         }
         Ok(())
+    }
+    fn layout_policy(&self) -> pdf_core::ContentTextLayoutPolicy {
+        if self.allow_width_change {
+            pdf_core::ContentTextLayoutPolicy::AllowWidthChange
+        } else {
+            Default::default()
+        }
     }
 }
 impl EditorApp {
@@ -78,6 +90,7 @@ impl EditorApp {
             inventory: None,
             selected: None,
             replacement: String::new(),
+            allow_width_change: false,
             submitting: false,
             stale: false,
             error: None,
@@ -175,6 +188,7 @@ impl EditorApp {
                 key,
                 source_fingerprint: inventory.source_fingerprint,
                 change: pdf_core::ContentTextChange {
+                    layout_policy: dialog.layout_policy(),
                     identity: run.identity.clone(),
                     expected: expected.clone(),
                     replacement: dialog.replacement.clone(),
@@ -214,7 +228,7 @@ impl EditorApp {
         let mut next = None;
         egui::Window::new("Edit existing text").default_width(540.0).max_width((context.content_rect().width()-32.0).max(220.0)).max_height((context.content_rect().height()-32.0).max(180.0)).collapsible(false).anchor(egui::Align2::CENTER_CENTER,egui::Vec2::ZERO).show(context,|ui|{
             ui.label(format!("Page {} · original text operands",dialog.key.page));
-            ui.small("Standard Courier only: equal-length ASCII, keeping spaces in place. Some fonts cannot edit ASCII apostrophe/backtick. No reflow or secure deletion; old stream bytes remain recoverable.");
+            ui.small("Standard Courier/Helvetica/Times ASCII. Default: preserve word advances. Explicit width change keeps font and baseline, without wrapping or fitting. Old bytes remain recoverable.");
             if !editable {ui.colored_label(ui.visuals().error_fg_color,"This document is read-only.");}
             if dialog.stale {ui.colored_label(ui.visuals().error_fg_color,"The document or page changed. Copy your draft, then discard and reopen.");}
             if let Some(inventory)=&dialog.inventory {
@@ -231,6 +245,12 @@ impl EditorApp {
                     });
                     if let Some(index)=selected {dialog.select(index);}
             }else {ui.label("Loading bounded inventory…");}
+            if let Some(run)=dialog.selected.and_then(|index|dialog.inventory.as_ref()?.runs.get(index)) {
+                ui.add_enabled(enabled&&editable&&run.writable&&run.layout.is_some(),egui::Checkbox::new(&mut dialog.allow_width_change,"Allow line width change"));
+                if let Some(expected)=&run.text && let (Ok(before),Ok(after))=(run.replacement_position(expected),run.replacement_position(&dialog.replacement)) {
+                    ui.label(format!("Nominal advance: {:.3} → {:.3} content-space units",before.nominal_advance,after.nominal_advance));
+                }
+            }
             egui::ScrollArea::vertical().id_salt("existing-text-controls").max_height((ui.available_height()-86.0).max(90.0)).show(ui,|ui|{
                 if let Some(run)=dialog.selected.and_then(|index|dialog.inventory.as_ref()?.runs.get(index)) {
                     if let Some(reason)=&run.refusal_reason {ui.label(reason);}
@@ -240,6 +260,11 @@ impl EditorApp {
                         let label=ui.label("Replacement text");
                         let response=ui.add_enabled(enabled&&editable&&run.writable,egui::TextEdit::singleline(&mut dialog.replacement).desired_width(f32::INFINITY).id_salt(("existing-text-value",dialog.key.generation))).labelled_by(label.id);
                         if std::mem::take(&mut dialog.focus){response.request_focus();}
+                        if let Some(font)=run.standard_font {ui.label(format!("Original font: {}",font.pdf_name()));}
+                        if let (Ok(before),Ok(after))=(run.replacement_position(expected),run.replacement_position(&dialog.replacement)) {
+                            ui.label(format!("Baseline start: ({:.3}, {:.3}); endpoint: ({:.3}, {:.3}) → ({:.3}, {:.3})",before.baseline_start[0],before.baseline_start[1],before.baseline_end[0],before.baseline_end[1],after.baseline_end[0],after.baseline_end[1]));
+                        }
+                        if dialog.allow_width_change {ui.label("Width changes can overlap nearby artwork or leave the page. Font and baseline stay fixed; there is no wrapping, fitting or old-ink clipping.");}
                         apply=(response.has_focus()||response.lost_focus())&&ui.input(|input|input.key_pressed(egui::Key::Enter));
                     }
                 }
