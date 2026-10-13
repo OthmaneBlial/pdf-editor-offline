@@ -169,10 +169,11 @@ impl PdfDocument {
         .pages()?;
         let mut report=TextRedactionReport {
             changed_text_shows:0, matched_targets:0, affected_pages:Vec::new(),
-            full_rewrite:true, profile:"ascii-standard-type1-uniform-background-v2".into(),
+            full_rewrite:true, profile:"ascii-standard-type1-text-state-v3".into(),
             cleanup, rewritten_stream_orphans_removed:0,content_comments_removed:0,
             limitations:vec![
                 "Exact ASCII target glyphs are removed; their advance is retained as a TJ adjustment, preserving unmatched glyph positions.".into(),
+                "Inherited font/size, character and word spacing, horizontal scale, rise, line moves and filled/invisible text are supported; glyph advances restore across outer q/Q. Heuristic extraction reading order may change.".into(),
                 "Only printable ASCII, unembedded standard Type1 fonts and the explicitly inspected semantic-text/uniform-background profile are supported; opaque, image, form, annotation and custom carriers refuse.".into(),
                 "Arbitrary painted paths, transforms and clipping refuse; this is not proof against every visual or steganographic encoding. Broader vector/image redaction remains unsupported.".into(),
                 "This proves absence of the supplied exact targets within this supported output profile, not absence of other private information or erasure of source, backups, recovery journals or filesystem copies.".into(),

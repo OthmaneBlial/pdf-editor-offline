@@ -503,7 +503,7 @@ fn unsupported_carriers_and_state_or_unremoved_comments_fail_without_source_muta
         );
     }
     for raw in [
-        b"BT /F1 10 Tf 20 180 Td 1 Tc (PRIVATE) Tj ET".as_slice(),
+        b"BT /F1 10 Tf 20 180 Td 1 Tr (PRIVATE) Tj ET".as_slice(),
         b"BT /F1 10 Tf 20 180 Td (PRIVATE) Tj ET /Im1 Do".as_slice(),
     ] {
         let mut doc = Document::load_mem(&uniform_fixture()).unwrap();

@@ -1,11 +1,39 @@
 use super::*;
+use crate::ContentTextLayout;
+use crate::content_edit::layout::GraphicsTextState;
+
+#[derive(Clone, Default)]
+struct State<'a> {
+    graphics: GraphicsTextState,
+    font: Option<&'a Font>,
+    size: f64,
+    leading: f64,
+}
+fn number(bytes: &[u8], range: &std::ops::Range<usize>, parsed: &Object) -> Result<f64> {
+    if !parsed.as_float().is_ok_and(f32::is_finite) || range.len() > 128 {
+        return Err(Error::Refused(
+            "invalid or excessive redaction numeric parameter",
+        ));
+    }
+    let value = std::str::from_utf8(&bytes[range.clone()])
+        .ok()
+        .and_then(|raw| raw.parse::<f64>().ok())
+        .ok_or(Error::Refused("ambiguous redaction numeric token"))?;
+    if !value.is_finite() || value.abs() > 1_000_000.0 {
+        return Err(Error::Refused(
+            "redaction text-state magnitude exceeds one million",
+        ));
+    }
+    Ok(value)
+}
 
 struct Show<'a> {
     ordinal: usize,
     font: &'a Font,
+    layout: ContentTextLayout,
     segments: Vec<(usize, &'a [u8])>,
 }
-fn pieces(value: &[u8], mask: &[bool], font: &Font) -> Result<Vec<u8>> {
+fn pieces(value: &[u8], mask: &[bool], show: &Show<'_>) -> Result<Vec<u8>> {
     let mut output = Vec::new();
     let mut at = 0;
     while at < value.len() {
@@ -16,12 +44,25 @@ fn pieces(value: &[u8], mask: &[bool], font: &Font) -> Result<Vec<u8>> {
         }
         if removed {
             let width = value[start..at].iter().try_fold(0u64, |sum, code| {
-                let width = pdf_render::standard_ascii_width(&font.0, *code, font.1)
+                let width = pdf_render::standard_ascii_width(&show.font.0, *code, show.font.1)
                     .ok_or(Error::Refused("standard font advance unavailable"))?;
                 sum.checked_add(u64::from(width))
                     .ok_or(Error::Limit("redaction width overflow"))
             })?;
-            output.extend_from_slice(format!(" -{width} ").as_bytes());
+            let removed = &value[start..at];
+            let spaces = removed.iter().filter(|code| **code == b' ').count();
+            // TJ does not add Tc/Tw. Replace every removed glyph's own advance,
+            // including the final glyph; horizontal scaling applies to both and
+            // cancels in these thousandths-of-em compensation units.
+            let adjustment = -(width as f64
+                + 1000.0
+                    * (removed.len() as f64 * show.layout.character_spacing
+                        + spaces as f64 * show.layout.word_spacing)
+                    / show.layout.font_size);
+            if !adjustment.is_finite() || adjustment.abs() > 1e15 {
+                return Err(Error::Limit("redaction compensation magnitude"));
+            }
+            output.extend_from_slice(format!(" {adjustment} ").as_bytes());
         } else {
             output.push(b'<');
             for byte in &value[start..at] {
@@ -41,7 +82,8 @@ pub(super) fn plan(
 ) -> Result<(Vec<u8>, usize, usize)> {
     let (program, spans) = crate::content_spans::decode_spanned(bytes)?;
     let mut block = false;
-    let mut font = None;
+    let mut state = State::default();
+    let mut saved = Vec::new();
     let mut positioned = false;
     let mut text: Vec<u8> = Vec::new();
     let mut shows: Vec<Show<'_>> = Vec::new();
@@ -68,7 +110,6 @@ pub(super) fn plan(
                 }
                 block = true;
                 text_started = true;
-                font = None;
                 positioned = false;
                 text.clear();
                 shows.clear();
@@ -94,10 +135,19 @@ pub(super) fn plan(
                     changed_shows += 1;
                     let op = &program.operations[show.ordinal];
                     let span = &spans[show.ordinal];
-                    if op.operator == "Tj" {
+                    if op.operator != "TJ" {
                         let (at, value) = show.segments[0];
-                        let mut replacement = b"[".to_vec();
-                        replacement.extend(pieces(value, &mask[at..at + value.len()], show.font)?);
+                        let mut replacement = Vec::new();
+                        if op.operator == "\"" {
+                            replacement.extend_from_slice(&bytes[span.operands[0].clone()]);
+                            replacement.extend_from_slice(b" Tw ");
+                            replacement.extend_from_slice(&bytes[span.operands[1].clone()]);
+                            replacement.extend_from_slice(b" Tc T* ");
+                        } else if op.operator == "'" {
+                            replacement.extend_from_slice(b"T* ");
+                        }
+                        replacement.push(b'[');
+                        replacement.extend(pieces(value, &mask[at..at + value.len()], show)?);
                         replacement.extend_from_slice(b"] TJ");
                         changes.push((span.full.clone(), replacement));
                     } else {
@@ -114,11 +164,7 @@ pub(super) fn plan(
                                 let (at, s) = show.segments[segment];
                                 segment += 1;
                                 if mask[at..at + s.len()].iter().any(|b| *b) {
-                                    replacement.extend(pieces(
-                                        s,
-                                        &mask[at..at + s.len()],
-                                        show.font,
-                                    )?);
+                                    replacement.extend(pieces(s, &mask[at..at + s.len()], show)?);
                                 } else {
                                     replacement.extend_from_slice(&bytes[item]);
                                     replacement.push(b' ');
@@ -133,20 +179,49 @@ pub(super) fn plan(
                     }
                 }
             }
-            "Tf" if block => {
+            "Tf" => {
                 if op.operands.len() != 2
                     || !op.operands[1].as_float()?.is_finite()
                     || op.operands[1].as_float()? <= 0.0
                 {
                     return Err(Error::Refused("unsupported redaction font selection"));
                 }
-                font = Some(
+                state.size = number(bytes, &spans[ordinal].operands[1], &op.operands[1])?;
+                if state.size < 0.000001 {
+                    return Err(Error::Refused("redaction font size is below one millionth"));
+                }
+                state.font = Some(
                     fonts
                         .get(op.operands[0].as_name()?)
                         .ok_or(Error::Refused("missing redaction font"))?,
                 );
             }
-            "Tm" | "Td" if block => {
+            "Tc" | "Tw" | "Tz" | "Ts" => {
+                if op.operands.len() != 1 {
+                    return Err(Error::Refused("invalid redaction text-state arity"));
+                }
+                let value = number(bytes, &spans[ordinal].operands[0], &op.operands[0])?;
+                if op.operator == "Tz" && (value == 0.0 || op.operands[0].as_float()? == 0.0) {
+                    return Err(Error::Refused(
+                        "redaction horizontal scaling cannot be zero",
+                    ));
+                }
+                state.graphics.update_number(&op.operator, value)?;
+            }
+            "TL" => {
+                if op.operands.len() != 1 {
+                    return Err(Error::Refused("invalid redaction leading"));
+                }
+                state.leading = number(bytes, &spans[ordinal].operands[0], &op.operands[0])?;
+            }
+            "Tr" => {
+                if op.operands.len() != 1 || !matches!(op.operands[0], Object::Integer(0 | 3)) {
+                    return Err(Error::Refused(
+                        "redaction only admits filled or invisible text",
+                    ));
+                }
+            }
+            "Tm" | "Td" | "TD" if block => {
                 let n = if op.operator == "Tm" { 6 } else { 2 };
                 if op.operands.len() != n
                     || op
@@ -157,23 +232,43 @@ pub(super) fn plan(
                     return Err(Error::Refused("invalid redaction text position"));
                 }
                 positioned = true;
+                if op.operator == "TD" {
+                    state.leading = -number(bytes, &spans[ordinal].operands[1], &op.operands[1])?;
+                }
             }
-            "Tj" | "TJ" if block => {
-                let font =
-                    font.ok_or(Error::Refused("redaction text objects need explicit font"))?;
-                if !positioned || op.operands.len() != 1 {
+            "T*" if block => {
+                if !positioned || !op.operands.is_empty() {
+                    return Err(Error::Refused("invalid redaction next-line position"));
+                }
+            }
+            "Tj" | "TJ" | "'" | "\"" if block => {
+                let font = state
+                    .font
+                    .ok_or(Error::Refused("redaction text objects need explicit font"))?;
+                let expected = if op.operator == "\"" { 3 } else { 1 };
+                if !positioned || op.operands.len() != expected {
                     return Err(Error::Refused(
                         "redaction text objects need explicit position",
                     ));
                 }
+                if op.operator == "\"" {
+                    for (index, operator) in [(0, "Tw"), (1, "Tc")] {
+                        let value =
+                            number(bytes, &spans[ordinal].operands[index], &op.operands[index])?;
+                        state.graphics.update_number(operator, value)?;
+                    }
+                }
                 let values = if op.operator == "TJ" {
                     op.operands[0].as_array()?.as_slice()
                 } else {
-                    op.operands.as_slice()
+                    &op.operands[expected - 1..]
                 };
                 let mut show = Show {
                     ordinal,
                     font,
+                    layout: state
+                        .graphics
+                        .layout(state.size, [1.0, 0.0, 0.0, 1.0, 0.0, 0.0]),
                     segments: Vec::new(),
                 };
                 for value in values {
@@ -209,12 +304,16 @@ pub(super) fn plan(
                     return Err(Error::Refused("redaction graphics stack"));
                 }
                 graphics_depth += 1;
+                saved.push(state.clone());
             }
             "Q" => {
                 if !op.operands.is_empty() || graphics_depth == 0 {
                     return Err(Error::Refused("redaction graphics stack"));
                 }
                 graphics_depth -= 1;
+                state = saved
+                    .pop()
+                    .ok_or(Error::Refused("unbalanced redaction text state"))?;
             }
             "re" => {
                 let expected = [

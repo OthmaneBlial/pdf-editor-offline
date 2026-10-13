@@ -559,7 +559,7 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
             let bytes = pdf_core::read_pdf_bytes(input)?;
             pdf_core::verify_redaction_bytes(&bytes, password, &request.targets)?;
             Ok(
-                json!({"operation":"verify-redaction","verified":true,"profile":"ascii-standard-type1-uniform-background-v2","target_count":request.targets.len(),"other_files_erased":false,"general_privacy_certificate":false}),
+                json!({"operation":"verify-redaction","verified":true,"profile":"ascii-standard-type1-text-state-v3","target_count":request.targets.len(),"other_files_erased":false,"general_privacy_certificate":false}),
             )
         }
         Command::ListChoices { input } => Ok(json!({"choices":open(input)?.list_choice_fields()?})),

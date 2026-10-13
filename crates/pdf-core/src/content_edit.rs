@@ -9,7 +9,7 @@ use std::ops::Range;
 
 const MAX_RUNS: usize = 10_000;
 const MAX_TEXT: usize = 4 * 1024 * 1024;
-mod layout;
+pub(crate) mod layout;
 mod properties;
 use layout::GraphicsTextState;
 pub use layout::{ContentTextLayout, ContentTextPosition};

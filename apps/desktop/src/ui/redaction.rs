@@ -196,7 +196,7 @@ impl EditorApp {
                 ui.label("Use Save As to publish a verified new file. This is not arbitrary-PDF redaction or a general privacy certificate.");
             }else{
                 ui.label("Remove exact case-sensitive ASCII targets from PDF text instructions. Unmatched text retains its nominal position; no white covering rectangle is used.");
-                ui.small("Supported preview: standard Courier/Helvetica/Times semantic plaintext and one uniform full-page background with explicit text state. Other painted paths, clipping, transforms, images, custom/embedded fonts, Forms, retained annotations, layers, tagging and unsupported layout/state refuse. This is not arbitrary visual or steganographic redaction.");
+                ui.small("Supported preview: standard Courier/Helvetica/Times semantic plaintext, bounded spacing/rise/line moves, filled or invisible text, and one uniform full-page background. Other painted paths, clipping, transforms, images, custom/embedded fonts, Forms, retained annotations, layers, tagging and unsupported layout/state refuse. This is not arbitrary visual or steganographic redaction; extraction reading order can change.");
                 ui.label("One exact target per line (1–100; 4096 bytes each, 64 KiB combined):");
                 let before=d.targets.clone();
                 ui.add_enabled(enabled && d.expected_id.is_none(),egui::TextEdit::multiline(&mut d.targets).id(egui::Id::new("redaction-targets")).desired_rows(5).desired_width(f32::INFINITY));

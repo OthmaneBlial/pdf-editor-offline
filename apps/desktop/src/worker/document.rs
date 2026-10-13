@@ -799,7 +799,7 @@ impl WorkingDocument {
             || info.signature_fields != 0
             || !report.full_rewrite
             || !report.cleanup.full_rewrite
-            || report.profile != "ascii-standard-type1-uniform-background-v2"
+            || report.profile != "ascii-standard-type1-text-state-v3"
             || report.changed_text_shows == 0
             || report.matched_targets == 0
             || report.matched_targets > 100_000

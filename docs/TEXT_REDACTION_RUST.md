@@ -17,11 +17,27 @@ count is reported. Strings and escaped names are not mistaken for comments.
 The supported profile requires unembedded standard Type1 Courier, Helvetica or
 Times faces, with default StandardEncoding or WinAnsiEncoding. StandardEncoding
 quote codes 39/96 refuse because their glyph meanings differ from ASCII. Each
-text object must explicitly select its font and position; only `Tf`, `Tm`, `Td`,
-`Tj` and `TJ` are admitted within `BT`/`ET`. Character/word spacing, horizontal
-scaling, text rendering modes, marked-content properties and complex layout need
-additional proved implementations. Profile `ascii-standard-type1-uniform-background-v2`
-admits semantic text, balanced `q`/`Q`, ordinary fill colors, and at most one uniform
+page must select a font before its first text show; each text object must set an
+explicit position. Profile `ascii-standard-type1-text-state-v3` adds inherited
+font/size, character/word spacing (Tc/Tw), nonzero horizontal scale (Tz), rise
+(Ts), leading/line moves (TL, TD, T*) and the quote text-show operators.
+Only filled (Tr 0) or invisible (Tr 3) text is admitted. Text parameters and
+font size restore across balanced outer q/Q; they do not reset at BT.
+Marked content, stroking/clipping text modes and more complex layouts still refuse.
+
+Removed glyphs also compensate their original character spacing and, for each
+removed ASCII space, word spacing. Validated raw parameter tokens retain their
+precision before the compensation calculation; unchanged operands are never
+re-encoded. Numeric text-state parameters are bounded at one million units and
+font sizes must be at least one millionth. Compensation magnitude is bounded.
+These are nominal positioning guarantees, not a guarantee about a reader's
+heuristic extraction order: removing words can change column grouping even when
+every retained word has identical coordinates. The failed-before q/Q reference
+records are retained; the proof compares exact sorted word-coordinate records
+with multiplicity, without coordinate tolerances.
+
+The profile continues to
+admit semantic text, balanced `q`/`Q`, ordinary fill colors, and at most one uniform
 rectangle exactly covering the MediaBox, filled before any text. Its original
 bytes are preserved. Other painted paths, strokes, transforms and clipping refuse:
 they can encode outlined text that glyph extraction cannot verify. This is a narrow
@@ -67,6 +83,11 @@ split-array and incremental-revision inputs; and prove target absence in qpdf's
 decoded full rewrite. Poppler verifies unchanged retained word coordinates for all
 twelve Latin standard faces. A hand-authored Courier blank-advance control also
 verifies native and Poppler raster equality, including the full-page background.
+The state expansion checks all twelve faces against qpdf and exact Poppler word
+records for six state programs, including q/Q inheritance, negative spacing,
+quote shows and high-precision parameters. Independently hand-derived Courier600
+controls prove native and Poppler pixel equality. Invisible text is recoverable
+before redaction and absent afterward while its pixels remain unchanged.
 
 The CLI reads a bounded private `--targets-file` JSON request; targets are not
 command arguments. `redact-text` supports dry-run and verified no-clobber output;

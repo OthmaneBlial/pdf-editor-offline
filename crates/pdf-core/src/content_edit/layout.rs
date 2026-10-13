@@ -130,7 +130,7 @@ fn compose(left: [f64; 6], right: [f64; 6]) -> [f64; 6] {
     ]
 }
 #[derive(Clone)]
-pub(super) struct GraphicsTextState {
+pub(crate) struct GraphicsTextState {
     spacing: f64,
     word: f64,
     scale: f64,
@@ -157,7 +157,14 @@ impl GraphicsTextState {
         let [value] = values else {
             return Err(Error::Invalid("text-state operator requires one number"));
         };
-        let value = numeric(value)?;
+        self.update_number(operator, numeric(value)?)
+    }
+    /// Reuse the state model with a validated raw-token number before f32 parsing
+    /// loses precision; existing operator editing retains its original parser.
+    pub(crate) fn update_number(&mut self, operator: &str, value: f64) -> Result<()> {
+        if !value.is_finite() {
+            return Err(Error::Invalid("nonfinite text-state parameter"));
+        }
         match operator {
             "Tc" => self.spacing = value,
             "Tw" => self.word = value,
@@ -167,7 +174,7 @@ impl GraphicsTextState {
         }
         Ok(())
     }
-    pub(super) fn layout(&self, size: f64, matrix: [f64; 6]) -> ContentTextLayout {
+    pub(crate) fn layout(&self, size: f64, matrix: [f64; 6]) -> ContentTextLayout {
         ContentTextLayout {
             font_size: size,
             character_spacing: self.spacing,

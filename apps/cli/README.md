@@ -26,6 +26,9 @@ unsupported structures refuse. Only a uniform full-page background is admitted.
 The original file,
 backups and recovery copies remain. This is not arbitrary-PDF redaction or a
 general privacy certificate: see the [exact proof boundary](../../docs/TEXT_REDACTION_RUST.md).
+The current profile supports inherited font/size, bounded spacing/rise/line moves
+and filled/invisible text. Retained positions are preserved; extraction reading
+order can change through a reader's layout heuristics.
 
 Current source adds rectangles, ellipses, lines and bounded polylines with
 `add-vector-overlay`. A strict JSON request controls page, geometry, stroke,

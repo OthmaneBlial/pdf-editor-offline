@@ -69,7 +69,8 @@ impl PdfDocument {
             let (program, _) = crate::content_spans::decode_spanned(&bytes)?;
             for op in program.operations {
                 let values = match op.operator.as_str() {
-                    "Tj" => Some(op.operands.as_slice()),
+                    "Tj" | "'" => Some(op.operands.as_slice()),
+                    "\"" => Some(&op.operands[2..]),
                     "TJ" => Some(op.operands[0].as_array()?.as_slice()),
                     _ => None,
                 };
