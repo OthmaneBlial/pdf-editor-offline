@@ -1,5 +1,7 @@
 # PDF Editor Offline
 
+**開発の進捗をチェック：** [最新の変更](https://github.com/OthmaneBlial/pdf-editor-offline/commits/main/) · [ネイティブテスト](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml) · [ロードマップ](../../ROADMAP.md)。操作を試し、個人情報を含まないサンプル PDF で改善に参加してください。役立つツールだと思ったら、[スターで応援](https://github.com/OthmaneBlial/pdf-editor-offline)できます。
+
 **ソースコードの新機能：**ドラッグとサイズ変更ハンドルによる新しい文字の配置、PDF の新しいタブへの分割、パスワードダイアログによる保護された文書の表示。暗号化文書は読み取り専用で、復元記録に復号内容やパスワードを保存しません。公開済み CLI は引き続き `4.0.0-preview.3` です。
 
 [Encrypted viewing](../ENCRYPTED_VIEWING_RUST.md) · [Canvas text placement](../TEXT_OVERLAYS_RUST.md) · [Split workflow](../../apps/desktop/README.md)

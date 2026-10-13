@@ -1,5 +1,7 @@
 # PDF Editor Offline
 
+**Acompanhe o progresso:** [últimas mudanças](https://github.com/OthmaneBlial/pdf-editor-offline/commits/main/) · [testes nativos](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml) · [roteiro](../../ROADMAP.md). Experimente um fluxo e contribua com um PDF de exemplo sem dados privados. Se a ferramenta for útil, [deixe uma estrela](https://github.com/OthmaneBlial/pdf-editor-offline).
+
 **Novidades no código-fonte:** posicione texto novo arrastando e usando as alças, divida PDFs em novas abas e abra documentos protegidos com um diálogo de senha. Arquivos criptografados permanecem somente leitura; a recuperação não guarda conteúdo descriptografado nem senhas. A CLI publicada continua em `4.0.0-preview.3`.
 
 [Encrypted viewing](../ENCRYPTED_VIEWING_RUST.md) · [Canvas text placement](../TEXT_OVERLAYS_RUST.md) · [Split workflow](../../apps/desktop/README.md)

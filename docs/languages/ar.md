@@ -1,5 +1,7 @@
 # PDF Editor Offline
 
+**تابع تطوّر المشروع:** [أحدث التغييرات](https://github.com/OthmaneBlial/pdf-editor-offline/commits/main/) · [اختبارات التطبيق الأصلي](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml) · [خطة العمل](../../ROADMAP.md). جرّب إحدى المهام وساهم بملف PDF تجريبي لا يحتوي على بيانات خاصة. إذا وجدت الأداة مفيدة، [امنح المشروع نجمة](https://github.com/OthmaneBlial/pdf-editor-offline).
+
 **جديد في الشفرة المصدرية:** وضع نص جديد بالسحب ومقابض تغيير الحجم، وتقسيم الملف إلى علامات تبويب جديدة، وفتح ملفات PDF المحمية عبر مربع حوار لكلمة المرور. تبقى الملفات المشفرة للقراءة فقط؛ لا يُحفظ المحتوى المفكوك أو كلمة المرور في الاستعادة. إصدار CLI المنشور ما زال `4.0.0-preview.3`.
 
 [Encrypted viewing](../ENCRYPTED_VIEWING_RUST.md) · [Canvas text placement](../TEXT_OVERLAYS_RUST.md) · [Split workflow](../../apps/desktop/README.md)
