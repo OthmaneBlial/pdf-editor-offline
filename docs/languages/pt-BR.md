@@ -22,11 +22,13 @@ Esta é a prévia nativa em Rust. Compile o aplicativo de desktop a partir do c�
 | Imagens e comentários | Criar PDF com PNG/JPEG compatíveis; exportar uma página como PNG e adicionar/listar/editar/remover notas Text com restrições pela CLI. |
 | Inspecionar e salvar | Inventário de indicadores de ações, anexos, formulários e camadas, somente leitura pela CLI; compressão de fluxos sem perdas e novas cópias verificadas sem sobrescrever. |
 
-União, subconjuntos de páginas, notas e conversão de imagens têm restrições explícitas. Estruturas não suportadas são recusadas; veja o [guia da CLI](../../apps/cli/README.md). A compressão não garante um arquivo menor. Recortar esconde conteúdo; remover metadados ou notas pode deixar valores antigos. Isso não é apagamento seguro. OCR, campos de seleção e de texto avançado, assinatura digital, edição livre do texto e conversão geral não estão disponíveis. O renderizador pode omitir conteúdo não suportado. Confira os documentos exportados. Arquivos assinados e os descriptografados com sucesso são somente leitura.
+União, subconjuntos de páginas, notas e conversão de imagens têm restrições explícitas. Estruturas não suportadas são recusadas; veja o [guia da CLI](../../apps/cli/README.md). A compressão não garante um arquivo menor. Recortar esconde conteúdo; remover metadados ou notas pode deixar valores antigos. Isso não é apagamento seguro. OCR, campos de texto multilinha ou avançado, assinatura digital, edição livre do texto e conversão geral não estão disponíveis. O renderizador pode omitir conteúdo não suportado. Confira os documentos exportados. Arquivos assinados e os descriptografados com sucesso são somente leitura.
 
-O código atual identifica campos AcroForm e preenche caixas de seleção e botões de opção compatíveis, preservando suas aparências existentes. [Exemplos e limites](../FORMS_RUST.md). A CLI npm `4.0.0-preview.3` inclui o preenchimento de botões.
+O código atual identifica campos AcroForm e preenche caixas de seleção e botões de opção compatíveis, preservando suas aparências existentes. [Exemplos e limites](../FORMS_RUST.md). A CLI npm publicada `4.0.0-preview.3` permite preencher esses botões.
 
 Os campos de texto de uma linha compatíveis também podem ser preenchidos com uma fonte TrueType ou CFF1 CID explícita que cubra todo o valor. Glifos ausentes e layouts não suportados são recusados.
+
+No código atual, menus suspensos e listas compatíveis, incluindo seleção múltipla, são preenchidos por índices de opções a partir de zero, com uma fonte explícita. Os campos de texto e seleção não estão na CLI publicada `4.0.0-preview.3`; menus com entrada livre e layouts não suportados são recusados.
 
 A interface está em inglês. Estas traduções não significam que o aplicativo esteja localizado ou que tenha suporte completo a layouts da direita para a esquerda. As fontes offline incluem caracteres chineses, japoneses e coreanos testados, sem cobrir todos os sistemas de escrita.
 
