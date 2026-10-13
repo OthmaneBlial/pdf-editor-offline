@@ -15,6 +15,13 @@ copy reopened without unsaved changes; this is an actual app capture:
 
 ![Native editor after saving a public synthetic PDF with an inserted red image](assets/screenshots/image-saved-2026-10-13.png)
 
+[The 15-second workflow slideshow](assets/image-workflow-2026-10-13.gif) uses six
+genuine captures from this review, ordered as open, image dialog, zoomed
+placement, inserted image, Undo and the saved copy. FFmpeg 9.0.1 scales the
+2520×1436 captures to 1200×684 and assembles 30 frames at two frames per second.
+There is no generated UI, invented cursor motion or claim of continuous screen
+recording. The red fixture and manual interaction limits below remain unchanged.
+
 [The actual saved PDF](assets/image-overlay-native-saved-2026-10-13.pdf) has
 SHA-256 `a77cd1ef650f2fb578995ca63e54a7aa538e8ee1e8e26dc04e7159b35dc896f9`.
 Pinned qpdf 12.4.2 accepted it. Poppler 26.10 retained exact text and geometry;

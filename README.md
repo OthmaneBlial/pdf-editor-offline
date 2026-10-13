@@ -75,6 +75,14 @@ or [leave a sticky note](docs/NOTES_RUST.md). Build the current source to try th
 
 </details>
 
+### A little image adventure
+
+![Real native app captures showing image placement, insertion, undo and a saved copy](docs/assets/image-workflow-2026-10-13.gif)
+
+Six real macOS captures, assembled into a 15-second slideshow: open, choose a
+PNG, zoom, insert, undo and save a new copy. The public synthetic source stays
+intact. [Inspect the saved PDF and review scope](docs/NATIVE_DESKTOP_EVIDENCE.md#actual-image-insertion-and-save-as--2026-10-13).
+
 ### An actual PDF, before and after
 
 | Before | After adding text |
