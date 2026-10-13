@@ -40,6 +40,20 @@ enum Command {
         #[arg(long)]
         dry_run: bool,
     },
+    /// Add new rectangle/ellipse/line/freehand artwork from a strict JSON request; not redaction.
+    AddVectorOverlay {
+        input: PathBuf,
+        #[arg(
+            long,
+            help = "Strict UTF-8 VectorOverlay JSON, at most 256 KiB",
+            long_help = "Strict UTF-8 JSON, at most 256 KiB. Example: {\"page\":1,\"shape\":{\"shape\":\"rectangle\",\"rectangle\":[20,20,120,80]},\"stroke\":{\"color\":[0,0,0],\"width\":2},\"fill\":null,\"opacity\":1}. Shapes: rectangle/ellipse with rectangle; line with from/to; polyline with 2..4096 points. Colors are RGB 0..1; coordinates and width are PDF user units. Stroke and fill may be null; line/polyline require stroke only. Paint must fit the visible page. This adds artwork and does not erase original content."
+        )]
+        overlay_file: PathBuf,
+        #[arg(short, long)]
+        output: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Add a Unicode text overlay in PDF page coordinates; never edits existing text.
     AddTextOverlay {
         input: PathBuf,
@@ -419,6 +433,26 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
             }
             Ok(
                 json!({"operation":"fill-choice","choices":choices,"output":json_path(output),"dry_run":dry_run,"embedded_complete_font":true,"font_fallback":false,"secure_erasure":false}),
+            )
+        }
+        Command::AddVectorOverlay {
+            input,
+            overlay_file,
+            output,
+            dry_run,
+        } => {
+            let request = pdf_core::read_input_bytes(overlay_file, 256 * 1024)?;
+            let overlay: pdf_core::VectorOverlay =
+                serde_json::from_slice(&request).map_err(|_| {
+                    Error::Invalid("vector overlay request must match the strict JSON schema")
+                })?;
+            let mut document = PdfDocument::open(input, password)?;
+            document.add_vector_overlay(&overlay)?;
+            if !dry_run {
+                document.save_new(output)?;
+            }
+            Ok(
+                json!({"operation":"add-vector-overlay","overlay":overlay,"output":json_path(output),"dry_run":dry_run,"info":document.info()?,"existing_content_edited":false,"secure_erasure":false}),
             )
         }
         Command::AddTextOverlay {

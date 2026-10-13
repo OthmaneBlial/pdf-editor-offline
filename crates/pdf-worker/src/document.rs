@@ -71,6 +71,9 @@ pub enum Operation {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "mutation", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Mutation {
+    VectorOverlay {
+        overlay: pdf_core::VectorOverlay,
+    },
     TextOverlay {
         overlay: pdf_core::TextOverlay,
         font_bytes_len: u32,
@@ -802,6 +805,13 @@ fn apply(document: &mut PdfDocument, mutation: Mutation) -> Result<Option<usize>
                         .map_err(|error| error.to_string())?;
                 }
             }
+            Some(page as usize - 1)
+        }
+        Mutation::VectorOverlay { overlay } => {
+            let page = overlay.page;
+            document
+                .add_vector_overlay(&overlay)
+                .map_err(|error| error.to_string())?;
             Some(page as usize - 1)
         }
         Mutation::FillText { .. } | Mutation::TextOverlay { .. } => {

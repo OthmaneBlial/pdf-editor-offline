@@ -15,6 +15,8 @@ mod appearance;
 pub use appearance::TextChange;
 mod overlay;
 pub use overlay::{TextAlignment, TextOverlay};
+mod vector;
+pub use vector::{VectorOverlay, VectorShape, VectorStroke};
 mod choice;
 pub use choice::{ChoiceChange, ChoiceField, ChoiceOption};
 
