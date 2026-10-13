@@ -136,3 +136,20 @@ Rect bounds `[70,44,94,68]`. Rotate270 recorded six adjacent pixels starting at
 (80,85), original red versus `[255,32,32]`, beside `[56,70,80,94]`. Logs retain
 the observed boundary counts/colors; no artwork or whole-raster equivalence is
 claimed.
+
+### CID-keyed OpenType/CFF character selection
+
+For an embedded `CIDFontType0` descendant whose actual full OpenType program
+contains CID-keyed CFF, character codes first resolve through the PDF Encoding
+CMap to CIDs, then through the CFF charset to glyph indices. The former
+OpenType path assumed CID=GID and therefore selected different outlines for a
+nonidentity charset. This patch reuses the CFF blob already cached by
+`OpenTypeFontBlob`; no second font parser or unrelated rendering path is added.
+TrueType descendants and existing raw-CFF form rendering retain their existing
+mapping paths. CIDs outside the 16-bit CFF charset resolve to the missing glyph,
+rather than truncating into another glyph.
+
+The mapping follows ISO 32000-1:2008 §9.7.4.2, and full `FontFile3 /OpenType`
+programs use the PDF 1.6 representation described by §9.9/Table 126. Original
+font files, programs, Unicode maps and charset data establish the mapping; a
+resource name or private provenance attachment does not.

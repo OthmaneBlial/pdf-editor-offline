@@ -2754,6 +2754,8 @@ name = "pdf-render"
 version = "4.0.0-preview.4"
 dependencies = [
  "hayro",
+ "lopdf",
+ "skrifa 0.44.0",
  "tempfile",
 ]
 

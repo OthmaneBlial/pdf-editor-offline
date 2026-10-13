@@ -174,6 +174,11 @@ impl Debug for OpenTypeFontBlob {
 }
 
 impl OpenTypeFontBlob {
+    /// CID-keyed OpenType/CFF uses its CFF charset, not CID=GID.
+    pub(crate) fn cid_cff(&self) -> Option<&CffFontBlob> {
+        self.cff_blob.as_ref().filter(|cff| cff.is_cid())
+    }
+
     pub(crate) fn new(data: FontData, index: u32) -> Option<Self> {
         // Check first whether the font is valid so we can unwrap in the closure.
         let f = FontRef::from_index(data.as_ref().as_ref(), index).ok()?;

@@ -32,6 +32,8 @@ pub(crate) struct Type0Font {
     to_unicode: Option<CMap>,
     widths2: FxHashMap<u32, [f32; 3]>,
     cid_to_gid_map: CidToGIdMap,
+    /// CIDFontType0 OpenType/CFF glyph selection follows the CFF charset.
+    cff_descendant: bool,
     /// PostScript name from the PDF.
     postscript_name: Option<String>,
     /// Font flags from the font descriptor.
@@ -149,6 +151,9 @@ impl Type0Font {
             widths,
             widths2,
             cid_to_gid_map,
+            cff_descendant: descendant_font
+                .get::<Name<'_>>(SUBTYPE)
+                .is_some_and(|name| name.as_ref() == b"CIDFontType0"),
             postscript_name,
             font_flags,
             fallback,
@@ -180,7 +185,18 @@ impl Type0Font {
         // selected font has the right glyph order, and map via that.
 
         match &self.font_type {
-            FontType::OpenType(_) => self.cid_to_gid_map.map(cid as u16),
+            FontType::OpenType(t) => {
+                if self.cff_descendant
+                    && let Some(cff) = t.cid_cff()
+                {
+                    u16::try_from(cid)
+                        .ok()
+                        .and_then(|cid| cff.glyph_index_by_cid(cid))
+                        .unwrap_or(GlyphId::NOTDEF)
+                } else {
+                    self.cid_to_gid_map.map(cid as u16)
+                }
+            }
             FontType::Cff(c) => {
                 if c.is_cid() {
                     // Very confusing stuff going on here, see https://github.com/mozilla/pdf.js/pull/15563.
