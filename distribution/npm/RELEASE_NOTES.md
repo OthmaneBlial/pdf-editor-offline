@@ -1,13 +1,32 @@
 Native Rust CLI migration preview. This is a breaking preview; command help and
 project documentation describe the implemented features and remaining limits.
 
-Preview 4 adds `fill-text` for supported single-line AcroForm fields with an
+Preview 4 adds `fill-text` for supported single-line and multiline AcroForm fields with an
 explicit complete covering TrueType or static CID-keyed CFF1 OpenType font.
 It shapes and embeds real appearances, retains logical Unicode values and
 cluster mappings, and validates embedding rights, outlines, metrics and fit.
 Unsupported fonts/layouts, missing glyphs, overflow and dependent surrounding
-artwork are refused. Clearing and refilling are supported. Existing page text,
-choice fields, advanced text fields and secure erasure remain separate stages.
+artwork are refused. Clearing and refilling are supported. `list-choices` and
+`fill-choice` discover and fill supported dropdown/list fields by option indices
+using an explicit covering font. This is guarded appearance generation, not
+full AcroForm or XFA support.
+
+New editing commands add Unicode text, PNG/JPEG images, vector artwork and page
+numbers through shared bounded operations. `inspect-content-text`,
+`replace-content-text` and `set-content-text-properties` edit eligible original
+standard-font ASCII text while preserving untouched content bytes. Twelve
+unembedded Latin standard faces are supported; arbitrary embedded-font editing,
+font replacement and reflow remain open. `list-image-instances` and
+`replace-image` replace one eligible direct image draw without changing its
+shared occurrences. Original objects remain recoverable; ordinary content
+editing and overlays are not secure erasure.
+
+`split` creates guarded consecutive-page copies. `sanitize` creates a verified
+full-rewrite copy with supported metadata, attachment and action structures
+removed. This is targeted sanitization, not permanent text/image redaction or a
+privacy certificate. Unsupported structures are refused while originals remain
+preserved. The native desktop source also adds canvas editing and drawn visual
+signatures with durable history; these release assets distribute only the CLI.
 
 Preview 3 runs document commands in bounded self-hosted child processes, retaining
 password stdin, native paths, structured errors and verified no-clobber copies.

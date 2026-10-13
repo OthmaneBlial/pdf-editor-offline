@@ -8,7 +8,15 @@ Preview 3 is frozen at `d711a6f`, with native and security CI passed, and its
 [actual-runner release build](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38333220611)
 passed, followed by five real HTTPS global installs and GitHub/npm publication.
 This later source adds single/multiline text and indexed dropdown/list appearances
-with explicit TrueType/CID-keyed CFF1 fonts, plus targeted sanitized copies.
+with explicit TrueType/CID-keyed CFF1 fonts, targeted sanitized copies, page
+splitting, text/image/vector overlays, page numbering, guarded standard-font
+content editing and individual direct-image replacement. The frozen composition
+passed 717 local tests across 84 suites with no failures or ignored tests, plus
+strict workspace/all-target Clippy. Cross-platform native run
+[38383093121](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38383093121)
+and security run
+[38383092873](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38383092873)
+are pending; local validation alone does not satisfy the release gate.
 Preserve the preview 3 tag and assets; publish its
 package from the matching frozen source rather than relabeling this checkout.
 
