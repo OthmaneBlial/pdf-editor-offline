@@ -9,13 +9,23 @@ apps, vendored code, tools, distribution files and the Rust workflow. The frozen
 macOS workspace passed **717 tests across 84 suites, with zero failures and zero
 ignored tests**, followed by strict workspace/all-target Clippy with the worker
 test helper. Normal native/CLI/worker/helper builds, formatting, workflow lint
-and diff checks passed. Remote CI for this new milestone is still pending.
+and diff checks passed. The five platform jobs in
+[native run 38383270114](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38383270114)
+passed; its quality job is still running the independent-reference gates.
+[Security scanning](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38383092873)
+passed on identical Rust and workflow source (only release documentation differs).
+The 13 npm installer/launcher tests passed locally against the preserved checked
+native CLI. The initial installer run lacked a build at its default path; its
+failed log is preserved, and the verified binary was supplied explicitly for
+the successful run. Actual-runner release builds and five-platform HTTPS global
+installs remain required before publishing preview.4.
 
 The first [remote native run](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38372325112)
 reported failures in the Windows image-replacement interaction test and the
 quality job's subprocess-deadline test. Linux x64/ARM64 and macOS ARM64/Intel
-passed. Both repairs are included in the frozen 717-test checkpoint; a new
-remote result is still pending, and release preview.4 remains unpublished.
+passed. Both repairs are included in the frozen 717-test checkpoint; the new
+five-platform results passed, and release preview.4 remains unpublished pending
+the quality and distribution gates.
 The deadline test separates fixture setup from its child-operation timeout
 without relaxing the production 60-second operation or 180-second evidence
 budget. Image replacement now keeps Apply/Discard visible at 640×420 with long
