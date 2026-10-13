@@ -20,8 +20,11 @@ worker. They preserve existing artwork, embed a chosen covering font and refuse
 overflow or unsupported inputs. They are additions, not existing-text editing or
 redaction. The combined core/renderer integration passed **249 tests across 29
 suites with no failures or ignored tests**, including all pinned references;
-the actual CLI/worker overlay tests added **three passing checks**. Strict
-workspace/all-target Clippy and fresh native/CLI/helper builds passed.
+all CLI/worker regression gates passed **141 tests**, including three new overlay
+checks, and the native desktop gates passed **120 tests**, including actual
+production workers and independent saved-output checks. All were run without
+ignored tests. Strict workspace/all-target Clippy and fresh native/CLI/helper
+builds passed.
 [Reproduce the real PDF exports](TEXT_OVERLAYS_RUST.md). Native placement remains
 separate work. Standard omitted-AP Text icons now render using original vectors;
 their tested behavior does not imply popup interaction or artwork parity.
