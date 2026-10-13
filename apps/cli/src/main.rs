@@ -1056,6 +1056,29 @@ fn main() -> ExitCode {
     if arguments.len() == 2 && arguments[1] == isolation::CHILD_FLAG {
         return isolation::serve();
     }
+    // The executable's platform stack must not bound Clap or reply validation.
+    match std::thread::Builder::new()
+        .name("pdf-cli".into())
+        .stack_size(8 * 1024 * 1024)
+        .spawn(move || parent(arguments))
+    {
+        Ok(thread) => match thread.join() {
+            Ok(code) => code,
+            Err(_) => output_json(
+                &error_envelope("resource_limit", "CLI processing thread panicked"),
+                false,
+                5,
+            ),
+        },
+        Err(_) => output_json(
+            &error_envelope("resource_limit", "CLI processing thread setup failed"),
+            false,
+            5,
+        ),
+    }
+}
+
+fn parent(arguments: Vec<std::ffi::OsString>) -> ExitCode {
     let json_requested = arguments
         .iter()
         .skip(1)

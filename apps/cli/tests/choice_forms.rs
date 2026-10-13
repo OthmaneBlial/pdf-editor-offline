@@ -50,8 +50,11 @@ fn indexed_discovery_dry_run_save_clear_and_no_clobber_are_actual() {
     let saved = fill(&input, &font, &output, &["--index", "2"]);
     assert!(
         saved.status.success(),
-        "{}",
-        String::from_utf8_lossy(&saved.stdout)
+        "status={:?}, output_exists={}, stdout={}, stderr={}",
+        saved.status,
+        output.exists(),
+        String::from_utf8_lossy(&saved.stdout),
+        String::from_utf8_lossy(&saved.stderr),
     );
     let pdf = PdfDocument::open(&output, None).expect("saved");
     assert!(pdf.extract_text(&[1]).expect("text").contains("High"));
@@ -125,11 +128,15 @@ fn malformed_indices_fonts_readonly_and_signed_fields_never_publish() {
         }
         doc.save(&input).expect("fixture");
         let original = std::fs::read(&input).expect("bytes");
+        let refused = fill(&input, &font, &output, &["--index", "2"]);
         assert_eq!(
-            fill(&input, &font, &output, &["--index", "2"])
-                .status
-                .code(),
-            Some(4)
+            refused.status.code(),
+            Some(4),
+            "status={:?}, output_exists={}, stdout={}, stderr={}",
+            refused.status,
+            output.exists(),
+            String::from_utf8_lossy(&refused.stdout),
+            String::from_utf8_lossy(&refused.stderr),
         );
         assert!(!output.exists());
         assert_eq!(std::fs::read(&input).expect("original"), original);

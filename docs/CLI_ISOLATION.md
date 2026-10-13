@@ -33,6 +33,12 @@ panic failures produce controlled errors. Memory, CPU and wall limits remain
 unchanged. The process regression exercises a 2 MiB stack allocation through
 both protocol roles, alongside the existing resource-limit checks.
 
+The CLI parent also uses a fixed 8 MiB thread for argument parsing, supervision
+and reply validation. The executable main performs only argument collection and
+the sole worker-flag dispatch. This removes the parent's dependence on a
+platform-specific executable stack; it does not relax child resource limits.
+Cross-platform CI remains the gate for Windows behavior.
+
 IPC control is bounded to 8 MiB. Text output retains the existing 128 MiB tier;
 JSON permits sixfold escaping plus 8 MiB of metadata (776 MiB). CLI output kinds
 are separated from desktop PDF/raster kinds, so this larger JSON budget does not
