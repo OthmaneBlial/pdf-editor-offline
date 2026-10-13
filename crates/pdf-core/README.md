@@ -11,6 +11,14 @@ and explicit session-only desktop privacy policy.
 Native Rust document processing for PDF Editor Offline. No network,
 HTTP service or GUI dependency. API page numbers are one-based.
 
+`add_vector_overlay` adds bounded new rectangles, ellipses, lines and polylines
+with stroke/fill and paint opacity. `add_image_overlay` imports a validated
+single-image donor produced by `pdf-convert`; use the converter facade for raw
+PNG/JPEG decoding. Both add content transactionally while preserving source
+objects, and neither provides redaction or existing-object replacement.
+[Drawing guide](../../docs/VECTOR_DRAWING_RUST.md) ·
+[Image guide](../../docs/IMAGE_OVERLAYS_RUST.md).
+
 `split_every(every)` returns consecutive verified byte chunks with original page
 ranges and output information. It reuses `extract_pages` and its structural
 refusals, preserving the original document. Output geometry and resources are
