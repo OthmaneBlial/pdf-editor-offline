@@ -21,7 +21,8 @@ binary for macOS, Windows or Linux. This release adds guarded page duplication,
 checkbox/radio filling and bounded local document workers.
 
 **Growing on `main`:** single/multiline text, dropdowns and list selections with
-embedded covering fonts and desktop undo/redo, plus targeted sanitized copies.
+embedded covering fonts and desktop undo/redo, plus targeted sanitized copies
+and ordered PDF merging into a separate unsaved document.
 [Try a form](docs/FORMS_RUST.md) · [Review a cleanup copy](docs/SANITIZATION_RUST.md).
 
 **Start with a real document you can inspect.** The repository includes a
@@ -54,6 +55,11 @@ The screenshot is a real app window using a public synthetic PDF.
 
 **A few pages for someone else.** Open your document, move the pages into order,
 rotate a sideways scan and save a separate copy. Your original stays where it is.
+
+**Several PDFs, one handoff.** In the desktop source build, choose Edit →
+**Merge PDF files…**, arrange the additional files and create a new document.
+The guarded merge tier refuses incompatible structures or metadata conflicts.
+[Merge scope and checks](apps/desktop/README.md).
 
 **An answer buried in a long file.** Search for a phrase, jump to the matching
 page and use thumbnails to keep your place.
@@ -145,7 +151,7 @@ The table covers current source; published CLI differences are called out below.
 | Task | Native desktop | Rust CLI |
 | --- | --- | --- |
 | Read and find | Tabs, zoom, visible-page thumbnails, text sidebar, literal search, light/dark themes | Document info, text extraction, literal search, limited text/geometry comparison |
-| Organize pages | Move/reverse pages, rotate, insert blank pages, crop, guarded range extraction/deletion/duplication, undo/redo | Reorder/reverse/rotate/crop, insert blank pages, guarded extract/delete, simple-catalog merge; guarded duplication in current source |
+| Organize pages | Move/reverse pages, rotate, insert blank pages, crop, guarded range extraction/deletion/duplication, ordered simple-catalog merge into a new tab, undo/redo | Reorder/reverse/rotate/crop, insert blank pages, guarded extract/delete, simple-catalog merge; guarded duplication in current source |
 | Document properties | Read/edit six standard fields, including Unicode | Read/set/remove Title, Author, Subject, Keywords, Creator and Producer |
 | Images | Create PDF pages from supported PNG/JPEG files | Restricted images-to-PDF conversion; export one PDF page as PNG |
 | Comments | Existing supported appearances can be displayed | Add/list sticky Text notes; guarded editing/removal of basic notes |
