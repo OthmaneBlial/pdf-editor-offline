@@ -116,3 +116,26 @@ On macOS, Winit's default native application menu is disabled because its Quit c
 Forty-nine tests cover history, stale results, no-clobber saving, real-PDF search/query focus/typing, Unicode and result limits, Stop/completion, search reset after edits, initial visibility, actual font-atlas glyphs and themes/contrast. Organizer tests verify real text order, blank insertion, crop bounds, save/reopen, undo, signature guards and failed-edit preservation. Image tests verify ordered PNG pages/pixels, unsaved history, verified saves, bounded inputs, failure preservation and tab limits. Metadata tests verify Unicode, dates/custom fields/XMP/aliases, history, invalid/stale/signed guards and retained drafts in small/large headless UI passes; painted Apply/Cancel labels remain within their clipping bounds at two window sizes. The worker tests fixed note screen footprints at zoom 2/DPR 1 and 2. Thumbnail tests verify actual pixels, bounded LRU eviction, stale/forged keys, visible-only thousand-page scheduling and foreground priority. [Runtime evidence](../../docs/NATIVE_DESKTOP_EVIDENCE.md) records earlier light/dark/compact workstations and subsequent actual thumbnails, CJK properties/save, single-image import and blank-page insertion/movement/save/undo/redo. Broader organizer, multiple-file picker and latest dark/compact properties interactions remain unverified. Accessibility activation/value assignment did not reliably focus search or change numeric steppers; focused keyboard entry worked. Exposed text is not a complete screen-reader audit.
 
 DPI tests exercise physical 2× rendering of a real synthetic PDF, unchanged logical display dimensions, DPI-stale result rejection, crop/rotation, nonfinite input rejection and exact ceiling-aware output limits. Retina sharpness was visually checked on macOS; multimonitor transitions and oversized-document limit messaging remain unverified at runtime.
+
+Split into new tabs copies consecutive page groups through the bounded child.
+The source and its undo history stay unchanged; all new unsaved tabs are committed
+in one recovery manifest before success. The 16-tab limit and 128 MiB aggregate
+serialized output limit apply. Structures that the guarded subset engine cannot
+remap are refused. Signed and encrypted inputs remain read-only.
+
+Splitting can retain unreachable objects containing other pages' data. It is not
+privacy cleanup or secure redaction. Save As publishes each tab separately; it is
+not an atomic multi-file save. The CLI `split --every N --output-dir NEW` instead
+creates a fresh directory and reports exact completed files on a publication
+failure. It never deletes preexisting files or claims a partial batch succeeded.
+
+The production-child split gate verifies every saved chunk against independent
+readers, including text, images, page boxes, rotations and source preservation:
+
+```sh
+PDF_QPDF_BIN=/path/to/qpdf PDF_REFERENCE_BIN_DIR=/path/to/poppler/bin \
+cargo test -p pdf-editor-offline-native production_native_split_saved_chunks_pass_independent_text_pixels_geometry_checks --locked -- --ignored
+```
+
+The split dialog has headless control and stale-result tests. Manual desktop
+interaction has not been verified for this milestone.

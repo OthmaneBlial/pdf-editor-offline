@@ -16,6 +16,7 @@ mod password;
 mod recovery;
 mod sanitize;
 mod sidebar;
+mod split;
 mod text_overlay;
 
 const MAIN_PIXEL_BUDGET: usize = 64 * 1024 * 1024;
@@ -60,6 +61,7 @@ enum Action {
     DeletePages,
     DuplicatePages,
     Sanitize,
+    Split,
     Merge,
 }
 
@@ -102,6 +104,7 @@ pub struct EditorApp {
     forms_generation: u64,
     pages_dialog: Option<pages::Dialog>,
     sanitize_dialog: Option<sanitize::Dialog>,
+    split_dialog: Option<split::Dialog>,
     merge_dialog: Option<merge::Dialog>,
     pending_open: Option<password::Opening>,
     password_dialog: Option<password::Dialog>,
@@ -145,6 +148,7 @@ impl EditorApp {
             forms_generation: 0,
             pages_dialog: None,
             sanitize_dialog: None,
+            split_dialog: None,
             merge_dialog: None,
             pending_open: None,
             password_dialog: None,
@@ -211,6 +215,11 @@ impl EditorApp {
                 Event::Unlocked { id, path, status } => {
                     self.accept_unlocked(id, path, status, context)
                 }
+                Event::Split {
+                    source,
+                    revision,
+                    documents,
+                } => self.accept_split(source, revision, documents, context),
                 Event::Merged { id, path, status } => self.accept_merged(id, path, status, context),
                 Event::Sanitized {
                     id,
@@ -483,6 +492,20 @@ impl EditorApp {
                     self.message = "PDF closed.".into();
                 }
                 Event::Error { id, task, message } => {
+                    if task.is_none()
+                        && self
+                            .split_dialog
+                            .as_ref()
+                            .is_some_and(|dialog| dialog.source == id && dialog.expected.is_some())
+                    {
+                        if let Some(dialog) = self.split_dialog.as_mut() {
+                            dialog.expected = None;
+                            dialog.error = Some(message.clone());
+                        }
+                        self.message = message;
+                        continue;
+                    }
+
                     if self.notes_dialog.as_ref().is_some_and(|dialog| {
                         dialog.key.tab == id
                             && (dialog.submitting
@@ -650,6 +673,7 @@ impl EditorApp {
             || self.pages_dialog.is_some()
             || self.sanitize_dialog.is_some()
             || self.merge_dialog.is_some()
+            || self.split_dialog.is_some()
             || self.notes_dialog.is_some()
             || self.password_dialog.is_some()
         {
@@ -987,6 +1011,7 @@ impl EditorApp {
             Action::DeletePages => self.open_page_ranges(pages::Mode::Delete),
             Action::DuplicatePages => self.open_page_ranges(pages::Mode::Duplicate),
             Action::Sanitize => self.open_sanitization(),
+            Action::Split => self.open_split(),
             Action::Merge => self.open_merge(),
         }
     }
@@ -1063,6 +1088,7 @@ impl eframe::App for EditorApp {
             && self.sanitize_dialog.is_none()
             && self.merge_dialog.is_none()
             && self.password_dialog.is_none()
+            && self.split_dialog.is_none()
             && self.pending_saves.is_empty()
         {
             self.shortcuts(&context);
@@ -1083,7 +1109,8 @@ impl eframe::App for EditorApp {
                 && self.pages_dialog.is_none()
                 && self.sanitize_dialog.is_none()
                 && self.merge_dialog.is_none()
-                && self.password_dialog.is_none(),
+                && self.password_dialog.is_none()
+                && self.split_dialog.is_none(),
             |ui| self.workstation(ui),
         );
         self.command_palette(&context);
@@ -1096,6 +1123,7 @@ impl eframe::App for EditorApp {
         self.pending_save_dialog(&context);
         self.page_ranges_dialog(&context);
         self.sanitization_dialog(&context);
+        self.split_dialog_ui(&context);
         self.notes_dialog_ui(&context);
         self.merge_dialog(&context);
         self.password_dialog_ui(&context);

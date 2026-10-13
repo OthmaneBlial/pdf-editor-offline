@@ -870,6 +870,47 @@ impl WorkingDocument {
         Ok((entries, next_offset))
     }
 
+    pub fn split(&self, revision: u64, every: u32, budget: usize) -> Result<Vec<Self>, String> {
+        if revision != self.current.revision
+            || self.current.info.encrypted
+            || self.current.info.signature_fields != 0
+        {
+            return Err("Split request is stale or the source is readonly".into());
+        }
+        let (result, reply) = execute(Operation::Split { every }, &self.current.bytes)?;
+        let DocumentResult::Split { parts } = result else {
+            return Err("Unexpected split response".into());
+        };
+        if reply.kind != PayloadKind::Pdf || reply.payload.len() > budget {
+            return Err("Split payload exceeds the available snapshot budget".into());
+        }
+        let slices =
+            pdf_worker::document::split_slices(&parts, &reply.payload, &self.current.info, every)?;
+        let mut result = Vec::new();
+        result
+            .try_reserve_exact(parts.len())
+            .map_err(|_| "Cannot allocate bounded split documents")?;
+        for (part, bytes) in parts.into_iter().zip(slices) {
+            let mut owned = Vec::new();
+            owned
+                .try_reserve_exact(bytes.len())
+                .map_err(|_| "Cannot allocate split snapshot")?;
+            owned.extend_from_slice(bytes);
+            result.push(Self {
+                current: Snapshot {
+                    bytes: owned,
+                    info: part.info,
+                    revision: 0,
+                },
+                undo: vec![],
+                redo: vec![],
+                saved_revision: None,
+                next_revision: 1,
+                path: None,
+            });
+        }
+        Ok(result)
+    }
     pub fn metadata(&self) -> Result<pdf_core::DocumentMetadata, String> {
         let (result, reply) = self.read(ReadOperation::Metadata)?;
         let DocumentResult::Metadata { metadata } = result else {

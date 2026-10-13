@@ -102,6 +102,12 @@ pub enum Edit {
 }
 
 pub enum Command {
+    Split {
+        id: u64,
+        revision: u64,
+        new_ids: Vec<u64>,
+        every: u32,
+    },
     Notes(NotesKey),
     Merge {
         id: u64,
@@ -175,6 +181,7 @@ impl Command {
             Self::RecoveryList | Self::RestoreSession { .. } | Self::DiscardSession { .. } => 0,
             Self::Load { id, .. }
             | Self::Unlock { id, .. }
+            | Self::Split { id, .. }
             | Self::Sanitize { id, .. }
             | Self::Merge { id, .. }
             | Self::ExtractPages { id, .. }
@@ -207,7 +214,17 @@ pub enum TaskKey {
     Search(SearchKey),
 }
 
+pub struct SplitDocument {
+    pub id: u64,
+    pub path: PathBuf,
+    pub status: DocumentStatus,
+}
 pub enum Event {
+    Split {
+        source: u64,
+        revision: u64,
+        documents: Vec<SplitDocument>,
+    },
     Notes {
         key: NotesKey,
         entries: Vec<pdf_worker::document::NoteEntry>,
@@ -420,6 +437,8 @@ mod recovery;
 #[cfg(test)]
 mod sanitize_tests;
 #[cfg(test)]
+mod split_tests;
+#[cfg(test)]
 mod subset_tests;
 use document::WorkingDocument;
 pub use recovery::{RecoveredDocument, RecoverySession};
@@ -519,6 +538,85 @@ fn process_with_journal(
     command: Command,
     mut journal: Option<&mut Journal>,
 ) -> Result<Event, String> {
+    if let Command::Split {
+        id,
+        revision,
+        new_ids,
+        every,
+    } = command
+    {
+        if every == 0 {
+            return Err("Split size must be positive".into());
+        }
+        let source = documents.get(&id).ok_or("Split source is unavailable")?;
+        let count = source.current.info.page_count.div_ceil(every as usize);
+        let ids = new_ids
+            .iter()
+            .copied()
+            .collect::<std::collections::BTreeSet<_>>();
+        if new_ids.len() != count
+            || ids.len() != count
+            || count > MAX_TABS.saturating_sub(documents.len())
+            || ids
+                .iter()
+                .any(|id| *id == 0 || *id == u64::MAX || documents.contains_key(id))
+        {
+            return Err("Split requires distinct fresh IDs and enough available tabs".into());
+        }
+        if journal.as_deref().is_some_and(|journal| {
+            journal
+                .save_intents()
+                .iter()
+                .any(|intent| intent.document_id == id.to_string())
+        }) {
+            return Err("Resolve or cancel the pending save before splitting".into());
+        }
+        let remaining = SNAPSHOT_BYTES.saturating_sub(
+            documents
+                .values()
+                .map(WorkingDocument::byte_len)
+                .sum::<usize>(),
+        );
+        let candidates = source.split(revision, every, remaining)?;
+        let mut replies = Vec::with_capacity(count);
+        for (index, (new_id, candidate)) in new_ids.iter().zip(&candidates).enumerate() {
+            let mut name = source
+                .path
+                .as_deref()
+                .and_then(std::path::Path::file_stem)
+                .unwrap_or(std::ffi::OsStr::new("Document"))
+                .to_os_string();
+            name.push(format!(" — part {:04}.pdf", index + 1));
+            replies.push(SplitDocument {
+                id: *new_id,
+                path: PathBuf::from(name),
+                status: candidate.status()?,
+            });
+        }
+        documents
+            .try_reserve(count)
+            .map_err(|_| "Cannot allocate split document registry")?;
+        let names = new_ids.iter().map(u64::to_string).collect::<Vec<_>>();
+        let refs = candidates
+            .iter()
+            .zip(&names)
+            .map(|(candidate, name)| candidate.as_ref(name))
+            .collect::<Vec<_>>();
+        match journal.as_deref_mut() {
+            Some(journal) => journal.commit_documents_ref(&refs).map_err(|error| {
+                format!("Split journal failed; original documents retained: {error}")
+            })?,
+            None => return Err("Split requires a durable recovery journal".into()),
+        }
+        for (new_id, candidate) in new_ids.into_iter().zip(candidates) {
+            documents.insert(new_id, candidate);
+        }
+        return Ok(Event::Split {
+            source: id,
+            revision,
+            documents: replies,
+        });
+    }
     if let Command::Merge {
         id,
         new_id,
@@ -949,6 +1047,7 @@ fn process_with_journal(
         | Command::Images { .. }
         | Command::ExtractPages { .. }
         | Command::Sanitize { .. }
+        | Command::Split { .. }
         | Command::Merge { .. }
         | Command::Close(_) => {
             unreachable!("load and close handled before lookup")
