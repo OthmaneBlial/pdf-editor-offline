@@ -67,6 +67,12 @@ pub enum Operation {
     },
     Metadata,
     Sanitize,
+    RedactText {
+        request: pdf_core::TextRedactionRequest,
+    },
+    VerifyRedaction {
+        request: pdf_core::TextRedactionRequest,
+    },
     Edit {
         mutation: Mutation,
     },
@@ -241,6 +247,11 @@ pub enum DocumentResult {
         info: DocumentInfo,
         report: pdf_core::SanitizationReport,
     },
+    Redacted {
+        info: DocumentInfo,
+        report: pdf_core::TextRedactionReport,
+    },
+    RedactionVerified {},
     Forms {
         fields: Vec<pdf_core::FormField>,
         choices: Vec<pdf_core::ChoiceField>,
@@ -716,6 +727,33 @@ fn execute(request: Request) -> Result<Reply, String> {
                 DocumentResult::Sanitized { info, report },
                 PayloadKind::Pdf,
                 payload,
+            )
+        }
+        Operation::RedactText { request: redaction } => {
+            redaction.validate().map_err(|error| error.to_string())?;
+            let (candidate, report) = document
+                .redact_text_copy(&redaction.targets)
+                .map_err(|error| error.to_string())?;
+            let payload = candidate
+                .verified_bytes()
+                .map_err(|error| error.to_string())?;
+            pdf_core::verify_redaction_bytes(&payload, None, &redaction.targets)
+                .map_err(|error| error.to_string())?;
+            let info = candidate.info().map_err(|error| error.to_string())?;
+            reply(
+                DocumentResult::Redacted { info, report },
+                PayloadKind::Pdf,
+                payload,
+            )
+        }
+        Operation::VerifyRedaction { request: redaction } => {
+            redaction.validate().map_err(|error| error.to_string())?;
+            pdf_core::verify_redaction_bytes(&request.payload, None, &redaction.targets)
+                .map_err(|error| error.to_string())?;
+            reply(
+                DocumentResult::RedactionVerified {},
+                PayloadKind::None,
+                Vec::new(),
             )
         }
         Operation::ExtractPages { pages } => {

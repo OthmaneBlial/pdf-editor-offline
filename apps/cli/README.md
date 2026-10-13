@@ -7,6 +7,26 @@ remain upright on quarter-turn pages. `--dry-run` validates without writing;
 normal output is a verified new copy and refuses an existing destination.
 See [the actual scope and command](../../docs/PAGE_NUMBERING_RUST.md).
 
+Permanent exact text removal is available for the strict standard-font ASCII
+profile. Store a private JSON request such as `{"targets":["exact target"]}`:
+
+```sh
+pdf-editor-offline redact-text input.pdf --targets-file targets.json -o redacted.pdf --dry-run --json
+pdf-editor-offline redact-text input.pdf --targets-file targets.json -o redacted.pdf --json
+pdf-editor-offline verify-redaction redacted.pdf --targets-file targets.json --json
+```
+
+Targets-file reads are bounded at 512 KiB; targets remain in the local file and
+child IPC, never the command arguments. Dry-run verifies without writing; output
+publication never overwrites a file. Prefix/suffix advances are retained, metadata,
+attachment/action/comment carriers are cleared, old streams and revisions are
+garbage collected, and actual output bytes must pass the supported profile.
+Arbitrary painted paths, clipping and transforms, opaque fonts/images/Forms and
+unsupported structures refuse. Only a uniform full-page background is admitted.
+The original file,
+backups and recovery copies remain. This is not arbitrary-PDF redaction or a
+general privacy certificate: see the [exact proof boundary](../../docs/TEXT_REDACTION_RUST.md).
+
 Current source adds rectangles, ellipses, lines and bounded polylines with
 `add-vector-overlay`. A strict JSON request controls page, geometry, stroke,
 fill and paint opacity; dry-run and verified no-clobber saving are supported.

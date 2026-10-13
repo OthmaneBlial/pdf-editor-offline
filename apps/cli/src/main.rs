@@ -197,6 +197,24 @@ enum Command {
         #[arg(long)]
         dry_run: bool,
     },
+    /// Permanently remove exact ASCII targets from the strict standard-font profile.
+    /// Targets JSON stays in a local file; source, backups and journals are retained.
+    RedactText {
+        input: PathBuf,
+        #[arg(long)]
+        targets_file: PathBuf,
+        #[arg(short, long)]
+        output: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Verify actual native full-rewrite bytes against the same exact target list.
+    /// Unsupported/opaque documents refuse; this is not a general privacy certificate.
+    VerifyRedaction {
+        input: PathBuf,
+        #[arg(long)]
+        targets_file: PathBuf,
+    },
     /// Discover indexed dropdown/list options, exports and supported appearances.
     ListChoices { input: PathBuf },
     /// Fill a choice field by zero-based option indices with an explicit font.
@@ -515,6 +533,33 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
             }
             Ok(
                 json!({"operation":"sanitize","output":json_path(output),"dry_run":dry_run,"source_preserved":true,"privacy_proof":false,"secure_redaction":false,"report":report}),
+            )
+        }
+        Command::RedactText {
+            input,
+            targets_file,
+            output,
+            dry_run,
+        } => {
+            let request = read_redaction_targets(targets_file)?;
+            let source = open(input)?;
+            let (candidate, report) = source.redact_text_copy(&request.targets)?;
+            if !dry_run {
+                candidate.save_new(output)?;
+            }
+            Ok(
+                json!({"operation":"redact-text","output":json_path(output),"dry_run":dry_run,"source_preserved":true,"report":report,"other_files_erased":false,"general_privacy_certificate":false}),
+            )
+        }
+        Command::VerifyRedaction {
+            input,
+            targets_file,
+        } => {
+            let request = read_redaction_targets(targets_file)?;
+            let bytes = pdf_core::read_pdf_bytes(input)?;
+            pdf_core::verify_redaction_bytes(&bytes, password, &request.targets)?;
+            Ok(
+                json!({"operation":"verify-redaction","verified":true,"profile":"ascii-standard-type1-uniform-background-v2","target_count":request.targets.len(),"other_files_erased":false,"general_privacy_certificate":false}),
             )
         }
         Command::ListChoices { input } => Ok(json!({"choices":open(input)?.list_choice_fields()?})),
@@ -1162,7 +1207,8 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
         }
         Command::Capabilities => Ok(
             json!({ "runtime": "rust-native", "version": env!("CARGO_PKG_VERSION"), "migration_preview": true,
-            "commands": ["number-pages", "list-image-instances", "replace-image", "add-image-overlay", "add-vector-overlay", "set-content-text-properties", "split", "add-text-overlay", "inspect-content-text", "replace-content-text", "info", "sanitize", "list-forms", "list-choices", "fill-button", "fill-text", "fill-choice", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "images-to-pdf", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "duplicate-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
+            "commands": ["redact-text", "verify-redaction", "number-pages", "list-image-instances", "replace-image", "add-image-overlay", "add-vector-overlay", "set-content-text-properties", "split", "add-text-overlay", "inspect-content-text", "replace-content-text", "info", "sanitize", "list-forms", "list-choices", "fill-button", "fill-text", "fill-choice", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "images-to-pdf", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "duplicate-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
+            "text_redaction":"exact_ascii_standard_font_profile_full_rewrite_strict_actual_byte_verification_not_arbitrary_pdf_redaction",
             "vector_overlays":"new_rectangle_ellipse_line_bounded_polyline_and_multi_stroke_visual_signatures_with_stroke_fill_paint_alpha_not_redaction_or_cryptographic_signing",
             "image_overlay":"restricted_png_jpeg_insert_quarter_turns_pdf_rectangle_no_existing_image_replacement",
             "existing_content_editing": "guarded_direct_standard_courier_helvetica_times_ascii_operands_preserve_word_advances_or_explicit_bounded_width_change_no_reflow_or_secure_erasure",
@@ -1195,6 +1241,16 @@ fn read_password() -> pdf_core::Result<String> {
         }
     }
     Ok(password)
+}
+fn read_redaction_targets(path: &PathBuf) -> pdf_core::Result<pdf_core::TextRedactionRequest> {
+    let bytes = pdf_core::read_input_bytes(path, 512 * 1024)?;
+    let request: pdf_core::TextRedactionRequest = serde_json::from_slice(&bytes).map_err(|_| {
+        Error::Refused(
+            "redaction targets file must be strict JSON with only a targets string array",
+        )
+    })?;
+    request.validate()?;
+    Ok(request)
 }
 
 fn images_to_pdf(inputs: &[PathBuf], output: &PathBuf, dry_run: bool) -> pdf_core::Result<Value> {
