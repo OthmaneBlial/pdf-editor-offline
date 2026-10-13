@@ -91,6 +91,12 @@ pub enum Operation {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "mutation", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Mutation {
+    ContentTextEmbeddedFont {
+        page: u32,
+        source_fingerprint: [u8; 32],
+        change: pdf_core::ContentTextEmbeddedChange,
+        font_bytes_len: u32,
+    },
     ContentTextFace {
         page: u32,
         source_fingerprint: [u8; 32],
@@ -483,6 +489,36 @@ fn execute(request: Request) -> Result<Reply, String> {
     }
     if let Operation::Merge { lengths } = operation {
         return merge(&request.payload, &lengths);
+    }
+    if let Operation::Edit {
+        mutation:
+            Mutation::ContentTextEmbeddedFont {
+                page,
+                source_fingerprint,
+                change,
+                font_bytes_len,
+            },
+    } = &operation
+    {
+        let length = *font_bytes_len as usize;
+        if length == 0 || length > 16 * 1024 * 1024 {
+            return Err("Existing text font must contain 1 byte to 16 MiB".into());
+        }
+        let split = request
+            .payload
+            .len()
+            .checked_sub(length)
+            .filter(|n| *n > 0)
+            .ok_or("Existing text font length leaves no PDF input")?;
+        let (pdf, font) = request.payload.split_at(split);
+        if *source_fingerprint != crate::payload_fingerprint(pdf) {
+            return Err("Existing text source fingerprint is stale".into());
+        }
+        let mut document = PdfDocument::from_bytes(pdf, None).map_err(|e| e.to_string())?;
+        document
+            .change_content_text_embedded_font(*page, change, font)
+            .map_err(|e| e.to_string())?;
+        return document_reply(document, Some(*page as usize - 1));
     }
     if let Operation::Edit {
         mutation:
@@ -1129,6 +1165,7 @@ fn apply(document: &mut PdfDocument, mutation: Mutation) -> Result<Option<usize>
         }
         Mutation::FillText { .. }
         | Mutation::TextOverlay { .. }
+        | Mutation::ContentTextEmbeddedFont { .. }
         | Mutation::PageNumbers { .. }
         | Mutation::ImageOverlay { .. }
         | Mutation::ReplaceImage { .. } => {

@@ -42,7 +42,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Change a supported original text run's standard font face; no overlay or reflow.
+    /// Change an eligible original text run to a standard face or chosen TrueType font; no reflow.
     SetContentTextFont {
         input: PathBuf,
         #[arg(long)]
@@ -53,8 +53,10 @@ enum Command {
         source_sha256: String,
         #[arg(long, allow_hyphen_values = true)]
         expected: String,
-        #[arg(long,value_parser=parse_content_font)]
-        font: pdf_core::ContentTextFont,
+        #[arg(long,value_parser=parse_content_font,required_unless_present="font_file",conflicts_with="font_file")]
+        font: Option<pdf_core::ContentTextFont>,
+        #[arg(long, required_unless_present = "font", conflicts_with = "font")]
+        font_file: Option<PathBuf>,
         #[arg(long, allow_hyphen_values = true)]
         replacement: Option<String>,
         /// Explicitly permit changed word/space advances, without wrapping or fitting.
@@ -604,25 +606,48 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
             source_sha256,
             expected,
             font,
+            font_file,
             replacement,
             allow_width_change,
             output,
             dry_run,
-        } => content::face(
-            input,
-            password,
-            content::Face {
-                page: *page,
-                operation: *operation,
-                source_sha256,
-                expected,
-                font: *font,
-                replacement: replacement.as_deref(),
-                allow_width_change: *allow_width_change,
-                output,
-                dry_run: *dry_run,
-            },
-        ),
+        } => {
+            if let Some(font_file) = font_file {
+                content::embedded(
+                    input,
+                    password,
+                    content::Embedded {
+                        page: *page,
+                        operation: *operation,
+                        source_sha256,
+                        expected,
+                        font_file,
+                        replacement: replacement.as_deref(),
+                        allow_width_change: *allow_width_change,
+                        output,
+                        dry_run: *dry_run,
+                    },
+                )
+            } else {
+                content::face(
+                    input,
+                    password,
+                    content::Face {
+                        page: *page,
+                        operation: *operation,
+                        source_sha256,
+                        expected,
+                        font: font.ok_or(Error::Invalid(
+                            "choose a standard face or a TrueType font file",
+                        ))?,
+                        replacement: replacement.as_deref(),
+                        allow_width_change: *allow_width_change,
+                        output,
+                        dry_run: *dry_run,
+                    },
+                )
+            }
+        }
         Command::SetContentTextProperties {
             input,
             page,
