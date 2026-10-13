@@ -137,14 +137,113 @@ pub(super) fn balanced(bytes: &[u8]) -> Result<usize> {
     Ok(count)
 }
 
+struct OverlayPlan {
+    page_id: ObjectId,
+    ids: Vec<ObjectId>,
+    resources: Dictionary,
+    xobjects: Dictionary,
+    name: Vec<u8>,
+    encoded: Vec<u8>,
+    width: f64,
+    height: f64,
+    matrix: [f64; 6],
+}
 impl PdfDocument {
     /// Add a top-aligned Unicode overlay using an explicitly chosen covering font.
     /// Exact line breaks are preserved; wrapping is bounded, overflow is refused.
     pub fn add_text_overlay(&mut self, overlay: &TextOverlay, font_bytes: &[u8]) -> Result<()> {
-        if self.encrypted_input || self.info()?.signature_fields != 0 {
+        self.add_text_overlay_batch(&[(overlay.clone(), 0)], font_bytes)
+    }
+    pub(super) fn add_text_overlay_batch(
+        &mut self,
+        overlays: &[(TextOverlay, u16)],
+        font_bytes: &[u8],
+    ) -> Result<()> {
+        let info = self.info()?;
+        if self.encrypted_input || info.signature_fields != 0 {
             return Err(Error::Refused(
                 "signed or decrypted documents are read-only",
             ));
+        }
+        if overlays.is_empty() || overlays.len() > crate::MAX_PAGES {
+            return Err(Error::Limit("overlay batch page count is invalid"));
+        }
+        let extra = overlays
+            .len()
+            .checked_mul(3)
+            .and_then(|n| n.checked_add(12))
+            .ok_or(Error::Limit("overlay object budget"))?;
+        if self.document.objects.len().saturating_add(extra) > crate::MAX_OBJECTS
+            || self.document.max_id as usize + extra >= crate::MAX_OBJECTS
+        {
+            return Err(Error::Limit("overlay object allocation budget"));
+        }
+        let mut font = FontPlan::new(font_bytes)?;
+        let mut budget = Budget::new();
+        let mut plans = Vec::with_capacity(overlays.len());
+        let mut seen = BTreeSet::new();
+        let mut stream_bytes = 0usize;
+        for (overlay, rotation) in overlays {
+            if !seen.insert(overlay.page) {
+                return Err(Error::Invalid("overlay batch contains duplicate pages"));
+            }
+            let plan = self.plan_text_overlay(overlay, *rotation, &info, &mut font, &mut budget)?;
+            stream_bytes = stream_bytes
+                .checked_add(plan.encoded.len())
+                .ok_or(Error::Limit("overlay batch stream budget"))?;
+            if stream_bytes > crate::MAX_STREAM_BYTES {
+                return Err(Error::Limit("overlay batch streams exceed 32 MiB"));
+            }
+            plans.push(plan);
+        }
+        let existing = font.existing_program(&self.document)?;
+        let mut candidate = self.document.clone();
+        crate::require_pdf_1_4(&mut candidate);
+        let font_id = font.embed(&mut candidate, existing)?;
+        for mut plan in plans {
+            let form = candidate.add_object(Stream::new(dictionary!{"Type"=>"XObject","Subtype"=>"Form","FormType"=>1,"BBox"=>vec![real(0.0),real(0.0),real(plan.width),real(plan.height)],"Resources"=>dictionary!{"Font"=>dictionary!{"OverlayFont"=>font_id}}}, plan.encoded));
+            plan.xobjects.set(plan.name.clone(), form);
+            plan.resources.set("XObject", plan.xobjects);
+            let prefix = candidate.add_object(Stream::new(Dictionary::new(), b"q\n".to_vec()));
+            let suffix = candidate.add_object(Stream::new(
+                Dictionary::new(),
+                Content {
+                    operations: vec![
+                        op("n", vec![]),
+                        op("Q", vec![]),
+                        op("q", vec![]),
+                        op("cm", plan.matrix.into_iter().map(real).collect()),
+                        op("Do", vec![Object::Name(plan.name)]),
+                        op("Q", vec![]),
+                    ],
+                }
+                .encode()?,
+            ));
+            let mut contents = vec![Object::Reference(prefix)];
+            contents.extend(plan.ids.into_iter().map(Object::Reference));
+            contents.push(Object::Reference(suffix));
+            let page = candidate.get_object_mut(plan.page_id)?.as_dict_mut()?;
+            page.set("Resources", plan.resources);
+            page.set("Contents", contents);
+        }
+        let rebuilt = Self::from_document(candidate, false)?;
+        if rebuilt.info()?.pages != info.pages {
+            return Err(Error::Invalid("text overlay changed page geometry"));
+        }
+        rebuilt.verified_bytes()?;
+        *self = rebuilt;
+        Ok(())
+    }
+    fn plan_text_overlay(
+        &self,
+        overlay: &TextOverlay,
+        rotation: u16,
+        info: &crate::DocumentInfo,
+        font: &mut FontPlan<'_>,
+        budget: &mut Budget,
+    ) -> Result<OverlayPlan> {
+        if !matches!(rotation, 0 | 90 | 180 | 270) {
+            return Err(Error::Invalid("overlay painting rotation is invalid"));
         }
         self.validate_selection(&[overlay.page])?;
         if overlay.value.is_empty() {
@@ -173,7 +272,6 @@ impl PdfDocument {
             return Err(Error::Invalid("overlay rectangle is invalid"));
         }
         let page_id = self.pages[overlay.page as usize - 1];
-        let info = self.info()?;
         let page = &info.pages[overlay.page as usize - 1];
         for bounds in [page.media_box, page.crop_box] {
             if x0 < f64::from(bounds[0])
@@ -186,7 +284,6 @@ impl PdfDocument {
                 ));
             }
         }
-        let mut budget = Budget::new();
         let catalog = budget
             .resolve(&self.document, self.document.trailer.get(b"Root")?)?
             .1
@@ -213,14 +310,22 @@ impl PdfDocument {
             contents(
                 &self.document,
                 value,
-                &mut budget,
+                budget,
                 &mut BTreeSet::new(),
                 &mut ids,
                 &mut source,
                 0,
             )?;
         }
+        budget.appearance_bytes = budget
+            .appearance_bytes
+            .checked_add(source.len())
+            .ok_or(Error::Limit("overlay batch source byte budget"))?;
+        if budget.appearance_bytes > crate::MAX_STREAM_BYTES {
+            return Err(Error::Limit("overlay batch decoded source exceeds 32 MiB"));
+        }
         let original_operators = balanced(&source)?;
+        budget.work(original_operators)?;
         let resources = crate::structure::inherited_raw(&self.document, page_id, b"Resources")?
             .map(|v| {
                 budget
@@ -231,7 +336,7 @@ impl PdfDocument {
         if let Some(resources) = resources {
             for (key, value) in resources.iter() {
                 budget.report(key.len())?;
-                appearance::copied(value, 0, &mut budget)?;
+                appearance::copied(value, 0, budget)?;
             }
         }
         let xobjects = resources
@@ -245,7 +350,7 @@ impl PdfDocument {
         if let Some(values) = xobjects {
             for (key, value) in values.iter() {
                 budget.report(key.len())?;
-                appearance::copied(value, 0, &mut budget)?;
+                appearance::copied(value, 0, budget)?;
             }
         }
         let mut name = b"NativeTextOverlay".to_vec();
@@ -258,13 +363,26 @@ impl PdfDocument {
             }
             name = format!("NativeTextOverlay{index}").into_bytes();
         }
-        let mut font = FontPlan::new(font_bytes)?;
+        let (width, height) = if matches!(rotation, 90 | 270) {
+            (y1 - y0, x1 - x0)
+        } else {
+            (x1 - x0, y1 - y0)
+        };
+        if width as f32 <= 0.0
+            || height as f32 <= 0.0
+            || x0 as f32 >= x1 as f32
+            || y0 as f32 >= y1 as f32
+        {
+            return Err(Error::Refused(
+                "overlay geometry collapses at PDF number precision",
+            ));
+        }
         let layout = multiline::layout_box(
-            &mut font,
+            font,
             &overlay.value,
             &BoxLayout {
-                width: x1 - x0,
-                height: y1 - y0,
+                width,
+                height,
                 padding: 0.0,
                 size: overlay.size,
                 alignment: match overlay.alignment {
@@ -291,13 +409,13 @@ impl PdfDocument {
                     value: painted_text,
                     style: &style,
                     q: 0,
-                    rectangle: [0.0, 0.0, x1 - x0, y1 - y0],
+                    rectangle: [0.0, 0.0, width, height],
                 },
                 b"OverlayFont",
                 layout.size,
                 &layout.glyphs[glyphs.clone()],
                 0.0,
-                y1 - y0,
+                height,
             )?);
             let separator = &logical_text[painted_text.len()..];
             if !separator.is_empty() {
@@ -317,55 +435,27 @@ impl PdfDocument {
         {
             return Err(Error::Limit("text overlay exceeds 100000 operators"));
         }
+        budget.work(operations.len())?;
         let encoded = Content { operations }.encode()?;
         if encoded.len() > crate::MAX_STREAM_BYTES {
             return Err(Error::Limit("text overlay stream exceeds 32 MiB"));
         }
-        let extra = 12;
-        if self.document.objects.len().saturating_add(extra) > crate::MAX_OBJECTS
-            || self.document.max_id as usize + extra >= crate::MAX_OBJECTS
-        {
-            return Err(Error::Limit("overlay object allocation budget"));
-        }
-        let existing = font.existing_program(&self.document)?;
-        let mut new_resources = resources.cloned().unwrap_or_default();
-        let mut new_xobjects = xobjects.cloned().unwrap_or_default();
-        let mut candidate = self.document.clone();
-        crate::require_pdf_1_4(&mut candidate);
-        let font_id = font.embed(&mut candidate, existing)?;
-        let form=candidate.add_object(Stream::new(dictionary!{"Type"=>"XObject","Subtype"=>"Form","FormType"=>1,"BBox"=>vec![real(0.0),real(0.0),real(x1-x0),real(y1-y0)],"Resources"=>dictionary!{"Font"=>dictionary!{"OverlayFont"=>font_id}}},encoded));
-        new_xobjects.set(name.clone(), form);
-        new_resources.set("XObject", new_xobjects);
-        let prefix = candidate.add_object(Stream::new(Dictionary::new(), b"q\n".to_vec()));
-        let tail = Content {
-            operations: vec![
-                // W/W* clips when the current path ends. Consume it before
-                // restoring the source state, so it cannot clip new artwork.
-                op("n", vec![]),
-                op("Q", vec![]),
-                op("q", vec![]),
-                op(
-                    "cm",
-                    vec![1.into(), 0.into(), 0.into(), 1.into(), real(x0), real(y0)],
-                ),
-                op("Do", vec![Object::Name(name)]),
-                op("Q", vec![]),
-            ],
-        }
-        .encode()?;
-        let suffix = candidate.add_object(Stream::new(Dictionary::new(), tail));
-        let mut new_contents = vec![Object::Reference(prefix)];
-        new_contents.extend(ids.into_iter().map(Object::Reference));
-        new_contents.push(Object::Reference(suffix));
-        let page = candidate.get_object_mut(page_id)?.as_dict_mut()?;
-        page.set("Resources", new_resources);
-        page.set("Contents", new_contents);
-        let rebuilt = Self::from_document(candidate, false)?;
-        if rebuilt.info()?.pages != info.pages {
-            return Err(Error::Invalid("text overlay changed page geometry"));
-        }
-        rebuilt.verified_bytes()?;
-        *self = rebuilt;
-        Ok(())
+        let matrix = match rotation {
+            0 => [1.0, 0.0, 0.0, 1.0, x0, y0],
+            90 => [0.0, 1.0, -1.0, 0.0, x1, y0],
+            180 => [-1.0, 0.0, 0.0, -1.0, x1, y1],
+            _ => [0.0, -1.0, 1.0, 0.0, x0, y1],
+        };
+        Ok(OverlayPlan {
+            page_id,
+            ids,
+            resources: resources.cloned().unwrap_or_default(),
+            xobjects: xobjects.cloned().unwrap_or_default(),
+            name,
+            encoded,
+            width,
+            height,
+            matrix,
+        })
     }
 }
