@@ -26,6 +26,7 @@ pub(super) struct Dialog {
     page: u32,
     bounds: [f64; 4],
     tool: Tool,
+    pending_tool: Option<Tool>,
     shape: Option<VectorShape>,
     stroke: [f32; 3],
     stroked: bool,
@@ -43,7 +44,11 @@ impl Dialog {
         self.edited || self.shape.is_some() || self.gesture.is_some()
     }
     fn request(&self) -> Option<VectorOverlay> {
-        if self.overflow || self.gesture.is_some() || (!self.stroked && !self.filled) {
+        if self.pending_tool.is_some()
+            || self.overflow
+            || self.gesture.is_some()
+            || (!self.stroked && !self.filled)
+        {
             return None;
         }
         Some(VectorOverlay {
@@ -56,6 +61,27 @@ impl Dialog {
             fill: self.filled.then_some(self.fill.map(f64::from)),
             opacity: self.opacity,
         })
+    }
+    fn change_tool(&mut self, tool: Tool) {
+        if tool == self.tool {
+            return;
+        }
+        if self.shape.is_some() || self.gesture.is_some() {
+            self.pending_tool = Some(tool);
+        } else {
+            self.discard_for_tool(tool);
+        }
+    }
+    fn discard_for_tool(&mut self, tool: Tool) {
+        self.tool = tool;
+        self.pending_tool = None;
+        self.shape = None;
+        self.gesture = None;
+        self.filled = false;
+        self.stroked = true;
+        self.edited = true;
+        self.overflow = false;
+        self.error = None;
     }
 }
 impl EditorApp {
@@ -94,6 +120,7 @@ impl EditorApp {
             page,
             bounds: map.bounds,
             tool: Tool::Rectangle,
+            pending_tool: None,
             shape: None,
             stroke: [0.1, 0.25, 0.2],
             stroked: true,
@@ -167,9 +194,9 @@ impl EditorApp {
         let mut discard = false;
         egui::Window::new("Draw new artwork").anchor(egui::Align2::RIGHT_TOP,egui::vec2(-12.0,88.0)).default_width(285.0).max_width((ctx.content_rect().width()-32.0).max(220.0)).collapsible(false).show(ctx,|ui|{
             ui.label("Drag on the paper to draw. Arrow keys nudge the selected draft. This adds artwork; it does not erase underlying content.");
-            egui::ScrollArea::vertical().max_height((ctx.content_rect().height()-290.0).max(40.0)).show(ui,|ui|{
-                ui.add_enabled_ui(controls&&!d.submitting,|ui|{
-                    ui.horizontal_wrapped(|ui|{for (tool,label)in [(Tool::Rectangle,"Rectangle"),(Tool::Ellipse,"Ellipse"),(Tool::Line,"Line"),(Tool::Freehand,"Freehand")]{if ui.selectable_value(&mut d.tool,tool,label).changed(){d.shape=None;d.gesture=None;d.filled=false;d.stroked=true;d.edited=true;d.overflow=false;}}});
+            egui::ScrollArea::vertical().max_height((ctx.content_rect().height()-290.0-if d.pending_tool.is_some(){90.0}else{0.0}).max(40.0)).show(ui,|ui|{
+                ui.add_enabled_ui(controls&&!d.submitting&&d.pending_tool.is_none(),|ui|{
+                    ui.horizontal_wrapped(|ui|{for (tool,label)in [(Tool::Rectangle,"Rectangle"),(Tool::Ellipse,"Ellipse"),(Tool::Line,"Line"),(Tool::Freehand,"Freehand")]{if ui.selectable_label(d.tool==tool,label).clicked(){d.change_tool(tool);}}});
                     d.edited|=ui.checkbox(&mut d.snap,"Snap to 1 PDF unit").changed();
                     if matches!(d.tool,Tool::Rectangle|Tool::Ellipse){d.edited|=ui.checkbox(&mut d.stroked,"Stroke shape").changed();}
                     ui.label("Stroke RGB");d.edited|=ui.color_edit_button_rgb(&mut d.stroke).changed();
@@ -182,7 +209,15 @@ impl EditorApp {
                 if d.stale{ui.label("The document changed. This draft is retained; close and reopen drawing controls before applying.");}
                 if let Some(error)=&d.error{ui.colored_label(crate::style::palette(ui.visuals().dark_mode).copper,error);}
             });
-            ui.separator();ui.horizontal_wrapped(|ui|{
+            ui.separator();
+            if let Some(tool)=d.pending_tool {
+                ui.label("Keep the current drawing, or explicitly discard it before switching tools.");
+                ui.horizontal_wrapped(|ui|{
+                    if ui.add_enabled(may_discard&&!d.submitting,egui::Button::new("Keep current drawing")).clicked(){d.pending_tool=None;d.gesture=None;}
+                    if ui.add_enabled(controls&&!d.submitting,egui::Button::new("Discard draft and switch tool")).clicked(){d.discard_for_tool(tool);}
+                });
+            }
+            ui.horizontal_wrapped(|ui|{
                 if ui.add_enabled(controls&&!d.submitting&&d.request().is_some(),egui::Button::new("Add artwork")).clicked(){apply=true;}
                 if ui.add_enabled(may_discard&&!d.submitting,egui::Button::new("Discard drawing draft")).clicked(){discard=true;}
             });
@@ -218,148 +253,154 @@ impl EditorApp {
         let Some(map) = PageMap::new(page, image) else {
             return;
         };
-        if d.gesture.as_ref().is_some_and(|g| g.map != map) {
-            if let Some(g) = d.gesture.take() {
-                d.shape = g.original;
+        if d.pending_tool.is_none() {
+            if d.gesture.as_ref().is_some_and(|g| g.map != map) {
+                if let Some(g) = d.gesture.take() {
+                    d.shape = g.original;
+                }
+                d.error = Some("Drawing cancelled because the page view changed.".into());
             }
-            d.error = Some("Drawing cancelled because the page view changed.".into());
-        }
-        let response=ui.interact(image,egui::Id::new(("vector-drawing",id,d.key.generation)),egui::Sense::click_and_drag()).on_hover_text("Drag to create a new shape. Focus the canvas and use arrows to move the draft; Shift moves 10 PDF units, Alt moves 0.1.");
-        response.widget_info(|| {
-            egui::WidgetInfo::labeled(egui::WidgetType::Other, true, "New vector artwork canvas")
-        });
-        if response.hovered() {
-            ui.ctx().set_cursor_icon(egui::CursorIcon::Crosshair);
-        }
-        if response.clicked() || response.drag_started() {
-            response.request_focus();
-        }
-        let inset = |p: [f64; 2]| {
-            let margin = if d.stroked { d.width / 2.0 } else { 0.0 };
-            if !margin.is_finite()
-                || margin < 0.0
-                || map.bounds[0] + margin > map.bounds[2] - margin
-                || map.bounds[1] + margin > map.bounds[3] - margin
-            {
-                return None;
-            }
-            Some([
-                p[0].clamp(map.bounds[0] + margin, map.bounds[2] - margin),
-                p[1].clamp(map.bounds[1] + margin, map.bounds[3] - margin),
-            ])
-        };
-        if response.drag_started()
-            && let Some(start) = ui
-                .input(|i| i.pointer.press_origin())
-                .and_then(|p| map.inverse(p, d.snap))
-                .and_then(inset)
-        {
-            d.gesture = Some(Gesture {
-                map,
-                start,
-                original: d.shape.take(),
+            let response=ui.interact(image,egui::Id::new(("vector-drawing",id,d.key.generation)),egui::Sense::click_and_drag()).on_hover_text("Drag to create a new shape. Focus the canvas and use arrows to move the draft; Shift moves 10 PDF units, Alt moves 0.1.");
+            response.widget_info(|| {
+                egui::WidgetInfo::labeled(
+                    egui::WidgetType::Other,
+                    true,
+                    "New vector artwork canvas",
+                )
             });
-            d.overflow = false;
-            d.error = None;
-            d.edited = true;
-        }
-        if let Some(g) = &d.gesture
-            && let Some(p) = response
-                .interact_pointer_pos()
-                .and_then(|p| map.inverse(p, d.snap))
-                .and_then(inset)
-        {
-            d.shape = Some(match d.tool {
-                Tool::Rectangle => VectorShape::Rectangle {
-                    rectangle: [
-                        g.start[0].min(p[0]),
-                        g.start[1].min(p[1]),
-                        g.start[0].max(p[0]),
-                        g.start[1].max(p[1]),
-                    ],
-                },
-                Tool::Ellipse => VectorShape::Ellipse {
-                    rectangle: [
-                        g.start[0].min(p[0]),
-                        g.start[1].min(p[1]),
-                        g.start[0].max(p[0]),
-                        g.start[1].max(p[1]),
-                    ],
-                },
-                Tool::Line => VectorShape::Line {
-                    from: g.start,
-                    to: p,
-                },
-                Tool::Freehand => {
-                    let mut points = match d.shape.take() {
-                        Some(VectorShape::Polyline { points }) => points,
-                        _ => vec![g.start],
+            if response.hovered() {
+                ui.ctx().set_cursor_icon(egui::CursorIcon::Crosshair);
+            }
+            if response.clicked() || response.drag_started() {
+                response.request_focus();
+            }
+            let inset = |p: [f64; 2]| {
+                let margin = if d.stroked { d.width / 2.0 } else { 0.0 };
+                if !margin.is_finite()
+                    || margin < 0.0
+                    || map.bounds[0] + margin > map.bounds[2] - margin
+                    || map.bounds[1] + margin > map.bounds[3] - margin
+                {
+                    return None;
+                }
+                Some([
+                    p[0].clamp(map.bounds[0] + margin, map.bounds[2] - margin),
+                    p[1].clamp(map.bounds[1] + margin, map.bounds[3] - margin),
+                ])
+            };
+            if response.drag_started()
+                && let Some(start) = ui
+                    .input(|i| i.pointer.press_origin())
+                    .and_then(|p| map.inverse(p, d.snap))
+                    .and_then(inset)
+            {
+                d.gesture = Some(Gesture {
+                    map,
+                    start,
+                    original: d.shape.take(),
+                });
+                d.overflow = false;
+                d.error = None;
+                d.edited = true;
+            }
+            if let Some(g) = &d.gesture
+                && let Some(p) = response
+                    .interact_pointer_pos()
+                    .and_then(|p| map.inverse(p, d.snap))
+                    .and_then(inset)
+            {
+                d.shape = Some(match d.tool {
+                    Tool::Rectangle => VectorShape::Rectangle {
+                        rectangle: [
+                            g.start[0].min(p[0]),
+                            g.start[1].min(p[1]),
+                            g.start[0].max(p[0]),
+                            g.start[1].max(p[1]),
+                        ],
+                    },
+                    Tool::Ellipse => VectorShape::Ellipse {
+                        rectangle: [
+                            g.start[0].min(p[0]),
+                            g.start[1].min(p[1]),
+                            g.start[0].max(p[0]),
+                            g.start[1].max(p[1]),
+                        ],
+                    },
+                    Tool::Line => VectorShape::Line {
+                        from: g.start,
+                        to: p,
+                    },
+                    Tool::Freehand => {
+                        let mut points = match d.shape.take() {
+                            Some(VectorShape::Polyline { points }) => points,
+                            _ => vec![g.start],
+                        };
+                        if points.last().is_some_and(|last| *last != p) {
+                            if points.len() < 4096 {
+                                points.push(p);
+                            } else {
+                                d.overflow = true;
+                                d.error=Some("Freehand exceeds 4096 points. Start a new drawing; this draft will not be truncated or applied.".into());
+                            }
+                        }
+                        VectorShape::Polyline { points }
+                    }
+                });
+            }
+            if d.gesture.is_some()
+                && ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Escape))
+                && let Some(g) = d.gesture.take()
+            {
+                d.shape = g.original;
+                d.overflow = false;
+            }
+            if response.drag_stopped() {
+                d.gesture = None;
+            }
+            if response.has_focus() && d.gesture.is_none() {
+                let mut delta = egui::Vec2::ZERO;
+                ui.input_mut(|i| {
+                    let m = i.modifiers;
+                    if m.command || m.ctrl {
+                        return;
+                    }
+                    let step = if m.shift {
+                        10.0
+                    } else if m.alt {
+                        0.1
+                    } else {
+                        1.0
                     };
-                    if points.last().is_some_and(|last| *last != p) {
-                        if points.len() < 4096 {
-                            points.push(p);
-                        } else {
-                            d.overflow = true;
-                            d.error=Some("Freehand exceeds 4096 points. Start a new drawing; this draft will not be truncated or applied.".into());
+                    for (key, v) in [
+                        (egui::Key::ArrowLeft, egui::vec2(-step, 0.0)),
+                        (egui::Key::ArrowRight, egui::vec2(step, 0.0)),
+                        (egui::Key::ArrowUp, egui::vec2(0.0, -step)),
+                        (egui::Key::ArrowDown, egui::vec2(0.0, step)),
+                    ] {
+                        if i.consume_key(m, key) {
+                            delta = v;
                         }
                     }
-                    VectorShape::Polyline { points }
-                }
-            });
-        }
-        if d.gesture.is_some()
-            && ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Escape))
-            && let Some(g) = d.gesture.take()
-        {
-            d.shape = g.original;
-            d.overflow = false;
-        }
-        if response.drag_stopped() {
-            d.gesture = None;
-        }
-        if response.has_focus() && d.gesture.is_none() {
-            let mut delta = egui::Vec2::ZERO;
-            ui.input_mut(|i| {
-                let m = i.modifiers;
-                if m.command || m.ctrl {
-                    return;
-                }
-                let step = if m.shift {
-                    10.0
-                } else if m.alt {
-                    0.1
-                } else {
-                    1.0
-                };
-                for (key, v) in [
-                    (egui::Key::ArrowLeft, egui::vec2(-step, 0.0)),
-                    (egui::Key::ArrowRight, egui::vec2(step, 0.0)),
-                    (egui::Key::ArrowUp, egui::vec2(0.0, -step)),
-                    (egui::Key::ArrowDown, egui::vec2(0.0, step)),
-                ] {
-                    if i.consume_key(m, key) {
-                        delta = v;
-                    }
-                }
-            });
-            if delta != egui::Vec2::ZERO
-                && let Some(shape) = d.shape.as_mut()
-            {
-                let a = map.inverse(image.center(), false);
-                let b = map.inverse(image.center() + delta, false);
-                if let (Some(a), Some(b)) = (a, b) {
-                    let scale = (map.point([map.bounds[0] + 1.0, map.bounds[1]])
-                        - map.point([map.bounds[0], map.bounds[1]]))
-                    .length();
-                    if scale.is_finite() && scale > 0.0 {
-                        translate(
-                            shape,
-                            [
-                                (b[0] - a[0]) * f64::from(scale),
-                                (b[1] - a[1]) * f64::from(scale),
-                            ],
-                        );
-                        d.edited = true;
+                });
+                if delta != egui::Vec2::ZERO
+                    && let Some(shape) = d.shape.as_mut()
+                {
+                    let a = map.inverse(image.center(), false);
+                    let b = map.inverse(image.center() + delta, false);
+                    if let (Some(a), Some(b)) = (a, b) {
+                        let scale = (map.point([map.bounds[0] + 1.0, map.bounds[1]])
+                            - map.point([map.bounds[0], map.bounds[1]]))
+                        .length();
+                        if scale.is_finite() && scale > 0.0 {
+                            translate(
+                                shape,
+                                [
+                                    (b[0] - a[0]) * f64::from(scale),
+                                    (b[1] - a[1]) * f64::from(scale),
+                                ],
+                            );
+                            d.edited = true;
+                        }
                     }
                 }
             }
@@ -761,6 +802,152 @@ mod tests {
             points(&original)
         );
         assert!(app.vector_dialog.as_ref().unwrap().gesture.is_none());
+    }
+    #[test]
+    fn tool_change_requires_real_confirmation_and_cancellation_keeps_geometry() {
+        let ctx = egui::Context::default();
+        let page = page(0);
+        let mut app = app(&ctx, &page);
+        let original = VectorShape::Rectangle {
+            rectangle: [40.0, 50.0, 100.0, 90.0],
+        };
+        app.vector_dialog.as_mut().unwrap().shape = Some(original.clone());
+        let render = |app: &mut EditorApp, events| {
+            let mut out = ctx.run_ui(
+                egui::RawInput {
+                    screen_rect: Some(egui::Rect::from_min_size(
+                        egui::Pos2::ZERO,
+                        egui::vec2(640.0, 420.0),
+                    )),
+                    events,
+                    ..Default::default()
+                },
+                |_| app.vector_dialog_ui(&ctx),
+            );
+            out.textures_delta.clear();
+            out
+        };
+        let button = |out: &egui::FullOutput, label: &str| {
+            out.shapes
+                .iter()
+                .find_map(|s| match &s.shape {
+                    egui::Shape::Text(t) if t.galley.job.text == label => {
+                        let r = t.galley.rect.translate(t.pos.to_vec2());
+                        assert!(
+                            s.clip_rect.contains_rect(r),
+                            "clipped decision button {label}: {r:?}"
+                        );
+                        assert!(r.bottom() <= 420.0);
+                        Some(r.center())
+                    }
+                    _ => None,
+                })
+                .unwrap_or_else(|| panic!("missing actual button {label}"))
+        };
+        let click = |app: &mut EditorApp, label: &str| {
+            render(app, vec![]);
+            let out = render(app, vec![]);
+            let p = button(&out, label);
+            render(app, vec![egui::Event::PointerMoved(p), pointer(p, true)]);
+            render(app, vec![pointer(p, false)]);
+        };
+        click(&mut app, "Ellipse");
+        assert!(
+            matches!(app.vector_dialog.as_ref().unwrap().tool, Tool::Rectangle),
+            "tool changed before a discard decision"
+        );
+        assert_eq!(
+            points(app.vector_dialog.as_ref().unwrap().shape.as_ref().unwrap()),
+            points(&original),
+            "unapplied geometry lost before confirmation"
+        );
+        assert!(
+            !app.apply_vector(),
+            "Apply must be blocked during the tool-change decision"
+        );
+        let image = egui::Rect::from_min_size(egui::pos2(30.0, 100.0), egui::vec2(200.0, 100.0));
+        let expected = PageMap::new(&page, image)
+            .unwrap()
+            .rectangle([40.0, 50.0, 100.0, 90.0])
+            .unwrap();
+        let mut preview = ctx.run_ui(
+            egui::RawInput {
+                screen_rect: Some(egui::Rect::from_min_size(
+                    egui::Pos2::ZERO,
+                    egui::vec2(640.0, 420.0),
+                )),
+                ..Default::default()
+            },
+            |ui| app.vector_canvas(ui, 1, 0, &page, image),
+        );
+        preview.textures_delta.clear();
+        assert!(
+            preview
+                .shapes
+                .iter()
+                .any(|s| matches!(&s.shape,egui::Shape::Rect(r)if r.rect==expected)),
+            "current draft outline disappeared during the decision"
+        );
+        let a = egui::pos2(80.0, 120.0);
+        let b = egui::pos2(160.0, 180.0);
+        draw(
+            &mut app,
+            &ctx,
+            &page,
+            image,
+            vec![egui::Event::PointerMoved(a), pointer(a, true)],
+        );
+        draw(
+            &mut app,
+            &ctx,
+            &page,
+            image,
+            vec![egui::Event::PointerMoved(b)],
+        );
+        draw(&mut app, &ctx, &page, image, vec![pointer(b, false)]);
+        assert_eq!(
+            points(app.vector_dialog.as_ref().unwrap().shape.as_ref().unwrap()),
+            points(&original)
+        );
+        click(&mut app, "Keep current drawing");
+        assert!(matches!(
+            app.vector_dialog.as_ref().unwrap().tool,
+            Tool::Rectangle
+        ));
+        assert_eq!(
+            points(app.vector_dialog.as_ref().unwrap().shape.as_ref().unwrap()),
+            points(&original)
+        );
+        click(&mut app, "Ellipse");
+        app.busy = true;
+        click(&mut app, "Discard draft and switch tool");
+        assert!(matches!(
+            app.vector_dialog.as_ref().unwrap().tool,
+            Tool::Rectangle
+        ));
+        assert_eq!(
+            points(app.vector_dialog.as_ref().unwrap().shape.as_ref().unwrap()),
+            points(&original)
+        );
+        app.busy = false;
+        app.vector_dialog.as_mut().unwrap().stale = true;
+        click(&mut app, "Discard draft and switch tool");
+        assert!(matches!(
+            app.vector_dialog.as_ref().unwrap().tool,
+            Tool::Rectangle
+        ));
+        assert_eq!(
+            points(app.vector_dialog.as_ref().unwrap().shape.as_ref().unwrap()),
+            points(&original)
+        );
+        app.vector_dialog.as_mut().unwrap().stale = false;
+        click(&mut app, "Discard draft and switch tool");
+        assert!(matches!(
+            app.vector_dialog.as_ref().unwrap().tool,
+            Tool::Ellipse
+        ));
+        assert!(app.vector_dialog.as_ref().unwrap().shape.is_none());
+        assert!(app.has_tab_draft(1));
     }
     #[test]
     fn real_properties_buttons_and_small_window_footer() {
