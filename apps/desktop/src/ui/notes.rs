@@ -268,9 +268,8 @@ mod tests {
     use super::*;
     use crate::state::{DocumentStatus, Tab};
     fn app() -> EditorApp {
-        let mut app = EditorApp::new(&eframe::CreationContext::_new_kittest(
-            egui::Context::default(),
-        ));
+        let context = egui::Context::default();
+        let mut app = EditorApp::new(&eframe::CreationContext::_new_kittest(context.clone()));
         let info = pdf_core::PdfDocument::from_bytes(
             include_bytes!("../../../../tests/fixtures/pdfs/bookmarks.pdf"),
             None,
@@ -291,7 +290,16 @@ mod tests {
         ));
         app.active = Some(1);
         app.open_notes();
-        app.busy = false;
+        // Complete the real discovery request before injecting UI fixture entries.
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(3);
+        while app.notes_dialog.as_ref().unwrap().error.is_none()
+            && std::time::Instant::now() < deadline
+        {
+            app.poll(&context);
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        assert!(app.notes_dialog.as_ref().unwrap().error.is_some());
+        assert!(!app.busy);
         let key = app.notes_dialog.as_ref().unwrap().key;
         app.accept_notes(
             key,
@@ -423,7 +431,16 @@ mod tests {
         assert!(!app.busy);
         assert!(app.notes_dialog.as_ref().unwrap().confirm_remove);
         click(&mut app, &context, "Confirm remove occurrence");
-        assert!(app.notes_dialog.as_ref().unwrap().submitting);
+        assert!(
+            app.notes_dialog.as_ref().unwrap().submitting,
+            "confirmation did not submit: message={:?}, busy={}, stale={}, selected={:?}, confirm={}, valid={}",
+            app.message,
+            app.busy,
+            app.notes_dialog.as_ref().unwrap().stale,
+            app.notes_dialog.as_ref().unwrap().selected,
+            app.notes_dialog.as_ref().unwrap().confirm_remove,
+            app.notes_dialog.as_ref().unwrap().valid(),
+        );
         let deadline = std::time::Instant::now() + std::time::Duration::from_secs(3);
         while app.notes_dialog.as_ref().unwrap().submitting && std::time::Instant::now() < deadline
         {
