@@ -51,8 +51,9 @@ window and accessibility review remain separate gates.
 
 Attachment removal supports bounded, balanced vector appearances and the four
 standard omitted-appearance icon names: Graph, PushPin, Paperclip and Tag. Explicit
-appearance streams take precedence. The native renderer currently omits default
-FileAttachment icons; Poppler independently verifies their visible removal.
+appearance streams take precedence. Native rendering and Poppler independently
+verify visible removal of the standard icons. The native icons are original
+vectors; identical artwork across readers is not claimed.
 
 The engine preflights the object/resource graph and decoded content operators.
 It refuses unsupported inline associations, retained private payload aliases,

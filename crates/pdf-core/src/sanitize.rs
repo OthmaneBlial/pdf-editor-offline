@@ -15,7 +15,6 @@ const LIMITATIONS: &[&str] = &[
     "Document identifiers and unrelated custom metadata are retained.",
     "Form values, hidden page/layer content, thumbnails and application-specific data are not removed.",
     "Visible attachment removal supports balanced vector appearances or standard omitted-AP icons; other appearances are refused.",
-    "The native renderer currently does not display omitted-AP FileAttachment icons; their visible removal is checked with Poppler.",
     "This is not secure text/image redaction, filesystem erasure, or proof that no private data remains.",
 ];
 #[derive(Debug, Clone, Serialize, Deserialize)]

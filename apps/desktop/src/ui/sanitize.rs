@@ -142,7 +142,6 @@ impl EditorApp {
                 if !current {ui.colored_label(egui::Color32::YELLOW,"The source changed or became unavailable. Close this dialog and review it again.");}
             }
             ui.separator();ui.label(LIMITATION);
-            ui.label("Native preview lacks default FileAttachment icon display; their supported removal is independently verified with Poppler.");
             if let Some(error)=&dialog.error {ui.colored_label(egui::Color32::LIGHT_RED,error);}
             ui.horizontal(|ui| {
                 if dialog.report.is_none() && ui.add_enabled(current && !self.busy && self.pending_saves.is_empty() && dialog.expected_id.is_none() && self.tabs.len()<crate::worker::MAX_TABS && self.next_id!=0 && self.next_id!=u64::MAX,egui::Button::new("Create separate copy")).clicked() {apply=true;}

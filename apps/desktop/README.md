@@ -4,7 +4,8 @@ The **PDF form fields…** action and command palette expose bounded AcroForm
 discovery and guarded checkbox/radio editing. Apply uses the actual document
 worker and durable history, with undo/redo, verified Save As, stale/tab/save guards
 and retained errors. Supported text fields use the font-backed tier described below;
-choice/signature fields remain read-only, and password values are
+Indexed dropdowns and list selections use the same guarded font-backed workflow;
+signature fields remain read-only, and password values are
 omitted. [Form guide and limits](../../docs/FORMS_RUST.md). Automated controls and
 real document/history tests pass; visual review of this new dialog remains open.
 
