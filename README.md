@@ -33,6 +33,12 @@ The screenshot is a real app window using a public synthetic PDF.
 
 ## Made this week · 13 October 2026
 
+**Today's checkpoint:** the latest checked source passed native CI on Windows,
+macOS ARM64 and Intel, and Linux ARM64 and x64. The quality and security jobs
+also passed. [Inspect the native run](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38349608325)
+· [Inspect the security run](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38349608254).
+These checks cover source builds; the downloadable CLI remains preview.3.
+
 These features are on **`main`**, ahead of the published CLI preview:
 
 | Try it | See it work |
@@ -56,6 +62,40 @@ replace or erase existing content. [Reproduce the result](docs/TEXT_OVERLAYS_RUS
 
 [Latest changes](CHANGELOG.md) · [Live CI](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml)
 · [Source status and remaining work](docs/RUST_STATUS.md)
+
+### Pick your first five minutes
+
+| Start here | What you'll get |
+| --- | --- |
+| [Install the CLI](#try-the-native-cli) | Inspect a local PDF and preview a page rotation before saving a copy. |
+| [Build the desktop](#build-and-run) | Open your own PDF in the native workstation. |
+| [Try the text walkthrough](docs/TEXT_OVERLAYS_RUST.md) | Reproduce the before/after PDF shown above. |
+| [Explore the Rust workspace](Cargo.toml) | Follow the crates from document parsing to rendering and the two apps. |
+
+If this is a tool you'd use, **[star the repository](https://github.com/OthmaneBlial/pdf-editor-offline)**
+to keep it within reach. Want to help it grow? Try a workflow, compare the saved
+PDF in another viewer, or contribute a focused improvement from the
+[roadmap](ROADMAP.md). Use synthetic documents for public examples.
+
+<details>
+<summary>A small root, with a place for everything</summary>
+
+The project is a Rust workspace. Build outputs stay outside this checkout.
+
+| Directory | Purpose |
+| --- | --- |
+| `apps/` | Native desktop and command-line applications |
+| `crates/` | PDF parsing, editing, rendering, conversion and worker isolation |
+| `docs/` | Guides, translations, screenshots and verification evidence |
+| `distribution/` | The optional npm installer and release preparation |
+| `examples/`, `tests/`, `tools/` | Reproducible examples, fixtures and development tools |
+| `site/` | The public showcase and documentation website |
+| `vendor/` | Required vendored source and its licenses |
+
+The root keeps workspace manifests, project documentation, the license and
+quality configuration. Screenshots live in `docs/assets/`.
+
+</details>
 
 ## Your next PDF, without the upload
 
