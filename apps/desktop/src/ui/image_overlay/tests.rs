@@ -24,6 +24,50 @@ pub(super) fn editor(context: &egui::Context) -> EditorApp {
     app.open_image_overlay();
     app
 }
+#[test]
+fn competing_overlay_actions_preserve_the_first_open_dialog() {
+    for first in 0..3 {
+        let context = egui::Context::default();
+        let mut app = editor(&context);
+        app.image_dialog = None;
+        match first {
+            0 => {
+                app.open_image_overlay();
+                app.image_dialog.as_mut().unwrap().image_file = Some("retained.png".into());
+            }
+            1 => {
+                app.open_text_overlay();
+                app.overlay_dialog.as_mut().unwrap().request.value = "Retained draft".into();
+            }
+            _ => app.open_vector(),
+        }
+        let generation = app.forms_generation;
+        app.open_image_overlay();
+        app.open_vector();
+        app.open_text_overlay();
+        assert_eq!(
+            [
+                app.image_dialog.is_some(),
+                app.overlay_dialog.is_some(),
+                app.vector_dialog.is_some()
+            ],
+            [first == 0, first == 1, first == 2],
+            "only the first dialog may own the canvas"
+        );
+        assert_eq!(app.forms_generation, generation);
+        if first == 0 {
+            assert_eq!(
+                app.image_dialog.as_ref().unwrap().image_file.as_deref(),
+                Some(std::path::Path::new("retained.png"))
+            );
+        } else if first == 1 {
+            assert_eq!(
+                app.overlay_dialog.as_ref().unwrap().request.value,
+                "Retained draft"
+            );
+        }
+    }
+}
 fn click(app: &mut EditorApp, context: &egui::Context, label: &str) {
     let mut draw = |events| {
         let mut output = context.run_ui(

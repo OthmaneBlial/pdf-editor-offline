@@ -90,6 +90,7 @@ impl EditorApp {
             || !self.pending_saves.is_empty()
             || self.vector_dialog.is_some()
             || self.overlay_dialog.is_some()
+            || self.image_dialog.is_some()
         {
             return;
         }

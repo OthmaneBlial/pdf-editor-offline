@@ -366,7 +366,10 @@ impl Worker {
                     Command::Notes(key) => Some(TaskKey::Notes(*key)),
                     Command::Forms(key) => Some(TaskKey::Forms(*key)),
                     Command::Edit {
-                        edit: Edit::TextOverlay { key, .. } | Edit::VectorOverlay { key, .. } | Edit::ImageOverlay { key, .. },
+                        edit:
+                            Edit::TextOverlay { key, .. }
+                            | Edit::VectorOverlay { key, .. }
+                            | Edit::ImageOverlay { key, .. },
                         ..
                     } => Some(TaskKey::Overlay(*key)),
                     Command::Edit {
@@ -452,10 +455,10 @@ mod split_tests;
 #[cfg(test)]
 mod subset_tests;
 #[cfg(test)]
-mod vector_tests;
-#[cfg(test)]
 #[path = "../../../tests/support/split_fixture.rs"]
 pub(crate) mod test_pdf;
+#[cfg(test)]
+mod vector_tests;
 use document::WorkingDocument;
 pub use recovery::{RecoveredDocument, RecoverySession};
 

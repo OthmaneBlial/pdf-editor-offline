@@ -21,7 +21,9 @@ impl EditorApp {
             .show(ui, |ui| {
                 crate::style::chrome(ui);
                 ui.add_enabled_ui(
-                    self.overlay_dialog.is_none() && self.vector_dialog.is_none() && self.image_dialog.is_none(),
+                    self.overlay_dialog.is_none()
+                        && self.vector_dialog.is_none()
+                        && self.image_dialog.is_none(),
                     |ui| self.navigation(ui),
                 );
             });
@@ -39,7 +41,9 @@ impl EditorApp {
             )
             .show(ui, |ui| {
                 ui.add_enabled_ui(
-                    self.overlay_dialog.is_none() && self.vector_dialog.is_none() && self.image_dialog.is_none(),
+                    self.overlay_dialog.is_none()
+                        && self.vector_dialog.is_none()
+                        && self.image_dialog.is_none(),
                     |ui| self.document_tabs(ui),
                 );
             });
@@ -64,7 +68,9 @@ impl EditorApp {
                 .frame(egui::Frame::new().fill(colors.panel).inner_margin(16))
                 .show(ui, |ui| {
                     ui.add_enabled_ui(
-                        self.overlay_dialog.is_none() && self.vector_dialog.is_none() && self.image_dialog.is_none(),
+                        self.overlay_dialog.is_none()
+                            && self.vector_dialog.is_none()
+                            && self.image_dialog.is_none(),
                         |ui| self.sidebar(ui),
                     )
                 });
@@ -81,7 +87,9 @@ impl EditorApp {
                         .auto_shrink([false, false])
                         .show(ui, |ui| {
                             ui.add_enabled_ui(
-                                self.overlay_dialog.is_none() && self.vector_dialog.is_none() && self.image_dialog.is_none(),
+                                self.overlay_dialog.is_none()
+                                    && self.vector_dialog.is_none()
+                                    && self.image_dialog.is_none(),
                                 |ui| self.inspector(ui),
                             )
                         });
