@@ -26,6 +26,72 @@ fn inventory(bytes: &[u8], offset: u32) -> pdf_worker::document::ContentTextPage
     inventory
 }
 #[test]
+fn real_child_property_edit_is_source_bound_strict_and_preserves_text_shared_page() {
+    const PRECISE: &[u8] =
+        b"% exact child source CTM\n1.0000000123456789 0 0 1 0.1234567890123456 0 cm\n";
+    let bytes = fixture::source(&[PRECISE, fixture::CONTENT].concat());
+    let read = inventory(&bytes, 0);
+    assert!(read.runs[0].properties_writable);
+    let request = |fingerprint| Operation::Edit {
+        mutation: Mutation::ContentTextProperties {
+            page: 1,
+            source_fingerprint: fingerprint,
+            changes: vec![pdf_core::ContentTextPropertyChange {
+                identity: read.runs[0].identity.clone(),
+                expected: "Original".into(),
+                font_size: Some(24.0),
+                matrix_translation: Some([20.0, 150.0]),
+                fill_rgb: Some([1.0, 0.0, 0.0]),
+            }],
+        },
+    };
+    let mut hash = read.source_fingerprint;
+    hash[0] ^= 1;
+    let refused = execute(request(hash), &bytes);
+    assert_eq!(refused.control["ok"], false);
+    assert!(refused.payload.is_empty());
+    let reply = execute(request(read.source_fingerprint), &bytes);
+    assert_eq!(reply.kind, PayloadKind::Pdf);
+    let pdf = pdf_core::PdfDocument::from_bytes(&reply.payload, None).unwrap();
+    let raw = lopdf::Document::load_mem(&reply.payload).unwrap();
+    let id = raw
+        .get_dictionary((3, 0))
+        .unwrap()
+        .get(b"Contents")
+        .unwrap()
+        .as_reference()
+        .unwrap();
+    assert!(
+        raw.get_object(id)
+            .unwrap()
+            .as_stream()
+            .unwrap()
+            .decompressed_content_with_limit(pdf_core::MAX_STREAM_BYTES)
+            .unwrap()
+            .starts_with(PRECISE),
+        "actual child must preserve raw untouched precision"
+    );
+    assert_eq!(pdf.extract_text(&[1]).unwrap(), "Original\nA B\n");
+    assert_eq!(
+        pdf_render::render_page(&bytes, 1, 1.0).unwrap(),
+        pdf_render::render_page(&reply.payload, 1, 1.0).unwrap()
+    );
+    assert_ne!(
+        pdf_render::render_page(&bytes, 0, 1.0).unwrap().rgba,
+        pdf_render::render_page(&reply.payload, 0, 1.0)
+            .unwrap()
+            .rgba
+    );
+    let mut control = serde_json::to_value(request(read.source_fingerprint)).unwrap();
+    control["mutation"]["changes"][0]["font_face"] = serde_json::json!("guess");
+    let rejected = execute_document(Request {
+        control,
+        payload: bytes,
+    })
+    .unwrap_err();
+    assert!(rejected.contains("unknown field"));
+}
+#[test]
 fn real_child_proportional_width_policy_is_explicit_strict_and_atomic() {
     let bytes = fixture::source_with_font(fixture::CONTENT, "Helvetica");
     let read = inventory(&bytes, 0);

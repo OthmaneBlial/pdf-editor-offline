@@ -86,3 +86,62 @@ pub(super) fn replace(
         serde_json::json!({"operation":"replace-content-text","page":request.page,"text_operation":request.operation,"output":super::json_path(request.output),"dry_run":request.dry_run,"original_operand_replaced":true,"layout_policy":layout_policy,"before":before,"after":after,"secure_erasure":false,"reflow":false}),
     )
 }
+
+pub(super) struct Properties<'a> {
+    pub page: u32,
+    pub operation: u32,
+    pub source_sha256: &'a str,
+    pub expected: &'a str,
+    pub font_size: Option<f32>,
+    pub matrix_translation: Option<[f32; 2]>,
+    pub fill_rgb: Option<[f32; 3]>,
+    pub output: &'a Path,
+    pub dry_run: bool,
+}
+pub(super) fn properties(
+    input: &Path,
+    password: Option<&str>,
+    request: Properties<'_>,
+) -> Result<serde_json::Value> {
+    let bytes = pdf_core::read_pdf_bytes(input)?;
+    let fingerprint = hexadecimal(&pdf_worker::payload_fingerprint(&bytes));
+    if request.source_sha256.len() != 64
+        || !request
+            .source_sha256
+            .as_bytes()
+            .iter()
+            .all(u8::is_ascii_hexdigit)
+    {
+        return Err(Error::Invalid(
+            "source-sha256 must contain exactly 64 hexadecimal digits",
+        ));
+    }
+    if !request.source_sha256.eq_ignore_ascii_case(&fingerprint) {
+        return Err(Error::Refused("existing text source fingerprint is stale"));
+    }
+    let mut document = PdfDocument::from_bytes(&bytes, password)?;
+    document.ensure_editable()?;
+    let run = document
+        .content_text_runs(request.page)?
+        .into_iter()
+        .find(|run| run.identity.operation == request.operation)
+        .ok_or(Error::Refused(
+            "selected operation is not an inventoried text run",
+        ))?;
+    let before = run.replacement_position(request.expected)?;
+    let change = pdf_core::ContentTextPropertyChange {
+        identity: run.identity.clone(),
+        expected: request.expected.into(),
+        font_size: request.font_size,
+        matrix_translation: request.matrix_translation,
+        fill_rgb: request.fill_rgb,
+    };
+    let after = run.property_position(&change)?;
+    document.update_content_text_properties(request.page, &[change])?;
+    if !request.dry_run {
+        document.save_new(request.output)?;
+    }
+    Ok(
+        serde_json::json!({"operation":"set-content-text-properties","page":request.page,"text_operation":request.operation,"output":super::json_path(request.output),"dry_run":request.dry_run,"original_text_preserved":true,"original_font_preserved":true,"font_size":request.font_size,"matrix_position":request.matrix_translation,"rgb":request.fill_rgb,"before":before,"after":after,"secure_erasure":false,"reflow":false}),
+    )
+}

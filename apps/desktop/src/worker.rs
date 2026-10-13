@@ -66,6 +66,11 @@ pub enum Edit {
         overlay: pdf_core::ImageOverlay,
         image_file: PathBuf,
     },
+    ContentTextProperties {
+        key: ContentTextKey,
+        source_fingerprint: [u8; 32],
+        change: pdf_core::ContentTextPropertyChange,
+    },
     ContentText {
         key: ContentTextKey,
         source_fingerprint: [u8; 32],
@@ -407,7 +412,8 @@ impl Worker {
                     Command::Notes(key) => Some(TaskKey::Notes(*key)),
                     Command::ContentText(key)
                     | Command::Edit {
-                        edit: Edit::ContentText { key, .. },
+                        edit:
+                            Edit::ContentText { key, .. } | Edit::ContentTextProperties { key, .. },
                         ..
                     } => Some(TaskKey::ContentText(*key)),
                     Command::Forms(key) => Some(TaskKey::Forms(*key)),
@@ -1024,7 +1030,7 @@ fn process_with_journal(
             })
         }
         Command::Edit { edit, .. } => {
-            if let Edit::ContentText { key, .. } = &edit
+            if let Edit::ContentText { key, .. } | Edit::ContentTextProperties { key, .. } = &edit
                 && key.tab != id
             {
                 return Err("Existing text draft belongs to another document".into());
@@ -2292,6 +2298,6 @@ mod tests {
 }
 
 #[cfg(test)]
-mod signature_tests;
-#[cfg(test)]
 mod image_instance_tests;
+#[cfg(test)]
+mod signature_tests;

@@ -208,3 +208,13 @@ widget and production-child tests cover this path; manual desktop interaction
 and platform-specific runtime verification are separate gates. Original bytes
 can remain recoverable; this is not reflow or redaction. See [the supported
 tier](../../docs/CONTENT_TEXT_EDITING_RUST.md).
+
+The same dialog's **Text properties** mode edits original font size, text-matrix
+X/Y translation and explicit RGB fill for eligible runs, preserving the original
+face and text. It is a scoped content change, with durable Undo/Redo and Save As,
+not an overlay. Matrix coordinates are PDF text space; changed size/position can
+overlap artwork or leave the page. Unsupported color/profile/extended-state
+contexts remain disabled with a reason. Text-value and property drafts are separate
+transactions: apply or reset one before applying the other. Both are protected
+when closing, quitting or restoring a session. Headless controls and actual child
+tests cover this milestone; manual desktop interaction remains a separate gate.

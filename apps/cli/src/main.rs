@@ -65,6 +65,28 @@ enum Command {
         #[arg(long)]
         dry_run: bool,
     },
+    /// Move, resize or recolor a supported original text object; keeps its font and text.
+    SetContentTextProperties {
+        input: PathBuf,
+        #[arg(long)]
+        page: u32,
+        #[arg(long)]
+        operation: u32,
+        #[arg(long)]
+        source_sha256: String,
+        #[arg(long, allow_hyphen_values = true)]
+        expected: String,
+        #[arg(long)]
+        font_size: Option<f32>,
+        #[arg(long, num_args=2, allow_hyphen_values=true, value_names=["X","Y"])]
+        matrix_position: Option<Vec<f32>>,
+        #[arg(long, num_args=3, allow_hyphen_values=true, value_names=["R","G","B"])]
+        rgb: Option<Vec<f32>>,
+        #[arg(short, long)]
+        output: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Inspect eligible direct existing text runs; operation indices are zero-based.
     InspectContentText {
         input: PathBuf,
@@ -496,6 +518,40 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
             )
         }
         Command::ListChoices { input } => Ok(json!({"choices":open(input)?.list_choice_fields()?})),
+        Command::SetContentTextProperties {
+            input,
+            page,
+            operation,
+            source_sha256,
+            expected,
+            font_size,
+            matrix_position,
+            rgb,
+            output,
+            dry_run,
+        } => content::properties(
+            input,
+            password,
+            content::Properties {
+                page: *page,
+                operation: *operation,
+                source_sha256,
+                expected,
+                font_size: *font_size,
+                matrix_translation: matrix_position
+                    .as_deref()
+                    .map(|values| values.try_into())
+                    .transpose()
+                    .map_err(|_| Error::Invalid("matrix position needs two numbers"))?,
+                fill_rgb: rgb
+                    .as_deref()
+                    .map(|values| values.try_into())
+                    .transpose()
+                    .map_err(|_| Error::Invalid("RGB needs three numbers"))?,
+                output,
+                dry_run: *dry_run,
+            },
+        ),
         Command::InspectContentText {
             input,
             page,
@@ -1106,7 +1162,7 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
         }
         Command::Capabilities => Ok(
             json!({ "runtime": "rust-native", "version": env!("CARGO_PKG_VERSION"), "migration_preview": true,
-            "commands": ["number-pages", "list-image-instances", "replace-image", "add-image-overlay", "add-vector-overlay", "split", "add-text-overlay", "inspect-content-text", "replace-content-text", "info", "sanitize", "list-forms", "list-choices", "fill-button", "fill-text", "fill-choice", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "images-to-pdf", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "duplicate-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
+            "commands": ["number-pages", "list-image-instances", "replace-image", "add-image-overlay", "add-vector-overlay", "set-content-text-properties", "split", "add-text-overlay", "inspect-content-text", "replace-content-text", "info", "sanitize", "list-forms", "list-choices", "fill-button", "fill-text", "fill-choice", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "images-to-pdf", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "duplicate-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
             "vector_overlays":"new_rectangle_ellipse_line_bounded_polyline_and_multi_stroke_visual_signatures_with_stroke_fill_paint_alpha_not_redaction_or_cryptographic_signing",
             "image_overlay":"restricted_png_jpeg_insert_quarter_turns_pdf_rectangle_no_existing_image_replacement",
             "existing_content_editing": "guarded_direct_standard_courier_helvetica_times_ascii_operands_preserve_word_advances_or_explicit_bounded_width_change_no_reflow_or_secure_erasure",

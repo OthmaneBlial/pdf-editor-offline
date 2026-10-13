@@ -17,6 +17,14 @@ It replaces original operands and preserves shared-page resources, with stale
 identity and unsupported-layout refusals. This is not redaction; original streams
 remain retained. See [the supported tier and evidence](../../docs/CONTENT_TEXT_EDITING_RUST.md).
 
+`update_content_text_properties` changes the original selected run's size, matrix
+translation and/or DeviceRGB fill within an explicitly scoped BT/ET object. It
+keeps the font and text, replays original persistent text-state setters after
+restoring graphics state, and preserves later inherited text/artwork. It refuses
+custom profiles/colors/ExtGState and unsupported structures. The existing layout
+tracker validates every changed glyph origin and basis before one candidate
+publication. This is neither reflow, font substitution nor secure erasure.
+
 Native Rust document processing for PDF Editor Offline. No network,
 HTTP service or GUI dependency. API page numbers are one-based.
 

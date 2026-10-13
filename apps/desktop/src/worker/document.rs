@@ -878,6 +878,15 @@ impl WorkingDocument {
                         || self.current.info.encrypted
                         || self.current.info.signature_fields > 0)
                 || !run.writable && run.refusal_reason.is_none()
+                || run
+                    .properties_refusal_reason
+                    .as_ref()
+                    .is_some_and(|reason| reason.is_empty() || reason.len() > 512)
+                || run.properties_writable
+                    && (!run.writable
+                        || run.layout.is_none()
+                        || run.properties_refusal_reason.is_some())
+                || !run.properties_writable && run.properties_refusal_reason.is_none()
             {
                 return Err("Invalid existing text inventory entry".into());
             }
@@ -1206,6 +1215,27 @@ impl WorkingDocument {
                 Mutation::ImageOverlay {
                     overlay,
                     image_bytes_len: image.len() as u32,
+                }
+            }
+            Edit::ContentTextProperties {
+                key,
+                source_fingerprint,
+                change,
+            } => {
+                if key.revision != self.current.revision
+                    || key.page == 0
+                    || key.page as usize > self.current.info.page_count
+                {
+                    return Err("Existing text property draft revision or page is stale".into());
+                }
+                if source_fingerprint != pdf_worker::payload_fingerprint(&self.current.bytes) {
+                    return Err("Existing text source fingerprint is stale".into());
+                }
+                expected_note = Some(key.page as usize - 1);
+                Mutation::ContentTextProperties {
+                    page: key.page,
+                    source_fingerprint,
+                    changes: vec![change],
                 }
             }
             Edit::ContentText {

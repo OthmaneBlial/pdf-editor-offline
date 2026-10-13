@@ -5,12 +5,15 @@ use lopdf::{Dictionary, Object, ObjectId, Stream};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
+use std::ops::Range;
 
 const MAX_RUNS: usize = 10_000;
 const MAX_TEXT: usize = 4 * 1024 * 1024;
 mod layout;
+mod properties;
 use layout::GraphicsTextState;
 pub use layout::{ContentTextLayout, ContentTextPosition};
+pub use properties::ContentTextPropertyChange;
 
 #[derive(Default)]
 struct TextState {
@@ -45,6 +48,8 @@ pub struct ContentTextRun {
     pub text: Option<String>,
     pub writable: bool,
     pub refusal_reason: Option<String>,
+    pub properties_writable: bool,
+    pub properties_refusal_reason: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -219,7 +224,14 @@ fn ascii(bytes: &[u8]) -> bool {
     bytes.len() <= 65_536 && bytes.iter().all(|byte| (32..=126).contains(byte))
 }
 
-fn single_content(pdf: &PdfDocument, page: u32) -> Result<(ObjectId, ObjectId, Vec<u8>, Content)> {
+struct PageContent {
+    page_id: ObjectId,
+    stream_id: ObjectId,
+    bytes: Vec<u8>,
+    content: Content,
+    spans: Vec<crate::content_spans::OperatorSpan>,
+}
+fn single_content(pdf: &PdfDocument, page: u32) -> Result<PageContent> {
     let page_id = *pdf
         .pages
         .get(
@@ -240,7 +252,7 @@ fn single_content(pdf: &PdfDocument, page: u32) -> Result<(ObjectId, ObjectId, V
         return Err(Error::Refused("external content streams cannot be edited"));
     }
     let bytes = stream.decompressed_content_with_limit(MAX_STREAM_BYTES)?;
-    let content = Content::decode(&bytes)?;
+    let (content, spans) = crate::content_spans::decode_spanned(&bytes)?;
     if content.operations.len() > 100_000 {
         return Err(Error::Limit("content inventory exceeds 100000 operators"));
     }
@@ -253,7 +265,13 @@ fn single_content(pdf: &PdfDocument, page: u32) -> Result<(ObjectId, ObjectId, V
             "inline image streams cannot be rewritten by the text editor",
         ));
     }
-    Ok((page_id, stream_id, bytes, content))
+    Ok(PageContent {
+        page_id,
+        stream_id,
+        bytes,
+        content,
+        spans,
+    })
 }
 
 fn standard_font(
@@ -310,10 +328,62 @@ fn number(object: &Object) -> bool {
         || matches!(object, Object::Real(value) if value.is_finite())
 }
 
+fn splice_content(bytes: &[u8], mut changes: Vec<(Range<usize>, Vec<u8>)>) -> Result<Vec<u8>> {
+    changes.sort_by_key(|(range, _)| range.start);
+    let mut previous = 0usize;
+    let mut size = bytes.len();
+    for (range, replacement) in &changes {
+        if range.start < previous || range.end < range.start || range.end > bytes.len() {
+            return Err(Error::Invalid("overlapping or invalid content spans"));
+        }
+        previous = range.end;
+        size = size
+            .checked_sub(range.len())
+            .and_then(|size| size.checked_add(replacement.len()))
+            .ok_or(Error::Limit("edited content size overflow"))?;
+    }
+    if size > MAX_STREAM_BYTES {
+        return Err(Error::Limit("edited content exceeds 32 MiB"));
+    }
+    let mut output = Vec::new();
+    output
+        .try_reserve_exact(size)
+        .map_err(|_| Error::Limit("edited content allocation"))?;
+    let mut previous = 0;
+    for (range, replacement) in changes {
+        output.extend_from_slice(&bytes[previous..range.start]);
+        output.extend_from_slice(&replacement);
+        previous = range.end;
+    }
+    output.extend_from_slice(&bytes[previous..]);
+    Ok(output)
+}
+
+// This tier has already validated printable ASCII. Escape only PDF literal-string
+// delimiters/backslashes; no parser or general-purpose object writer is duplicated.
+fn ascii_operand(value: &str) -> Vec<u8> {
+    let mut bytes = Vec::with_capacity(value.len() * 2 + 2);
+    bytes.push(b'(');
+    for byte in value.bytes() {
+        if matches!(byte, b'(' | b')' | b'\\') {
+            bytes.push(b'\\');
+        }
+        bytes.push(byte);
+    }
+    bytes.push(b')');
+    bytes
+}
+
 impl PdfDocument {
     /// Inventory direct Tj runs. Form XObjects, TJ arrays, and annotation text are outside this tier.
     pub fn content_text_runs(&self, page: u32) -> Result<Vec<ContentTextRun>> {
-        let (page_id, stream_id, bytes, content) = single_content(self, page)?;
+        let PageContent {
+            page_id,
+            stream_id,
+            bytes,
+            content,
+            ..
+        } = single_content(self, page)?;
         let digest: [u8; 32] = Sha256::digest(&bytes).into();
         let resources = structure::inherited(&self.document, page_id, b"Resources")?
             .map(Object::as_dict)
@@ -328,6 +398,11 @@ impl PdfDocument {
         let read_only = match self.ensure_editable() {
             Ok(()) => false,
             Err(Error::Refused(_)) => true,
+            Err(error) => return Err(error),
+        };
+        let property_context_reason = match self.content_property_context(page_id, &content) {
+            Ok(()) => None,
+            Err(Error::Refused(reason)) => Some(reason),
             Err(error) => return Err(error),
         };
         let mut runs = Vec::new();
@@ -415,7 +490,7 @@ impl PdfDocument {
                 } else {
                     None
                 };
-                runs.push(ContentTextRun {
+                let mut run = ContentTextRun {
                     layout: if supported && !marked {
                         block
                             .as_ref()
@@ -462,7 +537,20 @@ impl PdfDocument {
                     text,
                     writable: reason.is_none(),
                     refusal_reason: reason.map(str::to_owned),
-                });
+                    properties_writable: false,
+                    properties_refusal_reason: None,
+                };
+                run.properties_refusal_reason = run
+                    .refusal_reason
+                    .clone()
+                    .or_else(|| property_context_reason.map(str::to_owned))
+                    .or_else(|| {
+                        run.layout
+                            .is_none()
+                            .then(|| "bounded text layout is unavailable".to_owned())
+                    });
+                run.properties_writable = run.properties_refusal_reason.is_none();
+                runs.push(run);
             }
             if op.operator == "ET" && (block.take().is_none() || !op.operands.is_empty()) {
                 return Err(Error::Invalid("unbalanced or malformed text object"));
@@ -484,6 +572,8 @@ impl PdfDocument {
                         state.zero_character_spacing = value.as_float()? == 0.0
                     }
                     ("Tw" | "Tz" | "Ts", [value]) if number(value) => {}
+                    ("g", [value]) if number(value) => {}
+                    ("rg", values) if values.len() == 3 && values.iter().all(number) => {}
                     _ => state.valid = false,
                 }
             }
@@ -508,7 +598,14 @@ impl PdfDocument {
             .into_iter()
             .map(|run| (run.identity.operation, run))
             .collect::<BTreeMap<_, _>>();
-        let (page_id, stream_id, _, mut content) = single_content(self, page)?;
+        let PageContent {
+            page_id,
+            stream_id,
+            bytes,
+            spans,
+            ..
+        } = single_content(self, page)?;
+        let mut replacements = Vec::new();
         let mut selected = BTreeSet::new();
         let mut total = 0usize;
         for change in changes {
@@ -536,10 +633,24 @@ impl PdfDocument {
                 return Err(Error::Refused("text expected value changed"));
             }
             run.validate_replacement_with_policy(&change.replacement, change.layout_policy)?;
-            let operand = &mut content.operations[change.identity.operation as usize].operands[0];
-            *operand = Object::string_literal(change.replacement.as_bytes().to_vec());
+            replacements.push((
+                spans[change.identity.operation as usize].operands[0].clone(),
+                ascii_operand(&change.replacement),
+            ));
         }
-        let encoded = content.encode()?;
+        self.publish_content_bytes(page_id, stream_id, splice_content(&bytes, replacements)?)
+    }
+
+    fn publish_content_bytes(
+        &mut self,
+        page_id: ObjectId,
+        stream_id: ObjectId,
+        encoded: Vec<u8>,
+    ) -> Result<()> {
+        let (content, _) = crate::content_spans::decode_spanned(&encoded)?;
+        if content.operations.len() > 100_000 {
+            return Err(Error::Limit("edited content exceeds 100000 operators"));
+        }
         if encoded.len() > MAX_STREAM_BYTES {
             return Err(Error::Limit("edited content exceeds 32 MiB"));
         }
@@ -566,6 +677,12 @@ impl PdfDocument {
             .get_dictionary_mut(page_id)?
             .set("Contents", id);
         candidate.info()?;
+        let page = candidate
+            .pages
+            .iter()
+            .position(|id| *id == page_id)
+            .ok_or(Error::Invalid("edited page disappeared"))?;
+        candidate.content_text_runs(page as u32 + 1)?;
         candidate.verified_bytes()?;
         *self = candidate;
         Ok(())

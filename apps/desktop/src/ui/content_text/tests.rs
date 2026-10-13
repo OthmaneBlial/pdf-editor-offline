@@ -163,6 +163,167 @@ fn replacement(app: &mut EditorApp, ctx: &egui::Context, value: &str) {
     );
     assert_eq!(app.content_dialog.as_ref().unwrap().replacement, value);
 }
+fn numeric(app: &mut EditorApp, ctx: &egui::Context, prefix: &str, value: &str) {
+    draw(app, ctx, vec![]);
+    let output = draw(app, ctx, vec![]);
+    let label = output
+        .shapes
+        .iter()
+        .find_map(|shape| match &shape.shape {
+            egui::epaint::Shape::Text(text) if text.galley.text().starts_with(prefix) => {
+                Some(text.galley.text().to_owned())
+            }
+            _ => None,
+        })
+        .unwrap_or_else(|| {
+            panic!(
+                "numeric control {prefix}; labels {:?}",
+                output
+                    .shapes
+                    .iter()
+                    .filter_map(|shape| match &shape.shape {
+                        egui::epaint::Shape::Text(text) => Some(text.galley.text()),
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>()
+            )
+        });
+    click(app, ctx, &label);
+    draw(
+        app,
+        ctx,
+        vec![
+            egui::Event::Key {
+                key: egui::Key::A,
+                physical_key: None,
+                pressed: true,
+                repeat: false,
+                modifiers: egui::Modifiers::COMMAND,
+            },
+            egui::Event::Paste(value.into()),
+            egui::Event::Key {
+                key: egui::Key::Enter,
+                physical_key: None,
+                pressed: true,
+                repeat: false,
+                modifiers: egui::Modifiers::NONE,
+            },
+        ],
+    );
+    draw(
+        app,
+        ctx,
+        vec![egui::Event::Key {
+            key: egui::Key::Enter,
+            physical_key: None,
+            pressed: false,
+            repeat: false,
+            modifiers: egui::Modifiers::NONE,
+        }],
+    );
+}
+#[test]
+fn actual_property_controls_dispatch_same_text_edit_with_durable_undo_redo_save() {
+    let (_temp, mut app, ctx, path, bytes) = app();
+    click(&mut app, &ctx, "Text properties");
+    click(&mut app, &ctx, "Change font size");
+    click(&mut app, &ctx, "Move text matrix");
+    click(&mut app, &ctx, "Set RGB fill");
+    {
+        let dialog = app.content_dialog.as_mut().unwrap();
+        assert!(dialog.size_enabled && dialog.position_enabled && dialog.rgb_enabled);
+    }
+    numeric(&mut app, &ctx, "Size ", "24");
+    numeric(&mut app, &ctx, "X ", "20");
+    numeric(&mut app, &ctx, "Y ", "150");
+    numeric(&mut app, &ctx, "R ", "1");
+    {
+        let dialog = app.content_dialog.as_ref().unwrap();
+        assert_eq!(dialog.size, 24.0);
+        assert_eq!(dialog.position, [20.0, 150.0]);
+        assert_eq!(dialog.rgb, [1.0, 0.0, 0.0]);
+    }
+    assert!(app.has_tab_draft(app.active.unwrap()));
+    click(&mut app, &ctx, "Apply text properties");
+    wait(&mut app, &ctx);
+    assert!(app.content_dialog.is_none(), "{}", app.message);
+    assert_eq!(app.selected().unwrap().status.revision, 1);
+    assert!(app.selected().unwrap().status.can_undo);
+    app.perform(super::super::Action::Undo, &ctx);
+    wait(&mut app, &ctx);
+    assert_eq!(app.selected().unwrap().status.revision, 0);
+    app.perform(super::super::Action::Redo, &ctx);
+    wait(&mut app, &ctx);
+    assert_eq!(app.selected().unwrap().status.revision, 1);
+    let output = path.with_file_name("properties.pdf");
+    let id = app.active.unwrap();
+    app.send(
+        Command::Save {
+            id,
+            path: output.clone(),
+        },
+        "Save real text properties",
+    );
+    wait(&mut app, &ctx);
+    let saved = std::fs::read(output).unwrap();
+    let pdf = pdf_core::PdfDocument::from_bytes(&saved, None).unwrap();
+    assert_eq!(pdf.extract_text(&[1]).unwrap(), "Original\nA B\n");
+    assert_eq!(
+        pdf.content_text_runs(1).unwrap()[0]
+            .layout
+            .as_ref()
+            .unwrap()
+            .font_size,
+        24.0
+    );
+    assert_ne!(
+        pdf_render::render_page(&bytes, 0, 1.0).unwrap().rgba,
+        pdf_render::render_page(&saved, 0, 1.0).unwrap().rgba
+    );
+    assert_eq!(
+        pdf_render::render_page(&bytes, 1, 1.0).unwrap(),
+        pdf_render::render_page(&saved, 1, 1.0).unwrap()
+    );
+    assert_eq!(std::fs::read(path).unwrap(), bytes);
+}
+
+#[test]
+fn property_drafts_keep_stale_tab_readonly_and_mixed_value_guards() {
+    let (_temp, mut app, ctx, path, bytes) = app();
+    {
+        let dialog = app.content_dialog.as_mut().unwrap();
+        dialog.size_enabled = true;
+        dialog.position_enabled = true;
+        assert!(
+            dialog.property_change().is_err(),
+            "unchanged displayed f32 defaults must not become a precision-losing update"
+        );
+        dialog.rgb_enabled = true;
+        let color_only = dialog.property_change().unwrap();
+        assert!(color_only.font_size.is_none() && color_only.matrix_translation.is_none());
+        dialog.rgb_enabled = false;
+        dialog.position_enabled = false;
+        dialog.size = 24.0;
+    }
+    let key = app.content_dialog.as_ref().unwrap().key;
+    app.active = None;
+    assert!(!app.apply_content_properties());
+    app.active = Some(key.tab);
+    app.content_dialog.as_mut().unwrap().key.revision += 1;
+    assert!(!app.apply_content_properties());
+    app.content_dialog.as_mut().unwrap().key = key;
+    app.tabs[0].status.info.encrypted = true;
+    assert!(!app.apply_content_properties());
+    app.tabs[0].status.info.encrypted = false;
+    app.content_dialog.as_mut().unwrap().replacement = "Replaced".into();
+    assert!(!app.apply_content_properties());
+    assert!(!app.apply_content_text());
+    assert!(app.has_tab_draft(key.tab));
+    click(&mut app, &ctx, "Discard draft and close");
+    assert!(app.content_dialog.is_none());
+    assert_eq!(app.selected().unwrap().status.revision, 0);
+    assert_eq!(std::fs::read(path).unwrap(), bytes);
+}
 #[test]
 fn actual_proportional_width_checkbox_dispatches_guarded_edit_with_durable_undo() {
     let (_temp, mut app, ctx, path, bytes) = app_with_font("Helvetica");

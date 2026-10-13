@@ -371,7 +371,7 @@ fn independent_proportional_variable_width_text_anchors_pixels_and_shared_pages(
         assert_eq!(std::fs::read(&input).unwrap(), bytes);
     }
 }
-fn word_box(xml: &str, text: &str) -> [f64; 4] {
+pub(super) fn word_box(xml: &str, text: &str) -> [f64; 4] {
     let line = xml
         .lines()
         .find(|line| line.ends_with(&format!(">{text}</word>")))
@@ -387,7 +387,12 @@ fn word_box(xml: &str, text: &str) -> [f64; 4] {
             .unwrap()
     })
 }
-fn ppm(poppler: &std::path::Path, path: &std::path::Path, base: PathBuf, page: u32) -> Vec<u8> {
+pub(super) fn ppm(
+    poppler: &std::path::Path,
+    path: &std::path::Path,
+    base: PathBuf,
+    page: u32,
+) -> Vec<u8> {
     let result = Command::new(poppler.join("pdftoppm"))
         .args([
             "-r",

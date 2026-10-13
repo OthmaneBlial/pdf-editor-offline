@@ -17,7 +17,10 @@ quote operators. Stream arrays and inline images are refused for this tier.
 
 An editable run must be the sole text show in its `BT`/`ET` object, with explicit
 `Tf`, finite `Tm` and `Tr 0`. Before the show it permits only those operators and
-finite `Tc`, `Tw`, `Tz`, `Ts`; the next operation must be `ET`. The font must be
+finite `Tc`, `Tw`, `Tz`, `Ts`; the next operation must be `ET`.
+Ordinary finite `g`/`rg` fill setters are also permitted, including generated
+property edits; property eligibility additionally checks the entire color context.
+The font must be
 one of the twelve standard unembedded Type1 Courier, Helvetica or Times faces,
 with default/named StandardEncoding or named WinAnsi encoding. Font aliases
 such as Arial and embedded/variable fonts are outside this tier.
@@ -70,16 +73,62 @@ All changes validate before a candidate document is published. The editor
 clones the selected stream, replaces only selected operands, preserves all
 other parsed operations and retains the original stream and resources. Other
 pages sharing the stream therefore continue to use their original bytes.
-Content serialization normalizes lexical syntax, comments and string delimiters;
-unrelated logical PDF objects and page geometry remain intact. Strict bounded
+The shared bounded lexical-span decoder reconciles operators/operand counts with
+lopdf while retaining original bytes. Replacement changes only the selected string
+operand's bytes; property edits insert only their scoped setters/wrappers/replay.
+Untouched program numbers, comments, escaped names/strings and selected properties
+stay byte-exact, including high-precision decimal tokens. Unrelated decoded logical
+objects and page geometry remain intact. This is a content-program guarantee,
+not byte-identical PDF-file serialization; transport/XRef syntax is regenerated. Strict bounded
 serialization and reopened object/page verification complete before swapping
 the candidate into the caller. A later invalid change leaves the entire document
 unchanged. Existing new-copy saving refuses overwrites.
+
+`update_content_text_properties(page, changes)` uses the same identity/expected
+text binding, original font, standard metrics and bounded layout tracker. Optional
+properties are positive finite `font_size`, `matrix_translation` (new e/f only)
+and `fill_rgb` (finite components between 0 and 1); at least one is required.
+It inserts the requested Tf/Tm/rg before the original final Tj, surrounds the
+original BT/ET with q/Q **outside** the text object, and after Q replays the
+original persistent Tf/Tr/Tc/Tw/Tz/Ts and fill setters. Text matrices are discarded
+at ET and are not replayed. This preserves later BT objects that inherit the
+original font/size/spacing and later artwork's original color. See PDF section9.3,
+Table105 and section8.4 graphics-state semantics in the Adobe-hosted standard.
+The original selected program stays byte-exact; new translated Tm copies the
+original four matrix-basis token slices, and restored setters replay exact source
+bytes. Color-only emits no new Tf/Tm; size-only emits no new Tm. The GUI sends
+per-property intent and does not rewrite unchanged displayed numeric defaults.
+Nonfinite optional font size fails serialization instead of becoming JSON null.
+It changes actual original text state, without replacing the font/text operand
+or adding a new text show. It preserves the original matrix a/b/c/d and current
+transform. Width and glyph ink may change; there is no clipping, fitting or reflow.
+
+Property editing refuses OutputIntents, ColorSpace/ExtGState resources and
+gs/custom color/CMYK operators in this tier; ordinary DeviceGray/DeviceRGB is
+required. Inventory exposes authoritative `properties_writable` and a separate
+refusal reason. New properties are f32 PDF numbers, checked in the shared f64
+layout model. Multiple targets validate before any publication, selected shared
+streams are cloned, and wrapper/replay growth respects100,000 operators and1000
+graphics-state nesting. A later invalid target preserves the complete source.
+
+The core synthetic state-inheritance fixture has an outer q/Q, inherited
+Tc/Tw/Tz/Ts, artwork after selected ET and a later BT **without** Tf/Tr setters.
+Native and pinned Poppler26.10 prove positive moved/resized red glyphs and exact
+unchanged pixels outside the declared source/new glyph union, unchanged later
+text bounding boxes and identical shared second pages for all twelve standard faces.
+Pinned qpdf12.4.2 validates actual outputs. Exact font/resource/artwork/source
+objects are retained; only writer-regenerated XRef transport objects may differ.
+CLI and production-native child tests verify source hashing, no-clobber, durable
+history/Undo/Redo/Save As and failure rollback. Manual GUI/platform runtime
+verification is separate from headless control tests.
 
 Limits are 32 MiB decoded/edited page content, 100,000 operators, 10,000 runs or
 changes, 64 KiB per ASCII string, 4 MiB aggregate inventory/change text, existing
 PDF object limits and 128 MiB verified output. Use the API in the existing
 resource-limited worker; bounded parsing is not a filesystem or network sandbox.
+The lexical helper additionally bounds nested operands/literal strings to 100
+levels and work to two million tokens. Unsupported syntax, inline images and
+ambiguous operator/operand reconciliation fail closed before editing.
 Worker inventory replies contain at most 128 entries and 512 KiB of measured
 entry JSON per page of results, within a 1 MiB inventory envelope. Pagination
 never truncates a string. The original raw PDF SHA-256 binds every inventory and

@@ -3,6 +3,8 @@ use lopdf::{Document, Object, Stream, dictionary};
 use pdf_core::{ContentTextChange, PdfDocument};
 use std::path::PathBuf;
 use std::process::Command;
+#[path = "content_edit/properties.rs"]
+mod properties;
 #[path = "content_edit/proportional.rs"]
 mod proportional;
 

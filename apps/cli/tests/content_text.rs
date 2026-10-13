@@ -10,6 +10,117 @@ fn run(args: &[&str]) -> Output {
         .unwrap()
 }
 #[test]
+fn real_property_cli_dry_run_identity_no_clobber_and_same_text_font() {
+    let temp = tempfile::tempdir().unwrap();
+    let input = temp.path().join("source.pdf");
+    let output = temp.path().join("changed.pdf");
+    const PRECISE: &[u8] =
+        b"% exact CLI artwork\n10.1234567890123456 170.9876543210987654 5 5 re f\n";
+    let bytes = fixture::source(&[PRECISE, fixture::CONTENT].concat());
+    std::fs::write(&input, &bytes).unwrap();
+    let report = run(&[
+        "inspect-content-text",
+        input.to_str().unwrap(),
+        "--page",
+        "1",
+    ]);
+    assert!(report.status.success());
+    let report: serde_json::Value = serde_json::from_slice(&report.stdout).unwrap();
+    let hash = report["data"]["source_sha256"].as_str().unwrap();
+    let operation = report["data"]["inventory"]["runs"][0]["identity"]["operation"]
+        .as_u64()
+        .unwrap()
+        .to_string();
+    assert_eq!(
+        report["data"]["inventory"]["runs"][0]["properties_writable"],
+        true
+    );
+    let mut args = vec![
+        "set-content-text-properties",
+        input.to_str().unwrap(),
+        "--page",
+        "1",
+        "--operation",
+        &operation,
+        "--source-sha256",
+        hash,
+        "--expected",
+        "Original",
+        "--font-size",
+        "24",
+        "--matrix-position",
+        "20",
+        "150",
+        "--rgb",
+        "1",
+        "0",
+        "0",
+        "-o",
+        output.to_str().unwrap(),
+        "--dry-run",
+    ];
+    let dry = run(&args);
+    assert!(
+        dry.status.success(),
+        "{:?} {}",
+        dry.status,
+        String::from_utf8_lossy(&dry.stdout)
+    );
+    assert!(!output.exists());
+    let data: serde_json::Value = serde_json::from_slice(&dry.stdout).unwrap();
+    assert_eq!(
+        data["data"]["after"]["baseline_start"],
+        serde_json::json!([20.0, 150.0])
+    );
+    args.pop();
+    let result = run(&args);
+    assert!(
+        result.status.success(),
+        "{}",
+        String::from_utf8_lossy(&result.stdout)
+    );
+    let saved = std::fs::read(&output).unwrap();
+    let pdf = pdf_core::PdfDocument::from_bytes(&saved, None).unwrap();
+    let raw = lopdf::Document::load_mem(&saved).unwrap();
+    let id = raw
+        .get_dictionary((3, 0))
+        .unwrap()
+        .get(b"Contents")
+        .unwrap()
+        .as_reference()
+        .unwrap();
+    assert!(
+        raw.get_object(id)
+            .unwrap()
+            .as_stream()
+            .unwrap()
+            .decompressed_content_with_limit(pdf_core::MAX_STREAM_BYTES)
+            .unwrap()
+            .starts_with(PRECISE)
+    );
+    assert_eq!(pdf.extract_text(&[1]).unwrap(), "Original\nA B\n");
+    let original = pdf_core::PdfDocument::from_bytes(&bytes, None).unwrap();
+    let edited_run = pdf.content_text_runs(1).unwrap().remove(0);
+    assert_eq!(edited_run.standard_font.unwrap().pdf_name(), "Courier");
+    assert_eq!(edited_run.layout.unwrap().font_size, 24.0);
+    assert_eq!(
+        pdf_render::render_page(&bytes, 1, 1.0).unwrap(),
+        pdf_render::render_page(&saved, 1, 1.0).unwrap()
+    );
+    assert_eq!(
+        original.extract_text(&[1]).unwrap(),
+        pdf.extract_text(&[1]).unwrap()
+    );
+    assert_eq!(run(&args).status.code(), Some(3));
+    assert_eq!(std::fs::read(&output).unwrap(), saved);
+    std::fs::remove_file(&output).unwrap();
+    let hash_index = args.iter().position(|arg| *arg == hash).unwrap();
+    args[hash_index] = "0000000000000000000000000000000000000000000000000000000000000000";
+    assert_eq!(run(&args).status.code(), Some(4));
+    assert!(!output.exists());
+    assert_eq!(std::fs::read(&input).unwrap(), bytes);
+}
+#[test]
 fn proportional_variable_width_requires_explicit_opt_in_and_reports_actual_layout() {
     let temp = tempfile::tempdir().unwrap();
     let input = temp.path().join("source.pdf");

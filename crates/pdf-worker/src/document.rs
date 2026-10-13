@@ -96,6 +96,11 @@ pub enum Mutation {
         overlay: pdf_core::ImageOverlay,
         image_bytes_len: u32,
     },
+    ContentTextProperties {
+        page: u32,
+        source_fingerprint: [u8; 32],
+        changes: Vec<pdf_core::ContentTextPropertyChange>,
+    },
     ReplaceContentText {
         page: u32,
         source_fingerprint: [u8; 32],
@@ -612,9 +617,13 @@ fn execute(request: Request) -> Result<Reply, String> {
         return document_reply(document, Some(selected));
     }
     if let Operation::Edit {
-        mutation: Mutation::ReplaceContentText {
-            source_fingerprint, ..
-        },
+        mutation:
+            Mutation::ReplaceContentText {
+                source_fingerprint, ..
+            }
+            | Mutation::ContentTextProperties {
+                source_fingerprint, ..
+            },
     } = &operation
         && *source_fingerprint != crate::payload_fingerprint(&request.payload)
     {
@@ -992,6 +1001,16 @@ fn document_reply(document: PdfDocument, selected_page: Option<usize>) -> Result
 
 fn apply(document: &mut PdfDocument, mutation: Mutation) -> Result<Option<usize>, String> {
     let selected = match mutation {
+        Mutation::ContentTextProperties {
+            page,
+            source_fingerprint: _,
+            changes,
+        } => {
+            document
+                .update_content_text_properties(page, &changes)
+                .map_err(|error| error.to_string())?;
+            Some(page as usize - 1)
+        }
         Mutation::ReplaceContentText {
             page,
             source_fingerprint: _,

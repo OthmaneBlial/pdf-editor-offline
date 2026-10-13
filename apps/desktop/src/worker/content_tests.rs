@@ -5,6 +5,204 @@ pub(crate) mod fixture;
 
 #[test]
 #[ignore = "requires freshly built native binary and pinned qpdf12.4.2/Poppler26.10"]
+fn production_native_property_transaction_is_durable_and_source_bound() {
+    let current = std::env::current_exe().unwrap();
+    let native = current
+        .parent()
+        .and_then(std::path::Path::parent)
+        .unwrap()
+        .join(if cfg!(windows) {
+            "pdf-editor-offline-native.exe"
+        } else {
+            "pdf-editor-offline-native"
+        });
+    document::with_test_executor(
+        native,
+        vec!["--pdf-worker".into()],
+        pdf_worker::Limits::default(),
+        || {
+            let temp = tempfile::tempdir().unwrap();
+            let source = temp.path().join("source.pdf");
+            let output = temp.path().join("new.pdf");
+            const PRECISE:&[u8]=b"% exact production native CTM\n1.0000000123456789 0 0 1 0.1234567890123456 0 cm\n";
+            let bytes = fixture::source(&[PRECISE, fixture::CONTENT].concat());
+            std::fs::write(&source, &bytes).unwrap();
+            let mut journal = Journal::open(temp.path().join("journal")).unwrap();
+            let mut documents = HashMap::new();
+            process_with_journal(
+                &mut documents,
+                Command::Load {
+                    id: 1,
+                    path: source.clone(),
+                },
+                Some(&mut journal),
+            )
+            .unwrap();
+            let key = ContentTextKey {
+                tab: 1,
+                revision: 0,
+                page: 1,
+                offset: 0,
+                generation: 1,
+            };
+            let Event::ContentText { inventory, .. } = process_with_journal(
+                &mut documents,
+                Command::ContentText(key),
+                Some(&mut journal),
+            )
+            .unwrap() else {
+                panic!("inventory")
+            };
+            let edit = |key| Command::Edit {
+                id: 1,
+                edit: Edit::ContentTextProperties {
+                    key,
+                    source_fingerprint: inventory.source_fingerprint,
+                    change: pdf_core::ContentTextPropertyChange {
+                        identity: inventory.runs[0].identity.clone(),
+                        expected: "Original".into(),
+                        font_size: Some(24.0),
+                        matrix_translation: Some([20.0, 150.0]),
+                        fill_rgb: Some([1.0, 0.0, 0.0]),
+                    },
+                },
+            };
+            assert!(
+                process_with_journal(
+                    &mut documents,
+                    edit(ContentTextKey { tab: 2, ..key }),
+                    Some(&mut journal)
+                )
+                .is_err()
+            );
+            assert!(
+                process_with_journal(
+                    &mut documents,
+                    edit(ContentTextKey { revision: 9, ..key }),
+                    Some(&mut journal)
+                )
+                .is_err()
+            );
+            assert_eq!(documents[&1].current.bytes, bytes);
+            assert!(documents[&1].undo.is_empty());
+            process_with_journal(&mut documents, edit(key), Some(&mut journal)).unwrap();
+            let changed = documents[&1].current.bytes.clone();
+            assert_ne!(changed, bytes);
+            assert_eq!(journal.recover().unwrap()[0].current.bytes, changed);
+            assert_eq!(documents[&1].undo.len(), 1);
+            assert!(process_with_journal(&mut documents, edit(key), Some(&mut journal)).is_err());
+            process_with_journal(
+                &mut documents,
+                Command::Edit {
+                    id: 1,
+                    edit: Edit::Undo,
+                },
+                Some(&mut journal),
+            )
+            .unwrap();
+            assert_eq!(documents[&1].current.bytes, bytes);
+            process_with_journal(
+                &mut documents,
+                Command::Edit {
+                    id: 1,
+                    edit: Edit::Redo,
+                },
+                Some(&mut journal),
+            )
+            .unwrap();
+            assert_eq!(documents[&1].current.bytes, changed);
+            process_with_journal(
+                &mut documents,
+                Command::Save {
+                    id: 1,
+                    path: output.clone(),
+                },
+                Some(&mut journal),
+            )
+            .unwrap();
+            let qpdf = std::path::PathBuf::from(std::env::var_os("PDF_QPDF_BIN").unwrap());
+            let poppler =
+                std::path::PathBuf::from(std::env::var_os("PDF_REFERENCE_BIN_DIR").unwrap());
+            assert!(
+                std::process::Command::new(&qpdf)
+                    .arg("--version")
+                    .output()
+                    .unwrap()
+                    .stdout
+                    .starts_with(b"qpdf version 12.4.2")
+            );
+            assert!(
+                String::from_utf8_lossy(
+                    &std::process::Command::new(poppler.join("pdftotext"))
+                        .arg("-v")
+                        .output()
+                        .unwrap()
+                        .stderr
+                )
+                .contains("26.10.0")
+            );
+            assert!(
+                std::process::Command::new(qpdf)
+                    .arg("--check")
+                    .arg(&output)
+                    .output()
+                    .unwrap()
+                    .status
+                    .success()
+            );
+            let text = std::process::Command::new(poppler.join("pdftotext"))
+                .args(["-f", "1", "-l", "1", "-raw"])
+                .arg(&output)
+                .arg("-")
+                .output()
+                .unwrap();
+            assert!(text.status.success());
+            assert_eq!(
+                String::from_utf8(text.stdout)
+                    .unwrap()
+                    .split_whitespace()
+                    .collect::<Vec<_>>(),
+                ["Original", "A", "B"]
+            );
+            let saved = std::fs::read(&output).unwrap();
+            let raw = lopdf::Document::load_mem(&saved).unwrap();
+            let id = raw
+                .get_dictionary((3, 0))
+                .unwrap()
+                .get(b"Contents")
+                .unwrap()
+                .as_reference()
+                .unwrap();
+            assert!(
+                raw.get_object(id)
+                    .unwrap()
+                    .as_stream()
+                    .unwrap()
+                    .decompressed_content_with_limit(pdf_core::MAX_STREAM_BYTES)
+                    .unwrap()
+                    .starts_with(PRECISE)
+            );
+            let pdf = PdfDocument::from_bytes(&saved, None).unwrap();
+            assert_eq!(
+                pdf.content_text_runs(1).unwrap()[0]
+                    .layout
+                    .as_ref()
+                    .unwrap()
+                    .font_size,
+                24.0
+            );
+            assert_eq!(
+                pdf_render::render_page(&bytes, 1, 1.0).unwrap(),
+                pdf_render::render_page(&saved, 1, 1.0).unwrap()
+            );
+            assert_eq!(std::fs::read(source).unwrap(), bytes);
+            assert_eq!(journal.recover().unwrap()[0].saved_revision, Some(1));
+        },
+    );
+}
+
+#[test]
+#[ignore = "requires freshly built native binary and pinned qpdf12.4.2/Poppler26.10"]
 fn production_native_proportional_width_change_is_durable_and_source_bound() {
     let current = std::env::current_exe().unwrap();
     let native = current
@@ -267,6 +465,27 @@ fn failed_child_preserves_content_snapshot_history_journal_and_retry() {
         .unwrap();
         document::with_test_executor(helper.clone(), vec![mode.into()], limits, || {
             assert!(process_with_journal(&mut documents, command(), Some(&mut journal)).is_err());
+            assert!(
+                process_with_journal(
+                    &mut documents,
+                    Command::Edit {
+                        id: 1,
+                        edit: Edit::ContentTextProperties {
+                            key,
+                            source_fingerprint: inventory.source_fingerprint,
+                            change: pdf_core::ContentTextPropertyChange {
+                                identity: inventory.runs[0].identity.clone(),
+                                expected: "Original".into(),
+                                font_size: Some(24.0),
+                                matrix_translation: None,
+                                fill_rgb: None
+                            }
+                        }
+                    },
+                    Some(&mut journal)
+                )
+                .is_err()
+            );
         });
         assert_eq!(documents[&1].current.bytes, bytes);
         assert!(documents[&1].undo.is_empty());
@@ -565,6 +784,27 @@ fn content_edit_pending_save_refuses_without_history_change() {
     journal
         .begin_save("1", 0, &temporary.path().join("uncertain.pdf"), &bytes)
         .unwrap();
+    assert!(
+        process_with_journal(
+            &mut documents,
+            Command::Edit {
+                id: 1,
+                edit: Edit::ContentTextProperties {
+                    key,
+                    source_fingerprint: inventory.source_fingerprint,
+                    change: pdf_core::ContentTextPropertyChange {
+                        identity: inventory.runs[0].identity.clone(),
+                        expected: "Original".into(),
+                        font_size: Some(24.0),
+                        matrix_translation: None,
+                        fill_rgb: None
+                    }
+                }
+            },
+            Some(&mut journal)
+        )
+        .is_err()
+    );
     assert!(
         process_with_journal(
             &mut documents,

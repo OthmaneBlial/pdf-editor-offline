@@ -371,3 +371,13 @@ shared images elsewhere remain intact. PNG/JPEG limits match image insertion.
 Nested Forms, inline images, property-marked content and tagged edits are refused;
 signed/decrypted PDFs stay read-only. Old images/streams remain retained: replacement
 is ordinary editing, not secure erasure or redaction.
+
+`set-content-text-properties INPUT --page 1 --operation N --source-sha256 HASH
+--expected Original --font-size 24 --matrix-position 20 150 --rgb 1 0 0 -o NEW.pdf`
+changes the selected original text object's size, text-matrix translation and/or
+DeviceRGB fill; each property is optional, with at least one required. The original
+font, string operand, matrix basis and later inherited state remain intact.
+Matrix position replaces PDF text-matrix e/f, not screen coordinates. New glyph
+ink can overlap other content or leave the page. Custom color spaces/profiles,
+extended graphics state and other unsupported contexts are refused. Source hash,
+dry-run, JSON, signed/encrypted read-only and no-clobber guards also apply.

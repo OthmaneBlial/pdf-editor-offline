@@ -15,14 +15,31 @@ pub(super) struct Dialog {
     pub stale: bool,
     pub error: Option<String>,
     focus: bool,
+    size_enabled: bool,
+    position_enabled: bool,
+    rgb_enabled: bool,
+    size: f32,
+    position: [f32; 2],
+    rgb: [f32; 3],
+    properties_mode: bool,
 }
 impl Dialog {
     pub(super) fn has_changes(&self) -> bool {
+        self.text_changed() || self.property_draft()
+    }
+    fn property_draft(&self) -> bool {
+        self.size_enabled || self.position_enabled || self.rgb_enabled
+    }
+    fn text_changed(&self) -> bool {
         self.selected
             .and_then(|index| self.inventory.as_ref()?.runs.get(index)?.text.as_deref())
             .is_some_and(|text| text != self.replacement)
     }
     fn select(&mut self, index: usize) {
+        self.size_enabled = false;
+        self.position_enabled = false;
+        self.rgb_enabled = false;
+        self.rgb = [0.0; 3];
         self.allow_width_change = false;
         self.selected = Some(index);
         self.replacement = self
@@ -32,9 +49,21 @@ impl Dialog {
             .and_then(|run| run.text.clone())
             .unwrap_or_default();
         self.error = None;
+        if let Some(layout) = self
+            .inventory
+            .as_ref()
+            .and_then(|inventory| inventory.runs.get(index))
+            .and_then(|run| run.layout.as_ref())
+        {
+            self.size = layout.font_size as f32;
+            self.position = [layout.text_matrix[4] as f32, layout.text_matrix[5] as f32];
+        }
         self.focus = true;
     }
     fn validate(&self) -> Result<(), &'static str> {
+        if self.property_draft() {
+            return Err("Apply or reset the property draft before replacing text.");
+        }
         let run = self
             .selected
             .and_then(|index| self.inventory.as_ref()?.runs.get(index))
@@ -55,7 +84,7 @@ impl Dialog {
                 "Preserve each word's nominal advance, or explicitly enable bounded width change. Use unambiguous printable ASCII; no value was truncated.",
             );
         }
-        if !self.has_changes() {
+        if !self.text_changed() {
             return Err("Enter a changed value.");
         }
         Ok(())
@@ -66,6 +95,31 @@ impl Dialog {
         } else {
             Default::default()
         }
+    }
+    fn property_change(&self) -> Result<pdf_core::ContentTextPropertyChange, &'static str> {
+        if self.text_changed() {
+            return Err("Replace or reset the text draft before applying properties.");
+        }
+        let run = self
+            .selected
+            .and_then(|index| self.inventory.as_ref()?.runs.get(index))
+            .ok_or("Select a text run.")?;
+        let layout = run
+            .layout
+            .as_ref()
+            .ok_or("Bounded text layout is unavailable.")?;
+        let change = pdf_core::ContentTextPropertyChange {
+            identity: run.identity.clone(),
+            expected: run.text.clone().ok_or("Text is unavailable.")?,
+            font_size: (self.size_enabled && self.size != layout.font_size as f32)
+                .then_some(self.size),
+            matrix_translation: (self.position_enabled
+                && self.position != [layout.text_matrix[4] as f32, layout.text_matrix[5] as f32])
+            .then_some(self.position),
+            fill_rgb: self.rgb_enabled.then_some(self.rgb),
+        };
+        run.property_position(&change).map_err(|_|"Choose a supported run and finite bounded properties; RGB must be between zero and one.")?;
+        Ok(change)
     }
 }
 impl EditorApp {
@@ -95,6 +149,13 @@ impl EditorApp {
             stale: false,
             error: None,
             focus: false,
+            size_enabled: false,
+            position_enabled: false,
+            rgb_enabled: false,
+            size: 12.0,
+            position: [0.0; 2],
+            rgb: [0.0; 3],
+            properties_mode: false,
         });
         self.send(Command::ContentText(key), "Inspecting existing page text…");
     }
@@ -205,6 +266,46 @@ impl EditorApp {
             false
         }
     }
+    fn apply_content_properties(&mut self) -> bool {
+        let Some(dialog) = self.content_dialog.as_ref() else {
+            return false;
+        };
+        if self.busy
+            || !self.pending_saves.is_empty()
+            || dialog.submitting
+            || dialog.stale
+            || !self.content_current(dialog.key)
+            || !self.selected().is_some_and(|tab| tab.editable())
+        {
+            return false;
+        }
+        let Ok(change) = dialog.property_change() else {
+            return false;
+        };
+        let Some(inventory) = &dialog.inventory else {
+            return false;
+        };
+        let key = dialog.key;
+        if self.send(
+            Command::Edit {
+                id: key.tab,
+                edit: Edit::ContentTextProperties {
+                    key,
+                    source_fingerprint: inventory.source_fingerprint,
+                    change,
+                },
+            },
+            "Updating original text properties in document history…",
+        ) {
+            if let Some(dialog) = &mut self.content_dialog {
+                dialog.submitting = true;
+                dialog.error = None;
+            }
+            true
+        } else {
+            false
+        }
+    }
     pub(super) fn content_text_dialog(&mut self, context: &egui::Context) {
         if self.content_dialog.is_none() || self.close_target.is_some() {
             return;
@@ -224,6 +325,7 @@ impl EditorApp {
         let enabled =
             !self.busy && !dialog.submitting && !dialog.stale && self.pending_saves.is_empty();
         let mut apply = false;
+        let mut apply_properties = false;
         let mut discard = false;
         let mut next = None;
         egui::Window::new("Edit existing text").default_width(540.0).max_width((context.content_rect().width()-32.0).max(220.0)).max_height((context.content_rect().height()-32.0).max(180.0)).collapsible(false).anchor(egui::Align2::CENTER_CENTER,egui::Vec2::ZERO).show(context,|ui|{
@@ -236,16 +338,20 @@ impl EditorApp {
                     else {ui.label(format!("Runs {}–{} of {}",inventory.offset+1,inventory.offset as usize+inventory.runs.len(),inventory.total_runs));}
                     let mut selected=None;
                     let select_enabled=enabled&&!dialog.has_changes();
-                    egui::ScrollArea::vertical().id_salt("existing-text-runs").max_height(120.0).show(ui,|ui|{
+                    let run_label=|index:usize,run:&pdf_core::ContentTextRun|{let preview=run.text.as_ref().map(|text|{let mut preview=text.chars().take(40).collect::<String>();if text.len()>40{preview.push('…');}preview}).unwrap_or_else(||"unsupported".into());format!("Run {} · {}",inventory.offset as usize+index+1,preview)};
+                    let draw_runs=|ui:&mut egui::Ui|{
                     for (index,run) in inventory.runs.iter().enumerate() {
-                        let preview=run.text.as_ref().map(|text|{let mut preview=text.chars().take(40).collect::<String>();if text.len()>40{preview.push('…');}preview}).unwrap_or_else(||"unsupported".into());
-                        let label=format!("Run {} · {}",inventory.offset as usize+index+1,preview);
+                        let label=run_label(index,run);
                         if ui.add_enabled(select_enabled,egui::Button::new(label).selected(dialog.selected==Some(index))).clicked(){selected=Some(index);}
                     }
-                    });
+                    };
+                    if dialog.properties_mode {let title=dialog.selected.and_then(|index|inventory.runs.get(index).map(|run|run_label(index,run))).unwrap_or_else(||"Select a run".into());egui::ComboBox::from_id_salt("existing-property-run").selected_text(title).show_ui(ui,draw_runs);}
+                    else {egui::ScrollArea::vertical().id_salt("existing-text-runs").max_height(120.0).show(ui,draw_runs);}
                     if let Some(index)=selected {dialog.select(index);}
             }else {ui.label("Loading bounded inventory…");}
-            if let Some(run)=dialog.selected.and_then(|index|dialog.inventory.as_ref()?.runs.get(index)) {
+            ui.add_enabled_ui(enabled,|ui|{ui.horizontal(|ui|{ui.selectable_value(&mut dialog.properties_mode,false,"Text value");ui.selectable_value(&mut dialog.properties_mode,true,"Text properties");});});
+            if dialog.properties_mode {ui.label("Original text properties · same font and text");}
+            if !dialog.properties_mode && let Some(run)=dialog.selected.and_then(|index|dialog.inventory.as_ref()?.runs.get(index)) {
                 ui.add_enabled(enabled&&editable&&run.writable&&run.layout.is_some(),egui::Checkbox::new(&mut dialog.allow_width_change,"Allow line width change"));
                 if let Some(expected)=&run.text && let (Ok(before),Ok(after))=(run.replacement_position(expected),run.replacement_position(&dialog.replacement)) {
                     ui.label(format!("Nominal advance: {:.3} → {:.3} content-space units",before.nominal_advance,after.nominal_advance));
@@ -254,7 +360,7 @@ impl EditorApp {
             egui::ScrollArea::vertical().id_salt("existing-text-controls").max_height((ui.available_height()-86.0).max(90.0)).show(ui,|ui|{
                 if let Some(run)=dialog.selected.and_then(|index|dialog.inventory.as_ref()?.runs.get(index)) {
                     if let Some(reason)=&run.refusal_reason {ui.label(reason);}
-                    if let Some(expected)=&run.text {
+                    if !dialog.properties_mode && let Some(expected)=&run.text {
                         let mut original=expected.clone();let label=ui.label("Current text");
                         ui.add(egui::TextEdit::singleline(&mut original).interactive(false).desired_width(f32::INFINITY)).labelled_by(label.id);
                         let label=ui.label("Replacement text");
@@ -267,12 +373,24 @@ impl EditorApp {
                         if dialog.allow_width_change {ui.label("Width changes can overlap nearby artwork or leave the page. Font and baseline stay fixed; there is no wrapping, fitting or old-ink clipping.");}
                         apply=(response.has_focus()||response.lost_focus())&&ui.input(|input|input.key_pressed(egui::Key::Enter));
                     }
+                    if dialog.properties_mode {
+                    if let Some(reason)=&run.properties_refusal_reason {ui.label(reason);}
+                    ui.add_enabled_ui(enabled&&editable&&run.properties_writable,|ui|{
+                        ui.horizontal(|ui|{ui.checkbox(&mut dialog.size_enabled,"Change font size");let label=ui.label("Font size");ui.add_enabled(dialog.size_enabled,egui::DragValue::new(&mut dialog.size).speed(0.25).prefix("Size ")).labelled_by(label.id);});
+                        ui.horizontal(|ui|{ui.checkbox(&mut dialog.position_enabled,"Move text matrix");let x=ui.label("Matrix X");ui.add_enabled(dialog.position_enabled,egui::DragValue::new(&mut dialog.position[0]).speed(0.5).prefix("X ")).labelled_by(x.id);let y=ui.label("Matrix Y");ui.add_enabled(dialog.position_enabled,egui::DragValue::new(&mut dialog.position[1]).speed(0.5).prefix("Y ")).labelled_by(y.id);});
+                        ui.horizontal(|ui|{ui.checkbox(&mut dialog.rgb_enabled,"Set RGB fill");let label=ui.label("Desired RGB");ui.add_enabled_ui(dialog.rgb_enabled,|ui|{ui.color_edit_button_rgb(&mut dialog.rgb).labelled_by(label.id);});});
+                        ui.add_enabled_ui(dialog.rgb_enabled,|ui|{ui.horizontal(|ui|{for (index,name) in ["Red","Green","Blue"].into_iter().enumerate(){let label=ui.label(name);ui.add(egui::DragValue::new(&mut dialog.rgb[index]).speed(0.01).range(0.0..=1.0).prefix(["R ","G ","B "][index])).labelled_by(label.id);}});});
+                    });
+                    ui.small("Matrix X/Y replace e/f in the original PDF text matrix. Size and width can overlap artwork or leave the page; there is no wrapping or fitting. RGB is an explicit new fill, not a guessed current color.");
+                    }
                 }
-                if dialog.has_changes() && let Err(reason)=dialog.validate(){ui.colored_label(ui.visuals().error_fg_color,reason);}
+                if dialog.text_changed() && let Err(reason)=dialog.validate(){ui.colored_label(ui.visuals().error_fg_color,reason);}
+                if dialog.property_draft() && let Err(reason)=dialog.property_change(){ui.colored_label(ui.visuals().error_fg_color,reason);}
                 if let Some(error)=&dialog.error {ui.colored_label(ui.visuals().error_fg_color,error);}
             });
             ui.horizontal_wrapped(|ui|{
-                apply|=ui.add_enabled(enabled&&editable&&dialog.validate().is_ok(),crate::style::primary("Replace existing text",ui.visuals().dark_mode)).clicked();
+                if !dialog.properties_mode {apply|=ui.add_enabled(enabled&&editable&&dialog.validate().is_ok(),crate::style::primary("Replace existing text",ui.visuals().dark_mode)).clicked();}
+                else {apply_properties=ui.add_enabled(enabled&&editable&&dialog.property_change().is_ok(),egui::Button::new("Apply text properties")).clicked();}
                 discard=ui.add_enabled(!dialog.submitting,egui::Button::new("Discard draft and close")).clicked();
                 if ui.add_enabled(enabled&&dialog.has_changes(),egui::Button::new("Reset replacement")).clicked() && let Some(index)=dialog.selected {dialog.select(index);}
                 if ui.add_enabled(enabled&&!dialog.has_changes()&&dialog.key.offset>0,egui::Button::new("First runs")).clicked(){next=Some(0);}
@@ -283,6 +401,8 @@ impl EditorApp {
             self.content_dialog = None;
         } else if apply {
             self.apply_content_text();
+        } else if apply_properties {
+            self.apply_content_properties();
         } else if let Some(offset) = next {
             self.content_batch(offset);
         }
