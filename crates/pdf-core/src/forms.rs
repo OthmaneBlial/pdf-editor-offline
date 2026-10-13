@@ -13,6 +13,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 mod appearance;
 pub use appearance::TextChange;
+mod image_instances;
+pub use image_instances::{ImageInstance, ImageSelection};
 mod image_overlay;
 pub use image_overlay::ImageOverlay;
 mod numbering;

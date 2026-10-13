@@ -17,7 +17,7 @@ pub struct ImageOverlay {
     /// Counterclockwise quarter-turns of the image within its destination rectangle.
     pub rotation: u16,
 }
-struct Asset {
+pub(super) struct Asset {
     image: Stream,
     mask: Option<Stream>,
     profile: Option<Stream>,
@@ -66,7 +66,7 @@ fn samples(stream: &Stream, width: i64, height: i64, channels: usize, dct: bool)
     }
     Ok(())
 }
-fn image_asset(pdf: &PdfDocument) -> Result<Asset> {
+pub(super) fn image_asset(pdf: &PdfDocument) -> Result<Asset> {
     pdf.ensure_editable()?;
     if pdf.page_count() != 1 {
         return Err(Error::Refused("overlay donor must have one image page"));
@@ -243,6 +243,25 @@ fn image_asset(pdf: &PdfDocument) -> Result<Asset> {
 fn real(value: f64) -> Object {
     Object::Real(value as f32)
 }
+pub(super) fn import_asset(document: &mut lopdf::Document, asset: Asset) -> lopdf::ObjectId {
+    let mut image = asset.image;
+    image.dict.set("Length", image.content.len() as i64);
+    if let Some(mut mask) = asset.mask {
+        mask.dict.set("Length", mask.content.len() as i64);
+        image.dict.set("SMask", document.add_object(mask));
+    }
+    if let Some(profile) = asset.profile {
+        let profile = document.add_object(profile);
+        image.dict.set(
+            "ColorSpace",
+            vec![
+                Object::Name(b"ICCBased".to_vec()),
+                Object::Reference(profile),
+            ],
+        );
+    }
+    document.add_object(image)
+}
 impl PdfDocument {
     /// Insert the sole image XObject from a decoded/validated image PDF (such as
     /// pdf-convert::images_to_pdf). Only image/soft-mask/ICC data are imported.
@@ -377,23 +396,7 @@ impl PdfDocument {
         let mut xobjects = xobjects.cloned().unwrap_or_default();
         let mut candidate = self.document.clone();
         crate::require_pdf_1_4(&mut candidate);
-        let mut image = asset.image;
-        image.dict.set("Length", image.content.len() as i64);
-        if let Some(mut mask) = asset.mask {
-            mask.dict.set("Length", mask.content.len() as i64);
-            image.dict.set("SMask", candidate.add_object(mask));
-        }
-        if let Some(profile) = asset.profile {
-            let profile = candidate.add_object(profile);
-            image.dict.set(
-                "ColorSpace",
-                vec![
-                    Object::Name(b"ICCBased".to_vec()),
-                    Object::Reference(profile),
-                ],
-            );
-        }
-        let image = candidate.add_object(image);
+        let image = import_asset(&mut candidate, asset);
         xobjects.set(name.clone(), image);
         resources.set("XObject", xobjects);
         let matrix = match placement.rotation {

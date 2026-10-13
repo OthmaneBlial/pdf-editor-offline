@@ -256,3 +256,20 @@ pub fn add_image_overlay(
         .next()
         .ok_or(Error::Invalid("converted image report missing"))
 }
+
+/// Replace exactly one source-bound direct page image Do using the validated PNG/JPEG
+/// decoder. The original transform/clipping is retained; this is not secure erasure.
+pub fn replace_image_instance(
+    document: &mut PdfDocument,
+    selection: &pdf_core::ImageSelection,
+    image: &[u8],
+) -> Result<ImagePageInfo> {
+    document.ensure_editable()?;
+    let conversion = images_to_pdf(&[image])?;
+    document.replace_image_instance(selection, &conversion.document)?;
+    conversion
+        .pages
+        .into_iter()
+        .next()
+        .ok_or(Error::Invalid("converted replacement image report missing"))
+}

@@ -322,3 +322,13 @@ Tagged pages, signed/decrypted inputs, unsupported assets and invalid placement
 are refused transactionally. The existing 32 MiB stream, 128 MiB input/output,
 8192-side and eight-million-pixel limits apply. This is insertion, not existing
 image editing, sanitization or redaction.
+
+`list_image_instances(page)` discovers direct Image XObject `Do` occurrences across
+bounded page content arrays, preserving `q`/`Q`/`cm` state and reporting nominal PDF
+corners (existing clipping still applies). `replace_image_instance(selection, donor)`
+imports the validated donor asset to a fresh resource and rewrites exactly one selected
+operator in a new content stream. Donors use the same validated-image-PDF assumption
+as image overlays; PNG/JPEG decoding belongs to `pdf-convert`. Source-bound selections
+become stale after any edit. Original objects and other shared instances/pages remain;
+this is not privacy cleanup. Nested Forms, inline images, unsupported content carriers,
+property-marked content and tagged edits need later support.

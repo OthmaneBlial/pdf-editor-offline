@@ -11,6 +11,7 @@ repository.workspace = true
 [dependencies]
 lopdf.workspace = true
 serde.workspace = true
+sha2 = "=0.11.0"
 thiserror.workspace = true
 tempfile.workspace = true
 sha2 = "=0.11.0"

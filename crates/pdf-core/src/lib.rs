@@ -2,6 +2,7 @@
 //! Saving creates a verified new copy and never replaces an existing file.
 
 mod content_edit;
+pub(crate) mod content_spans;
 mod error;
 mod forms;
 mod input;
