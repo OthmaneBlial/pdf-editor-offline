@@ -1,6 +1,6 @@
 # Native Rust migration status
 
-Current source version: **4.0.0-preview.2**. The public
+Current source version: **4.0.0-preview.3** (in preparation). The public
 **4.0.0-preview.1** [CLI and npm package](NATIVE_RELEASE_EVIDENCE.md)
 have verified five-platform installation evidence. Preview 2 release construction
 failed a Linux concurrent-installer gate; the preserved tag is not a publication.

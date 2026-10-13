@@ -1,6 +1,6 @@
-# Preview 2 preparation
+# Preview 3 preparation
 
-The workspace and package metadata now prepare `4.0.0-preview.2`. The public
+The workspace and package metadata now prepare `4.0.0-preview.3`. The public
 registry and existing GitHub release still provide `4.0.0-preview.1` until the
 new publication has completed.
 
@@ -22,10 +22,10 @@ Before publication:
 3. Verify assembled source identity, binary versions, sizes, SHA-256 hashes,
    platform smoke results, Linux static linkage and complete license notices.
 4. Publish the verified GitHub prerelease so HTTPS asset downloads are available.
-5. Replace the package manifest and notices with those verified preview 2 outputs;
+5. Replace the package manifest and notices with those verified preview 3 outputs;
    update its README, pack it and pass real global installs on all five platforms.
 6. Publish npm separately, verify an exact-version registry installation, then
    promote `latest` and update public installation guidance.
 
-Preserve preview 1 tags, assets and registry history. Preparation is not evidence
-that preview 2 has been released.
+Preserve preview 1 tags, assets and registry history, and the failed preview 2
+tag/evidence. Preparation is not evidence that preview 3 has been released.
