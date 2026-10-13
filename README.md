@@ -14,6 +14,18 @@
 
 [Explore the workstation](https://othmaneblial.github.io/pdf-editor-offline/) · [Build guide](https://othmaneblial.github.io/pdf-editor-offline/docs.html#native-build) · [Roadmap](ROADMAP.md)
 
+## Fresh from the workshop
+
+**Out now: native CLI `4.0.0-preview.3`.** Install it below or download a standalone
+binary for macOS, Windows or Linux. This release adds guarded page duplication,
+checkbox/radio filling and bounded local document workers.
+
+**Growing on `main`:** single-line text forms with embedded covering fonts and
+desktop undo/redo. [See the form walkthrough](docs/FORMS_RUST.md).
+
+[What changed](CHANGELOG.md) · [Live build results](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml)
+· [Next milestones](ROADMAP.md)
+
 **Download → try → make it yours.** [Get the native CLI](#try-the-native-cli),
 [open the desktop](#build-and-run) or [browse the real app gallery](#your-next-pdf-without-the-upload).
 
@@ -219,10 +231,10 @@ the [next milestones](ROADMAP.md) and the [implementation status](docs/RUST_STAT
 to see what has shipped and what still needs work. The screenshots above show
 the app; the status documents describe its current limits.
 
-**On the way to the next CLI preview:** guarded page duplication and bounded
-document-processing children are implemented in source. Release preparation is
-tracked [here](distribution/npm/RELEASE_PREPARATION.md); preparation is separate
-from a published download. The npm badge above reflects the public registry.
+**Help shape the next preview:** try the supported form workflow, compare a
+synthetic PDF in another reader or improve one of the nine README translations.
+[Release preparation](distribution/npm/RELEASE_PREPARATION.md) records the next
+release's remaining checks. The npm badge above reflects the public registry.
 
 **Choose a starting point:** [use the CLI](apps/cli/README.md),
 [run the desktop](apps/desktop/README.md),
@@ -243,8 +255,9 @@ from a published download. The npm badge above reflects the public registry.
 | `tools/` | Native evidence runner and pinned independent reference installers |
 | `vendor/` | Reviewed dependency sources used by this workspace |
 
-`target/` is a local Cargo build cache, ignored by Git. Workspace manifests,
-the lockfile, license and project overview stay at the root.
+Cargo creates an ignored `target/` build cache when you build. It is generated,
+not project source. Workspace manifests, the lockfile, license and project
+overview stay at the root.
 
 </details>
 
@@ -259,9 +272,9 @@ flowchart LR
     Desktop --> Recovery[Private local recovery journal]
 ```
 
-Current source builds isolate desktop and CLI document processing in local
-children. No document upload service is used. The released CLI
-`4.0.0-preview.3` predates this milestone; see [CLI controls](docs/CLI_ISOLATION.md).
+Desktop and CLI document processing use bounded local children. The released CLI
+`4.0.0-preview.3` includes this isolation; see [CLI controls](docs/CLI_ISOLATION.md).
+No document upload service is used.
 [Architecture](docs/ARCHITECTURE.md) · [Public Rust API](crates/pdf-core/README.md)
 
 </details>

@@ -1,7 +1,7 @@
 # CLI document isolation
 
-This describes current source builds. The published native CLI/npm release
-`4.0.0-preview.1` predates this milestone.
+This describes current source builds and the published native CLI/npm release
+`4.0.0-preview.3`. The earlier `4.0.0-preview.1` predates this milestone.
 
 Every document command executes in a fresh, bounded child of the CLI executable:
 inspection, properties, notes, extraction, rendering, image import, page edits,
