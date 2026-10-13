@@ -34,6 +34,104 @@ fn placement(rotation: u16) -> ImageOverlay {
     }
 }
 #[test]
+fn pending_clip_does_not_hide_inserted_image_or_change_original_objects() {
+    let mut outputs = Vec::new();
+    for clipping in ["", "0 0 5 5 re W", "0 0 5 5 re W*"] {
+        let mut source = Document::load_mem(&support::fixture(1)).unwrap();
+        let stream = source
+            .get_object_mut((5, 0))
+            .unwrap()
+            .as_stream_mut()
+            .unwrap();
+        stream.content.extend(format!("\n{clipping}\n").as_bytes());
+        stream.dict.set("Length", stream.content.len() as i64);
+        let source_bytes = bytes(source.clone());
+        let mut pdf = PdfDocument::from_bytes(&source_bytes, None).unwrap();
+        let before = pdf.info().unwrap();
+        pdf.add_image_overlay(&placement(0), &donor(false)).unwrap();
+        let output = pdf.verified_bytes().unwrap();
+        assert_eq!(pdf.info().unwrap().pages, before.pages);
+        let parsed = Document::load_mem(&output).unwrap();
+        for (id, object) in &source.objects {
+            if *id != (6, 0) && object.type_name().ok() != Some(b"XRef") {
+                assert_eq!(parsed.get_object(*id).unwrap(), object);
+            }
+        }
+        outputs.push(pdf_render::render_page(&output, 0, 1.0).unwrap());
+    }
+    assert!(outputs[0].rgba == outputs[1].rgba, "pending W hides image");
+    assert!(outputs[0].rgba == outputs[2].rgba, "pending W* hides image");
+    assert!(
+        outputs[0]
+            .rgba
+            .chunks_exact(4)
+            .any(|p| p[0] > 240 && p[1] < 10)
+    );
+}
+
+#[test]
+#[ignore = "requires pinned qpdf12.4.2 and Poppler26.10"]
+fn independent_pending_clip_image_pixels() {
+    use std::process::Command;
+    let qpdf = std::env::var_os("PDF_QPDF_BIN").unwrap();
+    let bin = std::path::PathBuf::from(std::env::var_os("PDF_REFERENCE_BIN_DIR").unwrap());
+    assert!(
+        String::from_utf8_lossy(
+            &Command::new(&qpdf)
+                .arg("--version")
+                .output()
+                .unwrap()
+                .stdout
+        )
+        .contains("12.4.2")
+    );
+    assert!(
+        String::from_utf8_lossy(
+            &Command::new(bin.join("pdftoppm"))
+                .arg("-v")
+                .output()
+                .unwrap()
+                .stderr
+        )
+        .contains("26.10.0")
+    );
+    let temp = tempfile::tempdir().unwrap();
+    let mut pixels = Vec::new();
+    for (index, clipping) in ["", "0 0 5 5 re W", "0 0 5 5 re W*"].iter().enumerate() {
+        let mut source = Document::load_mem(&support::fixture(1)).unwrap();
+        let stream = source
+            .get_object_mut((5, 0))
+            .unwrap()
+            .as_stream_mut()
+            .unwrap();
+        stream.content.extend(format!("\n{clipping}\n").as_bytes());
+        stream.dict.set("Length", stream.content.len() as i64);
+        let mut pdf = PdfDocument::from_bytes(&bytes(source), None).unwrap();
+        pdf.add_image_overlay(&placement(0), &donor(false)).unwrap();
+        let output = temp.path().join(format!("image-{index}.pdf"));
+        std::fs::write(&output, pdf.verified_bytes().unwrap()).unwrap();
+        assert!(
+            Command::new(&qpdf)
+                .arg("--check")
+                .arg(&output)
+                .output()
+                .unwrap()
+                .status
+                .success()
+        );
+        let render = Command::new(bin.join("pdftoppm"))
+            .args(["-singlefile", "-r", "72"])
+            .arg(&output)
+            .output()
+            .unwrap();
+        assert!(render.status.success());
+        assert!(render.stdout.starts_with(b"P6\n200 300\n255\n"));
+        pixels.push(render.stdout);
+    }
+    assert!(pixels[0] == pixels[1]);
+    assert!(pixels[0] == pixels[2]);
+}
+#[test]
 fn image_and_alpha_are_real_resources_and_source_geometry_text_shared_page_are_preserved() {
     let source = support::fixture(2);
     let mut pdf = PdfDocument::from_bytes(&source, None).unwrap();

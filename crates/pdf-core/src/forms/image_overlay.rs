@@ -405,8 +405,10 @@ impl PdfDocument {
         let prefix = candidate.add_object(Stream::new(Dictionary::new(), b"q\n".to_vec()));
         let tail = Content {
             operations: vec![
-                Operation::new("Q", vec![]),
+                // Consume any original pending path/clip inside its isolated
+                // graphics state before restoring the state for the new image.
                 Operation::new("n", vec![]),
+                Operation::new("Q", vec![]),
                 Operation::new("q", vec![]),
                 Operation::new("cm", matrix.into_iter().map(real).collect()),
                 Operation::new("Do", vec![Object::Name(name)]),
