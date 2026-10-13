@@ -9,6 +9,38 @@ pub(crate) struct OperatorSpan {
     pub operator: Range<usize>,
     pub full: Range<usize>,
 }
+/// Exact direct item locations in an already validated top-level array operand.
+/// Uses the same bounded lexer rather than a feature-specific token parser.
+pub(crate) fn array_item_spans(bytes: &[u8], range: Range<usize>) -> Result<Vec<Range<usize>>> {
+    if bytes.get(range.start) != Some(&b'[') || range.end > bytes.len() {
+        return Err(Error::Refused("invalid content array span"));
+    }
+    let mut lexer = Lexer {
+        bytes,
+        at: range.start + 1,
+        work: 0,
+        masked: Vec::new(),
+    };
+    let mut items = Vec::new();
+    loop {
+        lexer.skip()?;
+        if lexer.at >= range.end {
+            return Err(Error::Refused("unfinished content array span"));
+        }
+        if bytes[lexer.at] == b']' {
+            if lexer.at + 1 != range.end {
+                return Err(Error::Refused("ambiguous content array span"));
+            }
+            break;
+        }
+        let (item, operand) = lexer.token(1)?;
+        if !operand || item.end >= range.end {
+            return Err(Error::Refused("invalid content array item"));
+        }
+        items.push(item);
+    }
+    Ok(items)
+}
 struct Lexer<'a> {
     bytes: &'a [u8],
     at: usize,
@@ -243,6 +275,20 @@ fn scan(bytes: &[u8]) -> Result<(Vec<OperatorSpan>, Vec<Range<usize>>)> {
         return Err(Error::Refused("content spans have trailing operands"));
     }
     Ok((spans, lexer.masked))
+}
+/// Remove nonsemantic comment carriers while retaining every other byte and all
+/// token locations. Literal/hex strings and escaped names are not comments.
+pub(crate) fn clear_content_comments(bytes: &[u8]) -> Result<(Vec<u8>, usize)> {
+    let (_, masked) = scan(bytes)?;
+    let mut output = bytes.to_vec();
+    let mut count = 0;
+    for range in masked {
+        if bytes[range.start] == b'%' {
+            output[range].fill(b' ');
+            count += 1;
+        }
+    }
+    Ok((output, count))
 }
 fn reconcile(
     bytes: &[u8],

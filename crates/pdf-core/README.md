@@ -1,5 +1,11 @@
 # pdf-core
 
+`redact_text_copy` permanently removes exact ASCII target glyphs from the strict
+standard-font plaintext profile, retains unmatched advances, and full-rewrites
+with garbage collection. `verify_redaction` rejects unsupported carriers and
+checks target absence; it is not a certificate for arbitrary private data or other
+files. See the [supported profile and proof](../../docs/TEXT_REDACTION_RUST.md).
+
 Authenticated encrypted documents remain read-only. `render_decrypted_page`
 returns pixels through the locked native renderer using a bounded, verified
 memory-only representation; it exposes no plaintext serialization/export API.
