@@ -1238,6 +1238,27 @@ impl WorkingDocument {
         let mut expected_note = None;
         let mut text_payload = None;
         let mutation = match edit {
+            Edit::ContentTextFace {
+                key,
+                source_fingerprint,
+                change,
+            } => {
+                if key.revision != self.current.revision
+                    || key.page == 0
+                    || key.page as usize > self.current.info.page_count
+                {
+                    return Err("Existing text font draft revision or page is stale".into());
+                }
+                if source_fingerprint != pdf_worker::payload_fingerprint(&self.current.bytes) {
+                    return Err("Existing text source fingerprint is stale".into());
+                }
+                expected_note = Some(key.page as usize - 1);
+                Mutation::ContentTextFace {
+                    page: key.page,
+                    source_fingerprint,
+                    changes: vec![change],
+                }
+            }
             Edit::VectorOverlay { key, overlay } => {
                 if self.current.info.encrypted || self.current.info.signature_fields > 0 {
                     return Err("Signed or encrypted documents are read only".into());

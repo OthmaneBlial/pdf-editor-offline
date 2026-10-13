@@ -52,6 +52,11 @@ pub struct ContentTextKey {
     pub generation: u64,
 }
 pub enum Edit {
+    ContentTextFace {
+        key: ContentTextKey,
+        source_fingerprint: [u8; 32],
+        change: pdf_core::ContentTextFaceChange,
+    },
     ReplaceImage {
         key: FormsReadKey,
         selection: pdf_core::ImageSelection,
@@ -426,7 +431,9 @@ impl Worker {
                     Command::ContentText(key)
                     | Command::Edit {
                         edit:
-                            Edit::ContentText { key, .. } | Edit::ContentTextProperties { key, .. },
+                            Edit::ContentText { key, .. }
+                            | Edit::ContentTextProperties { key, .. }
+                            | Edit::ContentTextFace { key, .. },
                         ..
                     } => Some(TaskKey::ContentText(*key)),
                     Command::Forms(key) => Some(TaskKey::Forms(*key)),
@@ -1096,7 +1103,9 @@ fn process_with_journal(
             })
         }
         Command::Edit { edit, .. } => {
-            if let Edit::ContentText { key, .. } | Edit::ContentTextProperties { key, .. } = &edit
+            if let Edit::ContentText { key, .. }
+            | Edit::ContentTextProperties { key, .. }
+            | Edit::ContentTextFace { key, .. } = &edit
                 && key.tab != id
             {
                 return Err("Existing text draft belongs to another document".into());

@@ -1,5 +1,7 @@
 #![allow(clippy::unwrap_used)]
 use super::*;
+#[path = "content_tests/face.rs"]
+mod face;
 #[path = "../../../../tests/support/content_fixture.rs"]
 pub(crate) mod fixture;
 
@@ -479,6 +481,27 @@ fn failed_child_preserves_content_snapshot_history_journal_and_retry() {
                                 font_size: Some(24.0),
                                 matrix_translation: None,
                                 fill_rgb: None
+                            }
+                        }
+                    },
+                    Some(&mut journal)
+                )
+                .is_err()
+            );
+            assert!(
+                process_with_journal(
+                    &mut documents,
+                    Command::Edit {
+                        id: 1,
+                        edit: Edit::ContentTextFace {
+                            key,
+                            source_fingerprint: inventory.source_fingerprint,
+                            change: pdf_core::ContentTextFaceChange {
+                                identity: inventory.runs[0].identity.clone(),
+                                expected: "Original".into(),
+                                font: pdf_core::ContentTextFont::TimesBold,
+                                replacement: None,
+                                layout_policy: pdf_core::ContentTextLayoutPolicy::AllowWidthChange
                             }
                         }
                     },

@@ -235,3 +235,17 @@ contexts remain disabled with a reason. Text-value and property drafts are separ
 transactions: apply or reset one before applying the other. Both are protected
 when closing, quitting or restoring a session. Headless controls and actual child
 tests cover this milestone; manual desktop interaction remains a separate gate.
+
+**Font face** in the same existing-text dialog changes an eligible run to one of
+the twelve standard Courier/Helvetica/Times faces. The actual scrollable selector
+uses exact PDF face names. Apply keeps original text, size and matrix, creates
+one durable history transaction and supports Undo/Redo and Save As. Changed word
+or space advances require the explicit width-change checkbox; new glyph ink may
+overlap other content. After applying, reopen the source-bound inventory for
+another supported value, property or face edit. Font, value and property drafts
+must be applied or reset separately and remain protected during close/quit/recovery.
+Stale page/tab/revision, pending-save and read-only guards apply. Headless control
+tests exercise real popup scrolling and Apply; production-child tests verify the
+saved font, unchanged shared page and independent-reader text/pixels. Manual
+native/platform interaction and user-chosen embedded font editing are unfinished.
+See [the font-face tier](../../docs/EXISTING_TEXT_FONT_RUST.md).

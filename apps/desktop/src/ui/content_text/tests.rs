@@ -14,6 +14,133 @@ fn wait(app: &mut EditorApp, ctx: &egui::Context) {
         app.message
     );
 }
+
+#[test]
+fn real_font_face_widgets_require_width_ack_and_commit_durable_undo_save() {
+    let (_temp, mut app, ctx, path, bytes) = app();
+    click(&mut app, &ctx, "Font face");
+    click(&mut app, &ctx, "Choose a face");
+    let popup = draw(&mut app, &ctx, vec![])
+        .shapes
+        .into_iter()
+        .find_map(|shape| match &shape.shape {
+            egui::epaint::Shape::Text(text) if text.galley.text() == "Courier" => {
+                Some(text.pos + text.galley.rect.center().to_vec2())
+            }
+            _ => None,
+        })
+        .expect("open font choice popup");
+    // Later faces are below the popup's viewport: exercise the real scroll path.
+    draw(
+        &mut app,
+        &ctx,
+        vec![
+            egui::Event::PointerMoved(popup),
+            egui::Event::MouseWheel {
+                unit: egui::MouseWheelUnit::Point,
+                delta: egui::vec2(0., -600.),
+                phase: egui::TouchPhase::Move,
+                modifiers: egui::Modifiers::NONE,
+            },
+        ],
+    );
+    for _ in 0..10 {
+        draw(&mut app, &ctx, vec![]);
+    }
+    click(&mut app, &ctx, "Times-Bold");
+    let dialog = app.content_dialog.as_ref().unwrap();
+    assert!(dialog.face_draft());
+    assert!(dialog.face_change().is_err());
+    assert!(app.has_tab_draft(app.active.unwrap()));
+    assert!(!app.apply_content_face());
+    click(&mut app, &ctx, "Allow font width change");
+    assert!(app.content_dialog.as_ref().unwrap().face_change().is_ok());
+    click(&mut app, &ctx, "Apply font face");
+    assert!(app.busy);
+    wait(&mut app, &ctx);
+    assert!(app.content_dialog.is_none());
+    assert_eq!(app.selected().unwrap().status.revision, 1);
+    assert!(app.selected().unwrap().status.dirty && app.selected().unwrap().status.can_undo);
+    app.perform(super::super::Action::Undo, &ctx);
+    wait(&mut app, &ctx);
+    assert_eq!(app.selected().unwrap().status.revision, 0);
+    app.perform(super::super::Action::Redo, &ctx);
+    wait(&mut app, &ctx);
+    assert_eq!(app.selected().unwrap().status.revision, 1);
+    let output = path.with_file_name("face.pdf");
+    app.send(
+        Command::Save {
+            id: app.active.unwrap(),
+            path: output.clone(),
+        },
+        "Saving font face…",
+    );
+    wait(&mut app, &ctx);
+    let saved = std::fs::read(output).unwrap();
+    let pdf = pdf_core::PdfDocument::from_bytes(&saved, None).unwrap();
+    assert_eq!(
+        pdf.content_text_runs(1).unwrap()[0].standard_font,
+        Some(pdf_core::ContentTextFont::TimesBold)
+    );
+    assert_eq!(pdf.extract_text(&[1]).unwrap(), "Original\nA B\n");
+    assert_eq!(
+        pdf_render::render_page(&bytes, 1, 1.).unwrap(),
+        pdf_render::render_page(&saved, 1, 1.).unwrap()
+    );
+    assert_eq!(std::fs::read(&path).unwrap(), bytes);
+    app.open_content_text();
+    wait(&mut app, &ctx);
+    assert!(
+        app.content_dialog
+            .as_ref()
+            .unwrap()
+            .inventory
+            .as_ref()
+            .unwrap()
+            .runs[0]
+            .properties_writable
+    );
+}
+
+#[test]
+fn font_drafts_observe_stale_page_pending_save_readonly_and_competing_tool_guards() {
+    let (_temp, mut app, ctx, path, _bytes) = app();
+    let dialog = app.content_dialog.as_mut().unwrap();
+    dialog.target_face = Some(pdf_core::ContentTextFont::TimesRoman);
+    dialog.allow_width_change = true;
+    dialog.face_mode = true;
+    assert!(dialog.face_change().is_ok());
+    let key = dialog.key;
+    app.open_text_overlay();
+    assert!(app.overlay_dialog.is_none());
+    assert_eq!(app.content_dialog.as_ref().unwrap().key, key);
+    app.content_dialog.as_mut().unwrap().stale = true;
+    assert!(!app.apply_content_face());
+    app.content_dialog.as_mut().unwrap().stale = false;
+    app.tabs[0].page = 1;
+    assert!(!app.apply_content_face());
+    app.tabs[0].page = 0;
+    app.tabs[0].status.revision = 99;
+    assert!(!app.apply_content_face());
+    app.tabs[0].status.revision = 0;
+    let original = app.tabs[0].status.info.clone();
+    app.tabs[0].status.info.encrypted = true;
+    assert!(!app.apply_content_face());
+    app.tabs[0].status.info = original;
+    app.pending_saves.insert(
+        key.tab,
+        super::super::recovery::PendingSave::new(
+            path.with_file_name("uncertain.pdf"),
+            "pending".into(),
+        ),
+    );
+    assert!(!app.apply_content_face());
+    app.pending_saves.remove(&key.tab);
+    assert!(!app.busy);
+    assert!(app.content_dialog.as_ref().unwrap().has_changes());
+    click(&mut app, &ctx, "Reset replacement");
+    assert!(!app.content_dialog.as_ref().unwrap().has_changes());
+}
 fn app() -> (
     tempfile::TempDir,
     EditorApp,
