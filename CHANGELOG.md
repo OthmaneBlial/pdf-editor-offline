@@ -2,6 +2,10 @@
 
 ## Unreleased — native Rust preview
 
+- Added ordered native PDF merging through the isolated worker. The guarded simple-catalog tier creates a separate journaled unsaved tab, preserves source files and history, and verifies saved output against independent text, geometry and pixel checks. Native picker interaction remains a manual review gate.
+
+- Render standard FileAttachment icons when an explicit appearance is absent, using original vector artwork with guarded geometry, color, opacity and annotation flags. Native preservation checks and pinned Poppler comparisons cover their visible removal during targeted cleanup.
+
 - Raise legacy PDF headers to 1.4 when generating ActualText appearances, preserving newer headers and catalog version declarations. Failed font/value edits leave the source version unchanged.
 
 - Added Unicode multiline form layout and native multiline input, preserving logical breaks and wrapping without splitting grapheme clusters. Paragraph-aware bidi shaping, fit limits and atomic overflow refusals share the existing font/publisher path. Real isolated native history/save output passes pinned structure/text/pixel checks.

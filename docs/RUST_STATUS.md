@@ -15,6 +15,15 @@ GitHub and npm publication are verified; npm `latest` is `4.0.0-preview.3` and a
 fresh registry install was checked with Node 22. This later text/CFF source is
 separate from that release; preview 4 is not yet published.
 
+The 13 October merge/attachment-rendering integration at reviewed source
+`2f96ce3` passed **515 workspace tests across 58 suites, with no failed or ignored
+tests**, including the pinned qpdf/Poppler gates and actual native worker runs.
+Strict workspace/all-target Clippy, fresh native/CLI/helper builds, formatting
+and workflow syntax checks passed. The initial reference run stopped because the
+disk was full; the complete rerun passed after retiring obsolete build caches.
+This proves the checked automated boundaries, not manual native picker or
+screen-reader interaction or complete PDF compatibility.
+
 Eligible multiline fields now use Unicode wrapping with paragraph-aware bidi
 shaping, preserved logical breaks, grapheme-safe boundaries and bounded fit.
 The native editor accepts paste and Enter/newline input and uses the same isolated
