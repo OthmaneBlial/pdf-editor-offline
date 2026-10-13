@@ -25,6 +25,7 @@ use rustc_hash::FxHashMap;
 use smallvec::smallvec;
 use std::sync::Arc;
 
+mod attachment_icon;
 pub(crate) mod path;
 pub(crate) mod state;
 pub(crate) mod text;
@@ -142,7 +143,7 @@ pub enum InterpreterWarning {
     /// An annotation has an `AP` dictionary, but its normal appearance could not
     /// be selected or loaded, so the annotation was not drawn.
     UnresolvedAnnotationAppearance,
-    /// An annotation has nonfinite or empty geometry, or the view zoom is invalid.
+    /// An annotation has invalid geometry/view zoom, or a default icon has malformed name/color/opacity.
     InvalidAnnotationGeometry,
 }
 
@@ -275,22 +276,7 @@ pub fn interpret_page<'a>(
                     annot_rect.y0 - sy * transformed_rect.y0,
                 ]);
 
-                let rotation = if flags & 16 != 0 {
-                    match page.rotation() {
-                        Rotation::None => Affine::IDENTITY,
-                        Rotation::Horizontal => Affine::new([0.0, 1.0, -1.0, 0.0, 0.0, 0.0]),
-                        Rotation::Flipped => Affine::new([-1.0, 0.0, 0.0, -1.0, 0.0, 0.0]),
-                        Rotation::FlippedHorizontal => Affine::new([0.0, -1.0, 1.0, 0.0, 0.0, 0.0]),
-                    }
-                } else {
-                    Affine::IDENTITY
-                };
-                let scale = if flags & 8 != 0 { 1.0 / zoom } else { 1.0 };
-                let anchor = Point::new(annot_rect.x0, annot_rect.y1);
-                let adjustment = Affine::translate(anchor.to_vec2())
-                    * rotation
-                    * Affine::scale(scale)
-                    * Affine::translate(-anchor.to_vec2());
+                let adjustment = annotation_adjustment(annot_rect, page.rotation(), zoom, flags);
                 if affine
                     .as_coeffs()
                     .iter()
@@ -314,9 +300,45 @@ pub fn interpret_page<'a>(
                 context.restore_state(device);
             } else if annot.get::<Dict<'_>>(AP).is_some() {
                 (context.settings.warning_sink)(InterpreterWarning::UnresolvedAnnotationAppearance);
+            } else if subtype
+                .as_ref()
+                .is_some_and(|name| name.as_ref() == b"FileAttachment")
+            {
+                // AP overrides Name even when a present normal appearance is unresolved.
+                // A null dictionary entry is equivalent to an absent entry (7.3.7).
+                if annot.contains_key(AP)
+                    && !matches!(annot.get::<Object<'_>>(AP), Some(Object::Null(_)))
+                {
+                    (context.settings.warning_sink)(
+                        InterpreterWarning::UnresolvedAnnotationAppearance,
+                    );
+                } else if attachment_icon::draw(&annot, page.rotation(), flags, context, device)
+                    .is_none()
+                {
+                    (context.settings.warning_sink)(InterpreterWarning::InvalidAnnotationGeometry);
+                }
             }
         }
     }
+}
+
+fn annotation_adjustment(rect: kurbo::Rect, rotation: Rotation, zoom: f64, flags: u32) -> Affine {
+    let rotation = if flags & 16 != 0 {
+        match rotation {
+            Rotation::None => Affine::IDENTITY,
+            Rotation::Horizontal => Affine::new([0.0, 1.0, -1.0, 0.0, 0.0, 0.0]),
+            Rotation::Flipped => Affine::new([-1.0, 0.0, 0.0, -1.0, 0.0, 0.0]),
+            Rotation::FlippedHorizontal => Affine::new([0.0, -1.0, 1.0, 0.0, 0.0, 0.0]),
+        }
+    } else {
+        Affine::IDENTITY
+    };
+    let scale = if flags & 8 != 0 { 1.0 / zoom } else { 1.0 };
+    let anchor = Point::new(rect.x0, rect.y1);
+    Affine::translate(anchor.to_vec2())
+        * rotation
+        * Affine::scale(scale)
+        * Affine::translate(-anchor.to_vec2())
 }
 
 fn numeric_array<const N: usize>(dict: &Dict<'_>, key: &[u8]) -> Option<[f64; N]> {

@@ -3,7 +3,8 @@
 This directory vendors only `hayro-interpret` 0.8.0. Its Rust source, examples,
 normalized/original manifests, bundled assets and license files were copied from
 the downloaded crates.io package. The unused package lockfile and Cargo installation
-marker were omitted. Local code changes are confined to `src/interpret/mod.rs`.
+marker were omitted. Local code changes are confined to `src/interpret/mod.rs`
+and the original `src/interpret/attachment_icon.rs` helper.
 
 - Registry archive: [hayro-interpret-0.8.0.crate](https://static.crates.io/crates/hayro-interpret/hayro-interpret-0.8.0.crate).
 - Verified archive SHA-256: `ac9df074ff163a63864cec9b0bf640ccbff8abf4e44481df7369ce0ac172ffbe`, matching the original Cargo.lock checksum.
@@ -58,6 +59,42 @@ platform-specific expected color constants. Test logs retain the counts/first
 pixel rather than disguising them as complete raster equivalence.
 
 This patch does not implement print-mode rendering, hover/ToggleNoView,
-annotation interaction, generated fallback appearances, or complete transparency
+annotation interaction, general fallback appearances, or complete transparency
 fidelity. Rebase the small source diff when upgrading Hayro, then run the native
 and pinned-reference gates before removing this override.
+
+## Original FileAttachment fallback vectors
+
+For FileAttachment annotations without AP, the patch draws original vector icons
+for Graph, Paperclip, PushPin and Tag; absent/null Name selects PushPin. Unknown
+custom names use a generic PushPin fallback, without claiming support for that
+custom artwork. A present unresolved AP suppresses fallback and keeps the existing
+warning policy. An explicit AP takes precedence over Name, C and CA. Null dictionary
+entries have the semantics of absent entries. These rules follow [PDF 32000-1:2008](https://opensource.adobe.com/dc-acrobat-sdk-docs/standards/pdfstandards/pdf/PDF32000_2008.pdf),
+7.3.7 and Tables 168, 170 and 184.
+
+The new shapes were authored for this project under Apache-2.0 OR MIT. No Poppler
+or other third-party icon paths were copied. Each symbol occupies a 24-unit local
+rectangle mapped to the annotation Rect, with the same upper-left anchored
+NoZoom/NoRotate adjustment used for explicit appearances. FileAttachment does
+not implicitly force those flags. Direct device properties, a balanced transformed
+clip and a whole-icon Normal opacity group avoid modifying interpreter graphics
+state or pending paths. C supports transparent background, DeviceGray, DeviceRGB
+and DeviceCMYK; omitted C uses white. The dark foreground remains visible with a
+transparent background. CA defaults to 1 and applies once to the complete icon.
+Malformed geometry, Name type, color or opacity emits InvalidAnnotationGeometry
+and the root renderer fails before raster publication.
+
+`attachment_icons.rs` proves visible distinct native icons, rotation/crop/origin,
+logical zoom/DPR/reduced scale, flags, explicit/unresolved AP precedence, colors,
+opacity, later appearance preservation and read-only signature-marker handling.
+Pinned Poppler 26.10.0 comparisons independently require positive standard-icon
+paint and exact original-page preservation outside the source Rect plus its fixed
+one-pixel raster-edge support. The artwork and its boundary coverage intentionally
+need not match Poppler. A translated native NoZoom curved edge also differed by
+one channel unit between density 1/zoom 1 and density 2/zoom 2; tests assert equal
+painted dimensions and exact solid interior probes, not whole-raster identity.
+The actual public sanitizer fixture pair and its generator/source/hash provenance
+are recorded in [the fixture notice](../../crates/pdf-render/tests/fixtures/README.md).
+Ordinary Text annotations without AP still lack a fallback; this patch does not
+implement attachment activation, file extraction or annotation interaction.

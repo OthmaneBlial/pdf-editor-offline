@@ -511,7 +511,7 @@ fn compare_outside_icon(before: &[u8], after: &[u8], channels: usize, minimum_ch
         for x in 0..200 {
             let offset = (y * 200 + x) * channels;
             let equal = before[offset..offset + channels] == after[offset..offset + channels];
-            // Explicit vector AP maps to Rect [140,140,160,160] on this unrotated page.
+            // Explicit AP and built-in icons occupy Rect [140,140,160,160].
             if !(140..160).contains(&x) || !(40..60).contains(&y) {
                 assert!(equal, "pixel changed outside attachment at {x},{y}");
             } else if !equal {
@@ -538,7 +538,7 @@ fn native_pixels_change_only_inside_removed_visible_attachment() {
 }
 
 #[test]
-fn standard_default_icons_are_removed_without_claiming_native_fallback_display() {
+fn standard_default_icons_render_visibly_and_current_sanitizer_removes_only_their_footprint() {
     for icon in [
         None,
         Some("PushPin"),
@@ -562,12 +562,6 @@ fn standard_default_icons_are_removed_without_claiming_native_fallback_display()
             report.attachment_annotations_removed[0]
                 .predefined_icon
                 .is_some()
-        );
-        assert!(
-            report
-                .limitations
-                .iter()
-                .any(|limit| limit.contains("does not display omitted-AP"))
         );
         let output = clean.verified_bytes().unwrap();
         assert!(
@@ -593,12 +587,9 @@ fn standard_default_icons_are_removed_without_claiming_native_fallback_display()
                 .get(b"Resources")
                 .unwrap()
         );
-        // The current renderer lacks these builtins. Identical pixels are source
-        // preservation evidence, NOT proof that a visible native icon disappeared.
-        assert_eq!(
-            pdf_render::render_page(&before, 0, 1.0).unwrap(),
-            pdf_render::render_page(&output, 0, 1.0).unwrap()
-        );
+        let before_image = pdf_render::render_page(&before, 0, 1.0).unwrap();
+        let after_image = pdf_render::render_page(&output, 0, 1.0).unwrap();
+        compare_outside_icon(&before_image.rgba, &after_image.rgba, 4, 20);
         assert_eq!(source.verified_bytes().unwrap(), before);
     }
 }
@@ -766,7 +757,7 @@ fn independent_decoded_payload_text_and_footprint_gate() {
             &image(&source_path, "before"),
             &image(&clean_path, "after"),
             3,
-            if icon.is_some() { 0 } else { 200 },
+            if icon.is_some() { 20 } else { 200 },
         );
         assert_eq!(std::fs::read(source_path).unwrap(), original);
     }
