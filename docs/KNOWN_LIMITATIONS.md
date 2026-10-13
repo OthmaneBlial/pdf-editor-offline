@@ -55,7 +55,7 @@ manual platform verification claim.
   [CLI guide](../apps/cli/README.md) for refusal boundaries. Indexed page labels
   prevent unsupported reordering/insertion rather than being silently dropped.
 - Current desktop and CLI source builds use bounded document subprocesses.
-  The published CLI `4.0.0-preview.3` includes CLI isolation. Resource limits do
+  The published CLI `4.0.0-preview.4` includes CLI isolation. Resource limits do
   not provide a filesystem or network sandbox. See [CLI limits](CLI_ISOLATION.md).
 - [Desktop recovery](DESKTOP_RECOVERY.md) retains private PDF bytes and paths on
   disk. No automatic expiry, encryption or secure deletion is provided. Unapplied

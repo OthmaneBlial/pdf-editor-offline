@@ -22,7 +22,7 @@ No account, subscription or document upload is required.
 
 **[Install the CLI](#try-the-native-cli) · [Run the desktop](#build-and-run) · [See what's next](ROADMAP.md)**
 
-**Available now:** native CLI **4.0.0-preview.3** for macOS, Windows and Linux.
+**Available now:** native CLI **4.0.0-preview.4** for macOS, Windows and Linux.
 The desktop builds from source; installers and full PDF editing are still in
 development. The gallery shows real macOS sessions with public synthetic PDFs.
 
@@ -44,15 +44,16 @@ The screenshot is a real app window using a public synthetic PDF.
 
 **Today's checkpoint:** the combined numbering, image-replacement and original
 text-property source and two CI repairs passed **717 local tests**, including the
-pinned independent
-readers and actual native workers, with no failures or ignored tests. Strict
+pinned independent readers and actual native workers, with no failures or ignored tests. Strict
 Clippy passed. All five platforms and the quality job in
 [native CI](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38383270114)
 passed. The repaired source passed
 [security scanning](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38383092873).
-The downloadable CLI remains preview.3. [Scope and evidence](docs/RUST_STATUS.md).
+Preview.4 is published on GitHub and npm, with five-platform HTTPS global-install
+checks passed. [Release and registry evidence](docs/NATIVE_RELEASE_PREVIEW4.md).
 
-These features are on **`main`**, ahead of the published CLI preview:
+The shared editing commands ship in **preview.4**; build the desktop source for
+the native canvas workflows:
 
 **Fresh tools to play with:** [draw on the canvas](docs/VECTOR_DRAWING_RUST.md),
 [draw a visual signature](docs/VISUAL_SIGNATURES_RUST.md),
@@ -61,7 +62,7 @@ These features are on **`main`**, ahead of the published CLI preview:
 [number pages](docs/PAGE_NUMBERING_RUST.md),
 [edit supported existing text](docs/CONTENT_TEXT_EDITING_RUST.md),
 [add Unicode text](docs/TEXT_OVERLAYS_RUST.md), [finish a form](docs/FORMS_RUST.md)
-or [leave a sticky note](docs/NOTES_RUST.md). Build the current source to try them.
+or [leave a sticky note](docs/NOTES_RUST.md).
 
 <details>
 <summary>Open this week's workflow notes</summary>
@@ -203,10 +204,10 @@ writes a new copy. Pick an unused output name: existing files are not overwritte
 
 The npm package installs and launches the native Rust CLI; PDF processing stays
 local. Its installer and launcher need Node.js 22+. Prefer a standalone binary?
-[Download one for your platform](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.3)
+[Download one for your platform](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.4)
 and run it directly, without Node.js or a Rust toolchain.
 
-Version **4.0.0-preview.3** passed real binary and global-install checks on macOS
+Version **4.0.0-preview.4** passed real binary and global-install checks on macOS
 ARM64/Intel, Windows x64 and Linux x64/ARM64. It installs the CLI; build the desktop
 app with the instructions below.
 
@@ -261,14 +262,14 @@ scope restrictions; see the [CLI guide](apps/cli/README.md). A smaller compresse
 file is not guaranteed.
 
 [Page duplication](docs/DESKTOP_PAGE_RANGES.md#duplicate) is available in the
-published `4.0.0-preview.3` CLI.
+published `4.0.0-preview.4` CLI.
 
 Cropping hides content. Removing metadata or notes can leave old values in the
 file. None of these operations is secure redaction or private-data erasure.
 [Targeted sanitization](docs/SANITIZATION_RUST.md) removes specified structures
 and unreachable payloads from a new copy. It preserves page content and can leave
 other private information; its report explicitly provides no general privacy proof.
-OCR, advanced text form filling, digital signing, arbitrary page-text editing and broad document
+OCR, cryptographic signing, arbitrary embedded-font editing and high-fidelity Office
 conversion are not implemented in this preview. Rendering can omit unsupported
 content; inspect exported documents before relying on them. Signed inputs and
 successfully decrypted inputs are read-only.
@@ -276,8 +277,8 @@ successfully decrypted inputs are read-only.
 [Try the form fixture](docs/FORMS_RUST.md): buttons preserve existing appearances;
 single/multiline text embeds a complete covering TrueType or supported CID-keyed CFF1
 font. Missing glyphs and unsupported layouts are refused. Button filling is in the
-published `4.0.0-preview.3` CLI; text and choice generation are available in current
-source. Choice selections use explicit option indices, including when export
+published `4.0.0-preview.4` CLI, together with supported text and choice generation.
+Choice selections use explicit option indices, including when export
 values are duplicated. Text and choices require a covering font.
 
 The interface is currently English. These README translations do not imply a
@@ -385,7 +386,7 @@ flowchart LR
 ```
 
 Desktop and CLI document processing use bounded local children. The released CLI
-`4.0.0-preview.3` includes this isolation; see [CLI controls](docs/CLI_ISOLATION.md).
+`4.0.0-preview.4` includes this isolation; see [CLI controls](docs/CLI_ISOLATION.md).
 No document upload service is used.
 [Architecture](docs/ARCHITECTURE.md) · [Public Rust API](crates/pdf-core/README.md)
 

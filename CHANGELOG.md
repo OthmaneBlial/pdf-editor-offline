@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased — native Rust preview
+## 4.0.0-preview.4 — 13 October 2026
+
+Published native CLI and npm package, with verified builds and HTTPS global
+installs on all five platforms. The tag also contains native desktop source;
+desktop installers are not included. [Publication evidence](docs/NATIVE_RELEASE_PREVIEW4.md).
 
 - Keep image-replacement Apply/Discard controls visible in small windows with long filenames; wait for the real worker-read lifecycle in the interaction test.
 - Separate child deadline testing from fixture-setup time while retaining production subprocess limits.

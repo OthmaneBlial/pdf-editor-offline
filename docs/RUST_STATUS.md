@@ -19,17 +19,18 @@ The 13 npm installer/launcher tests passed locally against the preserved checked
 native CLI. The initial installer run lacked a build at its default path; its
 failed log is preserved, and the verified binary was supplied explicitly for
 the successful run. Actual-runner release builds and five-platform HTTPS global
-installs remain required before publishing preview.4. The immutable tag
-`v4.0.0-preview.4` points to checked source `b3a939a`; actual-runner release run
+installs passed. The immutable tag `v4.0.0-preview.4` points to checked source
+`b3a939a`; actual-runner release run
 [38385791501](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38385791501)
-has been queued. A tag or running build is not a published release.
+finished successfully, including assembly. GitHub and npm preview.4 are published;
+`latest` and `next` both resolve to preview.4. Exact-version and default-latest
+registry installs passed locally. [Complete release evidence](NATIVE_RELEASE_PREVIEW4.md).
 
 The first [remote native run](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38372325112)
 reported failures in the Windows image-replacement interaction test and the
 quality job's subprocess-deadline test. Linux x64/ARM64 and macOS ARM64/Intel
 passed. Both repairs are included in the frozen 717-test checkpoint; the new
-five-platform and quality results passed, and release preview.4 remains
-unpublished pending the distribution gates.
+five-platform, quality and distribution results passed for published preview.4.
 The deadline test separates fixture setup from its child-operation timeout
 without relaxing the production 60-second operation or 180-second evidence
 budget. Image replacement now keeps Apply/Discard visible at 640×420 with long
@@ -57,8 +58,9 @@ Local logs are `/tmp/pdf-stage18-normal-build.log` and
 `/tmp/pdf-stage18-frozen-workspace.log` and
 `/tmp/pdf-stage18-frozen-workspace-images.log`.
 
-Manual OS-window review of these new dialogs remains open. Source features are
-ahead of the published CLI/npm preview.3; preview.4 has not been published.
+Manual OS-window review of these new dialogs remains open. Shared CLI editing
+features now ship in preview.4; this does not establish desktop installer or
+all-platform manual GUI coverage.
 These checks do not prove all-document fidelity, complete migration or a
 performance improvement. The following entries retain earlier milestone evidence.
 
