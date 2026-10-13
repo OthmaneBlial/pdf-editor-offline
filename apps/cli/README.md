@@ -404,3 +404,16 @@ Matrix position replaces PDF text-matrix e/f, not screen coordinates. New glyph
 ink can overlap other content or leave the page. Custom color spaces/profiles,
 extended graphics state and other unsupported contexts are refused. Source hash,
 dry-run, JSON, signed/encrypted read-only and no-clobber guards also apply.
+
+`set-content-text-font INPUT --page 1 --operation N --source-sha256 HASH
+--expected Original --font Times-Italic --allow-width-change -o NEW.pdf`
+changes the real font used by that original final `Tj` run, using an isolated
+page font resource. Choose an exact standard PDF face name: the four Courier,
+four Helvetica or four Times faces. Original size, matrix, spacing and later
+inherited state remain intact. The default requires equal word and space advances;
+`--allow-width-change` explicitly permits a different bounded width without fitting
+or reflow. Optional `--replacement` supplies printable ASCII in the target's
+WinAnsi encoding. Without it, the original string token stays byte exact. Fresh
+inventory supports subsequent value/property/face edits. JSON, `--dry-run`, source
+hash and verified no-clobber saving apply. Embedded chosen fonts remain a separate
+unfinished tier. See [font-face scope and evidence](../../docs/EXISTING_TEXT_FONT_RUST.md).

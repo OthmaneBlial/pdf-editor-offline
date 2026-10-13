@@ -25,6 +25,83 @@ fn inventory(bytes: &[u8], offset: u32) -> pdf_worker::document::ContentTextPage
     };
     inventory
 }
+
+#[test]
+fn real_child_font_face_is_source_bound_strict_and_repeat_editable() {
+    let bytes = fixture::source(fixture::CONTENT);
+    let read = inventory(&bytes, 0);
+    let make = |fingerprint, expected: &str| Operation::Edit {
+        mutation: Mutation::ContentTextFace {
+            page: 1,
+            source_fingerprint: fingerprint,
+            changes: vec![pdf_core::ContentTextFaceChange {
+                identity: read.runs[0].identity.clone(),
+                expected: expected.into(),
+                font: pdf_core::ContentTextFont::HelveticaBold,
+                replacement: None,
+                layout_policy: pdf_core::ContentTextLayoutPolicy::AllowWidthChange,
+            }],
+        },
+    };
+    let mut stale = read.source_fingerprint;
+    stale[0] ^= 1;
+    for request in [
+        make(stale, "Original"),
+        make(read.source_fingerprint, "Wrong"),
+    ] {
+        let rejected = execute(request, &bytes);
+        assert_eq!(rejected.control["ok"], false);
+        assert!(rejected.payload.is_empty());
+    }
+    let reply = execute(make(read.source_fingerprint, "Original"), &bytes);
+    assert_eq!(reply.kind, PayloadKind::Pdf);
+    let pdf = pdf_core::PdfDocument::from_bytes(&reply.payload, None).unwrap();
+    let run = pdf.content_text_runs(1).unwrap().remove(0);
+    assert_eq!(
+        run.standard_font,
+        Some(pdf_core::ContentTextFont::HelveticaBold)
+    );
+    assert!(run.writable && run.properties_writable);
+    assert_eq!(pdf.extract_text(&[1]).unwrap(), "Original\nA B\n");
+    assert_eq!(
+        pdf_render::render_page(&bytes, 1, 1.).unwrap(),
+        pdf_render::render_page(&reply.payload, 1, 1.).unwrap()
+    );
+    let current = inventory(&reply.payload, 0);
+    let repeat = execute(
+        Operation::Edit {
+            mutation: Mutation::ReplaceContentText {
+                page: 1,
+                source_fingerprint: current.source_fingerprint,
+                changes: vec![pdf_core::ContentTextChange {
+                    identity: current.runs[0].identity.clone(),
+                    expected: "Original".into(),
+                    replacement: "New value".into(),
+                    layout_policy: pdf_core::ContentTextLayoutPolicy::AllowWidthChange,
+                }],
+            },
+        },
+        &reply.payload,
+    );
+    assert_eq!(repeat.kind, PayloadKind::Pdf);
+    assert!(
+        pdf_core::PdfDocument::from_bytes(&repeat.payload, None)
+            .unwrap()
+            .extract_text(&[1])
+            .unwrap()
+            .contains("New value")
+    );
+    let mut unknown = serde_json::to_value(make(read.source_fingerprint, "Original")).unwrap();
+    unknown["mutation"]["changes"][0]["font_file"] = serde_json::json!("/not/allowed");
+    assert!(
+        execute_document(Request {
+            control: unknown,
+            payload: bytes
+        })
+        .unwrap_err()
+        .contains("unknown field")
+    );
+}
 #[test]
 fn real_child_property_edit_is_source_bound_strict_and_preserves_text_shared_page() {
     const PRECISE: &[u8] =

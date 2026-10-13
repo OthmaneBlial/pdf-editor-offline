@@ -91,6 +91,11 @@ pub enum Operation {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "mutation", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Mutation {
+    ContentTextFace {
+        page: u32,
+        source_fingerprint: [u8; 32],
+        changes: Vec<pdf_core::ContentTextFaceChange>,
+    },
     ReplaceImage {
         selection: pdf_core::ImageSelection,
         image_bytes_len: u32,
@@ -634,6 +639,9 @@ fn execute(request: Request) -> Result<Reply, String> {
             }
             | Mutation::ContentTextProperties {
                 source_fingerprint, ..
+            }
+            | Mutation::ContentTextFace {
+                source_fingerprint, ..
             },
     } = &operation
         && *source_fingerprint != crate::payload_fingerprint(&request.payload)
@@ -1039,6 +1047,16 @@ fn document_reply(document: PdfDocument, selected_page: Option<usize>) -> Result
 
 fn apply(document: &mut PdfDocument, mutation: Mutation) -> Result<Option<usize>, String> {
     let selected = match mutation {
+        Mutation::ContentTextFace {
+            page,
+            source_fingerprint: _,
+            changes,
+        } => {
+            document
+                .change_content_text_face(page, &changes)
+                .map_err(|error| error.to_string())?;
+            Some(page as usize - 1)
+        }
         Mutation::ContentTextProperties {
             page,
             source_fingerprint: _,

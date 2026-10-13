@@ -1,6 +1,72 @@
 use pdf_core::{ContentTextChange, Error, PdfDocument, Result};
 use std::path::Path;
 
+pub(super) struct Face<'a> {
+    pub page: u32,
+    pub operation: u32,
+    pub source_sha256: &'a str,
+    pub expected: &'a str,
+    pub font: pdf_core::ContentTextFont,
+    pub replacement: Option<&'a str>,
+    pub allow_width_change: bool,
+    pub output: &'a Path,
+    pub dry_run: bool,
+}
+pub(super) fn face(
+    input: &Path,
+    password: Option<&str>,
+    request: Face<'_>,
+) -> Result<serde_json::Value> {
+    let bytes = pdf_core::read_pdf_bytes(input)?;
+    let fingerprint = hexadecimal(&pdf_worker::payload_fingerprint(&bytes));
+    if request.source_sha256.len() != 64
+        || !request
+            .source_sha256
+            .as_bytes()
+            .iter()
+            .all(u8::is_ascii_hexdigit)
+    {
+        return Err(Error::Invalid(
+            "source-sha256 must contain exactly 64 hexadecimal digits",
+        ));
+    }
+    if !request.source_sha256.eq_ignore_ascii_case(&fingerprint) {
+        return Err(Error::Refused("existing text source fingerprint is stale"));
+    }
+    let mut document = PdfDocument::from_bytes(&bytes, password)?;
+    document.ensure_editable()?;
+    let run = document
+        .content_text_runs(request.page)?
+        .into_iter()
+        .find(|run| run.identity.operation == request.operation)
+        .ok_or(Error::Refused(
+            "selected operation is not an inventoried text run",
+        ))?;
+    let before = run.replacement_position(request.expected)?;
+    let change = pdf_core::ContentTextFaceChange {
+        identity: run.identity.clone(),
+        expected: request.expected.into(),
+        font: request.font,
+        replacement: request.replacement.map(str::to_owned),
+        layout_policy: if request.allow_width_change {
+            pdf_core::ContentTextLayoutPolicy::AllowWidthChange
+        } else {
+            Default::default()
+        },
+    };
+    let after = run.face_position(&change)?;
+    document.change_content_text_face(request.page, &[change])?;
+    if !request.dry_run {
+        document.save_new(request.output)?;
+    }
+    Ok(
+        serde_json::json!({"operation":"set-content-text-font","page":request.page,"text_operation":request.operation,
+        "output":super::json_path(request.output),"dry_run":request.dry_run,"font":request.font,"encoding":"win_ansi",
+        "original_text_preserved":request.replacement.is_none(),"original_font_changed":run.standard_font!=Some(request.font),"font_resource_isolated":true,"original_matrix_preserved":true,
+        "before":before,"after":after,"secure_erasure":false,"reflow":false}),
+    )
+}
+
 pub(super) fn hexadecimal(bytes: &[u8; 32]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }

@@ -9,6 +9,154 @@ fn run(args: &[&str]) -> Output {
         .output()
         .unwrap()
 }
+
+#[test]
+fn real_font_face_cli_requires_width_policy_preserves_source_and_publishes_once() {
+    let temp = tempfile::tempdir().unwrap();
+    let input = temp.path().join("source.pdf");
+    let output = temp.path().join("changed.pdf");
+    let bytes = fixture::source(fixture::CONTENT);
+    std::fs::write(&input, &bytes).unwrap();
+    let report = run(&[
+        "inspect-content-text",
+        input.to_str().unwrap(),
+        "--page",
+        "1",
+    ]);
+    assert!(report.status.success());
+    let report: serde_json::Value = serde_json::from_slice(&report.stdout).unwrap();
+    let hash = report["data"]["source_sha256"].as_str().unwrap();
+    let operation = report["data"]["inventory"]["runs"][0]["identity"]["operation"]
+        .as_u64()
+        .unwrap()
+        .to_string();
+    let args = vec![
+        "set-content-text-font",
+        input.to_str().unwrap(),
+        "--page",
+        "1",
+        "--operation",
+        &operation,
+        "--source-sha256",
+        hash,
+        "--expected",
+        "Original",
+        "--font",
+        "Times-Italic",
+        "-o",
+        output.to_str().unwrap(),
+    ];
+    let refused = run(&args);
+    assert_eq!(
+        refused.status.code(),
+        Some(4),
+        "{}",
+        String::from_utf8_lossy(&refused.stdout)
+    );
+    assert!(!output.exists());
+    let mut args = args;
+    args.extend(["--allow-width-change", "--dry-run"]);
+    let dry = run(&args);
+    assert!(
+        dry.status.success(),
+        "{}",
+        String::from_utf8_lossy(&dry.stdout)
+    );
+    assert!(!output.exists());
+    let data: serde_json::Value = serde_json::from_slice(&dry.stdout).unwrap();
+    assert_eq!(data["data"]["font"], "times_italic");
+    assert_eq!(data["data"]["original_matrix_preserved"], true);
+    args.pop();
+    let result = run(&args);
+    assert!(
+        result.status.success(),
+        "{}",
+        String::from_utf8_lossy(&result.stdout)
+    );
+    let saved = std::fs::read(&output).unwrap();
+    let mut pdf = pdf_core::PdfDocument::from_bytes(&saved, None).unwrap();
+    let edited = pdf.content_text_runs(1).unwrap().remove(0);
+    assert_eq!(
+        edited.standard_font,
+        Some(pdf_core::ContentTextFont::TimesItalic)
+    );
+    assert!(edited.properties_writable && edited.writable);
+    assert_eq!(pdf.extract_text(&[1]).unwrap(), "Original\nA B\n");
+    assert_eq!(pdf.extract_text(&[2]).unwrap(), "Original\nA B\n");
+    assert_eq!(
+        pdf_render::render_page(&bytes, 1, 1.).unwrap(),
+        pdf_render::render_page(&saved, 1, 1.).unwrap()
+    );
+    assert_ne!(
+        pdf_render::render_page(&bytes, 0, 1.).unwrap().rgba,
+        pdf_render::render_page(&saved, 0, 1.).unwrap().rgba
+    );
+    pdf.replace_content_text(
+        1,
+        &[pdf_core::ContentTextChange {
+            identity: edited.identity,
+            expected: "Original".into(),
+            replacement: "Replacement".into(),
+            layout_policy: pdf_core::ContentTextLayoutPolicy::AllowWidthChange,
+        }],
+    )
+    .unwrap();
+    assert_eq!(run(&args).status.code(), Some(3));
+    assert_eq!(std::fs::read(&output).unwrap(), saved);
+    let mut stale = args.clone();
+    let hash_index = stale
+        .iter()
+        .position(|arg| *arg == "--source-sha256")
+        .unwrap()
+        + 1;
+    stale[hash_index] = "0000000000000000000000000000000000000000000000000000000000000000";
+    assert_eq!(run(&stale).status.code(), Some(4));
+    assert_eq!(std::fs::read(input).unwrap(), bytes);
+}
+
+#[test]
+fn font_face_cli_invalid_font_and_signed_source_publish_nothing() {
+    let temp = tempfile::tempdir().unwrap();
+    let input = temp.path().join("signed.pdf");
+    let output = temp.path().join("never.pdf");
+    let mut doc = lopdf::Document::load_mem(&fixture::source(fixture::CONTENT)).unwrap();
+    doc.add_object(lopdf::dictionary! {"Type"=>"Sig"});
+    doc.save(&input).unwrap();
+    let bytes = std::fs::read(&input).unwrap();
+    let pdf = pdf_core::PdfDocument::from_bytes(&bytes, None).unwrap();
+    let operation = pdf.content_text_runs(1).unwrap()[0]
+        .identity
+        .operation
+        .to_string();
+    let hash = pdf_worker::payload_fingerprint(&bytes)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect::<String>();
+    for font in ["Helvetica", "Unsupported"] {
+        let result = run(&[
+            "set-content-text-font",
+            input.to_str().unwrap(),
+            "--page",
+            "1",
+            "--operation",
+            &operation,
+            "--source-sha256",
+            &hash,
+            "--expected",
+            "Original",
+            "--font",
+            font,
+            "--allow-width-change",
+            "-o",
+            output.to_str().unwrap(),
+        ]);
+        assert!(!result.status.success());
+        let data: serde_json::Value = serde_json::from_slice(&result.stdout).unwrap();
+        assert_eq!(data["ok"], false);
+        assert!(!output.exists());
+    }
+    assert_eq!(std::fs::read(input).unwrap(), bytes);
+}
 #[test]
 fn real_property_cli_dry_run_identity_no_clobber_and_same_text_font() {
     let temp = tempfile::tempdir().unwrap();

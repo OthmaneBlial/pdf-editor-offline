@@ -10,6 +10,17 @@ use std::io::{self, Read, Write};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
+fn parse_content_font(value: &str) -> std::result::Result<pdf_core::ContentTextFont, String> {
+    pdf_core::ContentTextFont::from_pdf_name(value).ok_or_else(|| {
+        format!(
+            "Choose a standard face: {}",
+            pdf_core::ContentTextFont::ALL
+                .map(|font| font.pdf_name())
+                .join(", ")
+        )
+    })
+}
+
 #[derive(Parser)]
 #[command(
     name = "pdf-editor-offline",
@@ -31,6 +42,29 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Change a supported original text run's standard font face; no overlay or reflow.
+    SetContentTextFont {
+        input: PathBuf,
+        #[arg(long)]
+        page: u32,
+        #[arg(long)]
+        operation: u32,
+        #[arg(long)]
+        source_sha256: String,
+        #[arg(long, allow_hyphen_values = true)]
+        expected: String,
+        #[arg(long,value_parser=parse_content_font)]
+        font: pdf_core::ContentTextFont,
+        #[arg(long, allow_hyphen_values = true)]
+        replacement: Option<String>,
+        /// Explicitly permit changed word/space advances, without wrapping or fitting.
+        #[arg(long)]
+        allow_width_change: bool,
+        #[arg(short, long)]
+        output: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Inventory source-bound direct page image instances and nominal transforms.
     ListImageInstances {
         input: PathBuf,
@@ -563,6 +597,32 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
             )
         }
         Command::ListChoices { input } => Ok(json!({"choices":open(input)?.list_choice_fields()?})),
+        Command::SetContentTextFont {
+            input,
+            page,
+            operation,
+            source_sha256,
+            expected,
+            font,
+            replacement,
+            allow_width_change,
+            output,
+            dry_run,
+        } => content::face(
+            input,
+            password,
+            content::Face {
+                page: *page,
+                operation: *operation,
+                source_sha256,
+                expected,
+                font: *font,
+                replacement: replacement.as_deref(),
+                allow_width_change: *allow_width_change,
+                output,
+                dry_run: *dry_run,
+            },
+        ),
         Command::SetContentTextProperties {
             input,
             page,
@@ -1207,7 +1267,7 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
         }
         Command::Capabilities => Ok(
             json!({ "runtime": "rust-native", "version": env!("CARGO_PKG_VERSION"), "migration_preview": true,
-            "commands": ["redact-text", "verify-redaction", "number-pages", "list-image-instances", "replace-image", "add-image-overlay", "add-vector-overlay", "set-content-text-properties", "split", "add-text-overlay", "inspect-content-text", "replace-content-text", "info", "sanitize", "list-forms", "list-choices", "fill-button", "fill-text", "fill-choice", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "images-to-pdf", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "duplicate-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
+            "commands": ["set-content-text-font", "redact-text", "verify-redaction", "number-pages", "list-image-instances", "replace-image", "add-image-overlay", "add-vector-overlay", "set-content-text-properties", "split", "add-text-overlay", "inspect-content-text", "replace-content-text", "info", "sanitize", "list-forms", "list-choices", "fill-button", "fill-text", "fill-choice", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "images-to-pdf", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "duplicate-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
             "text_redaction":"exact_ascii_standard_font_profile_full_rewrite_strict_actual_byte_verification_not_arbitrary_pdf_redaction",
             "vector_overlays":"new_rectangle_ellipse_line_bounded_polyline_and_multi_stroke_visual_signatures_with_stroke_fill_paint_alpha_not_redaction_or_cryptographic_signing",
             "image_overlay":"restricted_png_jpeg_insert_quarter_turns_pdf_rectangle_no_existing_image_replacement",
