@@ -46,3 +46,21 @@ Owned-child sampling timed out without producing a stack report. This rules out
 neither a shared runtime issue nor environmental effects; no cause is claimed.
 The comparison records are `forensic-stage18-observations.json` and
 `forensic-checked-observations.json` in the same local proof directory.
+
+The optimized macOS ARM64 CLI from actual preview.4 release run
+[38385791501](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38385791501),
+source `b3a939a`, completed that same input and command on 2026-10-13 under
+unchanged default child limits: **1.68 seconds elapsed**, 0.25 user and 0.03 system
+seconds. Binary SHA-256:
+`8abafdd7536e84747bda0fe1e76e49b176db4296c86cb0535609dd14c1c69724`.
+The bundled font SHA-256 was
+`975dcda37d80f038dcd143c22e33ca2d97a0cc5a929aace1c749153b0fe1afa5`.
+The verified output was 1,071,608 bytes, SHA-256
+`98126bd41254e55a032f28bafae0080622fde81566321797eab4f626c53f9c41`.
+qpdf 12.4.2 passed its syntax/stream check and found one Type0 font; Poppler
+26.10.0 extracted every number from 1 through 1,000 in page order. Native page
+boxes/rotations matched all 1,000 source pages, and the original input hash was
+unchanged. Reply/timing logs are `preview4-release-reply.json` and
+`preview4-release-timing.log` in the same proof directory. This is one synthetic
+local operation measurement, not a cross-platform benchmark or explanation of
+the earlier debug timeouts. Those failures and their diagnostic gap remain.
