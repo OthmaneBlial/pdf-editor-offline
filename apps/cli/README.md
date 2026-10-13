@@ -3,12 +3,14 @@
 Current source builds run every document command in a bounded self-hosted child.
 Help, version, completions and capabilities remain local. [Processing controls](../../docs/CLI_ISOLATION.md)
 describe password stdin, native paths, output budgets and interrupted writes.
-The published CLI `4.0.0-preview.1` predates this isolation milestone.
+Use an explicit current-source binary for the features below; installed releases
+can differ.
 
 Current source also provides `list-forms` and guarded `fill-button` for existing
 checkbox/radio appearances. Select a full field name and `--off` or a discovered
 `--widget OBJECT GENERATION`; dry-run and verified new-copy saving are supported.
-Text/choice filling and signing remain unimplemented. See the [form guide](../../docs/FORMS_RUST.md)
+Supported text filling uses an explicit covering, editable font and real appearances;
+complete text/layout parity, choice filling and signing remain unfinished. See the [form guide](../../docs/FORMS_RUST.md)
 for runnable synthetic examples, refusal policies and pinned independent checks.
 
 Build with Rust 1.95+ from the repository root. Use explicit binary paths during
@@ -21,6 +23,8 @@ cargo build --release -p pdf-editor-offline-cli
 ./target/release/pdf-editor-offline set-metadata input.pdf --key title --value "Revised title" -o revised.pdf --dry-run --json
 ./target/release/pdf-editor-offline remove-metadata input.pdf --key author -o removed-author.pdf --json
 ./target/release/pdf-editor-offline inspect-security input.pdf --json
+./target/release/pdf-editor-offline sanitize input.pdf -o targeted-copy.pdf --dry-run --json
+./target/release/pdf-editor-offline sanitize input.pdf -o targeted-copy.pdf --json
 ./target/release/pdf-editor-offline add-note input.pdf --page 1 --rectangle 50 60 74 84 --contents "Review this paragraph" --author "Reviewer" -o noted.pdf
 ./target/release/pdf-editor-offline list-notes noted.pdf --pages 1 --json
 ./target/release/pdf-editor-offline edit-note noted.pdf --page 1 --annotation 1 --contents "Updated comment" --author "Reviewer" -o edited-note.pdf --json
@@ -227,6 +231,18 @@ attachments, metadata, forms/XFA, layers, actions and decoded permission flags.
 It never executes actions or reports scripts, action targets or field/metadata
 values. It explicitly returns `complete_privacy_proof: false` and unavailable
 revision analysis. An empty inventory is not proof that a file is safe to share.
+
+`sanitize INPUT -o NEW.pdf` performs targeted full-rewrite removal of supported
+Info/XMP links, embedded-file associations, attachment annotations, actions and
+automatic triggers. Unreachable objects and old transport carriers are discarded,
+then the new PDF is serialized, reopened and verified before no-clobber saving.
+`--dry-run` runs the same checks without writing; JSON reports category counts,
+annotation rectangles and explicit limitations, never removed values or payloads.
+Signed/decrypted inputs, retained private aliases and unsupported structures are
+refused. This is **not a privacy certificate or secure text/image redaction**:
+duplicated strings, custom data and font/image/internal metadata may remain.
+Original files and filesystem history remain. See the
+[supported core tier and independent checks](../../crates/pdf-core/README.md).
 
 `fill-text INPUT --field NAME --value VALUE --font-file FONT.ttf -o NEW.pdf`
 fills a supported single-line AcroForm text field with an explicitly supplied

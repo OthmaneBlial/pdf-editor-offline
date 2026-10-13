@@ -30,6 +30,15 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Remove supported metadata, attachment and action structures into a full-rewrite new copy.
+    /// This is targeted sanitization, not text/image redaction or a privacy certificate.
+    Sanitize {
+        input: PathBuf,
+        #[arg(short, long)]
+        output: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Discover indexed dropdown/list options, exports and supported appearances.
     ListChoices { input: PathBuf },
     /// Fill a choice field by zero-based option indices with an explicit font.
@@ -306,6 +315,20 @@ enum Command {
 fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
     let open = |input: &PathBuf| PdfDocument::open(input, password);
     match &cli.command {
+        Command::Sanitize {
+            input,
+            output,
+            dry_run,
+        } => {
+            let source = open(input)?;
+            let (candidate, report) = source.sanitized_copy()?;
+            if !dry_run {
+                candidate.save_new(output)?;
+            }
+            Ok(
+                json!({"operation":"sanitize","output":json_path(output),"dry_run":dry_run,"source_preserved":true,"privacy_proof":false,"secure_redaction":false,"report":report}),
+            )
+        }
         Command::ListChoices { input } => Ok(json!({"choices":open(input)?.list_choice_fields()?})),
         Command::FillChoice {
             input,
@@ -716,13 +739,14 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
         }
         Command::Capabilities => Ok(
             json!({ "runtime": "rust-native", "version": env!("CARGO_PKG_VERSION"), "migration_preview": true,
-            "commands": ["info", "list-forms", "list-choices", "fill-button", "fill-text", "fill-choice", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "images-to-pdf", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "duplicate-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
+            "commands": ["info", "sanitize", "list-forms", "list-choices", "fill-button", "fill-text", "fill-choice", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "images-to-pdf", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "duplicate-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
             "image_conversion":"restricted_png_jpeg_color_metadata_orientation_tier_one_pixel_one_pdf_point",
             "metadata":"six_standard_trailer_info_keys_custom_entries_and_xmp_preserved_no_sync_or_secure_erasure",
+            "sanitization":"targeted_info_xmp_file_association_action_removal_full_rewrite_gc_not_redaction_or_privacy_proof",
             "annotations": "sticky_text_notes_add_list_guarded_edit_remove_with_preserved_appearance",
             "forms": "bounded_acroform_discovery_guarded_buttons_text_and_indexed_dropdown_list_appearances_with_explicit_complete_font",
             "saving": "verified_new_copy_no_clobber", "signed_inputs": "read_only", "encrypted_inputs": "read_only",
-            "unmigrated": ["complete_page_organization", "existing_content_editing", "complete_text_layout_and_choice_form_filling", "cryptographic_signing", "secure_redaction", "sanitization", "ocr", "office_conversion", "recovery", "wasm"] }),
+            "unmigrated": ["complete_page_organization", "existing_content_editing", "complete_text_layout_and_choice_form_filling", "cryptographic_signing", "secure_redaction", "complete_sanitization", "ocr", "office_conversion", "recovery", "wasm"] }),
         ),
         Command::Completions { .. } => Err(Error::Refused(
             "completion scripts are handled before document processing",

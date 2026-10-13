@@ -182,6 +182,59 @@ catalog/bookmark/form/attachment/layer preservation on rotation, failed edits,
 malformed page trees, no-clobber saves and signature refusal. They do not prove
 universal fidelity or independently validate every PDF object.
 
+`sanitized_copy()` returns a separate document plus a targeted removal report;
+`sanitize_new(path)` publishes it using verified no-clobber saving. This experimental
+core tier removes standard trailer/catalog Info and object-level XMP links,
+EmbeddedFiles/JavaScript name trees, associated-file links, collections and
+supported action/automatic-trigger links. It removes hidden FileAttachment
+annotations and visible FileAttachment annotations with explicit, balanced vector
+appearances and supported geometry, or omitted AP with the standard Graph,
+PushPin, Paperclip and Tag names (PushPin is the default). Icon color and opacity
+are validated. Linked/tagged/read-only/locked icons, custom builtin names,
+non-vector explicit appearances, NoZoom/NoRotate flags, XFA, rich media and retained
+private aliases are refused. Attachment removal is not complete parity.
+
+The native renderer currently lacks fallback display for omitted-AP
+FileAttachment icons; identical native pixels in that case prove preservation,
+not visible-icon removal. The independent Poppler gate verifies actual removal
+for all four standard icons and unchanged pixels outside their rectangles. Native
+fallback icon display remains an explicit renderer follow-up.
+
+The candidate discards unreachable objects and old object/xref-stream carriers,
+then performs bounded structural checks, verified serialization and strict reopen
+checks. It preserves page content streams, geometry and unrelated resources;
+removing a supported visible attachment intentionally changes pixels in its
+reported rectangle. Resource-name maps are treated as names, rather than blindly
+removing matching dictionary keys. Conflicting document/resource roles and
+unsupported namespace entry shapes are refused. Conforming content operands are direct; illegal
+indirect operands and unsupported inline associated-file structures are refused.
+Limits include two million structural/work values, depth 128, 128 MiB of logical
+payload/copy bytes, 32 MiB per decoded content/appearance stream and 20,000 removed
+annotation occurrences. These bounds do not replace OS worker isolation.
+
+This is **not secure text/image redaction or a privacy certificate**. Document
+identifiers, duplicated strings, unrelated custom data, font/image contents and
+internal stream metadata can remain. Form values, hidden page/layer content,
+thumbnails and application-specific data are retained. Source files and filesystem history are not
+erased. Current source provides CLI `sanitize INPUT -o NEW --dry-run --json` and
+a path-free bounded document-worker operation. The desktop creates a separate
+unsaved, journaled tab and displays counts plus explicit privacy/redaction limits;
+the original tab remains unchanged. These are source features, not a promise
+that an older installed release contains them.
+Synthetic tests cover source immutability, alias refusal, direct/shared annotation
+containers, malformed content, no-clobber output and native pixels. The independent
+development gate also checks compressed object-stream inputs, decoded qpdf output,
+strict structure, Poppler text and unchanged pixels outside the supported icon:
+
+```sh
+PDF_SANITIZE_QPDF=/path/to/qpdf-12.4.2 \
+PDF_SANITIZE_POPPLER_BIN=/path/to/poppler-26.10/bin \
+cargo test -p pdf-core --test sanitize --locked independent_decoded_payload_text_and_footprint_gate -- --ignored
+```
+
+Reference binaries are development tools, not runtime dependencies. These fixtures
+do not establish universal sanitization or absence of arbitrary private payloads.
+
 `list_choice_fields` reads bounded dropdown/list options, distinct export/display
 strings, selected zero-based indices, defaults and scroll positions. `fill_choice`
 uses an explicit covering, editable font to create real choice appearances and

@@ -19,6 +19,7 @@ pub enum Operation {
         page: u32,
     },
     Metadata,
+    Sanitize,
     Edit {
         mutation: Mutation,
     },
@@ -100,6 +101,10 @@ pub struct RasterResult {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "result", rename_all = "snake_case", deny_unknown_fields)]
 pub enum DocumentResult {
+    Sanitized {
+        info: DocumentInfo,
+        report: pdf_core::SanitizationReport,
+    },
     Forms {
         fields: Vec<pdf_core::FormField>,
         choices: Vec<pdf_core::ChoiceField>,
@@ -151,7 +156,11 @@ fn execute(request: Request) -> Result<Reply, String> {
     // deny_unknown_fields. These operations accept only their tag, never paths.
     if matches!(
         operation,
-        Operation::Info | Operation::Forms | Operation::Metadata | Operation::PrepareSave
+        Operation::Info
+            | Operation::Forms
+            | Operation::Metadata
+            | Operation::PrepareSave
+            | Operation::Sanitize
     ) && field_count != 1
     {
         return Err("This document operation accepts no extra fields or paths".into());
@@ -302,6 +311,20 @@ fn execute(request: Request) -> Result<Reply, String> {
             document_reply(document, selected_page)
         }
         Operation::PrepareSave => document_reply(document, None),
+        Operation::Sanitize => {
+            let (candidate, report) = document
+                .sanitized_copy()
+                .map_err(|error| error.to_string())?;
+            let payload = candidate
+                .verified_bytes()
+                .map_err(|error| error.to_string())?;
+            let info = candidate.info().map_err(|error| error.to_string())?;
+            reply(
+                DocumentResult::Sanitized { info, report },
+                PayloadKind::Pdf,
+                payload,
+            )
+        }
         Operation::ExtractPages { pages } => {
             if pages.len() > pdf_core::MAX_PAGES {
                 return Err("Page selection exceeds the supported page count".into());
