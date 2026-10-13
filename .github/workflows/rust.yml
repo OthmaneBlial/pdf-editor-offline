@@ -56,9 +56,9 @@ jobs:
           cargo clippy -p pdf-worker --all-targets --features test-helper --locked -- -D warnings
       - name: Rust tests and API documentation
         run: |
+          cargo build -p pdf-worker -p pdf-editor-offline-native -p pdf-editor-offline-cli --features pdf-worker/test-helper --locked
           cargo test --workspace --locked
           cargo test -p pdf-worker --features test-helper --locked
-          cargo build -p pdf-worker --features test-helper -p pdf-editor-offline-native --locked
           cargo test -p pdf-editor-offline-native --locked -- --include-ignored --skip production_native_worker_multiline_undo_save_and_independent_reference --skip production_native_merge_and_saved_copy_pass_independent_text_pixels_geometry_checks --skip production_native_overlay_worker_save_and_independent_pixels --skip production_native_notes_preserve_page_content_pixels_metadata_and_verified_new_copy --skip production_native_child_matches_independent_decrypt_geometry_and_text_without_password_arguments --skip production_native_split_saved_chunks_pass_independent_text_pixels_geometry_checks
           RUSTDOCFLAGS='-D warnings' cargo doc --workspace --no-deps --locked
       - name: Audit locked dependencies and licenses
@@ -137,10 +137,10 @@ jobs:
       - name: Cross-platform tests and desktop build
         shell: bash
         run: |
+          cargo build -p pdf-worker -p pdf-editor-offline-native -p pdf-editor-offline-cli --features pdf-worker/test-helper --locked
           cargo test --workspace --locked
           cargo test -p pdf-worker --features test-helper --locked
-          cargo build -p pdf-editor-offline-cli -p pdf-editor-offline-native --locked
-          cargo test -p pdf-editor-offline-native --locked -- --include-ignored --skip production_native_worker_multiline_undo_save_and_independent_reference --skip production_native_merge_and_saved_copy_pass_independent_text_pixels_geometry_checks --skip production_native_overlay_worker_save_and_independent_pixels --skip production_native_notes_preserve_page_content_pixels_metadata_and_verified_new_copy
+          cargo test -p pdf-editor-offline-native --locked -- --include-ignored --skip production_native_worker_multiline_undo_save_and_independent_reference --skip production_native_merge_and_saved_copy_pass_independent_text_pixels_geometry_checks --skip production_native_overlay_worker_save_and_independent_pixels --skip production_native_notes_preserve_page_content_pixels_metadata_and_verified_new_copy --skip production_native_child_matches_independent_decrypt_geometry_and_text_without_password_arguments --skip production_native_split_saved_chunks_pass_independent_text_pixels_geometry_checks
       - name: Test npm installer with the actual native CLI on Node 22
         shell: bash
         run: PDF_NATIVE_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/pdf-editor-offline${{ runner.os == 'Windows' && '.exe' || '' }}" node --test distribution/npm/tests/*.test.mjs
