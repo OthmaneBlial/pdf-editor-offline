@@ -48,6 +48,8 @@ Local evidence logs:
 - `/tmp/pdf-stage21-dependency-audit.log`
 - `/tmp/pdf-stage21-dependency-policy.log`
 
-This is not a general malformed-font safety proof. Upstream CMap range arithmetic,
-wider fuzzing, total parser allocation limits and new cross-platform results
-remain separate gates. No speedup is claimed.
+This is not a general malformed-font safety proof. A later
+[checked CMap patch](CMAP_HARDENING_RUST.md) addresses the reproduced range
+arithmetic and mapping-origin defects. Wider fuzzing, reverse-map allocation,
+total parser allocation limits and new cross-platform results remain separate
+gates. No speedup is claimed.

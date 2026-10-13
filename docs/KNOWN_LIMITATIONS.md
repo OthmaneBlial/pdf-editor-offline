@@ -12,8 +12,10 @@ manual platform verification claim.
 - Rendering may omit unsupported PDF content. Reopen exported copies in another
   reader; the tested fixtures do not establish all-document fidelity.
 - Current source [bounds Unicode text expansion before append](TEXT_DECODING_LIMITS.md).
-  This later change is absent from preview.4. Total parser allocation limits,
-  upstream CMap range arithmetic and broader malformed-font fuzzing remain open.
+  The [CMap patch](CMAP_HARDENING_RUST.md) also fixes reproduced range arithmetic
+  and mapping-origin defects. These later changes are absent from preview.4.
+  Total parser/reverse-map allocation limits and broader malformed-font fuzzing
+  remain open.
 - [Existing text editing](CONTENT_TEXT_EDITING_RUST.md) supports one final direct
   ASCII `Tj` in twelve unembedded standard Courier/Helvetica/Times faces. It can
   replace the operand or change size, matrix translation and ordinary RGB fill;

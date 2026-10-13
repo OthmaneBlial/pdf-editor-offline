@@ -1,5 +1,22 @@
 # Native Rust migration status
 
+## 13 October: composed redaction and decoding hardening
+
+Frozen Rust source `c55f978` passed **751 tests across 89 suites, zero failures
+and zero ignored tests**, with normal builds, strict workspace Clippy and all
+pinned independent references. Five actual PDF decoding tests also passed in
+optimized builds; CI runs them explicitly. [CMap evidence](CMAP_HARDENING_RUST.md)
+records the reproduced old panic/wrap, retained valid mappings, licensing and
+the preserved disk-exhaustion failure followed by an unchanged-assertion rerun.
+This source combines the supported text-redaction profile below and budgeted
+text decoding. It is later than published preview.4; broad parser/privacy proof,
+new platform CI and release evidence remain separate gates.
+
+The earlier decoder-only `e7965f4` passed all five platform jobs and the quality
+job in [Native Rust run 38396053308](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38396053308),
+and [security scanning](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38396053306).
+Those runs do not prove this later composition.
+
 ## 13 October: permanent text-redaction profile
 
 Checked composition `d8bfc1b` passed **746 tests across 89 suites, zero failures
