@@ -434,6 +434,77 @@ impl WorkingDocument {
         })
     }
 
+    pub fn merge(&self, revision: u64, paths: &[PathBuf]) -> Result<Self, String> {
+        if revision != self.current.revision {
+            return Err("Merge request is stale. Review the current document again.".into());
+        }
+        if (self.current.info.encrypted || self.current.info.signature_fields != 0)
+            || paths.is_empty()
+            || paths.len() >= pdf_core::MAX_PAGES
+        {
+            return Err("Merge needs an editable source and 1–19,999 additional PDFs".into());
+        }
+        let mut total = self.current.bytes.len() as u64;
+        for path in paths {
+            let metadata = std::fs::metadata(path).map_err(|error| error.to_string())?;
+            if !metadata.is_file() {
+                return Err("Merge inputs must be regular files".into());
+            }
+            total = total
+                .checked_add(metadata.len())
+                .ok_or("Merge input size overflow")?;
+            if total > pdf_core::MAX_INPUT_BYTES as u64 {
+                return Err("Merge inputs including the current PDF exceed 128 MiB".into());
+            }
+        }
+        let mut bytes = Vec::new();
+        bytes
+            .try_reserve_exact(total as usize)
+            .map_err(|_| "Cannot allocate bounded merge input")?;
+        bytes.extend_from_slice(&self.current.bytes);
+        let mut lengths = Vec::with_capacity(paths.len() + 1);
+        lengths.push(self.current.bytes.len());
+        for path in paths {
+            let input = pdf_core::read_input_bytes(path, pdf_core::MAX_INPUT_BYTES - bytes.len())
+                .map_err(|error| format!("{}: {error}", path.display()))?;
+            bytes
+                .try_reserve(input.len())
+                .map_err(|_| "Cannot allocate bounded merge input")?;
+            lengths.push(input.len());
+            bytes.extend_from_slice(&input);
+        }
+        let (result, reply) = execute(Operation::Merge { lengths }, &bytes)?;
+        let DocumentResult::Document {
+            info,
+            selected_page: Some(0),
+        } = result
+        else {
+            return Err("Unexpected merged-document response".into());
+        };
+        validate_info(&info)?;
+        if reply.kind != PayloadKind::Pdf
+            || reply.payload.is_empty()
+            || reply.payload.len() > pdf_core::MAX_INPUT_BYTES
+            || info.page_count <= self.current.info.page_count
+            || !info.pages.starts_with(&self.current.info.pages)
+            || (info.encrypted || info.signature_fields != 0)
+        {
+            return Err("Invalid merged PDF payload or source geometry".into());
+        }
+        Ok(Self {
+            current: Snapshot {
+                bytes: reply.payload,
+                info,
+                revision: 0,
+            },
+            undo: vec![],
+            redo: vec![],
+            saved_revision: None,
+            next_revision: 1,
+            path: None,
+        })
+    }
+
     pub fn from_images(paths: &[PathBuf]) -> Result<Self, String> {
         if paths.is_empty() || paths.len() > pdf_core::MAX_PAGES {
             return Err("Select 1–20,000 PNG/JPEG images.".into());

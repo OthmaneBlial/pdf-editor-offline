@@ -14,6 +14,27 @@ The Organize menu now offers [page-range extraction, duplication and deletion](.
 cargo run -p pdf-editor-offline-native
 ```
 
+Edit → **Merge PDF files…** and the command palette create a separate unsaved
+document with the current PDF first. Add PDFs through the native file picker,
+then move or remove entries before applying. The guarded simple-catalog tier
+requires matching inert metadata and refuses unsupported forms, bookmarks,
+attachments, layers, tags, links/actions or signed/encrypted inputs. Combined
+input bytes are limited to 128 MiB. Original files, the source tab and its undo
+history are retained; the new snapshot is journaled before success. Save As
+publishes a verified new file without overwriting an existing destination.
+This is partial merge support, not arbitrary PDF compatibility or sanitization.
+The native picker and platform accessibility still require manual runtime review.
+
+The explicit production-child merge gate checks saved output, source preservation,
+text/geometry and exact Poppler pixels with pinned reference tools:
+
+```sh
+cargo build -p pdf-worker --features test-helper -p pdf-editor-offline-native --locked
+PDF_QPDF_BIN=/path/to/qpdf-12.4.2 \
+PDF_REFERENCE_BIN_DIR=/path/to/poppler-26.10/bin \
+cargo test -p pdf-editor-offline-native production_native_merge_and_saved_copy_pass_independent_text_pixels_geometry_checks --locked -- --ignored
+```
+
 Edit → **Create targeted sanitized copy…** and the command palette remove
 supported Info/XMP, embedded-file associations, attachment annotations, actions
 and automatic triggers into a separate unsaved tab. The source bytes and history

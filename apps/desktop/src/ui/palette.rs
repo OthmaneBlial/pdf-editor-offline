@@ -52,6 +52,13 @@ impl EditorApp {
                         editable && self.tabs.len() < crate::worker::MAX_TABS,
                     ),
                     (
+                        "Merge PDF files",
+                        Action::Merge,
+                        editable
+                            && self.pending_saves.is_empty()
+                            && self.tabs.len() < crate::worker::MAX_TABS,
+                    ),
+                    (
                         "Create targeted sanitized copy",
                         Action::Sanitize,
                         editable

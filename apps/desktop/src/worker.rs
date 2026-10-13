@@ -83,6 +83,12 @@ pub enum Edit {
 }
 
 pub enum Command {
+    Merge {
+        id: u64,
+        new_id: u64,
+        revision: u64,
+        paths: Vec<PathBuf>,
+    },
     Sanitize {
         id: u64,
         new_id: u64,
@@ -143,6 +149,7 @@ impl Command {
             Self::RecoveryList | Self::RestoreSession { .. } | Self::DiscardSession { .. } => 0,
             Self::Load { id, .. }
             | Self::Sanitize { id, .. }
+            | Self::Merge { id, .. }
             | Self::ExtractPages { id, .. }
             | Self::Images { id, .. }
             | Self::Edit { id, .. }
@@ -171,6 +178,11 @@ pub enum TaskKey {
 }
 
 pub enum Event {
+    Merged {
+        id: u64,
+        path: PathBuf,
+        status: DocumentStatus,
+    },
     Sanitized {
         id: u64,
         path: PathBuf,
@@ -344,6 +356,8 @@ mod document;
 #[cfg(test)]
 mod forms_tests;
 #[cfg(test)]
+mod merge_tests;
+#[cfg(test)]
 mod multiline_tests;
 mod recovery;
 #[cfg(test)]
@@ -397,6 +411,42 @@ fn process_with_journal(
     command: Command,
     mut journal: Option<&mut Journal>,
 ) -> Result<Event, String> {
+    if let Command::Merge {
+        id,
+        new_id,
+        revision,
+        paths,
+    } = command
+    {
+        if documents.len() >= MAX_TABS
+            || new_id == 0
+            || new_id == u64::MAX
+            || documents.contains_key(&new_id)
+        {
+            return Err(
+                "A fresh identifier and an available tab are required for a merged copy".into(),
+            );
+        }
+        if journal.as_deref().is_some_and(|journal| {
+            journal
+                .save_intents()
+                .iter()
+                .any(|intent| intent.document_id == id.to_string())
+        }) {
+            return Err("Resolve or cancel the pending save before merging".into());
+        }
+        let source = documents.get(&id).ok_or("Source document is unavailable")?;
+        let merged = source.merge(revision, &paths)?;
+        check_snapshot_budget(documents, &merged)?;
+        let status = merged.status()?;
+        persist(journal.as_deref_mut(), &merged.as_ref(&new_id.to_string()))?;
+        documents.insert(new_id, merged);
+        return Ok(Event::Merged {
+            id: new_id,
+            path: PathBuf::from("Merged — unsaved.pdf"),
+            status,
+        });
+    }
     if let Command::Sanitize {
         id,
         new_id,
@@ -739,6 +789,7 @@ fn process_with_journal(
         | Command::Images { .. }
         | Command::ExtractPages { .. }
         | Command::Sanitize { .. }
+        | Command::Merge { .. }
         | Command::Close(_) => {
             unreachable!("load and close handled before lookup")
         }
