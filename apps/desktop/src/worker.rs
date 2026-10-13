@@ -38,6 +38,7 @@ pub enum Edit {
         key: FormsReadKey,
         changes: Vec<pdf_core::TextChange>,
         buttons: Vec<pdf_core::ButtonChange>,
+        choices: Vec<pdf_core::ChoiceChange>,
         page: u32,
         font_file: PathBuf,
     },
@@ -211,6 +212,7 @@ pub enum Event {
     Forms {
         key: FormsReadKey,
         fields: Vec<pdf_core::FormField>,
+        choices: Vec<pdf_core::ChoiceField>,
     },
     Searched {
         key: SearchKey,
@@ -538,9 +540,11 @@ fn process_with_journal(
             if key.revision != document.current.revision {
                 return Err("Form request is stale".into());
             }
+            let (fields, choices) = document.forms()?;
             Ok(Event::Forms {
                 key,
-                fields: document.forms()?,
+                fields,
+                choices,
             })
         }
         Command::Search {

@@ -16,11 +16,13 @@ fn forms_are_bounded_path_free_and_nested_unknown_fields_are_rejected() {
     let reply = execute_document(request(Operation::Forms, SOURCE)).expect("forms");
     assert_eq!(reply.kind, PayloadKind::None);
     assert!(reply.payload.is_empty());
-    let DocumentResult::Forms { fields } = serde_json::from_value(reply.control).expect("result")
+    let DocumentResult::Forms { fields, choices } =
+        serde_json::from_value(reply.control).expect("result")
     else {
         panic!("forms");
     };
     assert_eq!(fields.len(), 5);
+    assert_eq!(choices.len(), 1);
     for control in [
         json!({"operation":"forms","path":"private.pdf"}),
         json!({"operation":"edit","mutation":{"mutation":"fill_buttons","page":1,"changes":[{"name":"approved","selection":"Off","path":"private.pdf"}]}}),
@@ -48,7 +50,7 @@ fn production_child_fills_real_appearances_preserving_selection_geometry_and_sou
     .expect("production child discovery");
     assert_eq!(discovered.kind, PayloadKind::None);
     assert!(discovered.payload.is_empty());
-    let DocumentResult::Forms { fields } =
+    let DocumentResult::Forms { fields, .. } =
         serde_json::from_value(discovered.control).expect("forms result")
     else {
         panic!("forms");

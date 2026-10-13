@@ -239,3 +239,15 @@ refused; no fallback font, truncation or viewer regeneration is claimed.
 inputs remain read only, and normal no-clobber, password-stdin and JSON errors
 apply. This changes form fields, not arbitrary existing page content; old values
 can remain recoverable and this is not secure erasure.
+
+`list-choices INPUT --json` reports dropdown/list export/display options and
+zero-based indices, selection, scroll position and structural refusal reasons.
+`fill-choice INPUT --field priority --index 2 --font-file FONT.ttf -o NEW.pdf`
+creates a real embedded appearance and updates `/V` and `/I` together. Repeat
+`--index` in increasing order for a multi-select list; duplicates or unsorted
+indices are refused. Use `--clear` instead of indices to clear an eligible field.
+Optional `--top-index N` sets a list's first visible option; dropdowns refuse it.
+Automatic list scrolling reveals a selected row and retains other selections.
+The same explicit TrueType/CFF font, dry-run, bounded child, password-stdin,
+no-clobber, signature and read-only restrictions apply. Editable combo free-entry,
+unsupported layouts and missing glyphs are refused; old values can remain.

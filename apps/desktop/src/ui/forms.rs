@@ -2,7 +2,10 @@ use super::EditorApp;
 use crate::state::FormsReadKey;
 use crate::worker::{Command, Edit};
 use eframe::egui;
-use pdf_core::{ButtonChange, ButtonSelection, FormField, FormFieldKind, FormValue, TextChange};
+use pdf_core::{
+    ButtonChange, ButtonSelection, ChoiceChange, ChoiceField, FormField, FormFieldKind, FormValue,
+    TextChange,
+};
 
 pub(super) struct Dialog {
     pub key: FormsReadKey,
@@ -14,6 +17,10 @@ pub(super) struct Dialog {
     drafts: Vec<ButtonSelection>,
     text_original: Vec<String>,
     text_drafts: Vec<String>,
+    choices: Vec<ChoiceField>,
+    choice_original: Vec<Vec<u32>>,
+    choice_drafts: Vec<Vec<u32>>,
+    top_drafts: Vec<Option<u32>>,
     font_file: Option<std::path::PathBuf>,
     selected: usize,
 }
@@ -41,7 +48,7 @@ fn kind_label(kind: &FormFieldKind) -> &'static str {
         FormFieldKind::CheckBox => "Checkbox",
         FormFieldKind::RadioButton => "Radio button",
         FormFieldKind::Text => "Text",
-        FormFieldKind::Choice => "Choice · read only",
+        FormFieldKind::Choice => "Dropdown / list",
         FormFieldKind::PushButton => "Push button · read only",
         FormFieldKind::Signature => "Signature · read only",
         FormFieldKind::Other => "Other · read only",
@@ -84,11 +91,22 @@ impl Dialog {
             drafts: vec![],
             text_original: vec![],
             text_drafts: vec![],
+            choices: vec![],
+            choice_original: vec![],
+            choice_drafts: vec![],
+            top_drafts: vec![],
             font_file: None,
             selected: 0,
         }
     }
-    fn loaded(&mut self, fields: Vec<FormField>) {
+    fn loaded(&mut self, fields: Vec<FormField>, choices: Vec<ChoiceField>) {
+        self.choice_original = choices
+            .iter()
+            .map(|choice| choice.selected_indices.clone().unwrap_or_default())
+            .collect();
+        self.choice_drafts = self.choice_original.clone();
+        self.top_drafts = vec![None; choices.len()];
+        self.choices = choices;
         self.original = fields.iter().map(selection).collect();
         self.drafts = self.original.clone();
         self.text_original = fields
@@ -101,13 +119,39 @@ impl Dialog {
         self.text_drafts = self.text_original.clone();
         self.selected = fields
             .iter()
-            .position(|field| field.writable_button || field.writable_text)
+            .position(|field| {
+                field.writable_button
+                    || field.writable_text
+                    || self
+                        .choices
+                        .iter()
+                        .any(|choice| choice.field.object_id == field.object_id && choice.writable)
+            })
             .unwrap_or(0);
         self.fields = Some(fields);
         self.error = None;
     }
     pub fn has_changes(&self) -> bool {
-        self.original != self.drafts || self.text_original != self.text_drafts
+        self.original != self.drafts
+            || self.text_original != self.text_drafts
+            || self.choice_original != self.choice_drafts
+            || self.top_drafts.iter().any(Option::is_some)
+    }
+    fn choice_changes(&self) -> Vec<ChoiceChange> {
+        self.choices
+            .iter()
+            .enumerate()
+            .filter(|(index, choice)| {
+                choice.writable
+                    && (self.choice_original[*index] != self.choice_drafts[*index]
+                        || self.top_drafts[*index].is_some())
+            })
+            .map(|(index, choice)| ChoiceChange {
+                name: choice.field.name.clone(),
+                indices: self.choice_drafts[index].clone(),
+                top_index: self.top_drafts[index],
+            })
+            .collect()
     }
     fn text_changes(&self) -> Vec<TextChange> {
         self.fields
@@ -165,7 +209,12 @@ impl EditorApp {
             self.forms_dialog = Some(Dialog::loading(key));
         }
     }
-    pub(super) fn accept_forms(&mut self, key: FormsReadKey, fields: Vec<FormField>) {
+    pub(super) fn accept_forms(
+        &mut self,
+        key: FormsReadKey,
+        fields: Vec<FormField>,
+        choices: Vec<ChoiceField>,
+    ) {
         if self.active == Some(key.tab)
             && self
                 .tabs
@@ -176,7 +225,7 @@ impl EditorApp {
                 .as_mut()
                 .filter(|dialog| dialog.key == key && !dialog.stale)
         {
-            dialog.loaded(fields);
+            dialog.loaded(fields, choices);
             self.message =
                 "Form fields loaded. Eligible text fields require an explicit covering font."
                     .into();
@@ -200,7 +249,8 @@ impl EditorApp {
             return false;
         }
         let text = dialog.text_changes();
-        let edit = if text.is_empty() {
+        let choices = dialog.choice_changes();
+        let edit = if text.is_empty() && choices.is_empty() {
             Edit::FillButtons {
                 key: dialog.key,
                 changes: dialog.changes(),
@@ -214,6 +264,7 @@ impl EditorApp {
                 key: dialog.key,
                 changes: text,
                 buttons: dialog.changes(),
+                choices,
                 page: tab.page as u32 + 1,
                 font_file,
             }
@@ -263,8 +314,8 @@ impl EditorApp {
             window = window.open(&mut open);
         }
         window.show(context, |ui| {
-            ui.label("Buttons use existing appearances. Supported text fields embed one complete, editable TrueType or static CID-keyed CFF1 font; missing glyphs or unsupported layouts are refused. Choice and other fields remain read only.");
-            if dialog.fields.as_ref().is_some_and(|fields|fields.iter().any(|field|field.writable_text)) {
+            ui.label("Buttons use existing appearances. Supported text, dropdown and list fields embed one complete, editable TrueType or static CID-keyed CFF1 font; missing glyphs or unsupported layouts are refused.");
+            if dialog.fields.as_ref().is_some_and(|fields|fields.iter().any(|field|field.writable_text)) || dialog.choices.iter().any(|choice|choice.writable) {
                 if ui.add_enabled(editable, egui::Button::new("Choose text font…")).clicked()
                     && let Some(path) = rfd::FileDialog::new().add_filter("OpenType font", &["ttf", "otf"]).pick_file() { dialog.font_file=Some(path); }
                 ui.label(dialog.font_file.as_ref().map(|path|path.file_name().unwrap_or_default().to_string_lossy().into_owned()).unwrap_or_else(||"No text font selected".into()));
@@ -285,6 +336,49 @@ impl EditorApp {
                 let field = &fields[dialog.selected];
                 ui.separator();
                 ui.label(egui::RichText::new(preview(&field.name)).strong());
+                if field.kind==FormFieldKind::Choice {
+                    if let Some(index)=dialog.choices.iter().position(|choice|choice.field.object_id==field.object_id) {
+                        let choice=&dialog.choices[index];
+                        if let Some(reason)=&choice.refusal_reason { ui.label(format!("Read only: {}",preview(reason))); }
+                        if choice.selected_indices.is_none(){ui.label(format!("Unresolved existing selection: {}",preview(&value_text(&choice.field.value))));}
+                        let enabled=editable && choice.writable;
+                        let selected=&mut dialog.choice_drafts[index];
+                        if choice.combo {
+                            let label=selected.first().and_then(|index|choice.options.get(*index as usize)).map(|option|format!("{} · index {}",preview(&option.display),option.index)).unwrap_or_else(||"No selection".into());
+                            ui.add_enabled_ui(enabled,|ui|egui::ComboBox::from_id_salt(("form-choice",field.object_id)).selected_text(label).show_ui(ui,|ui|{
+                                egui::ScrollArea::vertical().id_salt(("combo-options",field.object_id)).max_height(180.0).show_rows(ui,26.0,choice.options.len(),|ui,range|{
+                                    for row in range { let option=&choice.options[row];if ui.selectable_label(selected.as_slice()==[option.index],format!("{} · index {}",preview(&option.display),option.index)).clicked(){*selected=vec![option.index];} }
+                                });
+                            }));
+                        } else {
+                            ui.label(if choice.multi_select {"Select one or more list options"} else {"Select a list option"});
+                            egui::ScrollArea::vertical().id_salt(("choice-options",field.object_id)).max_height(180.0).show_rows(ui,28.0,choice.options.len(),|ui,range|{
+                                for row in range {
+                                    let option=&choice.options[row];
+                                    let label=format!("{} · index {}",preview(&option.display),option.index);
+                                    if choice.multi_select {
+                                        let mut on=selected.binary_search(&option.index).is_ok();
+                                        let response=ui.add_enabled(enabled,egui::Checkbox::new(&mut on,label));
+                                        if response.clicked(){response.request_focus();}
+                                        if response.changed(){
+                                            if on {selected.push(option.index);selected.sort_unstable();}
+                                            else {selected.retain(|index|*index!=option.index);}
+                                        }
+                                    }
+                                    else if ui.add_enabled(enabled,egui::RadioButton::new(selected.as_slice()==[option.index],label)).clicked(){*selected=vec![option.index];}
+                                }
+                            });
+                            let mut explicit=dialog.top_drafts[index].is_some();
+                            ui.small(format!("Current PDF top index: {}",choice.top_index));
+                            if ui.add_enabled(enabled,egui::Checkbox::new(&mut explicit,"Set first visible list index")).changed(){dialog.top_drafts[index]=explicit.then_some(choice.top_index);}
+                            if let Some(top)=&mut dialog.top_drafts[index] { ui.add_enabled(enabled,egui::DragValue::new(top).range(0..=choice.options.len().saturating_sub(1) as u32).prefix("Top index ")); }
+                            ui.small("Automatic scrolling reveals a selected row; explicit scroll takes precedence. Other selected indices remain selected.");
+                        }
+                        if ui.add_enabled(enabled && field.flags&2==0,egui::Button::new("Clear choice selection")).clicked(){selected.clear();}
+                        ui.small("Indices are zero-based and distinguish duplicate display/export labels. Apply validates font coverage and fit.");
+                    } else { ui.label("Choice details unavailable; this field is read only."); }
+                    return;
+                }
                 if field.kind == FormFieldKind::Text {
                     if let Some(reason)=&field.text_refusal_reason { ui.label(format!("Read only: {}",preview(reason))); }
                     if field.writable_text {
@@ -335,7 +429,7 @@ impl EditorApp {
             });
             ui.separator();
             ui.horizontal_wrapped(|ui| {
-                let text_ready = dialog.text_changes().is_empty() || dialog.font_file.is_some();
+                let text_ready = dialog.text_changes().is_empty() && dialog.choice_changes().is_empty() || dialog.font_file.is_some();
                 apply = ui.add_enabled(editable && dialog.has_changes() && text_ready, crate::style::primary("Apply form changes", ui.visuals().dark_mode)).clicked();
                 close = ui.add_enabled(!dialog.submitting, egui::Button::new("Close form fields")).clicked();
                 if dialog.submitting { ui.spinner(); ui.label("Working…"); }
@@ -434,7 +528,11 @@ mod tests {
             revision: 0,
             generation: 1,
         }));
-        app.accept_forms(app.forms_dialog.as_ref().expect("dialog").key, fields());
+        app.accept_forms(
+            app.forms_dialog.as_ref().expect("dialog").key,
+            fields(),
+            vec![],
+        );
         app
     }
     fn draw(
@@ -546,6 +644,106 @@ mod tests {
         assert!(dialog.text_changes()[0].value.contains('é'));
     }
     #[test]
+    fn actual_dropdown_control_uses_indices_and_requires_font_before_apply() {
+        let mut app = app();
+        let source = pdf_core::PdfDocument::from_bytes(
+            include_bytes!("../../../../tests/fixtures/pdfs/forms.pdf"),
+            None,
+        )
+        .expect("fixture");
+        let choices = source.list_choice_fields().expect("choice");
+        app.forms_dialog
+            .as_mut()
+            .expect("dialog")
+            .loaded(vec![choices[0].field.clone()], choices);
+        let context = egui::Context::default();
+        click(&mut app, &context, "Normal · index 1");
+        click(&mut app, &context, "High · index 2");
+        let dialog = app.forms_dialog.as_ref().expect("dialog");
+        let changes = dialog.choice_changes();
+        assert_eq!(changes.len(), 1);
+        assert_eq!(changes[0].name, "priority");
+        assert_eq!(changes[0].indices, vec![2]);
+        assert_eq!(changes[0].top_index, None);
+        assert!(!app.apply_forms());
+        app.forms_dialog.as_mut().expect("dialog").font_file = Some("covering.ttf".into());
+        click(&mut app, &context, "Apply form changes");
+        assert!(app.busy && app.forms_dialog.as_ref().expect("dialog").submitting);
+    }
+    #[test]
+    fn actual_list_checkboxes_distinguish_duplicate_labels_and_keyboard_toggle() {
+        let mut document =
+            lopdf::Document::load_mem(include_bytes!("../../../../tests/fixtures/pdfs/forms.pdf"))
+                .expect("fixture");
+        let field = document.get_dictionary_mut((14, 0)).expect("field");
+        field.set("Ff", 1 << 21);
+        field.set(
+            "Opt",
+            vec![
+                lopdf::Object::string_literal("same"),
+                lopdf::Object::string_literal("same"),
+                lopdf::Object::string_literal("High"),
+            ],
+        );
+        field.set("V", lopdf::Object::string_literal("same"));
+        field.set("I", vec![lopdf::Object::Integer(0)]);
+        let mut bytes = vec![];
+        document.save_to(&mut bytes).expect("fixturebytes");
+        let choices = pdf_core::PdfDocument::from_bytes(&bytes, None)
+            .expect("PDF")
+            .list_choice_fields()
+            .expect("choices");
+        let mut app = app();
+        app.forms_dialog
+            .as_mut()
+            .expect("dialog")
+            .loaded(vec![choices[0].field.clone()], choices);
+        let context = egui::Context::default();
+        click(&mut app, &context, "same · index 1");
+        assert_eq!(
+            app.forms_dialog.as_ref().expect("dialog").choice_drafts[0],
+            vec![0, 1]
+        );
+        let _ = draw(
+            &mut app,
+            &context,
+            vec![egui::Event::Key {
+                key: egui::Key::Space,
+                physical_key: None,
+                pressed: true,
+                repeat: false,
+                modifiers: egui::Modifiers::NONE,
+            }],
+        );
+        let _ = draw(
+            &mut app,
+            &context,
+            vec![egui::Event::Key {
+                key: egui::Key::Space,
+                physical_key: None,
+                pressed: false,
+                repeat: false,
+                modifiers: egui::Modifiers::NONE,
+            }],
+        );
+        assert_eq!(
+            app.forms_dialog.as_ref().expect("dialog").choice_drafts[0],
+            vec![0]
+        );
+        click(&mut app, &context, "High · index 2");
+        assert_eq!(
+            app.forms_dialog.as_ref().expect("dialog").choice_changes()[0].indices,
+            vec![0, 2]
+        );
+        app.forms_dialog.as_mut().expect("dialog").stale = true;
+        assert!(!app.apply_forms());
+        click(&mut app, &context, "same · index 1");
+        assert_eq!(
+            app.forms_dialog.as_ref().expect("dialog").choice_drafts[0],
+            vec![0, 2]
+        );
+    }
+    #[test]
     fn actual_checkbox_and_radio_controls_build_precise_changes_and_guard_exit() {
         let mut app = app();
         let context = egui::Context::default();
@@ -579,6 +777,7 @@ mod tests {
                 generation: 2,
                 ..key
             },
+            vec![],
             vec![],
         );
         assert_eq!(

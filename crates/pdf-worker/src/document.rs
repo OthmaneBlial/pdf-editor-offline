@@ -38,6 +38,8 @@ pub enum Mutation {
         changes: Vec<pdf_core::TextChange>,
         #[serde(default)]
         buttons: Vec<pdf_core::ButtonChange>,
+        #[serde(default)]
+        choices: Vec<pdf_core::ChoiceChange>,
         page: u32,
         font_bytes_len: u32,
     },
@@ -100,6 +102,7 @@ pub struct RasterResult {
 pub enum DocumentResult {
     Forms {
         fields: Vec<pdf_core::FormField>,
+        choices: Vec<pdf_core::ChoiceField>,
     },
     Info {
         info: DocumentInfo,
@@ -161,6 +164,7 @@ fn execute(request: Request) -> Result<Reply, String> {
             Mutation::FillText {
                 changes,
                 buttons,
+                choices,
                 page,
                 font_bytes_len,
             },
@@ -187,9 +191,19 @@ fn execute(request: Request) -> Result<Reply, String> {
                 .fill_buttons(buttons)
                 .map_err(|error| error.to_string())?;
         }
-        document
-            .fill_text(changes, font)
-            .map_err(|error| error.to_string())?;
+        if changes.is_empty() && choices.is_empty() {
+            return Err("Text or choice changes are required".into());
+        }
+        if !changes.is_empty() {
+            document
+                .fill_text(changes, font)
+                .map_err(|error| error.to_string())?;
+        }
+        if !choices.is_empty() {
+            document
+                .fill_choice(choices, font)
+                .map_err(|error| error.to_string())?;
+        }
         return document_reply(document, Some(selected));
     }
     let mut document =
@@ -199,6 +213,9 @@ fn execute(request: Request) -> Result<Reply, String> {
             DocumentResult::Forms {
                 fields: document
                     .list_form_fields()
+                    .map_err(|error| error.to_string())?,
+                choices: document
+                    .list_choice_fields()
                     .map_err(|error| error.to_string())?,
             },
             PayloadKind::None,

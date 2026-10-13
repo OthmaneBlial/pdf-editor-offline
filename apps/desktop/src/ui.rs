@@ -361,7 +361,11 @@ impl EditorApp {
                 Event::Metadata { key, values } => {
                     self.accept_metadata(key, values);
                 }
-                Event::Forms { key, fields } => self.accept_forms(key, fields),
+                Event::Forms {
+                    key,
+                    fields,
+                    choices,
+                } => self.accept_forms(key, fields, choices),
                 Event::Searched {
                     key,
                     page,

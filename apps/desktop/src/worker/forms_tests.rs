@@ -3,7 +3,7 @@ use super::*;
 use pdf_core::{ButtonChange, ButtonSelection, FormFieldKind, PdfDocument};
 
 #[test]
-fn mixed_text_buttons_are_one_durable_transaction_and_failures_preserve_history() {
+fn mixed_text_buttons_choices_are_one_durable_transaction_and_failures_preserve_history() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("forms.pdf");
     let font = directory.path().join("font.ttf");
@@ -43,13 +43,27 @@ fn mixed_text_buttons_are_one_durable_transaction_and_failures_preserve_history(
                 name: "approved".into(),
                 selection: ButtonSelection::Off,
             }],
+            choices: vec![pdf_core::ChoiceChange {
+                name: "priority".into(),
+                indices: vec![2],
+                top_index: None,
+            }],
             page: 1,
             font_file,
         },
     };
     let bad = directory.path().join("bad.ttf");
     std::fs::write(&bad, b"not a font").unwrap();
+    let mut late_choice = command(key, "Ada", font.clone());
+    if let Command::Edit {
+        edit: Edit::FillText { choices, .. },
+        ..
+    } = &mut late_choice
+    {
+        choices[0].indices = vec![99];
+    }
     for invalid in [
+        late_choice,
         command(key, "Ada", bad),
         command(
             FormsReadKey {
@@ -97,6 +111,10 @@ fn mixed_text_buttons_are_one_durable_transaction_and_failures_preserve_history(
     assert_eq!(documents[&1].undo.len(), 1);
     assert_eq!(journal.recover().unwrap()[0].current.bytes, changed);
     let doc = PdfDocument::from_bytes(&changed, None).unwrap();
+    assert_eq!(
+        doc.list_choice_fields().unwrap()[0].selected_indices,
+        Some(vec![2])
+    );
     assert!(doc.extract_text(&[1]).unwrap().contains("Ada é"));
     let fields = doc.list_form_fields().unwrap();
     assert_eq!(
@@ -129,12 +147,11 @@ fn mixed_text_buttons_are_one_durable_transaction_and_failures_preserve_history(
         Some(&mut journal),
     )
     .unwrap();
-    assert!(
-        PdfDocument::open(output, None)
-            .unwrap()
-            .extract_text(&[1])
-            .unwrap()
-            .contains("Ada é")
+    let reopened = PdfDocument::open(output, None).unwrap();
+    assert!(reopened.extract_text(&[1]).unwrap().contains("Ada é"));
+    assert_eq!(
+        reopened.list_choice_fields().unwrap()[0].selected_indices,
+        Some(vec![2])
     );
     assert_eq!(std::fs::read(path).unwrap(), original);
 }
@@ -400,6 +417,7 @@ fn invalid_cross_tab_and_pending_save_form_edits_never_change_committed_state() 
                 value: "Ada".into(),
             }],
             buttons: vec![],
+            choices: vec![],
             page: 1,
             font_file: directory.path().join("not-read-while-save-pending.ttf"),
         },

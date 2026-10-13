@@ -122,6 +122,98 @@ fn validate_forms(fields: &[pdf_core::FormField], pages: usize) -> Result<(), St
     Ok(())
 }
 
+fn validate_choices(
+    choices: &[pdf_core::ChoiceField],
+    fields: &[pdf_core::FormField],
+    pages: usize,
+) -> Result<(), String> {
+    if choices.len() > 10_000
+        || serde_json::to_vec(choices)
+            .map_err(|error| error.to_string())?
+            .len()
+            > pdf_worker::MAX_CONTROL_BYTES
+    {
+        return Err("Choice report exceeds its bound".into());
+    }
+    validate_forms(
+        &choices
+            .iter()
+            .map(|choice| choice.field.clone())
+            .collect::<Vec<_>>(),
+        pages,
+    )?;
+    let mut text_bytes = 0usize;
+    let by_id: std::collections::BTreeMap<_, _> = fields
+        .iter()
+        .map(|field| (field.object_id, field))
+        .collect();
+    for choice in choices {
+        if by_id
+            .get(&choice.field.object_id)
+            .is_none_or(|field| *field != &choice.field)
+            || choice.field.kind != pdf_core::FormFieldKind::Choice
+            || choice.options.len() > 10_000
+            || choice.combo != (choice.field.flags & (1 << 17) != 0)
+            || choice.multi_select != (choice.field.flags & (1 << 21) != 0)
+            || choice.editable_combo != (choice.field.flags & (1 << 18) != 0)
+            || choice
+                .refusal_reason
+                .as_ref()
+                .is_some_and(|reason| reason.len() > 8192)
+            || choice.top_index as usize >= choice.options.len().max(1)
+            || choice.writable
+                && (choice.refusal_reason.is_some()
+                    || choice.selected_indices.is_none()
+                    || choice.field.name.is_empty()
+                    || choice.field.flags & 1 != 0
+                    || choice.editable_combo
+                    || choice.options.is_empty()
+                    || choice.combo && choice.multi_select)
+        {
+            return Err("Invalid choice identity, flags, scroll or capability".into());
+        }
+        for (index, option) in choice.options.iter().enumerate() {
+            if option.index as usize != index
+                || option.export.len() > 65_536
+                || option.display.len() > 65_536
+            {
+                return Err("Invalid indexed choice option".into());
+            }
+            text_bytes = text_bytes
+                .saturating_add(option.export.len())
+                .saturating_add(option.display.len());
+        }
+        if let Some(indices) = &choice.selected_indices
+            && (indices.len() > choice.options.len()
+                || !choice.multi_select && indices.len() > 1
+                || indices.windows(2).any(|pair| pair[0] >= pair[1])
+                || indices
+                    .iter()
+                    .any(|index| *index as usize >= choice.options.len()))
+        {
+            return Err("Invalid choice selection indices".into());
+        }
+        let default = match &choice.default_value {
+            pdf_core::FormValue::Text(value) => vec![value.as_bytes()],
+            pdf_core::FormValue::TextArray(values) => {
+                values.iter().map(|value| value.as_bytes()).collect()
+            }
+            pdf_core::FormValue::Name(bytes) => vec![bytes.as_slice()],
+            _ => vec![],
+        };
+        for value in default {
+            if value.len() > 65_536 {
+                return Err("Choice default exceeds its bound".into());
+            }
+            text_bytes = text_bytes.saturating_add(value.len());
+        }
+        if text_bytes > 4 * 1024 * 1024 {
+            return Err("Choice text exceeds 4 MiB".into());
+        }
+    }
+    Ok(())
+}
+
 fn validate_selection(pages: &[u32], count: usize) -> Result<(), String> {
     if pages.is_empty() || pages.len() > count || pages.len() > pdf_core::MAX_PAGES {
         return Err("Select between one and the document's page count.".into());
@@ -137,6 +229,44 @@ fn validate_selection(pages: &[u32], count: usize) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod choice_reply_tests {
+    use super::*;
+    #[test]
+    fn choice_reply_validation_rejects_forged_indices_identity_flags_and_bounds() {
+        let pdf = pdf_core::PdfDocument::from_bytes(
+            include_bytes!("../../../../tests/fixtures/pdfs/forms.pdf"),
+            None,
+        )
+        .expect("fixture");
+        let fields = pdf.list_form_fields().expect("fields");
+        let choices = pdf.list_choice_fields().expect("choices");
+        validate_choices(&choices, &fields, 1).expect("actual boundedreport");
+        for index in 0..7 {
+            let mut invalid = choices.clone();
+            match index {
+                0 => invalid[0].selected_indices = Some(vec![99]),
+                1 => invalid[0].options[0].index = 1,
+                2 => invalid[0].field.name = "forged".into(),
+                3 => invalid[0].combo = false,
+                4 => invalid[0].top_index = 3,
+                5 => invalid[0].options[0].display = "A".repeat(65_537),
+                _ => invalid[0].default_value = pdf_core::FormValue::Text("A".repeat(65_537)),
+            }
+            assert!(validate_choices(&invalid, &fields, 1).is_err());
+        }
+        let mut readonly = choices;
+        readonly[0].field.flags |= 1;
+        let mut fields = fields;
+        let field = fields
+            .iter_mut()
+            .find(|field| field.object_id == readonly[0].field.object_id)
+            .expect("field");
+        field.flags |= 1;
+        assert!(validate_choices(&readonly, &fields, 1).is_err());
+    }
 }
 
 impl Snapshot {
@@ -433,16 +563,17 @@ impl WorkingDocument {
         Ok(metadata)
     }
 
-    pub fn forms(&self) -> Result<Vec<pdf_core::FormField>, String> {
+    pub fn forms(&self) -> Result<(Vec<pdf_core::FormField>, Vec<pdf_core::ChoiceField>), String> {
         let (result, reply) = execute(Operation::Forms, &self.current.bytes)?;
-        let DocumentResult::Forms { fields } = result else {
+        let DocumentResult::Forms { fields, choices } = result else {
             return Err("Unexpected forms response".into());
         };
         if reply.kind != PayloadKind::None || !reply.payload.is_empty() {
             return Err("Unexpected forms payload".into());
         }
         validate_forms(&fields, self.current.info.page_count)?;
-        Ok(fields)
+        validate_choices(&choices, &fields, self.current.info.page_count)?;
+        Ok((fields, choices))
     }
 
     pub fn as_ref<'a>(&'a self, id: &'a str) -> DocumentStateRef<'a> {
@@ -516,6 +647,7 @@ impl WorkingDocument {
                 key,
                 changes,
                 buttons,
+                choices,
                 page,
                 font_file,
             } => {
@@ -528,7 +660,11 @@ impl WorkingDocument {
                 if page == 0 || page as usize > self.current.info.page_count {
                     return Err("Current form page is outside the document".into());
                 }
-                if changes.is_empty() || changes.len() > 10_000 || buttons.len() > 10_000 {
+                if changes.is_empty() && choices.is_empty()
+                    || changes.len() > 10_000
+                    || buttons.len() > 10_000
+                    || choices.len() > 10_000
+                {
                     return Err("Text changes exceed the bounded form request".into());
                 }
                 let mut names = std::collections::BTreeSet::new();
@@ -547,6 +683,17 @@ impl WorkingDocument {
                 }) {
                     return Err("Mixed form names must be unique and bounded".into());
                 }
+                if choices.iter().any(|change| {
+                    change.name.is_empty()
+                        || change.name.len() > 4096
+                        || !names.insert(&change.name)
+                        || change.indices.len() > 10_000
+                        || change.indices.windows(2).any(|pair| pair[0] >= pair[1])
+                }) {
+                    return Err(
+                        "Choice changes must use unique bounded names and sorted indices".into(),
+                    );
+                }
                 let raw_bytes = changes
                     .iter()
                     .map(|change| change.name.len() + change.value.len())
@@ -554,9 +701,13 @@ impl WorkingDocument {
                     + buttons
                         .iter()
                         .map(|change| change.name.len())
+                        .sum::<usize>()
+                    + choices
+                        .iter()
+                        .map(|change| change.name.len() + change.indices.len() * 4)
                         .sum::<usize>();
                 if raw_bytes > 4 * 1024 * 1024
-                    || serde_json::to_vec(&(&changes, &buttons))
+                    || serde_json::to_vec(&(&changes, &buttons, &choices))
                         .map_err(|error| error.to_string())?
                         .len()
                         > 4 * 1024 * 1024
@@ -584,6 +735,7 @@ impl WorkingDocument {
                 Mutation::FillText {
                     changes,
                     buttons,
+                    choices,
                     page,
                     font_bytes_len,
                 }
