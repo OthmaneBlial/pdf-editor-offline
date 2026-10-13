@@ -186,6 +186,10 @@ universal fidelity or independently validate every PDF object.
 strings, selected zero-based indices, defaults and scroll positions. `fill_choice`
 uses an explicit covering, editable font to create real choice appearances and
 updates `/V` and sorted `/I` together. Duplicate exports are selected by index.
+The shared backend supports the checked static TrueType and CID-keyed CFF1 tiers;
+font coverage, embedding permission and layout limits still apply. Independent
+Poppler/qpdf checks cover Chinese dropdowns and Chinese, Japanese and Korean lists,
+exact visible labels and unchanged pixels outside the edited widget.
 Lists support multi-selection and visible blue highlights; an explicit top index
 wins, while the default scroll reveals a selected row if all newly selected rows
 would otherwise be offscreen. List labels must fit without clipping or truncation.

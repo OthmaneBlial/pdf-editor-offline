@@ -4,6 +4,8 @@ use pdf_core::{ChoiceChange, FormValue, PdfDocument};
 const SOURCE: &[u8] = include_bytes!("../../../tests/fixtures/pdfs/forms.pdf");
 const FONT: &[u8] =
     include_bytes!("../../../apps/desktop/assets/fonts/ibm-plex/IBMPlexSans-Regular.ttf");
+const CFF_FONT: &[u8] =
+    include_bytes!("../../../apps/desktop/assets/fonts/noto-cjk/NotoSansCJKsc-Regular.otf");
 fn bytes(document: &mut Document) -> Vec<u8> {
     let mut bytes = vec![];
     document.save_to(&mut bytes).unwrap();
@@ -123,6 +125,61 @@ fn list_source(multi: bool) -> Vec<u8> {
         .dict
         .set("BBox", vec![0.into(), 0.into(), 148.into(), 100.into()]);
     bytes(&mut source)
+}
+
+#[test]
+fn cff_choice_rows_have_exact_logical_labels_and_embedded_cid_font_after_reopen() {
+    for is_list in [false, true] {
+        let source = if is_list {
+            list_source(true)
+        } else {
+            SOURCE.to_vec()
+        };
+        let mut document = Document::load_mem(&source).unwrap();
+        let field = document.get_dictionary_mut((14, 0)).unwrap();
+        field.set(
+            "Opt",
+            vec![
+                Object::Array(vec![string("a"), string("中国")]),
+                Object::Array(vec![string("b"), string("日本語")]),
+                Object::Array(vec![string("c"), string("한글")]),
+            ],
+        );
+        field.set("V", string("a"));
+        field.set("I", vec![Object::Integer(0)]);
+        let source = bytes(&mut document);
+        let mut pdf = PdfDocument::from_bytes(&source, None).unwrap();
+        let selected = if is_list { vec![0, 2] } else { vec![1] };
+        pdf.fill_choice(&[change(&selected, is_list.then_some(0))], CFF_FONT)
+            .unwrap();
+        let saved = pdf.verified_bytes().unwrap();
+        let reopened = PdfDocument::from_bytes(&saved, None).unwrap();
+        assert_eq!(
+            reopened.list_choice_fields().unwrap()[0].selected_indices,
+            Some(selected)
+        );
+        assert!(reopened.extract_text(&[1]).unwrap().contains(if is_list {
+            "中国\n日本語\n한글"
+        } else {
+            "日本語"
+        }));
+        let embedded = Document::load_mem(&saved).unwrap();
+        assert!(embedded.objects.values().any(|object| {
+            object
+                .as_dict()
+                .ok()
+                .and_then(|dict| dict.get(b"Subtype").ok())
+                .and_then(|object| object.as_name().ok())
+                == Some(b"CIDFontType0")
+        }));
+        assert_eq!(
+            Document::load_mem(&source)
+                .unwrap()
+                .get_object((15, 0))
+                .unwrap(),
+            embedded.get_object((15, 0)).unwrap()
+        );
+    }
 }
 
 #[test]
@@ -642,7 +699,28 @@ fn dropdown_list_export_indices_unicode_and_real_pixels_pass_independent_readers
             Object::Array(vec![string("c"), string("Ωmega")]),
         ],
     );
-    for (index, (source, selection, replacement, expected_v, expected_i, top, mask)) in [
+    let mut cff_combo = Document::load_mem(SOURCE).unwrap();
+    cff_combo.get_dictionary_mut((14, 0)).unwrap().set(
+        "Opt",
+        vec![
+            Object::Array(vec![string("normal"), string("Normal")]),
+            Object::Array(vec![string("china"), string("中国")]),
+        ],
+    );
+    cff_combo
+        .get_dictionary_mut((14, 0))
+        .unwrap()
+        .set("V", string("normal"));
+    let mut cff_list = Document::load_mem(&list_source(true)).unwrap();
+    cff_list.get_dictionary_mut((14, 0)).unwrap().set(
+        "Opt",
+        vec![
+            Object::Array(vec![string("a"), string("中国")]),
+            Object::Array(vec![string("b"), string("日本語")]),
+            Object::Array(vec![string("c"), string("한글")]),
+        ],
+    );
+    for (index, (source, selection, replacement, expected_v, expected_i, top, mask, font)) in [
         (
             SOURCE.to_vec(),
             change(&[2], None),
@@ -651,6 +729,7 @@ fn dropdown_list_export_indices_unicode_and_real_pixels_pass_independent_readers
             serde_json::json!([2]),
             None,
             [72, 190, 220, 220],
+            FONT,
         ),
         (
             bytes(&mut paired),
@@ -660,6 +739,7 @@ fn dropdown_list_export_indices_unicode_and_real_pixels_pass_independent_readers
             serde_json::json!([1]),
             None,
             [72, 190, 220, 220],
+            FONT,
         ),
         (
             list_source(true),
@@ -669,6 +749,7 @@ fn dropdown_list_export_indices_unicode_and_real_pixels_pass_independent_readers
             serde_json::json!([1, 2]),
             Some(1),
             [72, 192, 220, 292],
+            FONT,
         ),
         (
             bytes(&mut unicode),
@@ -678,6 +759,27 @@ fn dropdown_list_export_indices_unicode_and_real_pixels_pass_independent_readers
             serde_json::json!([0, 1]),
             Some(0),
             [72, 192, 220, 292],
+            FONT,
+        ),
+        (
+            bytes(&mut cff_combo),
+            change(&[1], None),
+            "中国",
+            serde_json::json!("u:china"),
+            serde_json::json!([1]),
+            None,
+            [72, 190, 220, 220],
+            CFF_FONT,
+        ),
+        (
+            bytes(&mut cff_list),
+            change(&[0, 2], Some(0)),
+            "中国\n日本語\n한글",
+            serde_json::json!(["u:a", "u:c"]),
+            serde_json::json!([0, 2]),
+            Some(0),
+            [72, 192, 220, 292],
+            CFF_FONT,
         ),
     ]
     .into_iter()
@@ -687,7 +789,10 @@ fn dropdown_list_export_indices_unicode_and_real_pixels_pass_independent_readers
         let output = directory.path().join(format!("filled-{index}.pdf"));
         std::fs::write(&input, &source).unwrap();
         let mut pdf = PdfDocument::from_bytes(&source, None).unwrap();
-        pdf.fill_choice(&[selection], FONT).unwrap();
+        pdf.fill_choice(&[selection], font).unwrap();
+        if index >= 4 {
+            assert!(pdf.extract_text(&[1]).unwrap().contains(replacement));
+        }
         if index == 3 {
             assert!(
                 pdf.extract_text(&[1])
@@ -696,6 +801,14 @@ fn dropdown_list_export_indices_unicode_and_real_pixels_pass_independent_readers
             );
         }
         pdf.save_new(&output).unwrap();
+        if index >= 4 {
+            let reopened = PdfDocument::from_bytes(&std::fs::read(&output).unwrap(), None).unwrap();
+            assert!(reopened.extract_text(&[1]).unwrap().contains(replacement));
+            assert_eq!(
+                reopened.list_choice_fields().unwrap(),
+                pdf.list_choice_fields().unwrap()
+            );
+        }
         reference("qpdf", &["--check", output.to_str().unwrap()]);
         let model: serde_json::Value = serde_json::from_slice(
             &reference("qpdf", &["--json", output.to_str().unwrap()]).stdout,
