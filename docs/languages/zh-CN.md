@@ -1,5 +1,9 @@
 # PDF Editor Offline
 
+**源码新功能：**通过拖动和调整大小手柄放置新增文字，将 PDF 拆分到新标签页，并使用密码对话框打开受保护的文档。加密文件保持只读；恢复记录不会保存解密内容或密码。已发布的 CLI 仍为 `4.0.0-preview.3`。
+
+[Encrypted viewing](../ENCRYPTED_VIEWING_RUST.md) · [Canvas text placement](../TEXT_OVERLAYS_RUST.md) · [Split workflow](../../apps/desktop/README.md)
+
 **用 Rust 编写的离线 PDF 编辑器。文件始终留在你的电脑上。**
 
 [English](../../README.md) · [Français](fr.md) · [العربية](ar.md) · [Español](es.md) · [Português](pt-BR.md) · [Deutsch](de.md) · [简体中文](zh-CN.md) · [日本語](ja.md) · [한국어](ko.md)

@@ -1,5 +1,9 @@
 # PDF Editor Offline
 
+**جديد في الشفرة المصدرية:** وضع نص جديد بالسحب ومقابض تغيير الحجم، وتقسيم الملف إلى علامات تبويب جديدة، وفتح ملفات PDF المحمية عبر مربع حوار لكلمة المرور. تبقى الملفات المشفرة للقراءة فقط؛ لا يُحفظ المحتوى المفكوك أو كلمة المرور في الاستعادة. إصدار CLI المنشور ما زال `4.0.0-preview.3`.
+
+[Encrypted viewing](../ENCRYPTED_VIEWING_RUST.md) · [Canvas text placement](../TEXT_OVERLAYS_RUST.md) · [Split workflow](../../apps/desktop/README.md)
+
 **محرّر PDF يعمل دون اتصال، مبني بلغة Rust. تبقى ملفاتك على جهازك.**
 
 [English](../../README.md) · [Français](fr.md) · [العربية](ar.md) · [Español](es.md) · [Português](pt-BR.md) · [Deutsch](de.md) · [简体中文](zh-CN.md) · [日本語](ja.md) · [한국어](ko.md)

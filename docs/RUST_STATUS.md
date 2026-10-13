@@ -1,5 +1,12 @@
 # Native Rust migration status
 
+Current source adds canvas placement/move/resize handles for new text overlays,
+guarded PDF splitting into durable native tab batches or CLI files, and
+[explicit read-only encrypted viewing](ENCRYPTED_VIEWING_RUST.md). The encrypted
+session retains ciphertext and does not journal credentials or decrypted PDF
+snapshots. Split copies can retain unreachable objects and are not sanitization.
+The published CLI remains preview 3; these additions require a source build.
+
 Current source version: **4.0.0-preview.4** (in preparation). The public
 **4.0.0-preview.3** [CLI and npm package](NATIVE_RELEASE_EVIDENCE.md)
 have verified five-platform installation evidence. Preview 2 release construction

@@ -14,7 +14,11 @@ Choose Edit → **Add text overlay…** or use the command palette. Enter text,
 choose a covering font and set the rectangle, size, RGB color and alignment.
 The canvas outlines the proposed rectangle against the actual displayed page,
 including its crop origin and quarter-turn rotation. Placement currently uses
-PDF-space controls; drag and resize handles are a separate milestone.
+PDF-space controls or the canvas: choose Place, drag a new rectangle, move it or
+resize it with eight handles. Optional snapping uses one PDF unit. Focused
+arrow keys nudge by one unit, Shift by ten and Alt by a tenth. Changing the view
+cancels an active gesture; numeric controls remain available. These controls
+position a new overlay draft, not an existing page object.
 
 Apply runs the same isolated document worker as the CLI. The result enters
 durable Undo/Redo history before success; Save As writes a verified new copy.

@@ -2,6 +2,10 @@
 
 ## Unreleased — native Rust preview
 
+- Place new text-overlay drafts on the actual page canvas with drag creation, move/eight resize handles, optional snapping and keyboard nudges. Numeric controls and draft protection remain available.
+- Open supported password-protected PDFs through an explicit masked, read-only session. Ciphertext is retained; credentials and decrypted document snapshots are excluded from recovery. Four standard encryption tiers have independent-reader checks.
+- Split guarded PDF page ranges through core, CLI and native batch tabs. The desktop journals the whole new tab batch before success; CLI publication reports exact partial failures. Splitting preserves source/history and is not privacy cleanup.
+
 - Added native sticky-note discovery and guarded add/edit/remove through the document worker, with bounded replies, core-supplied eligibility, durable history, confirmation and retained drafts. Existing appearance/geometry and original files are preserved; ordinary removal is not secure erasure.
 
 - Protect unapplied metadata, form, note and text-overlay drafts when closing clean tabs. Save As records applied document changes; explicit draft discard and quitting keep that boundary clear.

@@ -1,5 +1,9 @@
 # PDF Editor Offline
 
+**ソースコードの新機能：**ドラッグとサイズ変更ハンドルによる新しい文字の配置、PDF の新しいタブへの分割、パスワードダイアログによる保護された文書の表示。暗号化文書は読み取り専用で、復元記録に復号内容やパスワードを保存しません。公開済み CLI は引き続き `4.0.0-preview.3` です。
+
+[Encrypted viewing](../ENCRYPTED_VIEWING_RUST.md) · [Canvas text placement](../TEXT_OVERLAYS_RUST.md) · [Split workflow](../../apps/desktop/README.md)
+
 **Rust で作るオフライン PDF エディター。ファイルは自分のパソコンに保存されます。**
 
 [English](../../README.md) · [Français](fr.md) · [العربية](ar.md) · [Español](es.md) · [Português](pt-BR.md) · [Deutsch](de.md) · [简体中文](zh-CN.md) · [日本語](ja.md) · [한국어](ko.md)

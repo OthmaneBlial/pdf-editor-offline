@@ -58,7 +58,7 @@ encryption dictionary revision and exercises user- and owner-password authentica
 | --- | --- | --- |
 | R2 / V1 | RC4, 40-bit | Authentication, text, forms and exact original native raster |
 | R3 / V2 | RC4, 128-bit | Same, plus empty-password opening/retry |
-| R4 / V4 | AES-128 / AESV2 | Same, actual desktop masked entry and signed-marker refusal |
+| R4 / V4 | AES-128 / AESV2 | Same, headless masked-control tests and signed-marker refusal |
 | R6 / V5 | AES-256 / AESV3 | Same, plus a Unicode password |
 
 These are viewing compatibility tests, not recommendations for creating files

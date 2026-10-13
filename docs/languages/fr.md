@@ -1,5 +1,9 @@
 # PDF Editor Offline
 
+**Nouveau dans le code source :** placement du nouveau texte à la souris avec poignées, découpage en nouveaux onglets et ouverture des PDF protégés par un dialogue de mot de passe. Les documents chiffrés restent en lecture seule ; leur contenu déchiffré et le mot de passe ne sont pas conservés dans la récupération. La CLI publiée reste `4.0.0-preview.3`.
+
+[Encrypted viewing](../ENCRYPTED_VIEWING_RUST.md) · [Canvas text placement](../TEXT_OVERLAYS_RUST.md) · [Split workflow](../../apps/desktop/README.md)
+
 **Un éditeur PDF hors ligne en Rust. Vos fichiers restent sur votre ordinateur.**
 
 [English](../../README.md) · [Français](fr.md) · [العربية](ar.md) · [Español](es.md) · [Português](pt-BR.md) · [Deutsch](de.md) · [简体中文](zh-CN.md) · [日本語](ja.md) · [한국어](ko.md)

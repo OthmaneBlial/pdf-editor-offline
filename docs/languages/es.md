@@ -1,5 +1,9 @@
 # PDF Editor Offline
 
+**Nuevo en el código fuente:** coloca texto nuevo arrastrándolo y usando los tiradores, divide PDF en pestañas nuevas y abre documentos protegidos con un diálogo de contraseña. Los archivos cifrados son de solo lectura; la recuperación no guarda el contenido descifrado ni la contraseña. La CLI publicada sigue en `4.0.0-preview.3`.
+
+[Encrypted viewing](../ENCRYPTED_VIEWING_RUST.md) · [Canvas text placement](../TEXT_OVERLAYS_RUST.md) · [Split workflow](../../apps/desktop/README.md)
+
 **Un editor de PDF sin conexión, escrito en Rust. Tus archivos se quedan en tu ordenador.**
 
 [English](../../README.md) · [Français](fr.md) · [العربية](ar.md) · [Español](es.md) · [Português](pt-BR.md) · [Deutsch](de.md) · [简体中文](zh-CN.md) · [日本語](ja.md) · [한국어](ko.md)

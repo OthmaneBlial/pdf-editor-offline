@@ -41,6 +41,8 @@ These features are on **`main`**, ahead of the published CLI preview:
 | Fill text fields, dropdowns and list selections | [A public form you can finish](docs/FORMS_RUST.md) |
 | Add, edit and remove basic sticky notes with undo | [Desktop note walkthrough](docs/NOTES_RUST.md) |
 | Combine supported PDFs into a new desktop tab | [Merge workflow](apps/desktop/README.md) |
+| Split supported PDFs into new tabs or CLI files | [Split workflow and publication limits](apps/desktop/README.md) |
+| Open a password-protected PDF for this session | [Read-only encrypted viewing](docs/ENCRYPTED_VIEWING_RUST.md) |
 | Make a targeted cleanup copy with a removal report | [What sanitization removes](docs/SANITIZATION_RUST.md) |
 
 ### An actual PDF, before and after
@@ -155,11 +157,11 @@ The table covers current source; published CLI differences are called out below.
 | Task | Native desktop | Rust CLI |
 | --- | --- | --- |
 | Read and find | Tabs, zoom, visible-page thumbnails, text sidebar, literal search, light/dark themes | Document info, text extraction, literal search, limited text/geometry comparison |
-| Organize pages | Move/reverse pages, rotate, insert blank pages, crop, guarded range extraction/deletion/duplication, ordered simple-catalog merge into a new tab, undo/redo | Reorder/reverse/rotate/crop, insert blank pages, guarded extract/delete, simple-catalog merge; guarded duplication in current source |
+| Organize pages | Move/reverse pages, rotate, insert blank pages, crop, guarded ranges, split into new tabs, ordered simple-catalog merge, undo/redo | Reorder/reverse/rotate/crop, blank insertion, guarded extract/delete/duplicate, merge and `split --every N --output-dir NEW` in current source |
 | Document properties | Read/edit six standard fields, including Unicode | Read/set/remove Title, Author, Subject, Keywords, Creator and Producer |
 | Images | Create PDF pages from supported PNG/JPEG files | Restricted images-to-PDF conversion; export one PDF page as PNG |
 | Comments | Bounded sticky-note discovery, guarded add/edit/remove, durable history; supported appearances and standard Text/FileAttachment icons | Add/list sticky Text notes; guarded editing/removal of basic notes |
-| New page text | PDF-space placement controls, true canvas outline, covering-font picker, guarded apply and durable undo/redo | `add-text-overlay` adds bounded Unicode text with an explicit font, rectangle, color and alignment in current source |
+| New page text | Drag placement, move/eight resize handles, snapping and arrow nudges, numeric controls, covering-font picker, guarded apply and durable undo/redo | `add-text-overlay` adds bounded Unicode text with an explicit font, rectangle, color and alignment in current source |
 | Forms | Checkboxes/radios, single/multiline text, dropdowns and single/multiple list selections; guarded apply and undo/redo | Discover fields and indexed options; `fill-button`, `fill-text`, `list-choices` and `fill-choice` in current source |
 | Inspect and export | Verified Save As to a new path | Read-only action/attachment/form/layer markers, lossless stream compression, verified fresh output copies |
 | Targeted cleanup | Separate unsaved copy, removal report and verified Save As | `sanitize` removes supported metadata/file/action structures through a full rewrite in current source; includes dry-run and a partial-scope report |
