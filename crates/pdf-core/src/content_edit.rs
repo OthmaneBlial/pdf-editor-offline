@@ -11,7 +11,7 @@ const MAX_TEXT: usize = 4 * 1024 * 1024;
 
 #[derive(Default)]
 struct TextState {
-    font: bool,
+    font: Option<ContentTextEncoding>,
     render: bool,
     positioned: bool,
     valid: bool,
@@ -30,10 +30,51 @@ pub struct ContentTextIdentity {
 #[serde(deny_unknown_fields)]
 pub struct ContentTextRun {
     pub identity: ContentTextIdentity,
+    pub encoding: Option<ContentTextEncoding>,
     /// Printable ASCII only. Other encodings are deliberately not guessed.
     pub text: Option<String>,
     pub writable: bool,
     pub refusal_reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ContentTextEncoding {
+    Standard,
+    WinAnsi,
+}
+impl ContentTextEncoding {
+    pub fn accepts_ascii(self, value: &str) -> bool {
+        ascii(value.as_bytes())
+            && (!matches!(self, Self::Standard)
+                || !value.bytes().any(|byte| matches!(byte, 39 | 96)))
+    }
+}
+impl ContentTextRun {
+    /// Shared core/UI validation. StandardEncoding quote codes are deliberately outside this ASCII tier.
+    pub fn validate_replacement(&self, value: &str) -> Result<()> {
+        let expected = self
+            .text
+            .as_deref()
+            .filter(|_| self.writable)
+            .ok_or(Error::Refused(
+                "text run is outside the supported editing tier",
+            ))?;
+        if !self
+            .encoding
+            .is_some_and(|encoding| encoding.accepts_ascii(value))
+            || expected.len() != value.len()
+            || expected
+                .bytes()
+                .zip(value.bytes())
+                .any(|(old, new)| (old == b' ') != (new == b' '))
+        {
+            return Err(Error::Refused(
+                "replacement must preserve ASCII length/space positions; StandardEncoding codes39/96 are unsupported",
+            ));
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -85,38 +126,47 @@ fn single_content(pdf: &PdfDocument, page: u32) -> Result<(ObjectId, ObjectId, V
     Ok((page_id, stream_id, bytes, content))
 }
 
-fn courier(resources: Option<&Dictionary>, pdf: &PdfDocument, name: &[u8]) -> Result<bool> {
+fn courier(
+    resources: Option<&Dictionary>,
+    pdf: &PdfDocument,
+    name: &[u8],
+) -> Result<Option<ContentTextEncoding>> {
     let Some(resources) = resources else {
-        return Ok(false);
+        return Ok(None);
     };
     let fonts = resources.get_deref(b"Font", &pdf.document)?.as_dict()?;
     let font = fonts.get_deref(name, &pdf.document)?.as_dict()?;
-    Ok(
-        font.get(b"Type").and_then(Object::as_name).ok() == Some(b"Font")
-            && font.get(b"Subtype").and_then(Object::as_name).ok() == Some(b"Type1")
-            && font.iter().all(|(key, _)| {
-                matches!(
-                    key.as_slice(),
-                    b"Type" | b"Subtype" | b"BaseFont" | b"Encoding" | b"Name"
-                )
-            })
-            && matches!(
-                font.get(b"BaseFont").and_then(Object::as_name).ok(),
-                Some(b"Courier" | b"Courier-Bold" | b"Courier-Oblique" | b"Courier-BoldOblique")
+    let encoding = if !font.has(b"Encoding") {
+        Some(ContentTextEncoding::Standard)
+    } else {
+        match font.get(b"Encoding").and_then(Object::as_name).ok() {
+            Some(b"StandardEncoding") => Some(ContentTextEncoding::Standard),
+            Some(b"WinAnsiEncoding") => Some(ContentTextEncoding::WinAnsi),
+            _ => None,
+        }
+    };
+    let supported = font.get(b"Type").and_then(Object::as_name).ok() == Some(b"Font")
+        && font.get(b"Subtype").and_then(Object::as_name).ok() == Some(b"Type1")
+        && font.iter().all(|(key, _)| {
+            matches!(
+                key.as_slice(),
+                b"Type" | b"Subtype" | b"BaseFont" | b"Encoding" | b"Name"
             )
-            && (!font.has(b"Encoding")
-                || font.get(b"Encoding").and_then(Object::as_name).ok()
-                    == Some(b"WinAnsiEncoding"))
-            && ![
-                b"FontDescriptor".as_slice(),
-                b"Widths",
-                b"FirstChar",
-                b"LastChar",
-                b"ToUnicode",
-            ]
-            .iter()
-            .any(|key| font.has(key)),
-    )
+        })
+        && matches!(
+            font.get(b"BaseFont").and_then(Object::as_name).ok(),
+            Some(b"Courier" | b"Courier-Bold" | b"Courier-Oblique" | b"Courier-BoldOblique")
+        )
+        && ![
+            b"FontDescriptor".as_slice(),
+            b"Widths",
+            b"FirstChar",
+            b"LastChar",
+            b"ToUnicode",
+        ]
+        .iter()
+        .any(|key| font.has(key));
+    Ok(if supported { encoding } else { None })
 }
 
 fn number(object: &Object) -> bool {
@@ -173,7 +223,13 @@ impl PdfDocument {
                     return Err(Error::Limit("text inventory exceeds 4 MiB"));
                 }
                 let supported = block.as_ref().is_some_and(|state| {
-                    state.valid && state.font && state.render && state.positioned
+                    state.valid
+                        && state.font.is_some_and(|encoding| {
+                            text.as_deref()
+                                .is_some_and(|text| encoding.accepts_ascii(text))
+                        })
+                        && state.render
+                        && state.positioned
                 }) && content
                     .operations
                     .get(index + 1)
@@ -190,12 +246,17 @@ impl PdfDocument {
                     Some("marked content and ActualText are not editable in this tier")
                 } else if !supported {
                     Some(
-                        "requires one final ASCII Tj, explicit Tf/Tm/Tr 0, and an unmodified standard Courier font",
+                        "requires one final unambiguous ASCII Tj, explicit Tf/Tm/Tr 0 and standard Courier; StandardEncoding quote codes39/96 are unsupported",
                     )
                 } else {
                     None
                 };
                 runs.push(ContentTextRun {
+                    encoding: if supported && !marked {
+                        block.as_ref().and_then(|state| state.font)
+                    } else {
+                        None
+                    },
                     identity: ContentTextIdentity {
                         page_object: page_id,
                         stream_object: stream_id,
@@ -270,18 +331,7 @@ impl PdfDocument {
             if run.text.as_deref() != Some(change.expected.as_str()) {
                 return Err(Error::Refused("text expected value changed"));
             }
-            if !ascii(change.replacement.as_bytes())
-                || change.expected.len() != change.replacement.len()
-                || change
-                    .expected
-                    .bytes()
-                    .zip(change.replacement.bytes())
-                    .any(|(old, new)| (old == b' ') != (new == b' '))
-            {
-                return Err(Error::Refused(
-                    "replacement must preserve ASCII length and space positions",
-                ));
-            }
+            run.validate_replacement(&change.replacement)?;
             let operand = &mut content.operations[change.identity.operation as usize].operands[0];
             *operand = Object::string_literal(change.replacement.as_bytes().to_vec());
         }

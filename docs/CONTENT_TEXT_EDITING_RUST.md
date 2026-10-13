@@ -17,7 +17,12 @@ An editable run must be the sole text show in its `BT`/`ET` object, with explici
 `Tf`, finite `Tm` and `Tr 0`. Before the show it permits only those operators and
 finite `Tc`, `Tw`, `Tz`, `Ts`; the next operation must be `ET`. The font must be
 standard unembedded Type1 Courier, Courier-Bold, Courier-Oblique or
-Courier-BoldOblique, with absent or named WinAnsi encoding. Font dictionary keys
+Courier-BoldOblique, with default/named StandardEncoding or named WinAnsi encoding.
+StandardEncoding runs require unambiguous ASCII source and replacement codes:
+codes 39 and 96 are refused because they represent curved quotes rather than the
+ASCII apostrophe/backtick. Explicit WinAnsi accepts those codes with their ASCII
+mapping; raw bytes are never displayed as guessed Unicode.
+Font dictionary keys
 are restricted to Type, Subtype, BaseFont, Encoding and Name: descriptors,
 custom widths, character ranges, ToUnicode maps and other overrides are refused.
 This restriction follows the override distinction in ISO 32000-1:2008,

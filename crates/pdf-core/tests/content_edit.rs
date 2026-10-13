@@ -176,6 +176,111 @@ fn pdf_delimiters_remain_literal_text_after_verified_save_and_reopen() {
 }
 
 #[test]
+fn default_courier_quote_codes_are_not_presented_as_ascii_inventory() {
+    let content = b"BT /F 12 Tf 1 0 0 1 40 140 Tm 0 Tr (A'B`C) Tj ET";
+    let mut font = courier();
+    font.remove(b"Encoding");
+    let pdf = PdfDocument::from_bytes(&source(content, font), None).unwrap();
+    assert_eq!(pdf.extract_text(&[1]).unwrap(), "A\u{2019}B\u{2018}C\n");
+    let run = &pdf.content_text_runs(1).unwrap()[0];
+    assert!(!run.writable);
+    assert!(run.text.is_none());
+    assert!(
+        run.refusal_reason
+            .as_deref()
+            .unwrap()
+            .contains("codes39/96")
+    );
+    let mut explicit = PdfDocument::from_bytes(&source(content, courier()), None).unwrap();
+    assert_eq!(explicit.extract_text(&[1]).unwrap(), "A'B`C\n");
+    explicit
+        .replace_content_text(1, &[change(&explicit, 0, "`B'C!")])
+        .unwrap();
+    assert_eq!(explicit.extract_text(&[1]).unwrap(), "`B'C!\n");
+    for named in [false, true] {
+        let mut font = courier();
+        if named {
+            font.set("Encoding", "StandardEncoding");
+        } else {
+            font.remove(b"Encoding");
+        }
+        let mut ordinary = PdfDocument::from_bytes(&source(CONTENT, font), None).unwrap();
+        ordinary
+            .replace_content_text(1, &[change(&ordinary, 0, "Replaced")])
+            .unwrap();
+        assert!(ordinary.extract_text(&[1]).unwrap().contains("Replaced"));
+        let before = ordinary.verified_bytes().unwrap();
+        for replacement in ["Replac'd", "Replac`d"] {
+            assert!(
+                ordinary
+                    .replace_content_text(1, &[change(&ordinary, 0, replacement)])
+                    .is_err()
+            );
+            assert_eq!(ordinary.verified_bytes().unwrap(), before);
+        }
+    }
+}
+
+#[test]
+fn supported_ascii_policy_matches_every_actual_encoding_table_slot() {
+    let document = Document::new();
+    for kind in [
+        pdf_core::ContentTextEncoding::Standard,
+        pdf_core::ContentTextEncoding::WinAnsi,
+    ] {
+        let mut font = courier();
+        if matches!(kind, pdf_core::ContentTextEncoding::Standard) {
+            font.remove(b"Encoding");
+        }
+        let encoding = font
+            .get_font_encoding_with_limit(&document, pdf_core::MAX_STREAM_BYTES)
+            .unwrap();
+        for byte in 32u8..=126 {
+            let ascii = char::from(byte).to_string();
+            let decoded = encoding.bytes_to_string(&[byte]).unwrap();
+            assert_eq!(
+                kind.accepts_ascii(&ascii),
+                decoded == ascii,
+                "{kind:?} code{byte}: {decoded:?}"
+            );
+        }
+    }
+}
+
+#[test]
+#[ignore = "requires pinned Poppler26.10.0"]
+fn punctuation_encoding_matches_independent_poppler() {
+    let temporary = tempfile::tempdir().unwrap();
+    let bin = PathBuf::from(std::env::var_os("PDF_REFERENCE_BIN_DIR").unwrap()).join("pdftotext");
+    assert!(
+        String::from_utf8_lossy(&Command::new(&bin).arg("-v").output().unwrap().stderr)
+            .contains("26.10.0")
+    );
+    for (explicit, expected) in [(false, "A\u{2019}B\u{2018}C"), (true, "A'B`C")] {
+        let mut font = courier();
+        if !explicit {
+            font.remove(b"Encoding");
+        }
+        let file = temporary.path().join(if explicit {
+            "winansi.pdf"
+        } else {
+            "default.pdf"
+        });
+        let bytes = source(b"BT /F 12 Tf 1 0 0 1 40 140 Tm 0 Tr (A'B`C) Tj ET", font);
+        std::fs::write(&file, &bytes).unwrap();
+        let output = Command::new(&bin).arg(&file).arg("-").output().unwrap();
+        assert!(output.status.success());
+        assert_eq!(
+            String::from_utf8(output.stdout)
+                .unwrap()
+                .split_whitespace()
+                .collect::<Vec<_>>(),
+            vec![expected, expected]
+        );
+    }
+}
+
+#[test]
 fn override_fonts_marked_content_and_unsafe_text_objects_are_reported_readonly() {
     for key in [
         "Widths",
