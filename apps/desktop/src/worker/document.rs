@@ -539,6 +539,9 @@ impl WorkingDocument {
         } else {
             let operation = match read {
                 ReadOperation::Notes { page, offset } => Operation::Notes { page, offset },
+                ReadOperation::ContentText { page, offset } => {
+                    Operation::ContentText { page, offset }
+                }
                 ReadOperation::Info => Operation::Info,
                 ReadOperation::Forms => Operation::Forms,
                 ReadOperation::Metadata => Operation::Metadata,
@@ -812,6 +815,68 @@ impl WorkingDocument {
         ))
     }
 
+    pub fn content_text(
+        &self,
+        page: u32,
+        offset: u32,
+    ) -> Result<pdf_worker::document::ContentTextPage, String> {
+        if page == 0 || page as usize > self.current.info.page_count {
+            return Err("Existing text page is out of range".into());
+        }
+        let (result, reply) = self.read(ReadOperation::ContentText { page, offset })?;
+        let DocumentResult::ContentText { inventory } = result else {
+            return Err("Unexpected existing text inventory reply".into());
+        };
+        let end = (offset as usize)
+            .checked_add(inventory.runs.len())
+            .ok_or("Invalid inventory offset")?;
+        if reply.kind != PayloadKind::None
+            || !reply.payload.is_empty()
+            || inventory.page != page
+            || inventory.offset != offset
+            || inventory.total_runs > 10_000
+            || inventory.runs.len() > 128
+            || end > inventory.total_runs as usize
+            || inventory.next_offset != (end < inventory.total_runs as usize).then_some(end as u32)
+            || inventory.next_offset.is_some() && inventory.runs.is_empty()
+            || inventory.source_fingerprint != pdf_worker::payload_fingerprint(&self.current.bytes)
+            || serde_json::to_vec(&inventory)
+                .map_err(|_| "Cannot validate inventory report")?
+                .len()
+                > 1024 * 1024
+        {
+            return Err("Invalid existing text inventory bounds or source binding".into());
+        }
+        let mut operations = std::collections::BTreeSet::new();
+        for run in &inventory.runs {
+            if run.identity.operation >= 100_000
+                || !operations.insert(run.identity.operation)
+                || [run.identity.page_object, run.identity.stream_object]
+                    .iter()
+                    .any(|id| id.0 == 0 || id.0 as usize > pdf_core::MAX_OBJECTS)
+                || run.text.as_ref().is_some_and(|text| {
+                    text.len() > 65536
+                        || !run
+                            .encoding
+                            .is_some_and(|encoding| encoding.accepts_ascii(text))
+                })
+                || run
+                    .refusal_reason
+                    .as_ref()
+                    .is_some_and(|reason| reason.is_empty() || reason.len() > 512)
+                || run.writable
+                    && (run.text.is_none()
+                        || run.refusal_reason.is_some()
+                        || self.current.info.encrypted
+                        || self.current.info.signature_fields > 0)
+                || !run.writable && run.refusal_reason.is_none()
+            {
+                return Err("Invalid existing text inventory entry".into());
+            }
+        }
+        Ok(inventory)
+    }
+
     pub fn notes(
         &self,
         page: u32,
@@ -1059,6 +1124,27 @@ impl WorkingDocument {
                 Mutation::ImageOverlay {
                     overlay,
                     image_bytes_len: image.len() as u32,
+                }
+            }
+            Edit::ContentText {
+                key,
+                source_fingerprint,
+                change,
+            } => {
+                if key.revision != self.current.revision
+                    || key.page == 0
+                    || key.page as usize > self.current.info.page_count
+                {
+                    return Err("Existing text draft revision or page is stale".into());
+                }
+                if source_fingerprint != pdf_worker::payload_fingerprint(&self.current.bytes) {
+                    return Err("Existing text source fingerprint is stale".into());
+                }
+                expected_note = Some(key.page as usize - 1);
+                Mutation::ReplaceContentText {
+                    page: key.page,
+                    source_fingerprint,
+                    changes: vec![change],
                 }
             }
             Edit::TextOverlay {
@@ -1326,7 +1412,7 @@ impl WorkingDocument {
         if expected_note.is_some_and(|page| {
             info.pages != self.current.info.pages || selected_page != Some(page)
         }) {
-            return Err("Note edit changed page geometry or selection".into());
+            return Err("Edit changed page geometry or selection".into());
         }
         if expected_fill
             .is_some_and(|(count, page)| info.page_count != count || selected_page != Some(page))

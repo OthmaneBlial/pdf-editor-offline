@@ -3,6 +3,7 @@ use crate::worker::{Command, Edit, Event, TaskKey, Worker};
 use eframe::egui;
 
 mod canvas;
+mod content_text;
 mod dialogs;
 mod forms;
 mod image_overlay;
@@ -46,6 +47,7 @@ enum Action {
     TextOverlay,
     VectorOverlay,
     ImageOverlay,
+    ContentText,
     Undo,
     Redo,
     Previous,
@@ -107,6 +109,8 @@ pub struct EditorApp {
     overlay_dialog: Option<text_overlay::Dialog>,
     vector_dialog: Option<vector::Dialog>,
     image_dialog: Option<image_overlay::Dialog>,
+    content_dialog: Option<content_text::Dialog>,
+    content_generation: u64,
     forms_generation: u64,
     pages_dialog: Option<pages::Dialog>,
     sanitize_dialog: Option<sanitize::Dialog>,
@@ -153,6 +157,8 @@ impl EditorApp {
             overlay_dialog: None,
             vector_dialog: None,
             image_dialog: None,
+            content_dialog: None,
+            content_generation: 0,
             forms_generation: 0,
             pages_dialog: None,
             sanitize_dialog: None,
@@ -209,6 +215,7 @@ impl EditorApp {
                 self.busy = false;
             }
             match event {
+                Event::ContentText { key, inventory } => self.accept_content_text(key, inventory),
                 Event::Notes {
                     key,
                     entries,
@@ -327,6 +334,10 @@ impl EditorApp {
                         } else {
                             dialog.stale = true;
                         }
+                    }
+                    if let Some(dialog) = self.content_dialog.as_mut().filter(|dialog|dialog.key.tab==id) {
+                        if dialog.submitting {self.content_dialog=None;}
+                        else {dialog.stale=true;}
                     }
                     if self
                         .overlay_dialog
@@ -525,6 +536,13 @@ impl EditorApp {
                         self.image_dialog = None;
                     }
                     self.pending_saves.remove(&id);
+                    if self
+                        .content_dialog
+                        .as_ref()
+                        .is_some_and(|dialog| dialog.key.tab == id)
+                    {
+                        self.content_dialog = None;
+                    }
                     self.tabs.retain(|tab| tab.id != id);
                     if self.active == Some(id) {
                         self.active = self.tabs.last().map(|tab| tab.id);
@@ -622,6 +640,17 @@ impl EditorApp {
                     }
                     if task.is_none() {
                         self.discard_quit = false;
+                    }
+                    if let Some(TaskKey::ContentText(key)) = task {
+                        if let Some(dialog) = self
+                            .content_dialog
+                            .as_mut()
+                            .filter(|dialog| dialog.key == key)
+                        {
+                            dialog.error = Some(message);
+                            dialog.submitting = false;
+                        }
+                        continue;
                     }
                     if let Some(TaskKey::Overlay(key)) = task {
                         if let Some(d) = self.vector_dialog.as_mut().filter(|d| d.key == key) {
@@ -728,6 +757,7 @@ impl EditorApp {
             || self.merge_dialog.is_some()
             || self.split_dialog.is_some()
             || self.notes_dialog.is_some()
+            || self.content_dialog.is_some()
             || self.password_dialog.is_some()
         {
             return;
@@ -876,10 +906,15 @@ impl EditorApp {
         self.vector_dialog
             .as_ref()
             .is_some_and(|d| d.key.tab == id && d.has_changes())
+            || self.content_dialog.as_ref().is_some_and(|d|d.key.tab==id&&d.has_changes())
             || self
                 .image_dialog
                 .as_ref()
                 .is_some_and(|d| d.key.tab == id && d.has_changes())
+            || self
+                .metadata_dialog
+                .as_ref()
+                .is_some_and(|dialog| dialog.key.tab == id && dialog.has_changes())
             || self
                 .metadata_dialog
                 .as_ref()
@@ -916,6 +951,10 @@ impl EditorApp {
                     .vector_dialog
                     .as_ref()
                     .is_some_and(vector::Dialog::has_changes)
+                || self
+                    .content_dialog
+                    .as_ref()
+                    .is_some_and(content_text::Dialog::has_changes)
                 || !self.pending_saves.is_empty()
                 || self.tabs.iter().any(|tab| tab.status.dirty)
                 || self
@@ -1034,6 +1073,7 @@ impl EditorApp {
             Action::TextOverlay => self.open_text_overlay(),
             Action::VectorOverlay => self.open_vector(),
             Action::ImageOverlay => self.open_image_overlay(),
+            Action::ContentText => self.open_content_text(),
             Action::Undo => {
                 if let Some(tab) = self.selected().filter(|tab| tab.status.can_undo) {
                     self.send(
@@ -1154,6 +1194,7 @@ impl eframe::App for EditorApp {
             && self.overlay_dialog.is_none()
             && self.vector_dialog.is_none()
             && self.image_dialog.is_none()
+            && self.content_dialog.is_none()
             && self.metadata_dialog.is_none()
             && self.notes_dialog.is_none()
             && !self.recovery.open
@@ -1176,6 +1217,7 @@ impl eframe::App for EditorApp {
                 && self.organizer_dialog.is_none()
                 && self.metadata_dialog.is_none()
                 && self.notes_dialog.is_none()
+                && self.content_dialog.is_none()
                 && self.forms_dialog.is_none()
                 && !self.recovery.open
                 && self.pending_saves.is_empty()
@@ -1194,6 +1236,7 @@ impl eframe::App for EditorApp {
         self.text_overlay_dialog(&context);
         self.vector_dialog_ui(&context);
         self.image_overlay_dialog(&context);
+        self.content_text_dialog(&context);
         self.recovery_dialog(&context);
         self.pending_save_dialog(&context);
         self.page_ranges_dialog(&context);

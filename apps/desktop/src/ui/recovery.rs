@@ -53,6 +53,11 @@ fn restore_blocker(session: &RecoverySession, tabs: usize, busy: bool) -> Option
 
 impl EditorApp {
     pub(super) fn open_recovery(&mut self) {
+        if self.content_dialog.is_some() {
+            self.message =
+                "Apply or discard the existing-text draft before opening recovery.".into();
+            return;
+        }
         self.recovery.open = true;
         self.recovery.confirm_discard = None;
         self.refresh_recovery();
@@ -170,6 +175,7 @@ impl EditorApp {
             || self.close_target.is_some()
             || self.metadata_dialog.is_some()
             || self.forms_dialog.is_some()
+            || self.content_dialog.is_some()
             || self.organizer_dialog.is_some()
         {
             return;
@@ -311,6 +317,7 @@ impl EditorApp {
         self.overlay_dialog = None;
         self.vector_dialog = None;
         self.image_dialog = None;
+        self.content_dialog = None;
         self.organizer_dialog = None;
         self.discard_quit = true;
         self.continue_discard_quit(context);

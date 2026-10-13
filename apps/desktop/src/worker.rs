@@ -43,6 +43,14 @@ pub struct NotesKey {
     pub offset: u32,
     pub generation: u64,
 }
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ContentTextKey {
+    pub tab: u64,
+    pub revision: u64,
+    pub page: u32,
+    pub offset: u32,
+    pub generation: u64,
+}
 pub enum Edit {
     VectorOverlay {
         key: FormsReadKey,
@@ -52,6 +60,11 @@ pub enum Edit {
         key: FormsReadKey,
         overlay: pdf_core::ImageOverlay,
         image_file: PathBuf,
+    },
+    ContentText {
+        key: ContentTextKey,
+        source_fingerprint: [u8; 32],
+        change: pdf_core::ContentTextChange,
     },
     TextOverlay {
         key: FormsReadKey,
@@ -111,6 +124,7 @@ pub enum Edit {
 }
 
 pub enum Command {
+    ContentText(ContentTextKey),
     Split {
         id: u64,
         revision: u64,
@@ -205,6 +219,7 @@ impl Command {
             Self::Text(key) => key.tab,
             Self::Metadata(key) => key.tab,
             Self::Notes(key) => key.tab,
+            Self::ContentText(key) => key.tab,
             Self::Forms(key) => key.tab,
             Self::Search { key, .. } => key.tab,
         }
@@ -213,6 +228,7 @@ impl Command {
 
 #[derive(Debug, Clone, Copy)]
 pub enum TaskKey {
+    ContentText(ContentTextKey),
     Overlay(FormsReadKey),
     Notes(NotesKey),
     Render(RenderKey),
@@ -229,6 +245,10 @@ pub struct SplitDocument {
     pub status: DocumentStatus,
 }
 pub enum Event {
+    ContentText {
+        key: ContentTextKey,
+        inventory: pdf_worker::document::ContentTextPage,
+    },
     Split {
         source: u64,
         revision: u64,
@@ -364,6 +384,11 @@ impl Worker {
                     Command::Text(key) => Some(TaskKey::Text(*key)),
                     Command::Metadata(key) => Some(TaskKey::Metadata(*key)),
                     Command::Notes(key) => Some(TaskKey::Notes(*key)),
+                    Command::ContentText(key)
+                    | Command::Edit {
+                        edit: Edit::ContentText { key, .. },
+                        ..
+                    } => Some(TaskKey::ContentText(*key)),
                     Command::Forms(key) => Some(TaskKey::Forms(*key)),
                     Command::Edit {
                         edit:
@@ -432,6 +457,8 @@ impl Worker {
     }
 }
 
+#[cfg(test)]
+pub(crate) mod content_tests;
 mod document;
 #[cfg(test)]
 mod forms_tests;
@@ -907,6 +934,15 @@ fn process_with_journal(
                 values: document.metadata()?,
             })
         }
+        Command::ContentText(key) => {
+            if key.revision != document.current.revision {
+                return Err("Existing text inventory request is stale".into());
+            }
+            Ok(Event::ContentText {
+                key,
+                inventory: document.content_text(key.page, key.offset)?,
+            })
+        }
         Command::Notes(key) => {
             if key.revision != document.current.revision {
                 return Err("Note request is stale".into());
@@ -952,6 +988,11 @@ fn process_with_journal(
             })
         }
         Command::Edit { edit, .. } => {
+            if let Edit::ContentText { key, .. } = &edit
+                && key.tab != id
+            {
+                return Err("Existing text draft belongs to another document".into());
+            }
             if let Edit::Note { key, .. } = &edit
                 && key.tab != id
             {

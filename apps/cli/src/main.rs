@@ -1,3 +1,4 @@
+mod content;
 mod isolation;
 mod render;
 mod selection;
@@ -41,6 +42,32 @@ enum Command {
         rect: Vec<f64>,
         #[arg(long, default_value_t = 0)]
         rotation: u16,
+        #[arg(short, long)]
+        output: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Inspect eligible direct existing text runs; operation indices are zero-based.
+    InspectContentText {
+        input: PathBuf,
+        #[arg(long)]
+        page: u32,
+        #[arg(long, default_value_t = 0)]
+        offset: u32,
+    },
+    /// Replace one existing ASCII Courier operand without overlays or reflow.
+    ReplaceContentText {
+        input: PathBuf,
+        #[arg(long)]
+        page: u32,
+        #[arg(long)]
+        operation: u32,
+        #[arg(long)]
+        source_sha256: String,
+        #[arg(long, allow_hyphen_values = true)]
+        expected: String,
+        #[arg(long, allow_hyphen_values = true)]
+        replacement: String,
         #[arg(short, long)]
         output: PathBuf,
         #[arg(long)]
@@ -422,6 +449,33 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
             )
         }
         Command::ListChoices { input } => Ok(json!({"choices":open(input)?.list_choice_fields()?})),
+        Command::InspectContentText {
+            input,
+            page,
+            offset,
+        } => content::inspect(input, password, *page, *offset),
+        Command::ReplaceContentText {
+            input,
+            page,
+            operation,
+            source_sha256,
+            expected,
+            replacement,
+            output,
+            dry_run,
+        } => content::replace(
+            input,
+            password,
+            content::Replacement {
+                page: *page,
+                operation: *operation,
+                source_sha256,
+                expected,
+                replacement,
+                output,
+                dry_run: *dry_run,
+            },
+        ),
         Command::FillChoice {
             input,
             field,
@@ -922,16 +976,17 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
         }
         Command::Capabilities => Ok(
             json!({ "runtime": "rust-native", "version": env!("CARGO_PKG_VERSION"), "migration_preview": true,
-            "commands": ["add-image-overlay", "add-vector-overlay", "split", "add-text-overlay", "info", "sanitize", "list-forms", "list-choices", "fill-button", "fill-text", "fill-choice", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "images-to-pdf", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "duplicate-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
+            "commands": ["add-image-overlay", "add-vector-overlay", "split", "add-text-overlay", "inspect-content-text", "replace-content-text", "info", "sanitize", "list-forms", "list-choices", "fill-button", "fill-text", "fill-choice", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "images-to-pdf", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "duplicate-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
             "vector_overlays":"new_rectangle_ellipse_line_bounded_polyline_with_stroke_fill_paint_alpha_not_redaction",
             "image_overlay":"restricted_png_jpeg_insert_quarter_turns_pdf_rectangle_no_existing_image_replacement",
+            "existing_content_editing": "guarded_direct_courier_ascii_same_length_operands_no_reflow_or_secure_erasure",
             "image_conversion":"restricted_png_jpeg_color_metadata_orientation_tier_one_pixel_one_pdf_point",
             "metadata":"six_standard_trailer_info_keys_custom_entries_and_xmp_preserved_no_sync_or_secure_erasure",
             "sanitization":"targeted_info_xmp_file_association_action_removal_full_rewrite_gc_not_redaction_or_privacy_proof",
             "annotations": "sticky_text_notes_add_list_guarded_edit_remove_with_preserved_appearance",
             "forms": "bounded_acroform_discovery_guarded_buttons_text_and_indexed_dropdown_list_appearances_with_explicit_complete_font",
             "saving": "verified_new_copy_no_clobber", "signed_inputs": "read_only", "encrypted_inputs": "read_only",
-            "unmigrated": ["complete_page_organization", "existing_content_editing", "complete_text_layout_and_choice_form_filling", "cryptographic_signing", "secure_redaction", "complete_sanitization", "ocr", "office_conversion", "recovery", "wasm"] }),
+            "unmigrated": ["complete_page_organization", "complete_existing_content_editing", "complete_text_layout_and_choice_form_filling", "cryptographic_signing", "secure_redaction", "complete_sanitization", "ocr", "office_conversion", "recovery", "wasm"] }),
         ),
         Command::Completions { .. } => Err(Error::Refused(
             "completion scripts are handled before document processing",

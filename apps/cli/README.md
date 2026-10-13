@@ -333,3 +333,14 @@ are refused. Image input is at most 32 MiB, combined PDF/image input 128 MiB,
 8192 pixels per side and eight million pixels. This adds an image; it does not
 replace existing images, sanitize image metadata or provide secure redaction.
 The universal resource-limited CLI child remains mandatory.
+
+`inspect-content-text INPUT --page 1 --json` inventories supported direct text
+runs, exact source hash and zero-based operator indices. `replace-content-text
+INPUT --page 1 --operation N --source-sha256 HASH --expected Original
+--replacement Replaced -o NEW.pdf` replaces the original string operand in the
+bounded child. This first tier supports standard Courier ASCII runs with equal
+length and identical space positions; ambiguous StandardEncoding quote codes
+are refused. It preserves other shared pages. `--dry-run`, JSON, password-stdin
+and no-clobber conventions apply. Signed/encrypted files remain read-only.
+This is neither general reflow nor secure deletion: original bytes can remain.
+See [the exact tier and evidence](../../docs/CONTENT_TEXT_EDITING_RUST.md).

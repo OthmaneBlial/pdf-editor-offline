@@ -1,8 +1,10 @@
 # Existing content text editing: first supported tier
 
 This current-source core API replaces an existing PDF string operand. It creates
-no overlay, whiteout, replacement form, font or annotation. Native controls and
-CLI commands are not yet connected to this API.
+no overlay, whiteout, replacement form, font or annotation. Current-source CLI
+commands and the native **Edit → Edit existing text…** dialog use this API in a
+fresh resource-limited child. This milestone does not describe a published
+preview's capabilities.
 
 `content_text_runs(page)` inventories direct `Tj` operators in one indirect page
 content stream. An identity binds the page object, stream object, operation index
@@ -52,6 +54,29 @@ Limits are 32 MiB decoded/edited page content, 100,000 operators, 10,000 runs or
 changes, 64 KiB per ASCII string, 4 MiB aggregate inventory/change text, existing
 PDF object limits and 128 MiB verified output. Use the API in the existing
 resource-limited worker; bounded parsing is not a filesystem or network sandbox.
+Worker inventory replies contain at most 128 entries and 512 KiB of measured
+entry JSON per page of results, within a 1 MiB inventory envelope. Pagination
+never truncates a string. The original raw PDF SHA-256 binds every inventory and
+mutation in addition to the decoded-stream identity; stale bytes are refused.
+
+`inspect-content-text INPUT --page 1 --json` returns `source_sha256`, zero-based
+operator indices, supported encoding and refusal reasons. Inspect the result,
+then supply its exact hash and expected string:
+
+```sh
+pdf-editor-offline replace-content-text INPUT.pdf --page 1 --operation 8 \
+  --source-sha256 HASH_FROM_INSPECTION --expected Original \
+  --replacement Replaced -o NEW.pdf --dry-run --json
+```
+
+Remove `--dry-run` to publish a verified new copy. The operator index in this
+example is illustrative; use the actual inventory. Existing files and symlinks
+are never overwritten. Native selection and replacement controls dispatch one
+guarded mutation and one durable history update. Undo, Redo and Save As use the
+existing verified worker/journal paths. Wrong-tab/page/revision results,
+pending saves and read-only documents cannot enable Apply. Close, quit and
+recovery retain or explicitly discard a draft; failures keep it available.
+Password-opened files can be inventoried only as session-only read-only data.
 
 This is **not redaction or secure deletion**. The original stream remains as an
 orphan or as another page's live stream, and old bytes can remain recoverable.

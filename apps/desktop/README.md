@@ -186,3 +186,14 @@ cargo test -p pdf-editor-offline-native production_native_image_worker_save_hist
 
 Manual interaction with the OS picker and a visible desktop window has not been
 verified for this milestone.
+
+Current source includes **Edit → Edit existing text…**: select an inventoried
+direct Courier run and replace its original operand with equal-length ASCII
+that preserves spaces. Unsupported structures show explicit refusal reasons.
+Apply uses a fresh bounded child and a single durable history update; Undo,
+Redo and Save As preserve untouched shared pages. Stale tab/page/revision,
+pending-save and read-only guards also apply to this dialog. Real headless
+widget and production-child tests cover this path; manual desktop interaction
+and platform-specific runtime verification are separate gates. Original bytes
+can remain recoverable; this is not reflow or redaction. See [the supported
+tier](../../docs/CONTENT_TEXT_EDITING_RUST.md).

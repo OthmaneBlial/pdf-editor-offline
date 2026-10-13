@@ -9,6 +9,10 @@ pub const MAX_PASSWORD_BYTES: usize = 4096;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "action", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ReadOperation {
+    ContentText {
+        page: u32,
+        offset: u32,
+    },
     Notes {
         page: u32,
         offset: u32,
@@ -29,6 +33,10 @@ pub enum ReadOperation {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "operation", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Operation {
+    ContentText {
+        page: u32,
+        offset: u32,
+    },
     Open,
     Unlock {
         password_bytes_len: u32,
@@ -77,6 +85,11 @@ pub enum Mutation {
     ImageOverlay {
         overlay: pdf_core::ImageOverlay,
         image_bytes_len: u32,
+    },
+    ReplaceContentText {
+        page: u32,
+        source_fingerprint: [u8; 32],
+        changes: Vec<pdf_core::ContentTextChange>,
     },
     TextOverlay {
         overlay: pdf_core::TextOverlay,
@@ -188,6 +201,9 @@ pub struct RasterResult {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "result", rename_all = "snake_case", deny_unknown_fields)]
 pub enum DocumentResult {
+    ContentText {
+        inventory: ContentTextPage,
+    },
     Split {
         parts: Vec<SplitFrame>,
     },
@@ -411,6 +427,16 @@ fn execute(request: Request) -> Result<Reply, String> {
         {
             return Err("Unlock only accepts an encrypted PDF".into());
         }
+        if let ReadOperation::ContentText { page, offset } = read {
+            return reply(
+                DocumentResult::ContentText {
+                    inventory: content_text_inventory(&document, ciphertext, *page, *offset)
+                        .map_err(|error| error.to_string())?,
+                },
+                PayloadKind::None,
+                vec![],
+            );
+        }
         return read_reply(&document, read.clone(), None);
     }
     if let Operation::Images { lengths } = operation {
@@ -514,6 +540,15 @@ fn execute(request: Request) -> Result<Reply, String> {
         }
         return document_reply(document, Some(selected));
     }
+    if let Operation::Edit {
+        mutation: Mutation::ReplaceContentText {
+            source_fingerprint, ..
+        },
+    } = &operation
+        && *source_fingerprint != crate::payload_fingerprint(&request.payload)
+    {
+        return Err("Existing text source fingerprint is stale".into());
+    }
     let mut document =
         PdfDocument::from_bytes(&request.payload, None).map_err(|error| error.to_string())?;
     match operation {
@@ -546,6 +581,11 @@ fn execute(request: Request) -> Result<Reply, String> {
                 payload,
             )
         }
+        Operation::ContentText { page, offset } => read_reply(
+            &document,
+            ReadOperation::ContentText { page, offset },
+            Some(&request.payload),
+        ),
         Operation::Notes { page, offset } => read_reply(
             &document,
             ReadOperation::Notes { page, offset },
@@ -610,12 +650,87 @@ fn execute(request: Request) -> Result<Reply, String> {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContentTextPage {
+    pub page: u32,
+    pub offset: u32,
+    pub total_runs: u32,
+    pub source_fingerprint: [u8; 32],
+    pub runs: Vec<pdf_core::ContentTextRun>,
+    pub next_offset: Option<u32>,
+}
+
+/// Shared pagination for actual worker and isolated CLI callers; no source paths.
+pub fn content_text_inventory(
+    document: &PdfDocument,
+    source: &[u8],
+    page: u32,
+    offset: u32,
+) -> pdf_core::Result<ContentTextPage> {
+    if source.len() > crate::MAX_PDF_BYTES {
+        return Err(pdf_core::Error::Limit(
+            "content inventory source exceeds 128 MiB",
+        ));
+    }
+    let all = document.content_text_runs(page)?;
+    if offset as usize > all.len() {
+        return Err(pdf_core::Error::Invalid(
+            "content inventory offset is out of range",
+        ));
+    }
+    let mut runs = Vec::new();
+    let mut size = 0usize;
+    for run in all.iter().skip(offset as usize).take(128) {
+        let bytes = serde_json::to_vec(run)
+            .map_err(|_| pdf_core::Error::Verification("cannot encode content inventory entry"))?
+            .len();
+        if size.saturating_add(bytes + 1) > 512 * 1024 {
+            break;
+        }
+        size += bytes + 1;
+        runs.push(run.clone());
+    }
+    let end = offset as usize + runs.len();
+    let inventory = ContentTextPage {
+        page,
+        offset,
+        total_runs: all.len() as u32,
+        source_fingerprint: crate::payload_fingerprint(source),
+        runs,
+        next_offset: (end < all.len()).then_some(end as u32),
+    };
+    if end < all.len() && inventory.runs.is_empty()
+        || serde_json::to_vec(&inventory)
+            .map_err(|_| pdf_core::Error::Verification("cannot encode content inventory"))?
+            .len()
+            > 1024 * 1024
+    {
+        return Err(pdf_core::Error::Limit(
+            "content inventory cannot fit its bounded report",
+        ));
+    }
+    Ok(inventory)
+}
+
 fn read_reply(
     document: &PdfDocument,
     operation: ReadOperation,
     original: Option<&[u8]>,
 ) -> Result<Reply, String> {
     match operation {
+        ReadOperation::ContentText { page, offset } => {
+            let source =
+                original.ok_or("Encrypted content inventory requires its ciphertext binding")?;
+            reply(
+                DocumentResult::ContentText {
+                    inventory: content_text_inventory(document, source, page, offset)
+                        .map_err(|error| error.to_string())?,
+                },
+                PayloadKind::None,
+                vec![],
+            )
+        }
         ReadOperation::Notes { page, offset } => {
             let notes = document
                 .list_notes(&[page])
@@ -792,6 +907,16 @@ fn document_reply(document: PdfDocument, selected_page: Option<usize>) -> Result
 
 fn apply(document: &mut PdfDocument, mutation: Mutation) -> Result<Option<usize>, String> {
     let selected = match mutation {
+        Mutation::ReplaceContentText {
+            page,
+            source_fingerprint: _,
+            changes,
+        } => {
+            document
+                .replace_content_text(page, &changes)
+                .map_err(|error| error.to_string())?;
+            Some(page as usize - 1)
+        }
         Mutation::Note { change } => {
             let page = change.page();
             match change {
