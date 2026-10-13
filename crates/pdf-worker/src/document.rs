@@ -10,6 +10,10 @@ pub const MAX_TEXT_BYTES: usize = 1024 * 1024;
 pub enum Operation {
     Info,
     Forms,
+    Notes {
+        page: u32,
+        offset: u32,
+    },
     Render {
         page: usize,
         scale: f32,
@@ -41,6 +45,9 @@ pub enum Mutation {
     TextOverlay {
         overlay: pdf_core::TextOverlay,
         font_bytes_len: u32,
+    },
+    Note {
+        change: NoteChange,
     },
     FillText {
         changes: Vec<pdf_core::TextChange>,
@@ -89,6 +96,43 @@ pub enum Mutation {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "change", rename_all = "snake_case", deny_unknown_fields)]
+pub enum NoteChange {
+    Add {
+        page: u32,
+        rectangle: [f32; 4],
+        contents: String,
+        author: String,
+    },
+    Edit {
+        page: u32,
+        annotation_index: u32,
+        expected_id: Option<(u32, u16)>,
+        contents: Option<String>,
+        author: Option<String>,
+    },
+    Remove {
+        page: u32,
+        annotation_index: u32,
+        expected_id: Option<(u32, u16)>,
+    },
+}
+impl NoteChange {
+    pub fn page(&self) -> u32 {
+        match self {
+            Self::Add { page, .. } | Self::Edit { page, .. } | Self::Remove { page, .. } => *page,
+        }
+    }
+}
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NoteEntry {
+    pub note: pdf_core::Note,
+    pub editable: bool,
+    pub refusal_reason: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct MetadataChange {
     pub key: pdf_core::MetadataKey,
@@ -108,6 +152,10 @@ pub struct RasterResult {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "result", rename_all = "snake_case", deny_unknown_fields)]
 pub enum DocumentResult {
+    Notes {
+        entries: Vec<NoteEntry>,
+        next_offset: Option<u32>,
+    },
     Sanitized {
         info: DocumentInfo,
         report: pdf_core::SanitizationReport,
@@ -252,6 +300,49 @@ fn execute(request: Request) -> Result<Reply, String> {
     let mut document =
         PdfDocument::from_bytes(&request.payload, None).map_err(|error| error.to_string())?;
     match operation {
+        Operation::Notes { page, offset } => {
+            let notes = document
+                .list_notes(&[page])
+                .map_err(|error| error.to_string())?;
+            let start = offset as usize;
+            if start > notes.len() {
+                return Err("Note offset is out of range".into());
+            }
+            let mut entries = vec![];
+            let mut bytes = 0usize;
+            for note in notes.iter().skip(start).take(128) {
+                if note.contents.len() > pdf_core::MAX_NOTE_CONTENT_BYTES
+                    || note.author.len() > pdf_core::MAX_NOTE_AUTHOR_BYTES
+                {
+                    return Err("Existing note exceeds this reader's 64 KiB contents or 1 KiB author tier; no text was truncated".into());
+                }
+                let size = note.contents.len() + note.author.len();
+                if bytes + size > 512 * 1024 {
+                    break;
+                }
+                bytes += size;
+                let refusal_reason = match document.note_editability(page, note.annotation_index) {
+                    Ok(()) => None,
+                    Err(pdf_core::Error::Limit(message)) => return Err(message.into()),
+                    Err(error) => Some(error.to_string().chars().take(512).collect()),
+                };
+                entries.push(NoteEntry {
+                    note: note.clone(),
+                    editable: refusal_reason.is_none(),
+                    refusal_reason,
+                });
+            }
+            let end = start + entries.len();
+            let next_offset = (end < notes.len()).then_some(end as u32);
+            reply(
+                DocumentResult::Notes {
+                    entries,
+                    next_offset,
+                },
+                PayloadKind::None,
+                vec![],
+            )
+        }
         Operation::Forms => reply(
             DocumentResult::Forms {
                 fields: document
@@ -410,6 +501,49 @@ fn document_reply(document: PdfDocument, selected_page: Option<usize>) -> Result
 
 fn apply(document: &mut PdfDocument, mutation: Mutation) -> Result<Option<usize>, String> {
     let selected = match mutation {
+        Mutation::Note { change } => {
+            let page = change.page();
+            match change {
+                NoteChange::Add {
+                    rectangle,
+                    contents,
+                    author,
+                    ..
+                } => {
+                    document
+                        .add_note(page, rectangle, &contents, &author)
+                        .map_err(|error| error.to_string())?;
+                }
+                NoteChange::Edit {
+                    annotation_index,
+                    expected_id,
+                    contents,
+                    author,
+                    ..
+                } => {
+                    expected_note(document, page, annotation_index, expected_id)?;
+                    document
+                        .edit_note(
+                            page,
+                            annotation_index,
+                            contents.as_deref(),
+                            author.as_deref(),
+                        )
+                        .map_err(|error| error.to_string())?;
+                }
+                NoteChange::Remove {
+                    annotation_index,
+                    expected_id,
+                    ..
+                } => {
+                    expected_note(document, page, annotation_index, expected_id)?;
+                    document
+                        .remove_note(page, annotation_index)
+                        .map_err(|error| error.to_string())?;
+                }
+            }
+            Some(page as usize - 1)
+        }
         Mutation::FillText { .. } | Mutation::TextOverlay { .. } => {
             return Err("Text font payload was not split before PDF parsing".into());
         }
@@ -515,6 +649,24 @@ fn apply(document: &mut PdfDocument, mutation: Mutation) -> Result<Option<usize>
         }
     };
     Ok(selected)
+}
+
+fn expected_note(
+    document: &PdfDocument,
+    page: u32,
+    index: u32,
+    id: Option<(u32, u16)>,
+) -> Result<(), String> {
+    let notes = document
+        .list_notes(&[page])
+        .map_err(|error| error.to_string())?;
+    if !notes
+        .iter()
+        .any(|note| note.annotation_index == index && note.object_id == id)
+    {
+        return Err("Note occurrence or object identity is stale".into());
+    }
+    Ok(())
 }
 
 fn merge(payload: &[u8], lengths: &[usize]) -> Result<Reply, String> {
