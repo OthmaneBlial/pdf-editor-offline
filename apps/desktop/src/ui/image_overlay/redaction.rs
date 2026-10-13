@@ -127,7 +127,7 @@ impl EditorApp {
         let mut page_change = None;
         let mut apply = false;
         let mut discard = false;
-        egui::Window::new("Permanently remove complete image assets")
+        egui::Window::new("Remove complete images")
             .collapsible(false).default_width(470.0)
             .max_width((context.content_rect().width()-32.0).max(240.0))
             .show(context,|ui|{
