@@ -74,8 +74,30 @@ Independent readers verify actual Unicode text, metrics, visible glyphs and
 unchanged shared pages. The selected font changes the original content, not an
 overlay. Old source streams remain, so this does not erase previous text.
 
-This chosen-font tier currently has no CLI or native controls. Vertically
-positioned/reordered shaping and CFF/OpenType embedding and their repeat-editing
-model remain unfinished. Manual native interaction and platform runtime evidence
-for this new mode remain separate gates; no screenshots or release claims are
-inferred from headless tests.
+Current source exposes this tier through the same `set-content-text-font`
+command: use `--font-file chosen.ttf` instead of `--font Times-Italic`.
+An optional `--replacement 'AV Café ΩЖ'` changes the text with the chosen font.
+The original inventory's operation, expected value and `--source-sha256` remain
+required, as does `--allow-width-change`. `--dry-run` performs validation without
+publication; normal output uses the same verified no-clobber new-copy path.
+
+In the native existing-text dialog, **Font face → Choose TrueType font…** selects
+a regular bounded file. The optional text field preserves pasted values; the
+isolated child refuses unsupported text instead of silently substituting glyphs
+or dropping line breaks. Explicit width acknowledgement enables Apply.
+Successful changes enter one durable Undo/Redo transaction; font/value drafts
+retain the existing source/revision/read-only/pending-save and close guards.
+Font bytes use the path-free worker payload, capped at 16 MiB with PDF/font
+input capped at 128 MiB. Reopening uses bounded embedded-font inventory checks.
+
+Actual CLI/shared-child tests cover Unicode and positioned `TJ`, identity and
+width refusals, dry-run and no-clobber saving. Headless native controls exercise
+scrolling, text entry, acknowledgement, Apply, Undo/Redo, Save and reopening.
+A separate normal-native `--pdf-worker` gate uses pinned qpdf 12.4.2 and Poppler
+26.10.0 for exact Unicode extraction, changed ink, unchanged shared pages and
+source/assets preservation. These caller tests do not establish manual window
+review or a published release.
+
+Vertically positioned/reordered shaping, RTL, CFF/OpenType embedding and their
+repeat-editing model remain unfinished. No reflow or universal Unicode claim is
+made. Manual native interaction and platform runtime remain separate gates.

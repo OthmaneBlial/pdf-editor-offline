@@ -1,5 +1,15 @@
 # Native Rust CLI preview
 
+Current source can change an eligible original text run to a chosen static TTF:
+`set-content-text-font INPUT --page 1 --operation N --source-sha256 HASH
+--expected Original --font-file chosen.ttf --replacement 'AV Café ΩЖ'
+--allow-width-change --output NEW.pdf`. Use the source-bound operation/hash from
+`inspect-content-text`; omit `--replacement` to retain the value. `--font` and
+`--font-file` are mutually exclusive. Dry-run, isolated processing and verified
+no-clobber publication apply. [Font scope and refusals](../../docs/EXISTING_TEXT_FONT_RUST.md).
+This is original-content editing, with no CFF/RTL/reflow or secure-erasure claim;
+the published preview remains separate from current source.
+
 Current source adds atomic page numbering through `number-pages`. Select a unique
 page range, start value, header/footer position, margin, band height, explicit
 font file, font size, alignment and RGB color. Numbers follow document order and

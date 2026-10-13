@@ -1,5 +1,15 @@
 # Native desktop milestone
 
+Current source's existing-text **Font face** pane accepts a chosen static TTF,
+optional covered Unicode and explicit width-change acknowledgement. The real
+picker, retained drafts, source identity, worker, durable Undo/Redo and verified
+Save As reuse the existing properties workflow. The chosen font preserves the
+original text size and matrix; new ink/width can overlap artwork. Unsupported
+fonts, source structures, missing glyphs, CFF/RTL and reflow are refused.
+[Actual font tier and caller checks](../../docs/EXISTING_TEXT_FONT_RUST.md).
+Headless controls and production-native child/output proof do not establish a
+manual window review or change the published preview.
+
 Current source includes **Edit → Number pages…** and a working command-palette action.
 An explicit page range, starting integer, header/footer band, margin, font size,
 RGB color, alignment and covering font create one atomic batch and one durable
