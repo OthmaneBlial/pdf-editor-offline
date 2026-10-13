@@ -2,6 +2,22 @@
 
 ## Latest recorded run
 
+The [preview.2 local report](benchmarks/rust-cli-preview2-2026-10-13.json)
+records **44 passed, zero failed, zero skipped** on clean source `e236012`.
+The full runner took **9.932 seconds** on the recorded macOS ARM64 host. Source
+hashes stayed unchanged, including the CLI's bounded self-hosted child processing.
+The [Cargo compiler artifact](benchmarks/native-cli-preview2-build-2026-10-13.json)
+records an actual optimized build reporting `4.0.0-preview.2`; the executable is
+10,102,096 bytes, SHA-256
+`204286d077b1d867dbeaa8a7b2ab260645fd117cce9b44492d6c81b50273078e`.
+
+This is local validation, separate from the five GitHub release artifacts and
+registry installation checks. The matrix measures the four operations below;
+page duplication and form filling have separate gates. These timings do not
+establish a speedup, peak memory or desktop responsiveness.
+
+## Earlier isolation run
+
 The [isolated CLI report](benchmarks/rust-cli-isolation-2026-10-13.json) records
 **44 passed, zero failed, zero skipped** on clean source commit `447c0b9`.
 The full runner took 9.991 seconds on the recorded macOS host. Each measured
