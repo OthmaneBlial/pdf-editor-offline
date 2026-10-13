@@ -2,6 +2,10 @@
 
 ## Unreleased — native Rust preview
 
+- Added bounded Unicode page-text overlays through the core, isolated CLI and worker, with explicit covering fonts, color, size and alignment. Original artwork/resources are retained, overflow is refused, and the command reports that it neither edits existing text nor securely erases it. Real before/after PDF exports and reproducible commands are documented.
+
+- Render seven standard Text annotation icons when AP is absent, with original vector artwork, intrinsic upright/fixed-screen-size behavior and explicit-appearance precedence. Native footprint preservation and pinned Poppler semantics are tested; popup interaction and identical artwork across readers are not claimed.
+
 - Added ordered native PDF merging through the isolated worker. The guarded simple-catalog tier creates a separate journaled unsaved tab, preserves source files and history, and verifies saved output against independent text, geometry and pixel checks. Native picker interaction remains a manual review gate.
 
 - Render standard FileAttachment icons when an explicit appearance is absent, using original vector artwork with guarded geometry, color, opacity and annotation flags. Native preservation checks and pinned Poppler comparisons cover their visible removal during targeted cleanup.

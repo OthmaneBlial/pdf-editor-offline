@@ -25,6 +25,10 @@ embedded covering fonts and desktop undo/redo, plus targeted sanitized copies
 and ordered PDF merging into a separate unsaved document.
 [Try a form](docs/FORMS_RUST.md) · [Review a cleanup copy](docs/SANITIZATION_RUST.md).
 
+**New in the source CLI:** add Unicode text to a page with a covering font,
+alignment and color. [See the actual before/after PDF exports and try the command](docs/TEXT_OVERLAYS_RUST.md).
+This adds new content; it does not edit or erase existing text.
+
 **Start with a real document you can inspect.** The repository includes a
 [public form fixture](tests/fixtures/pdfs/forms.pdf). Build the desktop, open it,
 change a supported field, undo the change and save a separate copy. Open that
@@ -154,7 +158,8 @@ The table covers current source; published CLI differences are called out below.
 | Organize pages | Move/reverse pages, rotate, insert blank pages, crop, guarded range extraction/deletion/duplication, ordered simple-catalog merge into a new tab, undo/redo | Reorder/reverse/rotate/crop, insert blank pages, guarded extract/delete, simple-catalog merge; guarded duplication in current source |
 | Document properties | Read/edit six standard fields, including Unicode | Read/set/remove Title, Author, Subject, Keywords, Creator and Producer |
 | Images | Create PDF pages from supported PNG/JPEG files | Restricted images-to-PDF conversion; export one PDF page as PNG |
-| Comments | Existing supported appearances can be displayed | Add/list sticky Text notes; guarded editing/removal of basic notes |
+| Comments | Supported explicit appearances and standard Text/FileAttachment icons can be displayed | Add/list sticky Text notes; guarded editing/removal of basic notes |
+| New page text | CLI/core support; native placement is being implemented | `add-text-overlay` adds bounded Unicode text with an explicit font, rectangle, color and alignment in current source |
 | Forms | Checkboxes/radios, single/multiline text, dropdowns and single/multiple list selections; guarded apply and undo/redo | Discover fields and indexed options; `fill-button`, `fill-text`, `list-choices` and `fill-choice` in current source |
 | Inspect and export | Verified Save As to a new path | Read-only action/attachment/form/layer markers, lossless stream compression, verified fresh output copies |
 | Targeted cleanup | Separate unsaved copy, removal report and verified Save As | `sanitize` removes supported metadata/file/action structures through a full rewrite in current source; includes dry-run and a partial-scope report |

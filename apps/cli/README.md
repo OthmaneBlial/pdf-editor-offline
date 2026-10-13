@@ -1,5 +1,10 @@
 # Native Rust CLI preview
 
+Current source adds new Unicode page text with `add-text-overlay`. Choose a
+covering font, rectangle, size, color and alignment; overflow and unsafe inputs
+are refused. This does not edit or erase existing content. See the
+[reproducible example and actual PDF exports](../../docs/TEXT_OVERLAYS_RUST.md).
+
 Current source builds run every document command in a bounded self-hosted child.
 Help, version, completions and capabilities remain local. [Processing controls](../../docs/CLI_ISOLATION.md)
 describe password stdin, native paths, output budgets and interrupted writes.

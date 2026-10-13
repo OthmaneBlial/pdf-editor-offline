@@ -15,8 +15,19 @@ GitHub and npm publication are verified; npm `latest` is `4.0.0-preview.3` and a
 fresh registry install was checked with Node 22. This later text/CFF source is
 separate from that release; preview 4 is not yet published.
 
+New Unicode page-text overlays are available through the core, CLI and isolated
+worker. They preserve existing artwork, embed a chosen covering font and refuse
+overflow or unsupported inputs. They are additions, not existing-text editing or
+redaction. The combined core/renderer integration passed **249 tests across 29
+suites with no failures or ignored tests**, including all pinned references;
+the actual CLI/worker overlay tests added **three passing checks**. Strict
+workspace/all-target Clippy and fresh native/CLI/helper builds passed.
+[Reproduce the real PDF exports](TEXT_OVERLAYS_RUST.md). Native placement remains
+separate work. Standard omitted-AP Text icons now render using original vectors;
+their tested behavior does not imply popup interaction or artwork parity.
+
 The 13 October merge/attachment-rendering integration at reviewed source
-`2f96ce3` passed **515 workspace tests across 58 suites, with no failed or ignored
+`85f199d` passed **515 workspace tests across 58 suites, with no failed or ignored
 tests**, including the pinned qpdf/Poppler gates and actual native worker runs.
 Strict workspace/all-target Clippy, fresh native/CLI/helper builds, formatting
 and workflow syntax checks passed. The initial reference run stopped because the
