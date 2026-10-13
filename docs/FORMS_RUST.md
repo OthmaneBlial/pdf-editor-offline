@@ -1,9 +1,10 @@
-# Native AcroForm buttons
+# Native AcroForm filling
 
 Current source discovers AcroForm fields and fills supported checkbox/radio
-buttons using their existing appearance streams. This milestone is separate from
-the published `4.0.0-preview.1` CLI. Text and choice fields are discoverable, but
-their values cannot yet be changed through this button tier.
+buttons using their existing appearance streams. Eligible single-line text fields
+generate embedded appearances with an explicitly supplied covering font. These
+source milestones are separate from the published CLI. Choice fields remain
+discoverable and read-only.
 
 ## Try the synthetic form
 
@@ -33,10 +34,13 @@ read-only for edits. Signature-bearing inputs are also read-only.
 
 Open a PDF, then choose **PDF form fields…** or use the command palette's
 **PDF form fields** action. Select a field in the list. Eligible checkboxes and
-radio options show their existing export-state labels and page numbers; text,
-choice and unsupported fields remain read-only. Password values are omitted.
+radio options show their existing export-state labels and page numbers. Eligible
+text fields show a value editor; choose a covering `.ttf` or supported `.otf`
+font with **Choose text font…**. Choice and unsupported fields remain read-only.
+Password values are omitted.
 
-Choose the desired states and press **Apply button changes**. The edit enters
+Choose the desired states and values, then press **Apply form changes**. A mixed
+button/text edit commits together only when every change succeeds. The edit enters
 durable history, so Undo/Redo work before **Save As** creates a verified copy.
 The selected page stays unchanged. Stale revisions, tab switches, pending saves,
 signed/decrypted inputs and child/journal failures cannot apply a stale draft;
@@ -47,6 +51,36 @@ Headless UI tests exercise actual checkbox/radio controls and focused Space-key
 activation; actor tests change both field kinds together, save/reopen and restore
 durable undo/redo. These are automated interaction checks, separate from a real
 window review of this new dialog.
+
+## Fill a text field
+
+```sh
+./target/debug/pdf-editor-offline fill-text tests/fixtures/pdfs/forms.pdf --field full_name --value 'Ada é' --font-file apps/desktop/assets/fonts/ibm-plex/IBMPlexSans-Regular.ttf -o filled.pdf --dry-run --json
+```
+
+Remove `--dry-run` to save a verified new copy. The font must cover the complete
+value and permit editable embedding. The CLI and desktop read a regular font file
+with a 16 MiB limit; the path-free worker receives bounded font bytes separately
+from the PDF. No fallback font is silently chosen.
+
+This tier supports static TrueType outlines and guarded horizontal CID-keyed
+CFF1 OpenType fonts. It shapes covered text with bidi/script handling, preserves
+the logical value in `/V` and `/ActualText`, and writes cluster mappings in
+`/ToUnicode`. Text, metrics, alignment and automatic sizing must fit the existing
+widget. Clearing a field creates an empty value and appearance. The supplied
+font program is embedded unchanged; existing resources and unrelated objects
+remain intact. Missing glyphs, invisible non-whitespace outlines, unsupported
+color/bitmap/SVG or variable fonts and unsupported CFF matrices are refused.
+
+Discovery reports button eligibility with `writable_button` / `refusal_reason`
+and text eligibility separately with `writable_text` / `text_refusal_reason`.
+Text eligibility is structural: Apply still checks the supplied font and layout.
+
+Multiline, password, file-select, comb and rich-text fields remain unavailable.
+Existing appearance regions that cannot be replaced while preserving surrounding
+drawing semantics are refused. This edits form fields, rather than arbitrary
+page text. RTL extraction can differ between reader modes; fixture checks do not
+establish universal text order or full Unicode coverage.
 
 ## What changes in the PDF
 
@@ -87,6 +121,13 @@ PDF_FORM_QPDF=/absolute/path/to/qpdf PDF_FORM_POPPLER_BIN=/absolute/path/to/popp
 PDF_QPDF_BIN=/absolute/path/to/qpdf PDF_REFERENCE_BIN_DIR=/absolute/path/to/poppler/bin cargo test -p pdf-editor-offline-cli --test forms --locked -- --ignored
 ```
 
+Text and CFF checks also inspect embedded programs and mappings, clear/save/reopen
+behavior, atomic refusals, unrelated objects and rendered pixels:
+
+```sh
+PDF_QPDF_BIN=/absolute/path/to/qpdf PDF_REFERENCE_BIN_DIR=/absolute/path/to/poppler/bin cargo test -p pdf-core --test text_forms --locked -- --ignored
+PDF_FORM_QPDF=/absolute/path/to/qpdf PDF_FORM_POPPLER_BIN=/absolute/path/to/poppler/bin cargo test -p pdf-core --test cff_forms --locked -- --ignored
+```
+
 These fixture checks do not prove complete forms support or universal rendering
-fidelity. Unicode text appearance generation, choice layout and signing remain
-separate implementation stages.
+fidelity. Choice layout, advanced text fields and signing remain separate stages.

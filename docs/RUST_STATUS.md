@@ -15,7 +15,7 @@ tests**; their ordinary commands leave 3 and 7 explicit gates ignored respective
 The dedicated form gates were run separately with pinned qpdf 12.4.2 and Poppler
 26.10, checking saved object values, unchanged appearance streams and actual
 widget pixels. Strict core/CLI/worker Clippy passed. [Form scope](FORMS_RUST.md)
-describes field-graph refusals and remaining text/choice generation, flattening,
+describes field-graph refusals and remaining advanced text/choice layout, flattening,
 signing and desktop interaction work.
 
 The native form dialog now uses the same guarded button worker, preserves page
@@ -28,6 +28,25 @@ changes, stale/tab/save guards, signed/read-only sources, durable undo/redo and
 verified Save As. Real window review remains unverified: acquisition of both the
 older review app and a freshly built forms app returned `cgWindowNotFound`.
 No new GUI screenshot or all-platform interaction claim follows from these tests.
+
+Current source also fills supported single-line text fields with an explicit
+covering TrueType or static CID-keyed CFF1 font. Core, isolated CLI and native
+dialog use the same generated appearance and fit/coverage checks; mixed text/button
+edits commit as one durable history entry. ActualText and cluster ToUnicode
+mappings preserve logical Unicode. Independent checks cover Latin, combining
+text, Arabic, CJK, nonidentity CFF CIDs, unchanged unrelated artwork and verified
+copies. Unsupported fonts/layouts and dependent appearance regions are refused;
+this is neither arbitrary page-text editing nor secure erasure. Choice/advanced
+text fields and a real review of the font picker remain open.
+
+Local text/CFF integration checks passed **398 workspace tests** (19 explicit
+gates ignored by the ordinary command), **96 desktop tests** with artifact gates,
+and **124 CLI/worker tests** with independent gates enabled. The two dedicated
+TTF/CFF qpdf/Poppler gates passed separately. Strict workspace/worker-fixture
+Clippy, formatting and dependency/license/source checks passed. After sharing the
+strict PDF string decoder with ActualText, all **40 focused core/text tests**
+passed. These are local checks; they do not establish release publication,
+all-platform interaction or complete form parity.
 
 The source now builds the native Rust preview. The previous source is preserved
 under `recovery-before-native-cleanup-20261012`; old release assets remain in

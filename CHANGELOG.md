@@ -2,6 +2,8 @@
 
 ## Unreleased — native Rust preview
 
+- Added guarded single-line text form filling with explicit covering TrueType or static CID-keyed CFF1 fonts, shaped embedded appearances, logical Unicode values/mappings, fit checks and atomic refusals. The isolated CLI and desktop support text changes and mixed button/text history transactions; choice and advanced text fields remain separate stages.
+
 - Preserve PDF text strings consistently across form names/values, metadata, notes and attachment filenames. Undefined PDFDocEncoding bytes and malformed Unicode now fail explicitly instead of silently dropping or replacing characters; valid UTF-16 and UTF-8 BOM strings retain supplementary characters.
 
 - Added native form-field discovery and eligible checkbox/radio controls, including keyboard activation, durable apply/undo/redo, verified saving, stale/tab/save guards and retained error drafts. Unsupported fields remain read-only; real window review remains separate from automated interaction tests.

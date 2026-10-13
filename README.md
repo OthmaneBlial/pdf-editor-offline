@@ -123,7 +123,7 @@ The table covers current source; published CLI differences are called out below.
 | Document properties | Read/edit six standard fields, including Unicode | Read/set/remove Title, Author, Subject, Keywords, Creator and Producer |
 | Images | Create PDF pages from supported PNG/JPEG files | Restricted images-to-PDF conversion; export one PDF page as PNG |
 | Comments | Existing supported appearances can be displayed | Add/list sticky Text notes; guarded editing/removal of basic notes |
-| Forms | Discover fields and apply guarded checkbox/radio changes with undo/redo in current source | Discover AcroForm fields and fill guarded checkbox/radio buttons in current source |
+| Forms | Discover fields; apply guarded checkbox/radio and single-line text changes with undo/redo, using an explicit covering font | Discover AcroForm fields; fill supported buttons and single-line text with `fill-button` / `fill-text` in current source |
 | Inspect and export | Verified Save As to a new path | Read-only action/attachment/form/layer markers, lossless stream compression, verified fresh output copies |
 | Resume your work | Recorded document/history snapshots, explicit session restore/discard, interrupted-save retry/cancel in current source | Desktop recovery is separate from the CLI |
 
@@ -137,14 +137,15 @@ milestone; it is not included in the published `4.0.0-preview.1` CLI.
 
 Cropping hides content. Removing metadata or notes can leave old values in the
 file. None of these operations is secure redaction or private-data erasure.
-OCR, text/choice form filling, digital signing, arbitrary page-text editing and broad document
+OCR, choice/advanced text form filling, digital signing, arbitrary page-text editing and broad document
 conversion are not implemented in this preview. Rendering can omit unsupported
 content; inspect exported documents before relying on them. Signed inputs and
 successfully decrypted inputs are read-only.
 
-[Try the form fixture](docs/FORMS_RUST.md): button filling preserves existing
-appearances and refuses unsupported structures. It is a current-source milestone,
-separate from the published `4.0.0-preview.1` CLI.
+[Try the form fixture](docs/FORMS_RUST.md): buttons preserve existing appearances;
+single-line text embeds a complete covering TrueType or supported CID-keyed CFF1
+font. Missing glyphs and unsupported layouts are refused. These are current-source
+milestones, separate from the published `4.0.0-preview.1` CLI.
 
 The interface is currently English. These README translations do not imply a
 localized GUI or complete right-to-left layout support. Offline fonts include

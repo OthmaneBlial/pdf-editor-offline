@@ -22,9 +22,11 @@ Esta es la versión preliminar nativa en Rust. Compila la aplicación de escrito
 | Imágenes y comentarios | Crear PDF desde PNG/JPEG compatibles; exportar una página a PNG y añadir/listar/editar/eliminar notas Text bajo restricciones en CLI. |
 | Inspeccionar y guardar | Inventario de marcadores de acciones, adjuntos, formularios y capas de solo lectura en CLI; compresión de flujos sin pérdida y copias nuevas verificadas sin sobrescribir. |
 
-La unión, los subconjuntos de páginas, las notas y la conversión de imágenes tienen restricciones explícitas. Las estructuras no compatibles se rechazan; consulta la [guía CLI](../../apps/cli/README.md). La compresión no garantiza un archivo menor. Recortar oculta contenido; eliminar metadatos o notas puede dejar valores antiguos. No es un borrado seguro. OCR, rellenar campos de texto y de selección, firma digital, edición libre del texto y conversión general no están disponibles. El renderizador puede omitir contenido no compatible. Revisa los documentos exportados. Los archivos firmados y los descifrados correctamente son de solo lectura.
+La unión, los subconjuntos de páginas, las notas y la conversión de imágenes tienen restricciones explícitas. Las estructuras no compatibles se rechazan; consulta la [guía CLI](../../apps/cli/README.md). La compresión no garantiza un archivo menor. Recortar oculta contenido; eliminar metadatos o notas puede dejar valores antiguos. No es un borrado seguro. OCR, campos de selección y de texto avanzado, firma digital, edición libre del texto y conversión general no están disponibles. El renderizador puede omitir contenido no compatible. Revisa los documentos exportados. Los archivos firmados y los descifrados correctamente son de solo lectura.
 
 El código actual detecta campos AcroForm y rellena casillas y botones de opción compatibles, conservando sus apariencias existentes. [Ejemplos y límites](../FORMS_RUST.md). Esta función todavía no está en el paquete npm publicado.
+
+Los campos de texto de una sola línea compatibles también pueden rellenarse con una fuente TrueType o CFF1 CID explícita que cubra todo el valor. Se rechazan los glifos ausentes y los diseños no compatibles.
 
 La interfaz está actualmente en inglés. Estas traducciones no implican una interfaz localizada ni compatibilidad completa con diseños de derecha a izquierda. Las fuentes locales incluyen caracteres chinos, japoneses y coreanos probados, pero no cubren todas las escrituras.
 

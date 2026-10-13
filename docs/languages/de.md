@@ -22,9 +22,11 @@ Dies ist die native Rust-Vorschau. Baue die Desktop-App aus dem Quellcode, um si
 | Bilder und Kommentare | PDF-Seiten aus unterstützten PNG/JPEG-Dateien; eine Seite als PNG exportieren und einfache Text-Notizen per CLI hinzufügen/auflisten/eingeschränkt bearbeiten/entfernen. |
 | Prüfen und speichern | Aktions-, Anhang-, Formular- und Ebenenmerkmale per CLI nur lesend erfassen; Streams verlustfrei komprimieren und geprüfte neue Kopien ohne Überschreiben speichern. |
 
-Zusammenführen, Seitenauswahl, Notizen und Bildkonvertierung haben klare Grenzen. Nicht unterstützte Strukturen werden abgewiesen; siehe [CLI-Anleitung](../../apps/cli/README.md). Komprimierung garantiert keine kleinere Datei. Zuschneiden versteckt Inhalte; beim Entfernen von Metadaten oder Notizen können alte Werte erhalten bleiben. Das ist kein sicheres Löschen. OCR, Ausfüllen von Text- und Auswahlfeldern, digitale Signaturen, freie Textbearbeitung und allgemeine Dokumentkonvertierung fehlen noch. Nicht unterstützte Inhalte können beim Rendern fehlen. Prüfe exportierte Dokumente. Signierte und erfolgreich entschlüsselte Dateien sind nur lesbar.
+Zusammenführen, Seitenauswahl, Notizen und Bildkonvertierung haben klare Grenzen. Nicht unterstützte Strukturen werden abgewiesen; siehe [CLI-Anleitung](../../apps/cli/README.md). Komprimierung garantiert keine kleinere Datei. Zuschneiden versteckt Inhalte; beim Entfernen von Metadaten oder Notizen können alte Werte erhalten bleiben. Das ist kein sicheres Löschen. OCR, Auswahlfelder und erweiterte Textfelder, digitale Signaturen, freie Textbearbeitung und allgemeine Dokumentkonvertierung fehlen noch. Nicht unterstützte Inhalte können beim Rendern fehlen. Prüfe exportierte Dokumente. Signierte und erfolgreich entschlüsselte Dateien sind nur lesbar.
 
 Der aktuelle Quellcode erkennt AcroForm-Felder und füllt unterstützte Kontrollkästchen und Optionsfelder mit vorhandenen Darstellungen. [Beispiele und Grenzen](../FORMS_RUST.md). Diese Funktion ist noch nicht im veröffentlichten npm-Paket enthalten.
+
+Unterstützte einzeilige Textfelder können mit einer ausdrücklich gewählten TrueType- oder CID-CFF1-Schrift ausgefüllt werden, die den gesamten Wert abdeckt. Fehlende Glyphen und nicht unterstützte Layouts werden abgewiesen.
 
 Die Oberfläche ist derzeit auf Englisch. Diese Übersetzungen bedeuten keine lokalisierte GUI oder vollständige Unterstützung für Rechts-nach-links-Layouts. Lokale Schriften enthalten getestete chinesische, japanische und koreanische Zeichen, decken aber nicht jede Schrift ab.
 
