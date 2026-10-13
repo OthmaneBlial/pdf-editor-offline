@@ -59,9 +59,12 @@ The isolated core also has a first chosen-font tier:
 complete static TrueType program, rewrites the selected string into CID codes,
 and retains the source font-size and matrix tokens. It requires explicit width
 change and zero character/word spacing. Coverage, embedding permissions and
-outline checks use the existing font backend. A single `Tj` is accepted only
-when real shaping needs no kerning, glyph offsets, visual reordering or invisible
-formatting. Unsupported shaping is refused; no nominal fallback is emitted.
+outline checks use the existing font backend. Unpositioned logical glyphs use
+`Tj`; horizontal kerning and ligatures use real `TJ` numeric adjustments from
+shaped positions and the actual embedded widths. Both forms reopen against
+the freshly shaped Unicode text and actual font graph. Modified positioning
+arrays lose eligibility. Vertical offsets, visual reordering and invisible
+formatting remain refused; no nominal fallback is emitted.
 
 Reopened runs validate their actual program, Unicode map, widths, descriptor and
 CID mapping against that backend, with bounded shared-stream decoding and graph
@@ -71,8 +74,8 @@ Independent readers verify actual Unicode text, metrics, visible glyphs and
 unchanged shared pages. The selected font changes the original content, not an
 overlay. Old source streams remain, so this does not erase previous text.
 
-This chosen-font tier currently has no CLI or native controls. Positioned `TJ`
-shaping, ligatures requiring positioned shows, CFF/OpenType embedding and their
-repeat-editing model remain unfinished. Manual native interaction and platform runtime evidence
+This chosen-font tier currently has no CLI or native controls. Vertically
+positioned/reordered shaping and CFF/OpenType embedding and their repeat-editing
+model remain unfinished. Manual native interaction and platform runtime evidence
 for this new mode remain separate gates; no screenshots or release claims are
 inferred from headless tests.

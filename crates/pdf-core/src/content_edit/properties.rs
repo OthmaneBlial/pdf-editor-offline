@@ -105,7 +105,7 @@ impl ContentTextRun {
             ));
         }
         if let Some(font) = &self.embedded_font {
-            return layout.position_widths(&font.widths);
+            return layout.position_advances(&font.advances);
         }
         layout.position(
             self.standard_font

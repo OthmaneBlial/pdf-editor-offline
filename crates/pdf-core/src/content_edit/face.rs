@@ -162,6 +162,7 @@ impl PdfDocument {
                     spans[show].operands[0].clone(),
                     ascii_operand(change.replacement.as_deref().unwrap_or(&change.expected)),
                 ));
+                splices.push((spans[show].operator.clone(), b"Tj".to_vec()));
             }
             splices.extend(properties::scope_text_object(
                 &bytes, &content, &spans, show,

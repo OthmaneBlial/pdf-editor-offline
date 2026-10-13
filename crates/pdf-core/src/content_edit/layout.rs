@@ -62,7 +62,13 @@ impl ContentTextLayout {
         })
     }
     pub(super) fn position_widths(&self, widths: &[f64]) -> Result<ContentTextPosition> {
-        if self.character_spacing != 0. || self.word_spacing != 0. || widths.len() > 65_534 {
+        if widths.iter().any(|width| *width < 0.) {
+            return Err(Error::Invalid("invalid direct glyph width"));
+        }
+        self.position_advances(widths)
+    }
+    pub(super) fn position_advances(&self, widths: &[f64]) -> Result<ContentTextPosition> {
+        if self.character_spacing != 0. || self.word_spacing != 0. || widths.len() > 131_069 {
             return Err(Error::Refused(
                 "direct embedded text requires zero character and word spacing",
             ));
@@ -74,7 +80,7 @@ impl ContentTextLayout {
             baseline_end: baseline_start,
         };
         for width in widths {
-            if !width.is_finite() || *width < 0. {
+            if !width.is_finite() {
                 return Err(Error::Invalid("invalid direct glyph width"));
             }
             result.nominal_advance += width * self.font_size / 1000. * self.horizontal_scale / 100.;

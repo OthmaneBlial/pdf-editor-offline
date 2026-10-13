@@ -67,6 +67,7 @@ pub struct ContentTextEmbeddedFont {
     pub postscript_name: String,
     /// Actual PDF /W advances in 1/1000 em, not glyph-ink bounds.
     pub widths: Vec<f64>,
+    pub advances: Vec<f64>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -217,7 +218,7 @@ impl ContentTextRun {
                 .layout
                 .as_ref()
                 .ok_or(Error::Refused("bounded text layout unavailable"))?
-                .position_widths(&font.widths);
+                .position_advances(&font.advances);
         }
         let encoding = self
             .encoding
@@ -481,7 +482,10 @@ impl PdfDocument {
                     ..TextState::default()
                 });
             }
-            if op.operator == "Tj" {
+            if op.operator == "Tj"
+                || (op.operator == "TJ"
+                    && block.as_ref().is_some_and(|state| state.embedded.is_some()))
+            {
                 if runs.len() >= MAX_RUNS {
                     return Err(Error::Limit("more than 10000 direct text runs"));
                 }
@@ -492,19 +496,22 @@ impl PdfDocument {
                     ),
                     _ => None,
                 };
-                let embedded = if let (Some(font), [Object::String(codes, _)]) = (
+                let embedded = if let (Some(font), [show]) = (
                     block.as_ref().and_then(|state| state.embedded),
                     op.operands.as_slice(),
                 ) {
                     match crate::forms::content_font::reopen_with_context(
                         &self.document,
                         font,
-                        codes,
+                        show,
                         &mut font_reads,
                     ) {
                         Ok(read) => {
                             font_width_bytes = font_width_bytes
-                                .checked_add(read.widths.len() * std::mem::size_of::<f64>())
+                                .checked_add(
+                                    (read.widths.len() + read.advances.len())
+                                        * std::mem::size_of::<f64>(),
+                                )
                                 .ok_or(Error::Limit("direct font inventory numeric overflow"))?;
                             if font_width_bytes > MAX_STREAM_BYTES {
                                 return Err(Error::Limit(
@@ -517,6 +524,7 @@ impl PdfDocument {
                                 program_fingerprint: read.program_fingerprint,
                                 postscript_name: read.name,
                                 widths: read.widths,
+                                advances: read.advances,
                             })
                         }
                         Err(Error::Refused(_)) => None,
@@ -566,7 +574,7 @@ impl PdfDocument {
                             .and_then(|state| Some(graphics.layout(state.size?, state.matrix?)))
                             .filter(|layout| {
                                 if let Some(embedded) = &embedded {
-                                    return layout.position_widths(&embedded.widths).is_ok();
+                                    return layout.position_advances(&embedded.advances).is_ok();
                                 }
                                 let Some((font, encoding)) =
                                     block.as_ref().and_then(|state| state.font)
@@ -701,10 +709,10 @@ impl PdfDocument {
                 .as_ref()
                 .ok_or(Error::Refused("embedded font unavailable"))?;
             let page_content = single_content(self, page)?;
-            let codes = page_content.content.operations[change.identity.operation as usize]
-                .operands[0]
-                .as_str()?;
-            let read = crate::forms::content_font::reopen(&self.document, font.font_object, codes)?;
+            let show =
+                &page_content.content.operations[change.identity.operation as usize].operands[0];
+            let read =
+                crate::forms::content_font::reopen_show(&self.document, font.font_object, show)?;
             return self.change_content_text_embedded_font(
                 page,
                 &ContentTextEmbeddedChange {

@@ -473,6 +473,75 @@ impl<'a> FontPlan<'a> {
         Ok((codes, widths))
     }
 
+    /// Horizontal, logical-order shaped output. TJ preserves actual kerning
+    /// and ligature positions rather than substituting nominal advances.
+    pub fn positioned_show(&mut self, text: &str) -> Result<(Object, Vec<f64>, Vec<f64>)> {
+        if self.cff.is_some() {
+            return Err(Error::Refused(
+                "positioned content currently requires static TrueType",
+            ));
+        }
+        let line = self.shape(text)?;
+        let by_cid = self
+            .mappings
+            .iter()
+            .map(|((gid, unicode), cid)| (*cid, (*gid, unicode)))
+            .collect::<BTreeMap<_, _>>();
+        let metrics = self
+            .face
+            .glyph_metrics(Size::unscaled(), LocationRef::default());
+        let mut logical = String::new();
+        let mut items = Vec::new();
+        let mut widths = Vec::new();
+        let mut advances = Vec::new();
+        let mut pen = 0.;
+        for glyph in &line.glyphs {
+            if glyph.invisible || glyph.y != 0. {
+                return Err(Error::Refused(
+                    "vertical glyph offsets and invisible formatting need a further positioned tier",
+                ));
+            }
+            let (gid, unicode) = by_cid
+                .get(&glyph.cid)
+                .ok_or(Error::Invalid("missing positioned font mapping"))?;
+            logical.push_str(unicode);
+            let adjustment = ((pen - glyph.x * 1000.) as f32) as f64;
+            if !adjustment.is_finite() || adjustment.abs() > 1_000_000. {
+                return Err(Error::Limit("positioned font adjustment budget"));
+            }
+            if adjustment != 0. {
+                items.push(Object::Real(adjustment as f32));
+                advances.push(-adjustment);
+                pen -= adjustment;
+            }
+            let raw = metrics
+                .advance_width(GlyphId::new(u32::from(*gid)))
+                .ok_or(Error::Refused("missing positioned glyph advance"))?;
+            let width = f64::from((f64::from(raw) * 1000. / self.em) as f32);
+            items.push(Object::String(
+                glyph.cid.to_be_bytes().to_vec(),
+                lopdf::StringFormat::Hexadecimal,
+            ));
+            widths.push(width);
+            advances.push(width);
+            pen += width;
+        }
+        if logical != text {
+            return Err(Error::Refused(
+                "reordered glyphs need a further extraction tier",
+            ));
+        }
+        let adjustment = ((pen - line.advance * 1000.) as f32) as f64;
+        if !adjustment.is_finite() || adjustment.abs() > 1_000_000. {
+            return Err(Error::Limit("positioned font final adjustment budget"));
+        }
+        if adjustment != 0. {
+            items.push(Object::Real(adjustment as f32));
+            advances.push(-adjustment);
+        }
+        Ok((Object::Array(items), widths, advances))
+    }
+
     pub fn existing_program(&self, document: &Document) -> Result<Option<ObjectId>> {
         let mut seen = std::collections::BTreeSet::new();
         let mut remaining = 32 * 1024 * 1024usize;

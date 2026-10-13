@@ -15,6 +15,17 @@ impl<'a> ContentFontPlan<'a> {
     pub fn codes(&mut self, text: &str) -> Result<(Vec<u8>, Vec<f64>)> {
         self.0.direct_codes(text)
     }
+    pub fn show(&mut self, text: &str) -> Result<(Object, Vec<f64>, Vec<f64>)> {
+        match self.codes(text) {
+            Ok((codes, widths)) => Ok((
+                Object::String(codes, lopdf::StringFormat::Hexadecimal),
+                widths.clone(),
+                widths,
+            )),
+            Err(Error::Refused(_)) => self.0.positioned_show(text),
+            Err(error) => Err(error),
+        }
+    }
     pub fn embed(&self, document: &mut Document) -> Result<ObjectId> {
         let existing = self.0.existing_program(document)?;
         self.0.embed(document, existing)
@@ -27,6 +38,7 @@ pub(crate) struct ReopenedFont {
     pub program_fingerprint: [u8; 32],
     pub text: String,
     pub widths: Vec<f64>,
+    pub advances: Vec<f64>,
     pub name: String,
 }
 
@@ -102,19 +114,50 @@ pub(crate) fn candidate(
         .then_some(id))
 }
 
-pub(crate) fn reopen(document: &Document, font: ObjectId, codes: &[u8]) -> Result<ReopenedFont> {
-    reopen_with_context(document, font, codes, &mut FontReadContext::default())
+#[cfg(test)]
+fn reopen(document: &Document, font: ObjectId, codes: &[u8]) -> Result<ReopenedFont> {
+    reopen_with_context(
+        document,
+        font,
+        &Object::String(codes.to_vec(), lopdf::StringFormat::Hexadecimal),
+        &mut FontReadContext::default(),
+    )
+}
+pub(crate) fn reopen_show(
+    document: &Document,
+    font: ObjectId,
+    show: &Object,
+) -> Result<ReopenedFont> {
+    reopen_with_context(document, font, show, &mut FontReadContext::default())
 }
 pub(crate) fn reopen_with_context(
     document: &Document,
     font: ObjectId,
-    codes: &[u8],
+    show: &Object,
     context: &mut FontReadContext,
 ) -> Result<ReopenedFont> {
+    let mut codes = Vec::new();
+    match show {
+        Object::String(bytes, _) => codes.extend_from_slice(bytes),
+        Object::Array(items) if items.len() <= 131_069 => {
+            for item in items {
+                match item {
+                    Object::String(bytes, _) if bytes.len() == 2 => codes.extend_from_slice(bytes),
+                    Object::Integer(_) | Object::Real(_) => (),
+                    _ => return Err(Error::Refused("unsupported positioned show structure")),
+                }
+            }
+        }
+        _ => return Err(Error::Refused("unsupported embedded show operand")),
+    }
     if codes.len() > 131_068 || !codes.len().is_multiple_of(2) {
         return Err(Error::Limit("direct font code budget"));
     }
-    let key = (font, Sha256::digest(codes).into());
+    let encoded_show = lopdf::content::Content {
+        operations: vec![lopdf::content::Operation::new("TJ", vec![show.clone()])],
+    }
+    .encode()?;
+    let key = (font, Sha256::digest(&encoded_show).into());
     if let Some(result) = context.results.get(&key) {
         return Ok(result.clone());
     }
@@ -146,7 +189,7 @@ pub(crate) fn reopen_with_context(
         else {
             return Err(Error::Refused("direct font needs explicit Unicode map"));
         };
-        decode_cids(codes, 4 * 1024 * 1024 - context.text_bytes, |code| {
+        decode_cids(&codes, 4 * 1024 * 1024 - context.text_bytes, |code| {
             map.get(u32::from(code), 2)
         })?
     };
@@ -158,8 +201,8 @@ pub(crate) fn reopen_with_context(
         return Err(Error::Limit("direct font decoding exceeds4MiBtext"));
     }
     let mut plan = ContentFontPlan::new(&program)?;
-    let (expected, widths) = plan.codes(&text)?;
-    if expected != codes {
+    let (expected, widths, advances) = plan.show(&text)?;
+    if !same_show(show, &expected) {
         return Err(Error::Refused(
             "direct font codes do not match the validated logical text",
         ));
@@ -190,10 +233,26 @@ pub(crate) fn reopen_with_context(
         program,
         text,
         widths,
+        advances,
         name,
     };
     context.results.insert(key, result.clone());
     Ok(result)
+}
+
+fn same_show(actual: &Object, expected: &Object) -> bool {
+    match (actual, expected) {
+        (Object::String(a, _), Object::String(b, _)) => a == b,
+        (Object::Array(a), Object::Array(b)) => {
+            a.len() == b.len() && a.iter().zip(b).all(|(a, b)| same_show(a, b))
+        }
+        (Object::Real(a), Object::Real(b)) => a.is_finite() && a == b,
+        (Object::Integer(a), Object::Real(b)) | (Object::Real(b), Object::Integer(a)) => {
+            b.is_finite() && *a as f64 == f64::from(*b)
+        }
+        (Object::Integer(a), Object::Integer(b)) => a == b,
+        _ => false,
+    }
 }
 
 fn decode_cids(
@@ -388,6 +447,39 @@ mod tests {
         assert_eq!(
             decode_cids(&[0, 1], 4, |_| Some(vec![0xd83d, 0xde00])).unwrap(),
             "😀"
+        );
+    }
+    #[test]
+    fn horizontal_shaping_reopens_exact_positioned_show_without_nominal_fallback() {
+        let font = include_bytes!(
+            "../../../../apps/desktop/assets/fonts/ibm-plex/IBMPlexSans-Regular.ttf"
+        );
+        let mut positioned = 0;
+        for text in ["AV", "To", "ffi", "office", "WAVE"] {
+            let mut plan = ContentFontPlan::new(font).unwrap();
+            let (show, widths, advances) = plan.show(text).unwrap();
+            if let Object::Array(items) = &show {
+                assert!(items.iter().any(|item| matches!(item, Object::Real(_))));
+                positioned += 1;
+            }
+            let mut doc = Document::with_version("1.4");
+            let id = plan.embed(&mut doc).unwrap();
+            let read = reopen_show(&doc, id, &show).unwrap();
+            assert_eq!(read.text, text);
+            assert_eq!(read.widths, widths);
+            assert_eq!(read.advances, advances);
+            if let Object::Array(mut items) = show {
+                let item = items
+                    .iter_mut()
+                    .find(|item| matches!(item, Object::Real(_)))
+                    .unwrap();
+                *item = Object::Real(item.as_float().unwrap() + 1.);
+                assert!(reopen_show(&doc, id, &Object::Array(items)).is_err());
+            }
+        }
+        assert!(
+            positioned > 0,
+            "the fixture must exercise actual kerning or ligature positioning"
         );
     }
 }

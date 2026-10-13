@@ -49,8 +49,12 @@ impl PdfDocument {
             .as_ref()
             .ok_or(Error::Refused("bounded original layout unavailable"))?;
         let mut plan = ContentFontPlan::new(font_bytes)?;
-        let (codes, widths) = plan.codes(value)?;
-        layout.position_widths(&widths)?;
+        let (show_operand, widths, advances) = plan.show(value)?;
+        if matches!(show_operand, Object::String(..)) {
+            layout.position_widths(&widths)?;
+        } else {
+            layout.position_advances(&advances)?;
+        }
         let PageContent {
             page_id,
             stream_id,
@@ -82,11 +86,13 @@ impl PdfDocument {
         insert.extend_from_slice(&bytes[spans[setter].operands[1].clone()]);
         insert.extend_from_slice(b" Tf\n");
         // Only the selected encoded string changes; every other source byte survives.
+        let operator = if matches!(show_operand, Object::Array(_)) {
+            "TJ"
+        } else {
+            "Tj"
+        };
         let operand = lopdf::content::Content {
-            operations: vec![lopdf::content::Operation::new(
-                "Tj",
-                vec![Object::String(codes, lopdf::StringFormat::Hexadecimal)],
-            )],
+            operations: vec![lopdf::content::Operation::new(operator, vec![show_operand])],
         }
         .encode()?;
         let (parsed, token) = crate::content_spans::decode_spanned(&operand)?;
@@ -99,6 +105,7 @@ impl PdfDocument {
             spans[show].operands[0].clone(),
             operand[token[0].operands[0].clone()].to_vec(),
         ));
+        splices.push((spans[show].operator.clone(), operator.as_bytes().to_vec()));
         let encoded = splice_content(&bytes, splices)?;
         let mut candidate = self.clone();
         crate::require_pdf_1_4(&mut candidate.document);
