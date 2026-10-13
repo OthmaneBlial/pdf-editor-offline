@@ -11,6 +11,9 @@ manual platform verification claim.
   CLI downloads and the optional npm installer are available for five platforms.
 - Rendering may omit unsupported PDF content. Reopen exported copies in another
   reader; the tested fixtures do not establish all-document fidelity.
+- Current source [bounds Unicode text expansion before append](TEXT_DECODING_LIMITS.md).
+  This later change is absent from preview.4. Total parser allocation limits,
+  upstream CMap range arithmetic and broader malformed-font fuzzing remain open.
 - [Existing text editing](CONTENT_TEXT_EDITING_RUST.md) supports one final direct
   ASCII `Tj` in twelve unembedded standard Courier/Helvetica/Times faces. It can
   replace the operand or change size, matrix translation and ordinary RGB fill;

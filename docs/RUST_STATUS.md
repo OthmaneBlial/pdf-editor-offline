@@ -1,5 +1,14 @@
 # Native Rust migration status
 
+## 13 October: budgeted text decoding
+
+Current source checks Unicode expansion before output append in the shared core
+extractor. Checked source `c255293` passed **725 tests across 85 suites, zero
+failures and zero ignored tests**, with strict workspace Clippy and dependency
+audit/license checks. [Decoder limits and exact evidence](TEXT_DECODING_LIMITS.md)
+describe the allocation boundary and remaining parser/font gates. This source
+change is later than published preview.4; it does not change that frozen release.
+
 ## 13 October: composed editing milestone
 
 Implementation source
