@@ -1,8 +1,8 @@
 
 ########## darwin-arm64 ##########
-Native CLI 4.0.0-preview.1
+Native CLI 4.0.0-preview.3
 Target aarch64-apple-darwin
-Source be8c1a83cf18fc0299ca40b31098b81fa1058d97
+Source d711a6f4b8212b09e63eeb7eef605c091759ad0d
 
 
 ========== adler2 2.0.1 ==========
@@ -16423,7 +16423,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
 
-========== pdf-convert 4.0.0-preview.1 ==========
+========== pdf-convert 4.0.0-preview.3 ==========
 SPDX: MIT
 Repository: https://github.com/OthmaneBlial/pdf-editor-offline
 Authors: Othmane BLIAL
@@ -16451,7 +16451,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-========== pdf-core 4.0.0-preview.1 ==========
+========== pdf-core 4.0.0-preview.3 ==========
 SPDX: MIT
 Repository: https://github.com/OthmaneBlial/pdf-editor-offline
 Authors: Othmane BLIAL
@@ -16479,7 +16479,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-========== pdf-editor-offline-cli 4.0.0-preview.1 ==========
+========== pdf-editor-offline-cli 4.0.0-preview.3 ==========
 SPDX: MIT
 Repository: https://github.com/OthmaneBlial/pdf-editor-offline
 Authors: Othmane BLIAL
@@ -16507,10 +16507,38 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-========== pdf-render 4.0.0-preview.1 ==========
+========== pdf-render 4.0.0-preview.3 ==========
 SPDX: MIT
 Repository: not declared
 Authors: Othmane BLIAL
+
+--- LICENSE ---
+MIT License
+
+Copyright (c) 2026 Othmane BLIAL
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+========== pdf-worker 4.0.0-preview.3 ==========
+SPDX: MIT
+Repository: not declared
+Authors: 
 
 --- LICENSE ---
 MIT License
@@ -28082,9 +28110,9 @@ The LAB.icc profile was generated with LCMS2.
 
 
 ########## darwin-x64 ##########
-Native CLI 4.0.0-preview.1
+Native CLI 4.0.0-preview.3
 Target x86_64-apple-darwin
-Source be8c1a83cf18fc0299ca40b31098b81fa1058d97
+Source d711a6f4b8212b09e63eeb7eef605c091759ad0d
 
 
 ========== adler2 2.0.1 ==========
@@ -44741,7 +44769,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
 
-========== pdf-convert 4.0.0-preview.1 ==========
+========== pdf-convert 4.0.0-preview.3 ==========
 SPDX: MIT
 Repository: https://github.com/OthmaneBlial/pdf-editor-offline
 Authors: Othmane BLIAL
@@ -44769,7 +44797,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-========== pdf-core 4.0.0-preview.1 ==========
+========== pdf-core 4.0.0-preview.3 ==========
 SPDX: MIT
 Repository: https://github.com/OthmaneBlial/pdf-editor-offline
 Authors: Othmane BLIAL
@@ -44797,7 +44825,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-========== pdf-editor-offline-cli 4.0.0-preview.1 ==========
+========== pdf-editor-offline-cli 4.0.0-preview.3 ==========
 SPDX: MIT
 Repository: https://github.com/OthmaneBlial/pdf-editor-offline
 Authors: Othmane BLIAL
@@ -44825,10 +44853,38 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-========== pdf-render 4.0.0-preview.1 ==========
+========== pdf-render 4.0.0-preview.3 ==========
 SPDX: MIT
 Repository: not declared
 Authors: Othmane BLIAL
+
+--- LICENSE ---
+MIT License
+
+Copyright (c) 2026 Othmane BLIAL
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+========== pdf-worker 4.0.0-preview.3 ==========
+SPDX: MIT
+Repository: not declared
+Authors: 
 
 --- LICENSE ---
 MIT License
@@ -56400,9 +56456,9 @@ The LAB.icc profile was generated with LCMS2.
 
 
 ########## win32-x64 ##########
-Native CLI 4.0.0-preview.1
+Native CLI 4.0.0-preview.3
 Target x86_64-pc-windows-msvc
-Source be8c1a83cf18fc0299ca40b31098b81fa1058d97
+Source d711a6f4b8212b09e63eeb7eef605c091759ad0d
 
 
 ========== adler2 2.0.1 ==========
@@ -73074,7 +73130,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
 
-========== pdf-convert 4.0.0-preview.1 ==========
+========== pdf-convert 4.0.0-preview.3 ==========
 SPDX: MIT
 Repository: https://github.com/OthmaneBlial/pdf-editor-offline
 Authors: Othmane BLIAL
@@ -73102,7 +73158,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-========== pdf-core 4.0.0-preview.1 ==========
+========== pdf-core 4.0.0-preview.3 ==========
 SPDX: MIT
 Repository: https://github.com/OthmaneBlial/pdf-editor-offline
 Authors: Othmane BLIAL
@@ -73130,7 +73186,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-========== pdf-editor-offline-cli 4.0.0-preview.1 ==========
+========== pdf-editor-offline-cli 4.0.0-preview.3 ==========
 SPDX: MIT
 Repository: https://github.com/OthmaneBlial/pdf-editor-offline
 Authors: Othmane BLIAL
@@ -73158,10 +73214,38 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-========== pdf-render 4.0.0-preview.1 ==========
+========== pdf-render 4.0.0-preview.3 ==========
 SPDX: MIT
 Repository: not declared
 Authors: Othmane BLIAL
+
+--- LICENSE ---
+MIT License
+
+Copyright (c) 2026 Othmane BLIAL
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+========== pdf-worker 4.0.0-preview.3 ==========
+SPDX: MIT
+Repository: not declared
+Authors: 
 
 --- LICENSE ---
 MIT License
@@ -84741,9 +84825,9 @@ The LAB.icc profile was generated with LCMS2.
 
 
 ########## linux-x64 ##########
-Native CLI 4.0.0-preview.1
+Native CLI 4.0.0-preview.3
 Target x86_64-unknown-linux-musl
-Source be8c1a83cf18fc0299ca40b31098b81fa1058d97
+Source d711a6f4b8212b09e63eeb7eef605c091759ad0d
 
 
 ========== adler2 2.0.1 ==========
@@ -101858,7 +101942,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
 
-========== pdf-convert 4.0.0-preview.1 ==========
+========== pdf-convert 4.0.0-preview.3 ==========
 SPDX: MIT
 Repository: https://github.com/OthmaneBlial/pdf-editor-offline
 Authors: Othmane BLIAL
@@ -101886,7 +101970,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-========== pdf-core 4.0.0-preview.1 ==========
+========== pdf-core 4.0.0-preview.3 ==========
 SPDX: MIT
 Repository: https://github.com/OthmaneBlial/pdf-editor-offline
 Authors: Othmane BLIAL
@@ -101914,7 +101998,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-========== pdf-editor-offline-cli 4.0.0-preview.1 ==========
+========== pdf-editor-offline-cli 4.0.0-preview.3 ==========
 SPDX: MIT
 Repository: https://github.com/OthmaneBlial/pdf-editor-offline
 Authors: Othmane BLIAL
@@ -101942,10 +102026,38 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-========== pdf-render 4.0.0-preview.1 ==========
+========== pdf-render 4.0.0-preview.3 ==========
 SPDX: MIT
 Repository: not declared
 Authors: Othmane BLIAL
+
+--- LICENSE ---
+MIT License
+
+Copyright (c) 2026 Othmane BLIAL
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+========== pdf-worker 4.0.0-preview.3 ==========
+SPDX: MIT
+Repository: not declared
+Authors: 
 
 --- LICENSE ---
 MIT License
@@ -113517,9 +113629,9 @@ The LAB.icc profile was generated with LCMS2.
 
 
 ########## linux-arm64 ##########
-Native CLI 4.0.0-preview.1
+Native CLI 4.0.0-preview.3
 Target aarch64-unknown-linux-musl
-Source be8c1a83cf18fc0299ca40b31098b81fa1058d97
+Source d711a6f4b8212b09e63eeb7eef605c091759ad0d
 
 
 ========== adler2 2.0.1 ==========
@@ -130398,7 +130510,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
 
-========== pdf-convert 4.0.0-preview.1 ==========
+========== pdf-convert 4.0.0-preview.3 ==========
 SPDX: MIT
 Repository: https://github.com/OthmaneBlial/pdf-editor-offline
 Authors: Othmane BLIAL
@@ -130426,7 +130538,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-========== pdf-core 4.0.0-preview.1 ==========
+========== pdf-core 4.0.0-preview.3 ==========
 SPDX: MIT
 Repository: https://github.com/OthmaneBlial/pdf-editor-offline
 Authors: Othmane BLIAL
@@ -130454,7 +130566,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-========== pdf-editor-offline-cli 4.0.0-preview.1 ==========
+========== pdf-editor-offline-cli 4.0.0-preview.3 ==========
 SPDX: MIT
 Repository: https://github.com/OthmaneBlial/pdf-editor-offline
 Authors: Othmane BLIAL
@@ -130482,10 +130594,38 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-========== pdf-render 4.0.0-preview.1 ==========
+========== pdf-render 4.0.0-preview.3 ==========
 SPDX: MIT
 Repository: not declared
 Authors: Othmane BLIAL
+
+--- LICENSE ---
+MIT License
+
+Copyright (c) 2026 Othmane BLIAL
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+========== pdf-worker 4.0.0-preview.3 ==========
+SPDX: MIT
+Repository: not declared
+Authors: 
 
 --- LICENSE ---
 MIT License

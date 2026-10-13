@@ -1,8 +1,10 @@
 # Preview 3 preparation
 
-The workspace and package metadata now prepare `4.0.0-preview.3`. The public
-registry and existing GitHub release still provide `4.0.0-preview.1` until the
-new publication has completed.
+The verified native CLI `4.0.0-preview.3` is now a public GitHub prerelease from
+`d711a6f`. All five release jobs and the assembly gate passed in
+[38333220611](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38333220611).
+The public npm registry still provides `4.0.0-preview.1` until package publication
+and verification complete.
 
 The tag `v4.0.0-preview.2` records source `d71a78a`, which passed native and
 security CI. Its release build [38327937106](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38327937106)
@@ -11,9 +13,12 @@ link changed the cached inode's ctime during another verification. No preview 2
 package has been published. Preserve that tag and failed evidence; the corrected
 installer must ship under a new tag after fresh platform checks.
 
-The checked-in manifest and notices deliberately retain the verified preview 1
-artifacts. `prepack` and installation therefore refuse this checkout's version
-mismatch. Do not relabel their hashes or publish this package in that state.
+This isolated packaging checkout contains the exact downloaded and independently
+verified preview 3 manifest and complete notices. Binary sizes/SHA-256, source
+identity, actual-runner versions/smokes, Linux static linkage and all per-platform
+notice hashes match. Local Node 22 installer/launcher tests pass against the actual
+downloaded macOS ARM binary. Real HTTPS global installs on all five platforms and
+exact-version registry verification remain publication gates.
 
 Before publication:
 
