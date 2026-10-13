@@ -13,6 +13,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 mod appearance;
 pub use appearance::TextChange;
+mod choice;
+pub use choice::{ChoiceChange, ChoiceField, ChoiceOption};
 
 const MAX_NODES: usize = 100_000;
 const MAX_FIELDS: usize = 10_000;
@@ -23,6 +25,8 @@ const RADIO: u32 = 1 << 15;
 const PUSH: u32 = 1 << 16;
 const UNISON: u32 = 1 << 25;
 const NO_TOGGLE: u32 = 1 << 14;
+const UNSUPPORTED_FIELD_KIND: &str =
+    "This field type needs a later appearance-generation or signing stage";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -786,7 +790,7 @@ fn discover(pdf: &PdfDocument) -> Result<Vec<FormField>> {
             writable_button: button && reason.is_none(),
             refusal_reason: reason
                 .or(if !button {
-                    Some("This field type needs a later appearance-generation or signing stage")
+                    Some(UNSUPPORTED_FIELD_KIND)
                 } else {
                     None
                 })

@@ -181,3 +181,28 @@ Tests reuse synthetic fixtures and the committed Trust Lab pages, checking
 catalog/bookmark/form/attachment/layer preservation on rotation, failed edits,
 malformed page trees, no-clobber saves and signature refusal. They do not prove
 universal fidelity or independently validate every PDF object.
+
+`list_choice_fields` reads bounded dropdown/list options, distinct export/display
+strings, selected zero-based indices, defaults and scroll positions. `fill_choice`
+uses an explicit covering, editable font to create real choice appearances and
+updates `/V` and sorted `/I` together. Duplicate exports are selected by index.
+Lists support multi-selection and visible blue highlights; an explicit top index
+wins, while the default scroll reveals a selected row if all newly selected rows
+would otherwise be offscreen. List labels must fit without clipping or truncation.
+Editable combo free-entry, scripts/calculations/XFA, hidden or locked widgets,
+ambiguous selections and unsupported appearance layouts are refused. Structural
+eligibility does not guarantee that a particular font or value will fit.
+
+The writer replaces validated `/Tx` variable content, preserves surrounding
+artwork and commits the complete candidate only after validation. Graphics/path
+boundaries or persistent state that could alter surrounding artwork are refused.
+Clearing uses an explicit null value so an inherited parent value cannot reappear;
+defaults and unrelated fields remain unchanged. Old appearance streams can remain
+recoverable: this is not secure erasure. This core API does not itself provide
+desktop or CLI choice controls.
+
+Choice `/I` follows the [PDF 2.0 approved choice-field errata](https://pdf-issues.pdfa.org/32000-2-2020/clause12.html#12754-choice-fields).
+The supported paired-option tier writes export strings in `/V` and matching
+indices in `/I`, as expected by the independently tested Poppler 26.10.0 behavior.
+Inconsistent existing values/indices are refused rather than choosing a viewer's
+precedence rule. This is a compatibility tier, not a universal form-fidelity claim.

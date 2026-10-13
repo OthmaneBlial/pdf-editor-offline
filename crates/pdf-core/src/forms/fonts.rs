@@ -46,7 +46,8 @@ fn script_runs(text: &str) -> Result<Vec<(std::ops::Range<usize>, Script)>> {
     Ok(runs)
 }
 
-pub(super) struct Glyph {
+#[derive(Clone)]
+pub(in crate::forms) struct Glyph {
     pub cid: u16,
     pub x: f64,
     pub y: f64,
@@ -58,11 +59,12 @@ fn ignorable(c: char) -> bool {
         0x180b..=0x180e | 0x200b..=0x200f | 0x202a..=0x202e | 0x2060..=0x206f |
         0xfe00..=0xfe0f | 0xfeff | 0xfff0..=0xfff8 | 0x1d173..=0x1d17a | 0xe0000..=0xe0fff)
 }
-pub(super) struct Line {
+#[derive(Clone)]
+pub(in crate::forms) struct Line {
     pub glyphs: Vec<Glyph>,
     pub bounds: [f64; 4],
 }
-pub(super) struct FontPlan<'a> {
+pub(in crate::forms) struct FontPlan<'a> {
     bytes: &'a [u8],
     face: FontRef<'a>,
     shaper: ShaperData,
@@ -76,7 +78,7 @@ pub(super) struct FontPlan<'a> {
     cff: Option<cff::CffPlan<'a>>,
 }
 
-pub(super) fn unicode_string(text: &str) -> Object {
+pub(in crate::forms) fn unicode_string(text: &str) -> Object {
     let mut bytes = vec![0xfe, 0xff];
     for unit in text.encode_utf16() {
         bytes.extend_from_slice(&unit.to_be_bytes());

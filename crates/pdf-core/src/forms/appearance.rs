@@ -1,7 +1,7 @@
 //! Single-line text with an explicitly supplied editable TrueType or CID CFF1 font.
 //! No viewer regeneration, missing-glyph substitution, truncation or font fallback.
 #[path = "fonts.rs"]
-mod fonts;
+pub(super) mod fonts;
 use super::{Budget, FormField, FormFieldKind, MAX_FIELDS, MAX_REPORT_BYTES, inherited, numeric};
 use crate::{Error, PdfDocument, Result};
 use fonts::{FontPlan, Line, unicode_string};
@@ -20,25 +20,25 @@ pub struct TextChange {
     pub value: String,
 }
 
-struct Style {
-    size: f64,
-    color: Operation,
+pub(super) struct Style {
+    pub size: f64,
+    pub color: Operation,
 }
-struct WidgetPlan {
-    field: ObjectId,
-    widget: ObjectId,
+pub(super) struct WidgetPlan {
+    pub field: ObjectId,
+    pub widget: ObjectId,
     stream: ObjectId,
-    content: Content<Vec<Operation>>,
-    text_start: usize,
-    text_end: usize,
+    pub content: Content<Vec<Operation>>,
+    pub text_start: usize,
+    pub text_end: usize,
     resources: Dictionary,
-    width: f64,
-    height: f64,
-    padding: f64,
-    q: i64,
-    style: Style,
-    line: Line,
-    value: String,
+    pub width: f64,
+    pub height: f64,
+    pub padding: f64,
+    pub q: i64,
+    pub style: Style,
+    pub line: Line,
+    pub value: String,
 }
 
 fn number(object: &Object) -> Result<f64> {
@@ -258,6 +258,102 @@ fn text_region(content: &Content<Vec<Operation>>) -> Result<(usize, usize)> {
     Ok((start, end))
 }
 
+/// Choice variable content includes row highlights as well as text. Preserve
+/// everything outside the single top-level Tx region, and validate its balance.
+fn choice_region(content: &Content<Vec<Operation>>) -> Result<(usize, usize)> {
+    if content.operations.len() > 100_000 {
+        return Err(Error::Limit("choice appearance exceeds 100000 operators"));
+    }
+    let mut marked = Vec::new();
+    let mut graphics = 0usize;
+    let mut text = false;
+    let mut region = None;
+    let mut tx = None;
+    let mut saw_text = false;
+    for (index, operation) in content.operations.iter().enumerate() {
+        match operation.operator.as_str() {
+            "cm" => return Err(Error::Refused("transformed choice artwork is unsupported")),
+            "q" => {
+                graphics += 1;
+                if graphics > 32 {
+                    return Err(Error::Limit("choice graphics nesting"));
+                }
+            }
+            "Q" => {
+                graphics = graphics
+                    .checked_sub(1)
+                    .ok_or(Error::Invalid("unbalanced choice graphics"))?;
+            }
+            "BMC" | "BDC" => {
+                if marked.len() >= 32 {
+                    return Err(Error::Limit("choice marked nesting"));
+                }
+                let tag = operation
+                    .operands
+                    .first()
+                    .ok_or(Error::Invalid("missing choice marked tag"))?
+                    .as_name()?;
+                let is_tx = tag == b"Tx";
+                if is_tx {
+                    if !marked.is_empty()
+                        || tx.is_some()
+                        || region.is_some()
+                        || operation.operator != "BMC"
+                    {
+                        return Err(Error::Refused("ambiguous choice Tx region"));
+                    }
+                    tx = Some(index);
+                }
+                if operation.operator == "BDC" {
+                    operation
+                        .operands
+                        .get(1)
+                        .ok_or(Error::Invalid("missing choice marked properties"))?
+                        .as_dict()?;
+                }
+                marked.push(is_tx);
+            }
+            "EMC" => {
+                let is_tx = marked
+                    .pop()
+                    .ok_or(Error::Invalid("unbalanced choice marked content"))?;
+                if is_tx {
+                    if text {
+                        return Err(Error::Invalid("choice text crosses Tx boundary"));
+                    }
+                    region = Some((
+                        tx.take().ok_or(Error::Invalid("missing choice Tx start"))? + 1,
+                        index - 1,
+                    ));
+                }
+            }
+            "BT" => {
+                if text || tx.is_none() {
+                    return Err(Error::Refused("choice text must be inside one Tx region"));
+                }
+                text = true;
+                saw_text = true;
+            }
+            "ET" => {
+                if !text {
+                    return Err(Error::Invalid("unbalanced choice text"));
+                }
+                text = false;
+            }
+            _ => (),
+        }
+    }
+    if text || graphics != 0 || !marked.is_empty() {
+        return Err(Error::Invalid("unbalanced choice appearance"));
+    }
+    if !saw_text {
+        return Err(Error::Refused("choice appearance has no text region"));
+    }
+    let (start, end) = region.ok_or(Error::Refused("choice appearance has no Tx region"))?;
+    replacement_boundaries(content, start, end)?;
+    Ok((start, end))
+}
+
 /// PDF paths are not saved by q/Q. A replacement's clip must not consume
 /// surrounding artwork, or remove graphics saves/restores owned by that artwork.
 fn replacement_boundaries(
@@ -384,6 +480,80 @@ fn clipping(content: &Content<Vec<Operation>>, interior: [f64; 4]) -> Result<()>
     Ok(())
 }
 
+/// PDF paths are not saved by q/Q. A replacement's clip must not consume
+/// surrounding artwork, or remove graphics saves/restores owned by that artwork.
+fn replacement_boundaries(
+    content: &Content<Vec<Operation>>,
+    start: usize,
+    end: usize,
+) -> Result<()> {
+    let mut graphics = 0usize;
+    let mut entry = 0usize;
+    let mut path = false;
+    let mut isolated =
+        content.operations[start].operator == "q" && content.operations[end].operator == "Q";
+    for (index, operation) in content.operations.iter().enumerate().take(end + 1) {
+        if index == start {
+            entry = graphics;
+            if path {
+                return Err(Error::Refused(
+                    "appearance path crosses the text replacement boundary",
+                ));
+            }
+        }
+        match operation.operator.as_str() {
+            "q" => graphics += 1,
+            "Q" => {
+                graphics = graphics
+                    .checked_sub(1)
+                    .ok_or(Error::Invalid("unbalanced appearance graphics state"))?
+            }
+            "m" | "l" | "c" | "v" | "y" | "h" | "re" => path = true,
+            "S" | "s" | "f" | "F" | "f*" | "B" | "B*" | "b" | "b*" | "n" => path = false,
+            _ => (),
+        }
+        if index >= start && graphics < entry {
+            return Err(Error::Refused(
+                "appearance graphics state crosses the text replacement boundary",
+            ));
+        }
+        if index >= start && index < end && graphics == entry {
+            isolated = false;
+        }
+    }
+    if graphics != entry || path {
+        return Err(Error::Refused(
+            "appearance graphics or path crosses the text replacement boundary",
+        ));
+    }
+    // Generated text restores its own graphics/text state. Original text may
+    // instead leave colors, line styles, clipping or font settings for later
+    // artwork. Do not silently change those consumers: require an original
+    // enclosing restore before anything besides structural delimiters.
+    if !isolated {
+        for operation in content.operations.iter().skip(end + 1) {
+            match operation.operator.as_str() {
+                "BMC" | "BDC" | "EMC" => (),
+                "q" => graphics += 1,
+                "Q" => {
+                    graphics = graphics
+                        .checked_sub(1)
+                        .ok_or(Error::Invalid("unbalanced appearance graphics state"))?;
+                    if graphics < entry {
+                        break;
+                    }
+                }
+                _ => {
+                    return Err(Error::Refused(
+                        "surrounding appearance depends on replaced text state",
+                    ));
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 pub(super) fn text_eligibility(
     pdf: &PdfDocument,
     field: &FormField,
@@ -427,7 +597,7 @@ pub(super) fn text_eligibility(
     Ok(())
 }
 
-fn widget_plan(
+pub(super) fn widget_plan(
     pdf: &PdfDocument,
     widget: ObjectId,
     field: ObjectId,
@@ -586,9 +756,18 @@ fn widget_plan(
     let bytes = appearance.get_plain_content_with_limit(4 * 1024 * 1024)?;
     budget.report(bytes.len())?;
     let content = Content::decode_strict(&bytes)?;
-    let (text_start, text_end) = text_region(&content)?;
+    let choice = inherited(document, field, b"FT", budget)?
+        .is_some_and(|kind| kind.as_name().ok() == Some(b"Ch"));
+    let (text_start, text_end) = if choice {
+        choice_region(&content)?
+    } else {
+        text_region(&content)?
+    };
+    let clipping_content = choice.then(|| Content {
+        operations: content.operations[..text_start].to_vec(),
+    });
     clipping(
-        &content,
+        clipping_content.as_ref().unwrap_or(&content),
         [padding, padding, layout_w - padding, layout_h - padding],
     )?;
     Ok(WidgetPlan {
@@ -615,13 +794,38 @@ fn operation(name: &str, values: impl IntoIterator<Item = Object>) -> Operation 
 fn real(value: f64) -> Object {
     Object::Real(value as f32)
 }
-fn generated(plan: &WidgetPlan, font_name: &[u8]) -> Result<Vec<Operation>> {
-    let bounds = plan.line.bounds;
-    let inner_w = plan.width - 2.0 * plan.padding;
-    let inner_h = plan.height - 2.0 * plan.padding;
+pub(super) struct LineLayout<'a> {
+    pub line: &'a Line,
+    pub value: &'a str,
+    pub style: &'a Style,
+    pub q: i64,
+    /// Local x, y, width and height of this line's clipping rectangle.
+    pub rectangle: [f64; 4],
+}
+pub(super) fn generated(plan: &WidgetPlan, font_name: &[u8]) -> Result<Vec<Operation>> {
+    generated_line(
+        LineLayout {
+            line: &plan.line,
+            value: &plan.value,
+            style: &plan.style,
+            q: plan.q,
+            rectangle: [
+                plan.padding,
+                plan.padding,
+                plan.width - 2.0 * plan.padding,
+                plan.height - 2.0 * plan.padding,
+            ],
+        },
+        font_name,
+    )
+}
+pub(super) fn generated_line(layout: LineLayout<'_>, font_name: &[u8]) -> Result<Vec<Operation>> {
+    let bounds = layout.line.bounds;
+    let inner_w = layout.rectangle[2];
+    let inner_h = layout.rectangle[3];
     let extent_w = bounds[2] - bounds[0];
     let extent_h = bounds[3] - bounds[1];
-    let size = if plan.style.size == 0.0 {
+    let size = if layout.style.size == 0.0 {
         (inner_h / extent_h)
             .min(if extent_w > 0.0 {
                 inner_w / extent_w
@@ -630,7 +834,7 @@ fn generated(plan: &WidgetPlan, font_name: &[u8]) -> Result<Vec<Operation>> {
             })
             .min(1024.0)
     } else {
-        plan.style.size
+        layout.style.size
     };
     if !size.is_finite()
         || size < 1.0
@@ -642,20 +846,20 @@ fn generated(plan: &WidgetPlan, font_name: &[u8]) -> Result<Vec<Operation>> {
         ));
     }
     let spare = inner_w - extent_w * size;
-    let x = plan.padding - bounds[0] * size
-        + match plan.q {
+    let x = layout.rectangle[0] - bounds[0] * size
+        + match layout.q {
             1 => spare / 2.0,
             2 => spare,
             _ => 0.0,
         };
-    let y = plan.padding + (inner_h - extent_h * size) / 2.0 - bounds[1] * size;
+    let y = layout.rectangle[1] + (inner_h - extent_h * size) / 2.0 - bounds[1] * size;
     let mut ops = vec![
         operation("q", []),
         operation(
             "re",
             [
-                real(plan.padding),
-                real(plan.padding),
+                real(layout.rectangle[0]),
+                real(layout.rectangle[1]),
                 real(inner_w),
                 real(inner_h),
             ],
@@ -666,7 +870,7 @@ fn generated(plan: &WidgetPlan, font_name: &[u8]) -> Result<Vec<Operation>> {
             "BDC",
             [
                 Object::Name(b"Span".to_vec()),
-                Object::Dictionary(dictionary! {"ActualText"=>unicode_string(&plan.value)}),
+                Object::Dictionary(dictionary! {"ActualText"=>unicode_string(layout.value)}),
             ],
         ),
         operation("BT", []),
@@ -675,10 +879,10 @@ fn generated(plan: &WidgetPlan, font_name: &[u8]) -> Result<Vec<Operation>> {
         operation("Tz", [100.into()]),
         operation("Tr", [0.into()]),
         operation("Ts", [0.into()]),
-        plan.style.color.clone(),
+        layout.style.color.clone(),
         operation("Tf", [Object::Name(font_name.to_vec()), real(size)]),
     ];
-    for glyph in &plan.line.glyphs {
+    for glyph in &layout.line.glyphs {
         ops.push(operation(
             "Tr",
             [if glyph.invisible { 3.into() } else { 0.into() }],
@@ -707,6 +911,32 @@ fn generated(plan: &WidgetPlan, font_name: &[u8]) -> Result<Vec<Operation>> {
         operation("EMC", []),
         operation("Q", []),
     ]);
+    Ok(ops)
+}
+
+/// Choice row replacement covers the glyph run, leaving BT/ET separators real.
+pub(super) fn generated_row(layout: LineLayout<'_>, font_name: &[u8]) -> Result<Vec<Operation>> {
+    let mut ops = generated_line(layout, font_name)?;
+    let start = ops
+        .iter()
+        .position(|op| op.operator == "BDC")
+        .ok_or(Error::Invalid("generated row has no logical span"))?;
+    let span = ops.remove(start);
+    let end = ops
+        .iter()
+        .position(|op| op.operator == "EMC")
+        .ok_or(Error::Invalid("generated row has no logical span end"))?;
+    let close = ops.remove(end);
+    let text_end = ops
+        .iter()
+        .position(|op| op.operator == "ET")
+        .ok_or(Error::Invalid("generated row has no text end"))?;
+    ops.insert(text_end, close);
+    let font = ops
+        .iter()
+        .position(|op| op.operator == "Tf")
+        .ok_or(Error::Invalid("generated row has no font"))?;
+    ops.insert(font + 1, span);
     Ok(ops)
 }
 
@@ -789,180 +1019,209 @@ impl PdfDocument {
             }
             updates.push((field.object_id, change.value.clone()));
         }
-        let mut font_name = b"NativeFormText".to_vec();
-        let mut suffix = 0usize;
-        let dr = form
-            .get(b"DR")
-            .ok()
-            .map(|v| {
-                budget
-                    .resolve(&self.document, v)
-                    .and_then(|(_, v)| Ok(v.as_dict()?))
+        let patches = updates
+            .into_iter()
+            .map(|(id, value)| FieldPatch {
+                id,
+                values: vec![("V", Some(unicode_string(&value)))],
             })
-            .transpose()?;
-        let dr_fonts = dr
-            .and_then(|dr| dr.get(b"Font").ok())
-            .map(|v| {
-                budget
-                    .resolve(&self.document, v)
-                    .and_then(|(_, v)| Ok(v.as_dict()?))
-            })
-            .transpose()?;
-        while dr_fonts.is_some_and(|fonts| fonts.has(&font_name))
-            || plans.iter().any(|plan| {
-                plan.resources
-                    .get_deref(b"Font", &self.document)
-                    .and_then(Object::as_dict)
-                    .is_ok_and(|fonts| fonts.has(&font_name))
-            })
-        {
-            suffix += 1;
-            if suffix > 100_000 {
-                return Err(Error::Limit("font resource name budget"));
-            }
-            font_name = format!("NativeFormText{suffix}").into_bytes();
+            .collect();
+        publish_plans(self, font, plans, patches, &mut budget, generated)
+    }
+}
+
+pub(super) struct FieldPatch {
+    pub id: ObjectId,
+    pub values: Vec<(&'static str, Option<Object>)>,
+}
+
+/// Plan, encode and validate the entire candidate before publishing any mutation.
+pub(super) fn publish_plans(
+    pdf: &mut PdfDocument,
+    font: FontPlan<'_>,
+    plans: Vec<WidgetPlan>,
+    patches: Vec<FieldPatch>,
+    budget: &mut Budget,
+    replacement: impl Fn(&WidgetPlan, &[u8]) -> Result<Vec<Operation>>,
+) -> Result<()> {
+    let catalog = budget
+        .resolve(&pdf.document, pdf.document.trailer.get(b"Root")?)?
+        .1
+        .as_dict()?;
+    let form = budget
+        .resolve(&pdf.document, catalog.get(b"AcroForm")?)?
+        .1
+        .as_dict()?;
+    let mut font_name = b"NativeFormText".to_vec();
+    let mut suffix = 0usize;
+    let dr = form
+        .get(b"DR")
+        .ok()
+        .map(|v| {
+            budget
+                .resolve(&pdf.document, v)
+                .and_then(|(_, v)| Ok(v.as_dict()?))
+        })
+        .transpose()?;
+    let dr_fonts = dr
+        .and_then(|dr| dr.get(b"Font").ok())
+        .map(|v| {
+            budget
+                .resolve(&pdf.document, v)
+                .and_then(|(_, v)| Ok(v.as_dict()?))
+        })
+        .transpose()?;
+    while dr_fonts.is_some_and(|fonts| fonts.has(&font_name))
+        || plans.iter().any(|plan| {
+            plan.resources
+                .get_deref(b"Font", &pdf.document)
+                .and_then(Object::as_dict)
+                .is_ok_and(|fonts| fonts.has(&font_name))
+        })
+    {
+        suffix += 1;
+        if suffix > 100_000 {
+            return Err(Error::Limit("font resource name budget"));
         }
-        let mut encoded = Vec::new();
-        let mut bytes = 0usize;
-        for plan in &plans {
-            let replacement = generated(plan, &font_name)?;
-            if plan.content.operations.len() - (plan.text_end - plan.text_start + 1)
-                + replacement.len()
-                > 100_000
-            {
-                return Err(Error::Limit(
-                    "generated text appearance exceeds 100000 operators",
-                ));
-            }
-            let mut content = plan.content.clone();
-            content
-                .operations
-                .splice(plan.text_start..=plan.text_end, replacement);
-            let output = content.encode()?;
-            bytes = bytes
-                .checked_add(output.len())
-                .ok_or(Error::Limit("generated appearances overflow"))?;
-            if bytes > crate::MAX_STREAM_BYTES {
-                return Err(Error::Limit("generated appearances exceed 32 MiB"));
-            }
-            encoded.push(output);
+        font_name = format!("NativeFormText{suffix}").into_bytes();
+    }
+    let mut encoded = Vec::new();
+    let mut bytes = 0usize;
+    for plan in &plans {
+        let replacement = replacement(plan, &font_name)?;
+        let mut content = plan.content.clone();
+        content
+            .operations
+            .splice(plan.text_start..=plan.text_end, replacement);
+        let output = content.encode()?;
+        bytes = bytes
+            .checked_add(output.len())
+            .ok_or(Error::Limit("generated appearances overflow"))?;
+        if bytes > crate::MAX_STREAM_BYTES {
+            return Err(Error::Limit("generated appearances exceed 32 MiB"));
         }
-        let extra = plans.len() + 6;
-        if self.document.objects.len().saturating_add(extra) > crate::MAX_OBJECTS
-            || self.document.max_id as usize + extra >= crate::MAX_OBJECTS
-        {
-            return Err(Error::Limit(
-                "text transaction exceeds object allocation budget",
-            ));
-        }
-        for (key, value) in form.iter() {
+        encoded.push(output);
+    }
+    let extra = plans.len() + 6;
+    if pdf.document.objects.len().saturating_add(extra) > crate::MAX_OBJECTS
+        || pdf.document.max_id as usize + extra >= crate::MAX_OBJECTS
+    {
+        return Err(Error::Limit(
+            "text transaction exceeds object allocation budget",
+        ));
+    }
+    for (key, value) in form.iter() {
+        budget.report(key.len())?;
+        copied(value, 0, budget)?;
+    }
+    if let Some(dr) = dr {
+        for (key, value) in dr.iter() {
             budget.report(key.len())?;
-            copied(value, 0, &mut budget)?;
+            copied(value, 0, budget)?;
         }
-        if let Some(dr) = dr {
-            for (key, value) in dr.iter() {
-                budget.report(key.len())?;
-                copied(value, 0, &mut budget)?;
-            }
+    }
+    if let Some(fonts) = dr_fonts {
+        for (key, value) in fonts.iter() {
+            budget.report(key.len())?;
+            copied(value, 0, budget)?;
         }
-        if let Some(fonts) = dr_fonts {
-            for (key, value) in fonts.iter() {
-                budget.report(key.len())?;
-                copied(value, 0, &mut budget)?;
-            }
-        }
-        let default_appearances = updates
-            .iter()
-            .map(|(id, _)| {
-                let plan = plans
-                    .iter()
-                    .find(|plan| plan.field == *id)
-                    .ok_or(Error::Invalid("text field has no planned widget"))?;
-                let content = Content {
-                    operations: vec![
-                        operation(
-                            "Tf",
-                            [Object::Name(font_name.clone()), real(plan.style.size)],
-                        ),
-                        plan.style.color.clone(),
-                    ],
-                };
-                Ok((*id, content.encode()?))
-            })
-            .collect::<Result<Vec<_>>>()?;
-        let existing_font = font.existing_program(&self.document)?;
-        let mut candidate = self.clone();
-        let font_id = font.embed(&mut candidate.document, existing_font)?;
-        let mut resources = dr.cloned().unwrap_or_default();
-        let mut fonts = dr_fonts.cloned().unwrap_or_default();
+    }
+    let default_appearances = patches
+        .iter()
+        .map(|patch| {
+            let id = &patch.id;
+            let plan = plans
+                .iter()
+                .find(|plan| plan.field == *id)
+                .ok_or(Error::Invalid("text field has no planned widget"))?;
+            let content = Content {
+                operations: vec![
+                    operation(
+                        "Tf",
+                        [Object::Name(font_name.clone()), real(plan.style.size)],
+                    ),
+                    plan.style.color.clone(),
+                ],
+            };
+            Ok((*id, content.encode()?))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let existing_font = font.existing_program(&pdf.document)?;
+    let mut candidate = pdf.clone();
+    let font_id = font.embed(&mut candidate.document, existing_font)?;
+    let mut resources = dr.cloned().unwrap_or_default();
+    let mut fonts = dr_fonts.cloned().unwrap_or_default();
+    fonts.set(font_name.clone(), font_id);
+    resources.set("Font", fonts);
+    let mut updated_form = form.clone();
+    updated_form.set("DR", resources);
+    let (form_id, _) = budget.resolve(&pdf.document, catalog.get(b"AcroForm")?)?;
+    if let Some(form_id) = form_id {
+        *candidate.document.get_dictionary_mut(form_id)? = updated_form;
+    } else {
+        let catalog_id = budget
+            .resolve(&pdf.document, pdf.document.trailer.get(b"Root")?)?
+            .0
+            .ok_or(Error::Invalid("direct catalog is unsupported"))?;
+        candidate
+            .document
+            .get_dictionary_mut(catalog_id)?
+            .set("AcroForm", updated_form);
+    }
+    for (plan, content) in plans.into_iter().zip(encoded) {
+        let mut resources = plan.resources;
+        let mut fonts = resources
+            .get_deref(b"Font", &pdf.document)
+            .and_then(Object::as_dict)?
+            .clone();
         fonts.set(font_name.clone(), font_id);
         resources.set("Font", fonts);
-        let mut updated_form = form.clone();
-        updated_form.set("DR", resources);
-        let (form_id, _) = budget.resolve(&self.document, catalog.get(b"AcroForm")?)?;
-        if let Some(form_id) = form_id {
-            *candidate.document.get_dictionary_mut(form_id)? = updated_form;
-        } else {
-            let catalog_id = budget
-                .resolve(&self.document, self.document.trailer.get(b"Root")?)?
-                .0
-                .ok_or(Error::Invalid("direct catalog is unsupported"))?;
-            candidate
-                .document
-                .get_dictionary_mut(catalog_id)?
-                .set("AcroForm", updated_form);
-        }
-        for (plan, content) in plans.into_iter().zip(encoded) {
-            let mut resources = plan.resources;
-            let mut fonts = resources
-                .get_deref(b"Font", &self.document)
-                .and_then(Object::as_dict)?
-                .clone();
-            fonts.set(font_name.clone(), font_id);
-            resources.set("Font", fonts);
-            let mut dict = self
-                .document
-                .get_object(plan.stream)?
-                .as_stream()?
-                .dict
-                .clone();
-            dict.remove(b"Filter");
-            dict.remove(b"DecodeParms");
-            dict.set("Resources", resources);
-            let stream = candidate.document.add_object(Stream::new(dict, content));
-            let old = self.document.get_dictionary(plan.widget)?;
-            let mut ap = budget
-                .resolve(&self.document, old.get(b"AP")?)?
-                .1
-                .as_dict()?
-                .clone();
-            ap.set("N", stream);
-            candidate
-                .document
-                .get_dictionary_mut(plan.widget)?
-                .set("AP", ap);
-        }
-        for (id, value) in updates {
-            candidate
-                .document
-                .get_dictionary_mut(id)?
-                .set("V", unicode_string(&value));
-        }
-        for (id, da) in default_appearances {
-            candidate
-                .document
-                .get_dictionary_mut(id)?
-                .set("DA", Object::String(da, lopdf::StringFormat::Literal));
-        }
-        let rebuilt = PdfDocument::from_document(candidate.document, candidate.encrypted_input)?;
-        if rebuilt.pages != self.pages {
-            return Err(Error::Invalid("text transaction changed page identities"));
-        }
-        if bytes > MAX_REPORT_BYTES * 8 {
-            return Err(Error::Limit("text appearance byte budget"));
-        }
-        rebuilt.to_bytes()?;
-        *self = rebuilt;
-        Ok(())
+        let mut dict = pdf
+            .document
+            .get_object(plan.stream)?
+            .as_stream()?
+            .dict
+            .clone();
+        dict.remove(b"Filter");
+        dict.remove(b"DecodeParms");
+        dict.set("Resources", resources);
+        let stream = candidate.document.add_object(Stream::new(dict, content));
+        let old = pdf.document.get_dictionary(plan.widget)?;
+        let mut ap = budget
+            .resolve(&pdf.document, old.get(b"AP")?)?
+            .1
+            .as_dict()?
+            .clone();
+        ap.set("N", stream);
+        candidate
+            .document
+            .get_dictionary_mut(plan.widget)?
+            .set("AP", ap);
     }
+    for patch in patches {
+        let field = candidate.document.get_dictionary_mut(patch.id)?;
+        for (key, value) in patch.values {
+            if let Some(value) = value {
+                field.set(key, value);
+            } else {
+                field.remove(key.as_bytes());
+            }
+        }
+    }
+    for (id, da) in default_appearances {
+        candidate
+            .document
+            .get_dictionary_mut(id)?
+            .set("DA", Object::String(da, lopdf::StringFormat::Literal));
+    }
+    let rebuilt = PdfDocument::from_document(candidate.document, candidate.encrypted_input)?;
+    if rebuilt.pages != pdf.pages {
+        return Err(Error::Invalid("text transaction changed page identities"));
+    }
+    if bytes > MAX_REPORT_BYTES * 8 {
+        return Err(Error::Limit("text appearance byte budget"));
+    }
+    rebuilt.to_bytes()?;
+    *pdf = rebuilt;
+    Ok(())
 }
