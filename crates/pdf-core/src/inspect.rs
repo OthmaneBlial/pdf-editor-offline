@@ -364,7 +364,7 @@ fn filename(document: &Document, value: &Object) -> Result<String> {
     if value.as_str()?.len() > 4096 {
         return Err(Error::Limit("embedded filename exceeds 4096 bytes"));
     }
-    Ok(lopdf::decode_text_string(value)?)
+    crate::strings::decode(value)
 }
 
 pub(crate) fn reachable_objects(document: &Document) -> Result<BTreeSet<ObjectId>> {

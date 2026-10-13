@@ -12,6 +12,7 @@ mod notes;
 mod pages;
 mod save;
 pub mod selection;
+mod strings;
 mod structure;
 mod text;
 

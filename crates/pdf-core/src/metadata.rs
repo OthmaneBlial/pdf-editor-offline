@@ -275,24 +275,7 @@ fn decode(object: &Object) -> Result<String> {
     if bytes.len() > MAX_METADATA_VALUE_BYTES * 2 + 2 {
         return Err(Error::Limit("encoded metadata value exceeds limit"));
     }
-    let value = if let Some(bytes) = bytes.strip_prefix(b"\xFE\xFF") {
-        if bytes.len() % 2 != 0 {
-            return Err(Error::Invalid("odd-length UTF-16 metadata string"));
-        }
-        let units = bytes
-            .chunks_exact(2)
-            .map(|chunk| u16::from_be_bytes([chunk[0], chunk[1]]))
-            .collect::<Vec<_>>();
-        String::from_utf16(&units).map_err(|_| Error::Invalid("invalid UTF-16 metadata string"))?
-    } else if let Some(bytes) = bytes.strip_prefix(b"\xEF\xBB\xBF") {
-        std::str::from_utf8(bytes)
-            .map_err(|_| Error::Invalid("invalid UTF-8 metadata string"))?
-            .to_owned()
-    } else if bytes.starts_with(b"\xFF\xFE") {
-        return Err(Error::Refused("UTF-16LE metadata strings are unsupported"));
-    } else {
-        lopdf::decode_text_string(object)?
-    };
+    let value = crate::strings::decode(object)?;
     if value.len() > MAX_METADATA_VALUE_BYTES {
         return Err(Error::Limit("decoded metadata value exceeds 64 KiB"));
     }

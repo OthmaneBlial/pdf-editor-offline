@@ -16,6 +16,10 @@ placements; password values are omitted. Filling updates `/V` and `/AS` together
 retains appearance streams, and refuses unsupported form structures. Text/choice
 appearance generation, flattening and signing remain separate stages.
 
+Form strings, metadata, notes and attachment filenames share strict PDF text
+decoding. Undefined PDFDocEncoding bytes and malformed Unicode are refused rather
+than silently dropped or replaced; valid Unicode BOM strings retain their text.
+
 The npm installer now reopens and rehashes pinned bytes after a concurrent
 hard-link metadata change, accepting only a stable verification. Persistent changes
 and tampered bytes are refused. The earlier preview 2 tag is preserved; its

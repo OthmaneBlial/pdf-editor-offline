@@ -270,17 +270,7 @@ fn read_string(
     if bytes.len() > limit.saturating_mul(2).saturating_add(2) {
         return Err(Error::Limit("encoded note string exceeds limit"));
     }
-    // lopdf supports PDFDocEncoding/UTF-16, but pads odd UTF-16 tails and retains UTF-8 BOM.
-    if bytes.starts_with(b"\xFE\xFF") && bytes.len() % 2 != 0 {
-        return Err(Error::Invalid("odd-length UTF-16 note string"));
-    }
-    let text = if let Some(bytes) = bytes.strip_prefix(b"\xEF\xBB\xBF") {
-        std::str::from_utf8(bytes)
-            .map_err(|_| Error::Invalid("invalid UTF-8 note string"))?
-            .to_owned()
-    } else {
-        lopdf::decode_text_string(value)?
-    };
+    let text = crate::strings::decode(value)?;
     if text.len() > limit {
         return Err(Error::Limit("decoded note string exceeds limit"));
     }

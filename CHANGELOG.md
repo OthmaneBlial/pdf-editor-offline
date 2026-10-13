@@ -2,6 +2,8 @@
 
 ## Unreleased — native Rust preview
 
+- Preserve PDF text strings consistently across form names/values, metadata, notes and attachment filenames. Undefined PDFDocEncoding bytes and malformed Unicode now fail explicitly instead of silently dropping or replacing characters; valid UTF-16 and UTF-8 BOM strings retain supplementary characters.
+
 - Added native form-field discovery and eligible checkbox/radio controls, including keyboard activation, durable apply/undo/redo, verified saving, stale/tab/save guards and retained error drafts. Unsupported fields remain read-only; real window review remains separate from automated interaction tests.
 
 - Added bounded AcroForm discovery and transactional checkbox/radio filling to the core, isolated CLI and path-free worker. Existing appearance streams are preserved; incomplete field/widget graphs and unsupported semantics are refused. Text/choice generation remains open. Added real subprocess and pinned qpdf/Poppler structure/pixel gates.

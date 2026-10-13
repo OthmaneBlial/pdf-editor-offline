@@ -287,26 +287,7 @@ fn text(value: &Object, budget: &mut Budget) -> Result<String> {
     if bytes.len() > MAX_VALUE_BYTES * 2 + 2 {
         return Err(Error::Limit("encoded form string exceeds 128 KiB"));
     }
-    let string = if let Some(bytes) = bytes.strip_prefix(b"\xFE\xFF") {
-        if bytes.len() % 2 != 0 {
-            return Err(Error::Invalid("odd UTF-16 form string"));
-        }
-        String::from_utf16(
-            &bytes
-                .chunks_exact(2)
-                .map(|pair| u16::from_be_bytes([pair[0], pair[1]]))
-                .collect::<Vec<_>>(),
-        )
-        .map_err(|_| Error::Invalid("invalid UTF-16 form string"))?
-    } else if let Some(bytes) = bytes.strip_prefix(b"\xEF\xBB\xBF") {
-        std::str::from_utf8(bytes)
-            .map_err(|_| Error::Invalid("invalid UTF-8 form string"))?
-            .to_owned()
-    } else if bytes.starts_with(b"\xFF\xFE") {
-        return Err(Error::Refused("UTF-16LE form text unsupported"));
-    } else {
-        lopdf::decode_text_string(value)?
-    };
+    let string = crate::strings::decode(value)?;
     if string.len() > MAX_VALUE_BYTES {
         return Err(Error::Limit("form string exceeds 64 KiB"));
     }
