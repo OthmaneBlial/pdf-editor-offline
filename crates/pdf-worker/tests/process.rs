@@ -17,6 +17,19 @@ fn run_cli(mode: &str, limits: Limits) -> pdf_worker::Result<pdf_worker::Reply> 
 }
 
 #[test]
+fn processing_runs_on_the_bounded_stack_thread_and_preserves_both_protocol_roles() {
+    for reply in [
+        run("processing-stack", Limits::default()).unwrap(),
+        run_cli("processing-stack", Limits::default()).unwrap(),
+    ] {
+        assert_eq!(reply.kind, PayloadKind::None);
+        assert_eq!(reply.control["probe"], 46);
+        assert_eq!(reply.control["thread"], "pdf-processing");
+        assert!(reply.payload.is_empty());
+    }
+}
+
+#[test]
 fn cli_output_domain_preserves_large_replies_and_shared_process_failure_guards() {
     for (mode, kind) in [("json", PayloadKind::Json), ("text", PayloadKind::Text)] {
         let reply = run_cli(mode, Limits::default()).unwrap();

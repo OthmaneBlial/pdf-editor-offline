@@ -25,6 +25,14 @@ Job Objects. Sampled guards can overshoot briefly; platform policies differ.
 After an abrupt Unix supervisor death, the child terminates its owned group;
 Windows' job lifetime handles supervisor termination.
 
+After installing these limits, desktop and CLI children process their one request
+on a fallibly created thread with an 8 MiB stack. This avoids depending on the
+smaller executable main stack on Windows. The shared `serve_once` handler must
+be `Send`; scoped execution still permits borrowed handlers. Thread setup and
+panic failures produce controlled errors. Memory, CPU and wall limits remain
+unchanged. The process regression exercises a 2 MiB stack allocation through
+both protocol roles, alongside the existing resource-limit checks.
+
 IPC control is bounded to 8 MiB. Text output retains the existing 128 MiB tier;
 JSON permits sixfold escaping plus 8 MiB of metadata (776 MiB). CLI output kinds
 are separated from desktop PDF/raster kinds, so this larger JSON budget does not

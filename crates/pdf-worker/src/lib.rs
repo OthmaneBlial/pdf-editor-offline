@@ -23,6 +23,7 @@ pub const MAX_JSON_BYTES: usize = MAX_TEXT_BYTES * 6 + MAX_CONTROL_BYTES;
 pub const MAX_STDERR_BYTES: usize = 64 * 1024;
 pub const MEMORY_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 pub const CPU_SECONDS: u64 = 30;
+const PROCESSING_STACK_BYTES: usize = 8 * 1024 * 1024;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -79,10 +80,26 @@ impl Limits {
 /// Apply limits before accepting input, announce readiness, execute one operation,
 /// then emit one bounded reply. The caller's main must exit after this function.
 pub fn serve_once(
-    handler: impl FnOnce(Request) -> std::result::Result<Reply, String>,
+    handler: impl FnOnce(Request) -> std::result::Result<Reply, String> + Send,
 ) -> Result<()> {
     let configured = limits::child_configuration()?;
     limits::install_child(configured)?;
+    // Windows executable stacks are smaller than bounded parser/CLI call paths need.
+    std::thread::scope(|scope| {
+        std::thread::Builder::new()
+            .name("pdf-processing".into())
+            .stack_size(PROCESSING_STACK_BYTES)
+            .spawn_scoped(scope, move || serve_limited(handler, configured))
+            .map_err(|error| Error::Limits(format!("processing thread setup failed: {error}")))?
+            .join()
+            .map_err(|_| Error::Limits("processing thread panicked".into()))?
+    })
+}
+
+fn serve_limited(
+    handler: impl FnOnce(Request) -> std::result::Result<Reply, String>,
+    configured: Limits,
+) -> Result<()> {
     #[cfg(unix)]
     let _parent = limits::watch_parent()?;
     let mut output = io::stdout().lock();

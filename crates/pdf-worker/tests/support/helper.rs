@@ -3,6 +3,17 @@
 use pdf_worker::{PayloadKind, Reply, Request};
 use std::io::Write;
 
+#[inline(never)]
+#[allow(clippy::large_stack_arrays)]
+fn processing_stack_probe() -> u8 {
+    let mut bytes = [0_u8; 2 * 1024 * 1024];
+    let last = bytes.len() - 1;
+    bytes[0] = 17;
+    bytes[last] = 29;
+    std::hint::black_box(&bytes);
+    bytes[0] + bytes[last]
+}
+
 fn main() {
     let mode = std::env::args().nth(1).unwrap_or_default();
     if mode == "supervisor" {
@@ -46,6 +57,14 @@ fn main() {
         return;
     }
     let result = pdf_worker::serve_once(|request: Request| match mode.as_str() {
+        "processing-stack" => Ok(Reply {
+            control: serde_json::json!({
+                "probe": processing_stack_probe(),
+                "thread": std::thread::current().name(),
+            }),
+            payload: Vec::new(),
+            kind: PayloadKind::None,
+        }),
         "json" | "text" => {
             let mut payload = vec![b'a'; pdf_worker::MAX_CONTROL_BYTES + 4096];
             let kind = if mode == "json" {
