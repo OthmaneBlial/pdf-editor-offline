@@ -31,6 +31,20 @@ const MAX_FIELDS: usize = 10_000;
 const MAX_WORK: usize = 2_000_000;
 const MAX_REPORT_BYTES: usize = 4 * 1024 * 1024;
 const MAX_VALUE_BYTES: usize = 64 * 1024;
+
+pub(crate) fn content_font_resources(
+    pdf: &PdfDocument,
+    page: ObjectId,
+) -> Result<(Dictionary, Dictionary)> {
+    let mut budget = Budget::new();
+    let resources = crate::structure::inherited(&pdf.document, page, b"Resources")?
+        .ok_or(Error::Invalid("text page has no resources"))?;
+    appearance::copied(resources, 0, &mut budget)?;
+    let resources = resources.as_dict()?;
+    let fonts = budget.resolve(&pdf.document, resources.get(b"Font")?)?.1;
+    appearance::copied(fonts, 0, &mut budget)?;
+    Ok((resources.clone(), fonts.as_dict()?.clone()))
+}
 const RADIO: u32 = 1 << 15;
 const PUSH: u32 = 1 << 16;
 const UNISON: u32 = 1 << 25;

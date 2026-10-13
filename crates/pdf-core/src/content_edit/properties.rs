@@ -1,6 +1,44 @@
 //! Scoped edits of the original final-show text object, never an overlay.
 use super::*;
 
+/// Isolate changes before the selected final show and replay original persistent
+/// setters after ET. Keep source tokens (including precise numeric operands).
+pub(super) fn scope_text_object(
+    bytes: &[u8],
+    content: &Content,
+    spans: &[crate::content_spans::OperatorSpan],
+    show: usize,
+) -> Result<Vec<(Range<usize>, Vec<u8>)>> {
+    let start = content.operations[..show]
+        .iter()
+        .rposition(|op| op.operator == "BT")
+        .ok_or(Error::Invalid("missing text object"))?;
+    let end = show + 1;
+    if content
+        .operations
+        .get(end)
+        .is_none_or(|op| op.operator != "ET")
+    {
+        return Err(Error::Refused("selected show must be followed by ET"));
+    }
+    let mut restore = Vec::from(b"\nQ\n".as_slice());
+    for index in start..=end {
+        if matches!(
+            content.operations[index].operator.as_str(),
+            "Tf" | "Tr" | "Tc" | "Tw" | "Tz" | "Ts" | "g" | "rg"
+        ) {
+            restore.extend_from_slice(&bytes[spans[index].full.clone()]);
+            restore.push(b'\n');
+        }
+    }
+    let begin = spans[start].full.start;
+    let finish = spans[end].full.end;
+    Ok(vec![
+        (begin..begin, b"\nq\n".to_vec()),
+        (finish..finish, restore),
+    ])
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ContentTextPropertyChange {
@@ -161,7 +199,6 @@ impl PdfDocument {
                 .iter()
                 .rposition(|op| op.operator == "BT")
                 .ok_or(Error::Invalid("missing text object"))?;
-            let end = show + 1;
             if !blocks.insert(start) {
                 return Err(Error::Invalid("overlapping text objects"));
             }
@@ -188,24 +225,14 @@ impl PdfDocument {
             if let Some([r, g, b]) = change.fill_rgb {
                 insert.extend_from_slice(format!("{r} {g} {b} rg\n").as_bytes());
             }
-            // ET discards matrices, but font and text-state setters persist. Replay exactly
-            // the original raw setters after restoring scoped color/graphics state.
-            let mut restore = Vec::from(b"\nQ\n".as_slice());
-            for index in start..=end {
-                if matches!(
-                    content.operations[index].operator.as_str(),
-                    "Tf" | "Tr" | "Tc" | "Tw" | "Tz" | "Ts" | "g" | "rg"
-                ) {
-                    restore.extend_from_slice(&bytes[spans[index].full.clone()]);
-                    restore.push(b'\n');
-                }
-            }
-            let begin = spans[start].full.start;
             let show = spans[show].full.start;
-            let finish = spans[end].full.end;
-            plans.push((begin..begin, b"\nq\n".to_vec()));
             plans.push((show..show, insert));
-            plans.push((finish..finish, restore));
+            plans.extend(scope_text_object(
+                &bytes,
+                &content,
+                &spans,
+                change.identity.operation as usize,
+            )?);
         }
         self.publish_content_bytes(page_id, stream_id, splice_content(&bytes, plans)?)
     }

@@ -9,8 +9,10 @@ use std::ops::Range;
 
 const MAX_RUNS: usize = 10_000;
 const MAX_TEXT: usize = 4 * 1024 * 1024;
+mod face;
 pub(crate) mod layout;
 mod properties;
+pub use face::ContentTextFaceChange;
 use layout::GraphicsTextState;
 pub use layout::{ContentTextLayout, ContentTextPosition};
 pub use properties::ContentTextPropertyChange;
@@ -69,6 +71,23 @@ pub enum ContentTextFont {
     TimesBoldItalic,
 }
 impl ContentTextFont {
+    pub const ALL: [Self; 12] = [
+        Self::Courier,
+        Self::CourierBold,
+        Self::CourierOblique,
+        Self::CourierBoldOblique,
+        Self::Helvetica,
+        Self::HelveticaBold,
+        Self::HelveticaOblique,
+        Self::HelveticaBoldOblique,
+        Self::TimesRoman,
+        Self::TimesBold,
+        Self::TimesItalic,
+        Self::TimesBoldItalic,
+    ];
+    pub fn from_pdf_name(name: &str) -> Option<Self> {
+        Self::from_name(name.as_bytes())
+    }
     pub fn pdf_name(self) -> &'static str {
         match self {
             Self::Courier => "Courier",
@@ -86,22 +105,9 @@ impl ContentTextFont {
         }
     }
     fn from_name(name: &[u8]) -> Option<Self> {
-        [
-            Self::Courier,
-            Self::CourierBold,
-            Self::CourierOblique,
-            Self::CourierBoldOblique,
-            Self::Helvetica,
-            Self::HelveticaBold,
-            Self::HelveticaOblique,
-            Self::HelveticaBoldOblique,
-            Self::TimesRoman,
-            Self::TimesBold,
-            Self::TimesItalic,
-            Self::TimesBoldItalic,
-        ]
-        .into_iter()
-        .find(|font| font.pdf_name().as_bytes() == name)
+        Self::ALL
+            .into_iter()
+            .find(|font| font.pdf_name().as_bytes() == name)
     }
     fn width(self, value: &str, encoding: ContentTextEncoding) -> Result<u64> {
         value.bytes().try_fold(0u64, |sum, code| {
