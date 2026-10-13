@@ -70,6 +70,13 @@ pub enum Operation {
     RedactText {
         request: pdf_core::TextRedactionRequest,
     },
+    RedactImages {
+        selections: Vec<pdf_core::ImageSelection>,
+    },
+    VerifyImageRedaction {
+        source_bytes_len: usize,
+        selections: Vec<pdf_core::ImageSelection>,
+    },
     VerifyRedaction {
         request: pdf_core::TextRedactionRequest,
     },
@@ -263,6 +270,11 @@ pub enum DocumentResult {
         report: pdf_core::TextRedactionReport,
     },
     RedactionVerified {},
+    ImagesRedacted {
+        info: DocumentInfo,
+        report: pdf_core::ImageRedactionReport,
+    },
+    ImagesRedactionVerified {},
     Forms {
         fields: Vec<pdf_core::FormField>,
         choices: Vec<pdf_core::ChoiceField>,
@@ -406,6 +418,25 @@ fn execute(request: Request) -> Result<Reply, String> {
     ) && field_count != 1
     {
         return Err("This document operation accepts no extra fields or paths".into());
+    }
+    if let Operation::VerifyImageRedaction {
+        source_bytes_len,
+        selections,
+    } = &operation
+    {
+        if *source_bytes_len == 0 || *source_bytes_len >= request.payload.len() {
+            return Err("Image verification needs exact nonempty source/output frames".into());
+        }
+        let (source, output) = request.payload.split_at(*source_bytes_len);
+        let source = PdfDocument::from_bytes(source, None).map_err(|error| error.to_string())?;
+        source
+            .verify_image_redaction_bytes(selections, output)
+            .map_err(|error| error.to_string())?;
+        return reply(
+            DocumentResult::ImagesRedactionVerified {},
+            PayloadKind::None,
+            Vec::new(),
+        );
     }
     if matches!(operation, Operation::Open) {
         return match PdfDocument::from_bytes(&request.payload, Some("")) {
@@ -772,6 +803,26 @@ fn execute(request: Request) -> Result<Reply, String> {
                 PayloadKind::Pdf,
                 payload,
             )
+        }
+        Operation::RedactImages { selections } => {
+            let (candidate, report) = document
+                .redact_images_copy(&selections)
+                .map_err(|error| error.to_string())?;
+            let payload = candidate
+                .verified_bytes()
+                .map_err(|error| error.to_string())?;
+            document
+                .verify_image_redaction_bytes(&selections, &payload)
+                .map_err(|error| error.to_string())?;
+            let info = candidate.info().map_err(|error| error.to_string())?;
+            reply(
+                DocumentResult::ImagesRedacted { info, report },
+                PayloadKind::Pdf,
+                payload,
+            )
+        }
+        Operation::VerifyImageRedaction { .. } => {
+            unreachable!("verification handled before parsing combined frames")
         }
         Operation::RedactText { request: redaction } => {
             redaction.validate().map_err(|error| error.to_string())?;

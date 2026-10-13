@@ -10,6 +10,26 @@ no-clobber publication apply. [Font scope and refusals](../../docs/EXISTING_TEXT
 This is original-content editing, with no CFF/RTL/reflow or secure-erasure claim;
 the published preview remains separate from current source.
 
+Current source can permanently remove whole selected image draws into a new
+copy. First use `list-image-instances input.pdf --page N --json` for each page;
+save the desired `selection` objects as a private JSON array. Include every use
+of a shared image/mask, including other pages. Then run:
+
+```sh
+pdf-editor-offline redact-images input.pdf --selections-file selections.json -o removed.pdf --dry-run --json
+pdf-editor-offline redact-images input.pdf --selections-file selections.json -o removed.pdf --json
+```
+
+Source-bound IDs/hashes refuse stale selections. Remaining text must use the
+strict ASCII/unembedded standard-Type1-font profile. The verifier admits only
+RGB/Gray 8-bit plain/Flate images and same-sized grayscale soft masks; JPEG,
+predictors, ICC and opaque carriers refuse. Output removes selected image data,
+resource aliases, old streams, unreachable objects and targeted metadata/action/
+attachment carriers through a full rewrite. Unselected images use exact sample
+decoding rather than renderer recovery. Original files, backups and journals
+remain. This is not partial-pixel redaction, OCR or a general privacy certificate.
+No-clobber publication and dry-run follow the normal isolated CLI rules.
+
 Current source adds atomic page numbering through `number-pages`. Select a unique
 page range, start value, header/footer position, margin, band height, explicit
 font file, font size, alignment and RGB color. Numbers follow document order and

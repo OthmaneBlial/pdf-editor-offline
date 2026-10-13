@@ -1,5 +1,16 @@
 # PDF operation subprocesses
 
+`RedactImages` accepts source-bound `ImageSelection` objects, never paths or raw
+pixel targets. It returns a separate full-rewrite PDF and bounded removal report.
+`VerifyImageRedaction` accepts an exact source-byte prefix length and a binary
+source/output frame; combined bytes remain capped at 128 MiB. It recomputes the
+same bounded removal and compares every actual output byte. Extra bytes,
+tampering, stale IDs or unsupported carriers refuse. Native publication requires
+that second child verification before a new-tab journal commit. This is the
+restricted RGB/Gray8 plain/Flate+soft-mask asset tier with standard-Type1 ASCII
+text, not partial-pixel redaction,
+renderer-based privacy verification or a general privacy certificate.
+
 Native `open` challenges encrypted inputs even with an empty password. `unlock`
 accepts only the strict `ReadOperation` enum (info/render/text/metadata/forms/notes);
 the credential is a maximum 4096-byte UTF-8 body suffix, never a JSON value,

@@ -244,6 +244,17 @@ enum Command {
         #[arg(long)]
         dry_run: bool,
     },
+    /// Remove complete source-bound image draws into a verified new copy.
+    /// Plain/Flate RGB/Gray8 profile only; all shared uses must be selected.
+    RedactImages {
+        input: PathBuf,
+        #[arg(long)]
+        selections_file: PathBuf,
+        #[arg(short, long)]
+        output: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Verify actual native full-rewrite bytes against the same exact target list.
     /// Unsupported/opaque documents refuse; this is not a general privacy certificate.
     VerifyRedaction {
@@ -585,6 +596,29 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
             }
             Ok(
                 json!({"operation":"redact-text","output":json_path(output),"dry_run":dry_run,"source_preserved":true,"report":report,"other_files_erased":false,"general_privacy_certificate":false}),
+            )
+        }
+        Command::RedactImages {
+            input,
+            selections_file,
+            output,
+            dry_run,
+        } => {
+            let bytes = pdf_core::read_input_bytes(selections_file, 4 * 1024 * 1024)?;
+            let selections: Vec<pdf_core::ImageSelection> = serde_json::from_slice(&bytes)
+                .map_err(|_| {
+                    Error::Refused(
+                        "image selections file must be a strict source-bound ImageSelection array",
+                    )
+                })?;
+            let source = open(input)?;
+            let (candidate, report) = source.redact_images_copy(&selections)?;
+            source.verify_image_redaction_bytes(&selections, &candidate.verified_bytes()?)?;
+            if !dry_run {
+                candidate.save_new(output)?;
+            }
+            Ok(
+                json!({"operation":"redact-images","output":json_path(output),"dry_run":dry_run,"source_preserved":true,"report":report,"partial_pixel_redaction":false,"general_privacy_certificate":false,"other_files_erased":false}),
             )
         }
         Command::VerifyRedaction {
@@ -1292,7 +1326,8 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
         }
         Command::Capabilities => Ok(
             json!({ "runtime": "rust-native", "version": env!("CARGO_PKG_VERSION"), "migration_preview": true,
-            "commands": ["set-content-text-font", "redact-text", "verify-redaction", "number-pages", "list-image-instances", "replace-image", "add-image-overlay", "add-vector-overlay", "set-content-text-properties", "split", "add-text-overlay", "inspect-content-text", "replace-content-text", "info", "sanitize", "list-forms", "list-choices", "fill-button", "fill-text", "fill-choice", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "images-to-pdf", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "duplicate-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
+            "commands": ["redact-images", "set-content-text-font", "redact-text", "verify-redaction", "number-pages", "list-image-instances", "replace-image", "add-image-overlay", "add-vector-overlay", "set-content-text-properties", "split", "add-text-overlay", "inspect-content-text", "replace-content-text", "info", "sanitize", "list-forms", "list-choices", "fill-button", "fill-text", "fill-choice", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "images-to-pdf", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "duplicate-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
+            "image_redaction":"whole_selected_source_bound_rgb_gray8_plain_flate_smask_assets_full_rewrite_gc_all_shared_uses_required_not_partial_pixel_or_general_privacy_verification",
             "text_redaction":"exact_ascii_standard_font_profile_full_rewrite_strict_actual_byte_verification_not_arbitrary_pdf_redaction",
             "vector_overlays":"new_rectangle_ellipse_line_bounded_polyline_and_multi_stroke_visual_signatures_with_stroke_fill_paint_alpha_not_redaction_or_cryptographic_signing",
             "image_overlay":"restricted_png_jpeg_insert_quarter_turns_pdf_rectangle_no_existing_image_replacement",
