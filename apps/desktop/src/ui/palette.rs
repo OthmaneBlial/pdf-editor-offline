@@ -31,6 +31,11 @@ impl EditorApp {
                 let editable = !self.busy && selected.is_some_and(Tab::editable);
                 let commands = [
                     (
+                        "Number pages",
+                        Action::NumberPages,
+                        editable && self.pending_saves.is_empty(),
+                    ),
+                    (
                         "Edit existing text",
                         Action::ContentText,
                         !self.busy && has_document && self.pending_saves.is_empty(),

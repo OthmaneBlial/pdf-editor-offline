@@ -11,6 +11,7 @@ mod merge;
 mod metadata;
 mod navigation;
 mod notes;
+mod numbering;
 mod organizer;
 mod pages;
 mod palette;
@@ -45,6 +46,7 @@ enum Action {
     Notes,
     Forms,
     TextOverlay,
+    NumberPages,
     VectorOverlay,
     ImageOverlay,
     ContentText,
@@ -108,6 +110,7 @@ pub struct EditorApp {
     notes_dialog: Option<notes::Dialog>,
     forms_dialog: Option<forms::Dialog>,
     overlay_dialog: Option<text_overlay::Dialog>,
+    numbering_dialog: Option<numbering::Dialog>,
     vector_dialog: Option<vector::Dialog>,
     image_dialog: Option<image_overlay::Dialog>,
     content_dialog: Option<content_text::Dialog>,
@@ -156,6 +159,7 @@ impl EditorApp {
             notes_dialog: None,
             forms_dialog: None,
             overlay_dialog: None,
+            numbering_dialog: None,
             vector_dialog: None,
             image_dialog: None,
             content_dialog: None,
@@ -347,6 +351,13 @@ impl EditorApp {
                             dialog.stale = true;
                         }
                     }
+                    if let Some(d) = self.numbering_dialog.as_mut().filter(|d| d.key.tab == id) {
+                        if d.submitting {
+                            self.numbering_dialog = None;
+                        } else {
+                            d.stale = true;
+                        }
+                    }
                     if self
                         .overlay_dialog
                         .as_ref()
@@ -516,6 +527,13 @@ impl EditorApp {
                 }
                 Event::Closed(id) => {
                     if self
+                        .numbering_dialog
+                        .as_ref()
+                        .is_some_and(|d| d.key.tab == id)
+                    {
+                        self.numbering_dialog = None;
+                    }
+                    if self
                         .vector_dialog
                         .as_ref()
                         .is_some_and(|dialog| dialog.key.tab == id)
@@ -674,6 +692,10 @@ impl EditorApp {
                             dialog.error = Some(message.clone());
                             dialog.submitting = false;
                         }
+                        if let Some(d) = self.numbering_dialog.as_mut().filter(|d| d.key == key) {
+                            d.error = Some(message.clone());
+                            d.submitting = false;
+                        }
                         if let Some(d) = self.overlay_dialog.as_mut().filter(|d| d.key == key) {
                             d.error = Some(message);
                             d.submitting = false;
@@ -759,6 +781,10 @@ impl EditorApp {
         if self.busy
             || self.close_target.is_some()
             || self.recovery.open
+            || self
+                .numbering_dialog
+                .as_ref()
+                .is_some_and(numbering::Dialog::has_changes)
             || !self.pending_saves.is_empty()
             || self.pages_dialog.is_some()
             || self.sanitize_dialog.is_some()
@@ -911,15 +937,20 @@ impl EditorApp {
     }
 
     fn has_page_content_dialog(&self) -> bool {
-        self.overlay_dialog.is_some()
+        self.numbering_dialog.is_some()
+            || self.overlay_dialog.is_some()
             || self.vector_dialog.is_some()
             || self.image_dialog.is_some()
             || self.content_dialog.is_some()
     }
     fn has_tab_draft(&self, id: u64) -> bool {
-        self.vector_dialog
+        self.numbering_dialog
             .as_ref()
             .is_some_and(|d| d.key.tab == id && d.has_changes())
+            || self
+                .vector_dialog
+                .as_ref()
+                .is_some_and(|d| d.key.tab == id && d.has_changes())
             || self
                 .content_dialog
                 .as_ref()
@@ -972,6 +1003,10 @@ impl EditorApp {
                     .content_dialog
                     .as_ref()
                     .is_some_and(content_text::Dialog::has_changes)
+                || self
+                    .numbering_dialog
+                    .as_ref()
+                    .is_some_and(numbering::Dialog::has_changes)
                 || !self.pending_saves.is_empty()
                 || self.tabs.iter().any(|tab| tab.status.dirty)
                 || self
@@ -1087,6 +1122,7 @@ impl EditorApp {
             Action::Metadata => self.open_metadata(),
             Action::Notes => self.open_notes(),
             Action::Forms => self.open_forms(),
+            Action::NumberPages => self.open_numbering(),
             Action::TextOverlay => self.open_text_overlay(),
             Action::VectorOverlay => self.open_vector(),
             Action::ImageOverlay => self.open_image_overlay(),
@@ -1209,6 +1245,7 @@ impl eframe::App for EditorApp {
         }
         if self.organizer_dialog.is_none()
             && self.forms_dialog.is_none()
+            && self.numbering_dialog.is_none()
             && self.overlay_dialog.is_none()
             && self.vector_dialog.is_none()
             && self.image_dialog.is_none()
@@ -1235,6 +1272,7 @@ impl eframe::App for EditorApp {
                 && self.organizer_dialog.is_none()
                 && self.metadata_dialog.is_none()
                 && self.notes_dialog.is_none()
+                && self.numbering_dialog.is_none()
                 && self.content_dialog.is_none()
                 && self.forms_dialog.is_none()
                 && !self.recovery.open
@@ -1251,6 +1289,7 @@ impl eframe::App for EditorApp {
         self.organizer_dialog_ui(&context);
         self.metadata_dialog_ui(&context);
         self.forms_dialog_ui(&context);
+        self.numbering_dialog_ui(&context);
         self.text_overlay_dialog(&context);
         self.vector_dialog_ui(&context);
         self.image_overlay_dialog(&context);

@@ -1154,6 +1154,45 @@ impl WorkingDocument {
                     changes: vec![change],
                 }
             }
+            Edit::PageNumbers {
+                key,
+                numbering,
+                page,
+                font_file,
+            } => {
+                if key.revision != self.current.revision {
+                    return Err("Numbering draft is stale. Reopen the dialog.".into());
+                }
+                if self.current.info.encrypted || self.current.info.signature_fields > 0 {
+                    return Err("Signed or encrypted documents are read only".into());
+                }
+                if page == 0 || page as usize > self.current.info.page_count {
+                    return Err("Numbering selection page is invalid".into());
+                }
+                let font = pdf_core::read_input_bytes(&font_file, 16 * 1024 * 1024)
+                    .map_err(|e| e.to_string())?;
+                let combined = self
+                    .current
+                    .bytes
+                    .len()
+                    .checked_add(font.len())
+                    .filter(|n| *n <= pdf_worker::MAX_PDF_BYTES)
+                    .ok_or("Combined document and numbering font exceed the input limit")?;
+                if font.is_empty() {
+                    return Err("Choose a nonempty covering font".into());
+                }
+                let mut payload = Vec::with_capacity(combined);
+                payload.extend_from_slice(&self.current.bytes);
+                payload.extend_from_slice(&font);
+                expected_fill = Some((self.current.info.page_count, page as usize - 1));
+                expected_overlay = true;
+                text_payload = Some(payload);
+                Mutation::PageNumbers {
+                    numbering,
+                    page,
+                    font_bytes_len: font.len() as u32,
+                }
+            }
             Edit::TextOverlay {
                 key,
                 overlay,

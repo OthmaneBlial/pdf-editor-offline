@@ -1,5 +1,13 @@
 # Native desktop milestone
 
+Current source includes **Edit → Number pages…** and a working command-palette action.
+An explicit page range, starting integer, header/footer band, margin, font size,
+RGB color, alignment and covering font create one atomic batch and one durable
+Undo/Redo history entry. Numbers stay upright on rotated visible pages. Stale,
+read-only and pending-save guards apply; unapplied settings require explicit
+discard. See [page-numbering scope](../../docs/PAGE_NUMBERING_RUST.md).
+Headless widget and real subprocess checks do not establish a new manual window review.
+
 Edit → **Draw shapes and freehand…** places new rectangles, ellipses, lines and
 bounded freehand paths on the page canvas. Stroke/fill color, width, paint opacity,
 snapping, numerical coordinates and keyboard nudges are available. Changing tools

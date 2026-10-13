@@ -66,6 +66,12 @@ pub enum Edit {
         source_fingerprint: [u8; 32],
         change: pdf_core::ContentTextChange,
     },
+    PageNumbers {
+        key: FormsReadKey,
+        numbering: pdf_core::PageNumbering,
+        page: u32,
+        font_file: PathBuf,
+    },
     TextOverlay {
         key: FormsReadKey,
         overlay: pdf_core::TextOverlay,
@@ -393,6 +399,7 @@ impl Worker {
                     Command::Edit {
                         edit:
                             Edit::TextOverlay { key, .. }
+                            | Edit::PageNumbers { key, .. }
                             | Edit::VectorOverlay { key, .. }
                             | Edit::ImageOverlay { key, .. },
                         ..
@@ -470,6 +477,8 @@ mod merge_tests;
 mod multiline_tests;
 #[cfg(test)]
 mod notes_tests;
+#[cfg(test)]
+mod numbering_tests;
 #[cfg(test)]
 mod overlay_tests;
 #[cfg(test)]
@@ -1001,6 +1010,7 @@ fn process_with_journal(
             if let Edit::FillButtons { key, .. }
             | Edit::FillText { key, .. }
             | Edit::TextOverlay { key, .. }
+            | Edit::PageNumbers { key, .. }
             | Edit::VectorOverlay { key, .. }
             | Edit::ImageOverlay { key, .. } = &edit
                 && key.tab != id

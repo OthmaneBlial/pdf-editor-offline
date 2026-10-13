@@ -314,6 +314,7 @@ impl EditorApp {
         self.metadata_dialog = None;
         self.notes_dialog = None;
         self.forms_dialog = None;
+        self.numbering_dialog = None;
         self.overlay_dialog = None;
         self.vector_dialog = None;
         self.image_dialog = None;
