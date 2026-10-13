@@ -6,6 +6,8 @@
 
 [![Native Rust CI](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml/badge.svg)](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml) · [MIT](../../LICENSE)
 
+**En el código fuente actual:** combina PDF compatibles en una copia nueva, añade texto Unicode a una página y gestiona notas básicas con deshacer/rehacer. Para probar estas novedades, compila desde el código fuente; la CLI publicada sigue siendo `4.0.0-preview.3`. [Ejemplos de texto](../TEXT_OVERLAYS_RUST.md) · [Notas](../NOTES_RUST.md) (guías en inglés). Añadir texto y eliminar notas de forma ordinaria no borran datos sensibles de manera segura.
+
 Abre un PDF, encuentra la página que necesitas, organiza el documento y guarda una copia nueva. PDF Editor Offline es una aplicación de escritorio y una herramienta de línea de comandos gratuitas y de código abierto. No necesitas cuenta, suscripción ni subir tus documentos.
 
 Esta es la versión preliminar nativa en Rust. Compila la aplicación de escritorio desde el código fuente para probarla. macOS, Windows y Linux son las plataformas objetivo; la interacción real del escritorio se ha comprobado principalmente en macOS. Los instaladores de escritorio y la edición completa siguen en desarrollo. La [CLI nativa preliminar 4.0.0-preview.3](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.3) está disponible; el [archivo de versiones de escritorio](https://github.com/OthmaneBlial/pdf-editor-offline/releases) contiene versiones anteriores.

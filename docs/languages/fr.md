@@ -6,6 +6,8 @@
 
 [![Native Rust CI](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml/badge.svg)](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml) · [MIT](../../LICENSE)
 
+**Dans le code source actuel :** fusionnez des PDF compatibles dans une nouvelle copie, ajoutez du texte Unicode sur une page et gérez les notes simples avec annuler/rétablir. Ces nouveautés nécessitent une compilation ; la CLI publiée reste `4.0.0-preview.3`. [Exemples de texte](../TEXT_OVERLAYS_RUST.md) · [Notes](../NOTES_RUST.md) (guides en anglais). L’ajout de texte et la suppression ordinaire de notes ne constituent pas un effacement sécurisé.
+
 [![Dernière mise à jour](https://img.shields.io/github/last-commit/OthmaneBlial/pdf-editor-offline/main?label=derni%C3%A8re%20mise%20%C3%A0%20jour)](https://github.com/OthmaneBlial/pdf-editor-offline/commits/main/)
 
 [Essayez la CLI](#installer-la-cli-native-facultatif) · [Lancez le bureau](#compiler-et-lancer) · [Galerie réelle](../../screenshots/native/) · [Dernières versions](https://github.com/OthmaneBlial/pdf-editor-offline/releases)

@@ -6,6 +6,8 @@
 
 [![Native Rust CI](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml/badge.svg)](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml) · [MIT](../../LICENSE)
 
+**현재 소스의 새 기능:** 지원되는 PDF를 새 복사본으로 합치고, 페이지에 Unicode 텍스트를 추가하고, 기본 메모를 관리할 수 있습니다. 실행 취소와 다시 실행도 지원합니다. 사용하려면 소스에서 빌드하세요. 공개된 CLI는 아직 `4.0.0-preview.3`입니다. [텍스트 예제](../TEXT_OVERLAYS_RUST.md) · [메모 안내](../NOTES_RUST.md) (영문 가이드). 텍스트 추가나 일반적인 메모 삭제는 민감한 데이터를 안전하게 지우지 않습니다.
+
 PDF를 열고 필요한 페이지를 찾은 뒤 문서를 정리하고 새 복사본으로 저장하세요. PDF Editor Offline은 무료 오픈 소스 데스크톱 앱과 명령줄 도구입니다. 계정, 구독, 문서 업로드가 필요하지 않습니다.
 
 현재는 네이티브 Rust 미리보기 버전입니다. 데스크톱 앱을 사용하려면 소스에서 빌드하세요. 대상 플랫폼은 macOS, Windows, Linux이며 실제 데스크톱 조작 검증은 주로 macOS에서 진행했습니다. 데스크톱 설치 프로그램과 완전한 PDF 편집 기능은 개발 중입니다. [네이티브 CLI 사전 릴리스 4.0.0-preview.3](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.3)이 공개되어 있으며, [이전 데스크톱 릴리스 모음](https://github.com/OthmaneBlial/pdf-editor-offline/releases)은 과거 빌드입니다.

@@ -6,6 +6,8 @@
 
 [![Native Rust CI](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml/badge.svg)](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml) · [MIT](../../LICENSE)
 
+**当前源码的新功能：** 将兼容的 PDF 合并为新副本，在页面上添加 Unicode 文本，并管理基本便笺，支持撤销和重做。体验这些功能需要从源码构建；已发布的 CLI 仍为 `4.0.0-preview.3`。[文本示例](../TEXT_OVERLAYS_RUST.md) · [便笺说明](../NOTES_RUST.md)（英文指南）。添加文本或普通删除便笺并不等于安全擦除敏感数据。
+
 打开 PDF，找到需要的页面，调整文档，然后保存一份新副本。PDF Editor Offline 提供免费、开源的桌面应用和命令行工具，无需账号、订阅或上传文档。
 
 目前是原生 Rust 预览版。请从源码构建桌面应用以体验当前版本。目标平台为 macOS、Windows 和 Linux；实际桌面交互验证主要在 macOS 上进行。桌面安装包和完整 PDF 编辑功能仍在开发。[原生 CLI 预发布版 4.0.0-preview.3](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.3)现已提供；[历史桌面发行版本](https://github.com/OthmaneBlial/pdf-editor-offline/releases)属于早期构建。

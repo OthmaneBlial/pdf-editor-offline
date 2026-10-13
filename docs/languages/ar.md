@@ -6,6 +6,8 @@
 
 [![Native Rust CI](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml/badge.svg)](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml) · [MIT](../../LICENSE)
 
+**في الشيفرة الحالية:** يمكنك دمج ملفات PDF المتوافقة في نسخة جديدة، وإضافة نص Unicode إلى الصفحة، وإدارة الملاحظات البسيطة مع التراجع والإعادة. لتجربة هذه الميزات، ابنِ التطبيق من المصدر؛ إصدار CLI المنشور ما زال `4.0.0-preview.3`. [أمثلة النص](../TEXT_OVERLAYS_RUST.md) · [الملاحظات](../NOTES_RUST.md) (أدلة بالإنجليزية). إضافة النص وحذف الملاحظات بالطريقة العادية لا يمحوان البيانات الحساسة بأمان.
+
 افتح ملف PDF، وابحث عن الصفحة المطلوبة، ورتّب المستند ثم احفظ نسخة جديدة. PDF Editor Offline تطبيق مكتبي وأداة سطر أوامر مجانيان ومفتوحا المصدر. لا يتطلب حسابًا أو اشتراكًا أو رفع المستندات.
 
 هذه نسخة معاينة لتطبيق Rust الأصلي. اختبر تطبيق سطح المكتب الحالي ببنائه من المصدر. المنصات المستهدفة هي macOS وWindows وLinux؛ أغلب التحقق الفعلي من واجهة سطح المكتب تم على macOS. حزم تثبيت سطح المكتب والتحرير الكامل ما زالت قيد التطوير. [نسخة CLI الأصلية التجريبية 4.0.0-preview.3](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.3) متاحة؛ [إصدارات سطح المكتب المؤرشفة](https://github.com/OthmaneBlial/pdf-editor-offline/releases) تخص نسخًا سابقة.
