@@ -29,6 +29,84 @@ fn source(content: &[u8]) -> Vec<u8> {
     bytes
 }
 const ART: &[u8]=b"0.2 0.4 0.6 rg 1 0 0 1 17 9 cm 0 0 100 100 re W n 0 0 90 90 re f BT /Old 12 Tf 20 30 Td (Original) Tj ET\n";
+#[test]
+fn pending_source_clip_ends_inside_owned_state_before_text_overlay() {
+    for clip in [b"W".as_slice(), b"W*"] {
+        let input = source(&[ART, b"0 0 5 5 re ", clip, b"\n"].concat());
+        let before = pdf_render::render_page(&input, 0, 1.0).unwrap();
+        let original = Document::load_mem(&input).unwrap();
+        let mut pdf = PdfDocument::from_bytes(&input, None).unwrap();
+        pdf.add_text_overlay(&overlay("Visible outside pending clip"), PLEX)
+            .unwrap();
+        let saved = pdf.verified_bytes().unwrap();
+        let after = pdf_render::render_page(&saved, 0, 1.0).unwrap();
+        assert_pixels(&before.rgba, &after.rgba, 4);
+        let changed = Document::load_mem(&saved).unwrap();
+        for (id, object) in original.objects {
+            if id != (3, 0)
+                && !matches!(&object,Object::Stream(s) if s.dict.get(b"Type").and_then(Object::as_name).is_ok_and(|n|n==b"XRef"))
+            {
+                assert_eq!(changed.get_object(id).unwrap(), &object);
+            }
+        }
+        assert!(pdf.extract_text(&[1]).unwrap().contains("Original"));
+        assert!(
+            pdf.extract_text(&[1])
+                .unwrap()
+                .contains("Visible outside pending clip")
+        );
+    }
+}
+#[test]
+#[ignore = "requires pinned qpdf12.4.2 and Poppler26.10"]
+fn independent_pending_source_clip_keeps_artwork_and_text_overlay_visible() {
+    let qpdf = std::env::var_os("PDF_QPDF_BIN").unwrap();
+    let bin = std::path::PathBuf::from(std::env::var_os("PDF_REFERENCE_BIN_DIR").unwrap());
+    let temp = tempfile::tempdir().unwrap();
+    let pixels = |path: &Path| {
+        let out = Command::new(bin.join("pdftoppm"))
+            .args(["-singlefile", "-r", "72"])
+            .arg(path)
+            .output()
+            .unwrap();
+        assert!(out.status.success());
+        out.stdout
+            .strip_prefix(b"P6\n300 300\n255\n")
+            .unwrap()
+            .to_vec()
+    };
+    for (i, clip) in [b"W".as_slice(), b"W*"].into_iter().enumerate() {
+        let input = temp.path().join(format!("original{i}.pdf"));
+        let bytes = source(&[ART, b"0 0 5 5 re ", clip, b"\n"].concat());
+        std::fs::write(&input, &bytes).unwrap();
+        let mut pdf = PdfDocument::open(&input, None).unwrap();
+        pdf.add_text_overlay(&overlay("Visible outside pending clip"), PLEX)
+            .unwrap();
+        let output = temp.path().join(format!("overlay{i}.pdf"));
+        pdf.save_new(&output).unwrap();
+        assert!(
+            Command::new(&qpdf)
+                .arg("--check")
+                .arg(&output)
+                .output()
+                .unwrap()
+                .status
+                .success()
+        );
+        assert_pixels(&pixels(&input), &pixels(&output), 3);
+        let text = Command::new(bin.join("pdftotext"))
+            .arg("-raw")
+            .arg(&output)
+            .arg("-")
+            .output()
+            .unwrap();
+        assert!(text.status.success());
+        let text = String::from_utf8(text.stdout).unwrap();
+        assert!(text.contains("Original"));
+        assert!(text.contains("Visible outside pending clip"));
+        assert_eq!(std::fs::read(&input).unwrap(), bytes);
+    }
+}
 fn overlay(value: &str) -> TextOverlay {
     TextOverlay {
         page: 1,

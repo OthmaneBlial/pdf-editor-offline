@@ -41,7 +41,7 @@ fn op(name: &str, operands: Vec<Object>) -> Operation {
     Operation::new(name, operands)
 }
 
-fn contents(
+pub(super) fn contents(
     document: &lopdf::Document,
     value: &Object,
     budget: &mut Budget,
@@ -84,7 +84,7 @@ fn contents(
     }
     Ok(())
 }
-fn balanced(bytes: &[u8]) -> Result<usize> {
+pub(super) fn balanced(bytes: &[u8]) -> Result<usize> {
     let content = Content::decode_strict(bytes)?;
     if content.operations.len() > 100_000 {
         return Err(Error::Limit("overlay source exceeds 100000 operators"));
@@ -339,8 +339,10 @@ impl PdfDocument {
         let prefix = candidate.add_object(Stream::new(Dictionary::new(), b"q\n".to_vec()));
         let tail = Content {
             operations: vec![
-                op("Q", vec![]),
+                // W/W* clips when the current path ends. Consume it before
+                // restoring the source state, so it cannot clip new artwork.
                 op("n", vec![]),
+                op("Q", vec![]),
                 op("q", vec![]),
                 op(
                     "cm",
