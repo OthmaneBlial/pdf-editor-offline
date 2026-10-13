@@ -114,6 +114,7 @@ jobs:
           PDF_QPDF_BIN="$RUNNER_TEMP/reference-qpdf/bin/qpdf" PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" cargo test --locked -p pdf-editor-offline-native production_native_image_worker_save_history_and_independent_pixels -- --ignored
           PDF_QPDF_BIN="$RUNNER_TEMP/reference-qpdf/bin/qpdf" PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" cargo test --locked -p pdf-core --test content_edit -- --ignored
           PDF_QPDF_BIN="$RUNNER_TEMP/reference-qpdf/bin/qpdf" PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" cargo test --locked -p pdf-core --test redaction -- --ignored
+          PDF_QPDF_BIN="$RUNNER_TEMP/reference-qpdf/bin/qpdf" PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" cargo test --locked -p pdf-core --test redaction_state -- --include-ignored
           PDF_QPDF_BIN="$RUNNER_TEMP/reference-qpdf/bin/qpdf" PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" cargo test --locked -p pdf-editor-offline-native production_native_self_host_redaction_copy_and_verified_save -- --ignored
           PDF_QPDF_BIN="$RUNNER_TEMP/reference-qpdf/bin/qpdf" PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" cargo test --locked -p pdf-editor-offline-native content_edit_production_native_child_independent_reader_pixels -- --ignored
           PDF_QPDF_BIN="${{ runner.temp }}/reference-qpdf/bin/qpdf" PDF_REFERENCE_BIN_DIR="${{ runner.temp }}/reference-poppler/bin" cargo test --locked -p pdf-editor-offline-native production_native_image_replacement_child_and_independent_readers -- --ignored
