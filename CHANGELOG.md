@@ -2,6 +2,8 @@
 
 ## Unreleased — native Rust preview
 
+- Consume pending clipping paths inside the original-content graphics wrapper before adding text. Native and independent-reader regressions confirm that old clipping state cannot hide the new overlay.
+
 - Place new text-overlay drafts on the actual page canvas with drag creation, move/eight resize handles, optional snapping and keyboard nudges. Numeric controls and draft protection remain available.
 - Open supported password-protected PDFs through an explicit masked, read-only session. Ciphertext is retained; credentials and decrypted document snapshots are excluded from recovery. Four standard encryption tiers have independent-reader checks.
 - Split guarded PDF page ranges through core, CLI and native batch tabs. The desktop journals the whole new tab batch before success; CLI publication reports exact partial failures. Splitting preserves source/history and is not privacy cleanup.

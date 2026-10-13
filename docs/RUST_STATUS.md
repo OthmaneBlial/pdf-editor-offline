@@ -7,6 +7,18 @@ session retains ciphertext and does not journal credentials or decrypted PDF
 snapshots. Split copies can retain unreachable objects and are not sanitization.
 The published CLI remains preview 3; these additions require a source build.
 
+At implementation source
+[`6bccbe8`](https://github.com/OthmaneBlial/pdf-editor-offline/tree/6bccbe8b772366cf5157a1b22bce90f160670216),
+the frozen local workspace passed **589 tests across 69 suites, with no failures
+or ignored tests**. This includes fresh production-child encrypted-view and split
+gates with pinned qpdf/Poppler, canvas placement and pending-clipping regressions.
+Strict workspace/all-target Clippy with the worker test helper, formatting and
+workflow lint checks passed. The CLI parent's explicit-stack change separately
+passed all **84 CLI tests**. These macOS checks do not replace
+[cross-platform CI](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38348658226)
+or manual review of the new dialogs. No new performance benchmark was produced;
+earlier measurements remain tied to their recorded source and fixtures.
+
 Current source version: **4.0.0-preview.4** (in preparation). The public
 **4.0.0-preview.3** [CLI and npm package](NATIVE_RELEASE_EVIDENCE.md)
 have verified five-platform installation evidence. Preview 2 release construction
