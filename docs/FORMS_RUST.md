@@ -4,7 +4,7 @@ Current source discovers AcroForm fields and fills supported checkbox/radio
 buttons using their existing appearance streams. Eligible single-line text fields
 generate embedded appearances with an explicitly supplied covering font. The
 published `4.0.0-preview.3` CLI includes the button tier. Text generation is
-available in current source. Choice fields remain discoverable and read-only.
+available in current source, together with guarded dropdown and list filling.
 
 ## Try the synthetic form
 
@@ -36,11 +36,12 @@ Open a PDF, then choose **PDF form fields…** or use the command palette's
 **PDF form fields** action. Select a field in the list. Eligible checkboxes and
 radio options show their existing export-state labels and page numbers. Eligible
 text fields show a value editor; choose a covering `.ttf` or supported `.otf`
-font with **Choose text font…**. Choice and unsupported fields remain read-only.
+font with **Choose text font…**. Supported choices show dropdown or list controls;
+multi-select lists support multiple selections. Unsupported fields remain read-only.
 Password values are omitted.
 
 Choose the desired states and values, then press **Apply form changes**. A mixed
-button/text edit commits together only when every change succeeds. The edit enters
+button/text/choice edit commits together only when every change succeeds. The edit enters
 durable history, so Undo/Redo work before **Save As** creates a verified copy.
 The selected page stays unchanged. Stale revisions, tab switches, pending saves,
 signed/decrypted inputs and child/journal failures cannot apply a stale draft;
@@ -82,6 +83,24 @@ drawing semantics are refused. This edits form fields, rather than arbitrary
 page text. RTL extraction can differ between reader modes; fixture checks do not
 establish universal text order or full Unicode coverage.
 
+## Fill a dropdown or list
+
+```sh
+./target/debug/pdf-editor-offline list-choices input.pdf --json
+./target/debug/pdf-editor-offline fill-choice input.pdf --field department --index 1 --font-file apps/desktop/assets/fonts/ibm-plex/IBMPlexSans-Regular.ttf -o selected.pdf --dry-run --json
+```
+
+Replace the field and index with entries reported by `list-choices`. Indices are
+zero-based and identify options even when export values repeat. Repeat `--index`
+for a supported multi-select list; `--clear` clears an eligible field. An optional
+`--top-index` controls list scrolling. Remove `--dry-run` to save a new copy.
+
+The appearance shows display labels while `/V` stores export values and `/I`
+stores the selected indices. Existing unrelated objects are preserved. Required
+fields cannot be cleared; editable free-entry combos and action-bearing fields
+are refused. All visible labels must fit and be covered by the supplied font.
+These commands are current-source features, outside the published preview 3 CLI.
+
 ## What changes in the PDF
 
 The core validates the field tree and all page widgets before planning a batch.
@@ -119,6 +138,8 @@ appearance streams, unrelated logical objects, extracted text and actual pixels:
 ```sh
 PDF_FORM_QPDF=/absolute/path/to/qpdf PDF_FORM_POPPLER_BIN=/absolute/path/to/poppler/bin cargo test -p pdf-core --test forms --locked -- --ignored
 PDF_QPDF_BIN=/absolute/path/to/qpdf PDF_REFERENCE_BIN_DIR=/absolute/path/to/poppler/bin cargo test -p pdf-editor-offline-cli --test forms --locked -- --ignored
+PDF_QPDF_BIN=/absolute/path/to/qpdf PDF_REFERENCE_BIN_DIR=/absolute/path/to/poppler/bin cargo test -p pdf-core --test choice_forms --locked -- --ignored
+PDF_QPDF_BIN=/absolute/path/to/qpdf PDF_REFERENCE_BIN_DIR=/absolute/path/to/poppler/bin cargo test -p pdf-editor-offline-cli --test choice_forms --locked -- --ignored
 ```
 
 Text and CFF checks also inspect embedded programs and mappings, clear/save/reopen
@@ -130,4 +151,4 @@ PDF_FORM_QPDF=/absolute/path/to/qpdf PDF_FORM_POPPLER_BIN=/absolute/path/to/popp
 ```
 
 These fixture checks do not prove complete forms support or universal rendering
-fidelity. Choice layout, advanced text fields and signing remain separate stages.
+fidelity. Free-entry combos, advanced text fields and signing remain separate stages.

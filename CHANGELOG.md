@@ -2,6 +2,8 @@
 
 ## Unreleased — native Rust preview
 
+- Added indexed dropdown, single-select and multi-select list filling to the core, isolated CLI/worker and native form dialog. Display labels and export values remain distinct; mixed button/text/choice edits commit together with durable undo/redo. Unsupported free-entry combos and layouts are refused.
+
 - Bound the complete generated text appearance before publication, including retained drawing operators, so a successful fill cannot exceed the editor's own appearance-work limit. Oversized candidates leave the source unchanged.
 
 - Added guarded single-line text form filling with explicit covering TrueType or static CID-keyed CFF1 fonts, shaped embedded appearances, logical Unicode values/mappings, fit checks and atomic refusals. The isolated CLI and desktop support text changes and mixed button/text history transactions; choice and advanced text fields remain separate stages.

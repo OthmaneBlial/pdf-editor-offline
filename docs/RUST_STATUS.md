@@ -22,7 +22,7 @@ tests**; their ordinary commands leave 3 and 7 explicit gates ignored respective
 The dedicated form gates were run separately with pinned qpdf 12.4.2 and Poppler
 26.10, checking saved object values, unchanged appearance streams and actual
 widget pixels. Strict core/CLI/worker Clippy passed. [Form scope](FORMS_RUST.md)
-describes field-graph refusals and remaining advanced text/choice layout, flattening,
+describes field-graph refusals and remaining advanced text/free-entry layout, flattening,
 signing and desktop interaction work.
 
 The native form dialog now uses the same guarded button worker, preserves page
@@ -43,8 +43,22 @@ edits commit as one durable history entry. ActualText and cluster ToUnicode
 mappings preserve logical Unicode. Independent checks cover Latin, combining
 text, Arabic, CJK, nonidentity CFF CIDs, unchanged unrelated artwork and verified
 copies. Unsupported fonts/layouts and dependent appearance regions are refused;
-this is neither arbitrary page-text editing nor secure erasure. Choice/advanced
-text fields and a real review of the font picker remain open.
+this is neither arbitrary page-text editing nor secure erasure. Advanced text
+fields and a real review of the font picker remain open.
+
+Indexed dropdown and single/multi-select list filling now uses the same bounded
+appearance publisher. Display labels remain distinct from export values, duplicate
+exports use explicit option indices, and list scrolling follows `/TI`. The real
+CLI and path-free worker support choices; the native dialog applies mixed
+button/text/choice changes in one durable history entry. Free-entry combos,
+unsupported fonts/layouts and ambiguous or action-bearing fields are refused.
+
+The combined choice integration passed **454 workspace tests**, including **99
+desktop tests**, with **zero ignored gates**. Fresh native/CLI/helper builds,
+strict workspace Clippy, formatting and workflow lint passed. The pinned qpdf
+12.4.2 / Poppler 26.10.0 checks exercise TTF/CFF dropdown/list values, indices,
+text, widget pixels and preserved outside artwork through real CLI output.
+This is automated evidence; real OS window/font-picker review remains unverified.
 
 Local text/CFF integration checks passed **398 workspace tests** (19 explicit
 gates ignored by the ordinary command), **96 desktop tests** with artifact gates,

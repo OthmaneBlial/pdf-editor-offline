@@ -88,6 +88,8 @@ jobs:
           PDF_QPDF_BIN="$RUNNER_TEMP/reference-qpdf/bin/qpdf" PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" cargo test --locked -p pdf-core --test text_forms -- --ignored
           PDF_FORM_QPDF="$RUNNER_TEMP/reference-qpdf/bin/qpdf" PDF_FORM_POPPLER_BIN="$RUNNER_TEMP/reference-poppler/bin" cargo test --locked -p pdf-core --test cff_forms -- --ignored
           PDF_QPDF_BIN="$RUNNER_TEMP/reference-qpdf/bin/qpdf" PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" cargo test --locked -p pdf-editor-offline-cli --test text_forms -- --ignored
+          PDF_QPDF_BIN="$RUNNER_TEMP/reference-qpdf/bin/qpdf" PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" cargo test --locked -p pdf-core --test choice_forms -- --ignored
+          PDF_QPDF_BIN="$RUNNER_TEMP/reference-qpdf/bin/qpdf" PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" cargo test --locked -p pdf-editor-offline-cli --test choice_forms -- --ignored
       - name: Preserve independent evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

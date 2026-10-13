@@ -7,8 +7,10 @@ feature set; their capabilities do not describe this Rust implementation.
   CLI downloads and the optional npm installer are available for five platforms.
 - Rendering may omit unsupported PDF content. Reopen exported copies in another
   reader; the tested fixtures do not establish all-document fidelity.
-- OCR, form filling, digital signing, arbitrary page-text editing, secure
-  redaction, sanitization and broad Office conversion are not implemented.
+- OCR, advanced text forms/free-entry combos, digital signing, arbitrary page-text
+  editing, secure redaction, sanitization and broad Office conversion are not implemented.
+  Supported buttons, single-line text and indexed choices have a guarded
+  [form workflow](FORMS_RUST.md); text and choices need an explicit covering font.
 - Signed and successfully decrypted inputs are read-only. The desktop has no
   password-entry workflow.
 - Cropping hides content. Removed metadata and ordinary notes can remain in the
@@ -17,7 +19,7 @@ feature set; their capabilities do not describe this Rust implementation.
   [CLI guide](../apps/cli/README.md) for refusal boundaries. Indexed page labels
   prevent unsupported reordering/insertion rather than being silently dropped.
 - Current desktop and CLI source builds use bounded document subprocesses.
-  The published CLI `4.0.0-preview.1` predates CLI isolation. Resource limits do
+  The published CLI `4.0.0-preview.3` includes CLI isolation. Resource limits do
   not provide a filesystem or network sandbox. See [CLI limits](CLI_ISOLATION.md).
 - [Desktop recovery](DESKTOP_RECOVERY.md) retains private PDF bytes and paths on
   disk. No automatic expiry, encryption or secure deletion is provided. Unapplied

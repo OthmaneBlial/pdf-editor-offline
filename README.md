@@ -20,8 +20,9 @@
 binary for macOS, Windows or Linux. This release adds guarded page duplication,
 checkbox/radio filling and bounded local document workers.
 
-**Growing on `main`:** single-line text forms with embedded covering fonts and
-desktop undo/redo. [See the form walkthrough](docs/FORMS_RUST.md).
+**Growing on `main`:** single-line text, dropdowns and list selections with
+embedded covering fonts and desktop undo/redo.
+[See the form walkthrough](docs/FORMS_RUST.md).
 
 [What changed](CHANGELOG.md) · [Live build results](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml)
 · [Next milestones](ROADMAP.md)
@@ -135,7 +136,7 @@ The table covers current source; published CLI differences are called out below.
 | Document properties | Read/edit six standard fields, including Unicode | Read/set/remove Title, Author, Subject, Keywords, Creator and Producer |
 | Images | Create PDF pages from supported PNG/JPEG files | Restricted images-to-PDF conversion; export one PDF page as PNG |
 | Comments | Existing supported appearances can be displayed | Add/list sticky Text notes; guarded editing/removal of basic notes |
-| Forms | Discover fields; apply guarded checkbox/radio and single-line text changes with undo/redo, using an explicit covering font | Discover AcroForm fields; fill supported buttons and single-line text with `fill-button` / `fill-text` in current source |
+| Forms | Checkboxes/radios, single-line text, dropdowns and single/multiple list selections; guarded apply and undo/redo | Discover fields and indexed options; `fill-button`, `fill-text`, `list-choices` and `fill-choice` in current source |
 | Inspect and export | Verified Save As to a new path | Read-only action/attachment/form/layer markers, lossless stream compression, verified fresh output copies |
 | Resume your work | Recorded document/history snapshots, explicit session restore/discard, interrupted-save retry/cancel in current source | Desktop recovery is separate from the CLI |
 
@@ -149,7 +150,7 @@ published `4.0.0-preview.3` CLI.
 
 Cropping hides content. Removing metadata or notes can leave old values in the
 file. None of these operations is secure redaction or private-data erasure.
-OCR, choice/advanced text form filling, digital signing, arbitrary page-text editing and broad document
+OCR, advanced text form filling, digital signing, arbitrary page-text editing and broad document
 conversion are not implemented in this preview. Rendering can omit unsupported
 content; inspect exported documents before relying on them. Signed inputs and
 successfully decrypted inputs are read-only.
@@ -157,7 +158,9 @@ successfully decrypted inputs are read-only.
 [Try the form fixture](docs/FORMS_RUST.md): buttons preserve existing appearances;
 single-line text embeds a complete covering TrueType or supported CID-keyed CFF1
 font. Missing glyphs and unsupported layouts are refused. Button filling is in the
-published `4.0.0-preview.3` CLI; text generation is available in current source.
+published `4.0.0-preview.3` CLI; text and choice generation are available in current
+source. Choice selections use explicit option indices, including when export
+values are duplicated. Text and choices require a covering font.
 
 The interface is currently English. These README translations do not imply a
 localized GUI or complete right-to-left layout support. Offline fonts include
