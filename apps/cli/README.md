@@ -1,5 +1,40 @@
 # Native Rust CLI preview
 
+Current source supports consecutive page splitting:
+
+```sh
+pdf-editor-offline split input.pdf --every 10 --output-dir chapters --json
+pdf-editor-offline split input.pdf --every 10 --output-dir preview --dry-run --json
+```
+
+The directory must be new. Files are named `part-0001.pdf`, `part-0002.pdf`, and
+so on, with the last chunk containing the remainder. All chunks are verified
+before creating the directory; dry-run creates nothing. Each file uses verified,
+fsynced no-clobber saving. Batch publication is sequential, not atomic. A caught
+publication failure returns a nonzero exit and `error.partial_publication` with
+the exact completed files, failed path and retry advice, including zero completed
+files. Human output also lists retained files. No files are deleted on failure.
+Keep the results and choose a fresh directory for retry. A crash or failed worker
+reply can leave files without a final report; inspect the directory rather than
+assuming nothing was written. This does not promise atomic power-loss recovery.
+
+The guarded subset engine refuses structures that still require remapping, such
+as bookmarks, forms, page annotations, tags and some external page references.
+Signed/decrypted inputs are read only. Limits are 1,024 chunks, 128 MiB total
+serialized output and logical-copy payload, and a conservative two-million-value
+aggregate copy estimate. Splitting organizes visible pages; unreachable objects
+from other pages can remain in each chunk. **This is not privacy cleanup or
+secure redaction.** The input file is retained unchanged.
+
+The independent development gate checks every published chunk with qpdf 12.4.2,
+Poppler 26.10 and the native renderer:
+
+```sh
+PDF_QPDF_BIN=/path/to/qpdf-12.4.2 \
+PDF_REFERENCE_BIN_DIR=/path/to/poppler-26.10/bin \
+cargo test -p pdf-editor-offline-cli --test split --locked -- --include-ignored
+```
+
 Current source adds new Unicode page text with `add-text-overlay`. Choose a
 covering font, rectangle, size, color and alignment; overflow and unsafe inputs
 are refused. This does not edit or erase existing content. See the

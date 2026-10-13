@@ -173,7 +173,7 @@ fn prepare_output(json_requested: bool, result: pdf_core::Result<Value>) -> Resu
                     bytes: Vec::new(),
                     limit: MAX_JSON,
                 };
-                serde_json::to_writer(&mut writer, &error_envelope(kind, &error.to_string()))
+                serde_json::to_writer(&mut writer, &super::document_error_envelope(&error))
                     .map_err(|_| "CLI error output exceeds its transport limit")?;
                 writer
                     .write_all(b"\n")
@@ -193,7 +193,7 @@ fn prepare_output(json_requested: bool, result: pdf_core::Result<Value>) -> Resu
                         format: Format::HumanError,
                         error_kind: Some(kind.into()),
                     },
-                    format!("Error: {error}\n").into_bytes(),
+                    super::document_error_message(&error).into_bytes(),
                 )
             }
         }
@@ -351,6 +351,63 @@ mod tests {
                     .as_slice(),
             );
             assert_eq!(validate_reply(&json, true).unwrap().code, code);
+        }
+    }
+    #[test]
+    fn partial_split_errors_keep_nonzero_exit_exact_outputs_and_retry_evidence() {
+        for count in [0, 2] {
+            let completed = (1..=count)
+                .map(|part| std::path::PathBuf::from(format!("new/part-{part:04}.pdf")))
+                .collect::<Vec<_>>();
+            let error = || pdf_core::Error::PartialSplit {
+                directory: "new".into(),
+                completed: completed.clone(),
+                completed_count: count,
+                failed_output: Some(format!("new/part-{:04}.pdf", count + 1).into()),
+                source: Box::new(pdf_core::Error::Io(io::Error::other("disk write failed"))),
+            };
+            let json = prepare_output(true, Err(error())).unwrap();
+            let output = validate_reply(&json, true).unwrap();
+            assert_eq!(output.code, 3);
+            let value: Value = serde_json::from_slice(&json.payload).unwrap();
+            assert_eq!(value["ok"], false);
+            assert_eq!(value["error"]["partial_publication"]["complete"], false);
+            assert_eq!(
+                value["error"]["partial_publication"]["completed_outputs"]
+                    .as_array()
+                    .unwrap()
+                    .len(),
+                count
+            );
+            let human = prepare_output(false, Err(error())).unwrap();
+            assert_eq!(validate_reply(&human, false).unwrap().code, 3);
+            let text = String::from_utf8(human.payload).unwrap();
+            assert!(text.contains("choose a fresh output directory"));
+            for path in &completed {
+                assert!(text.contains(path.to_str().unwrap()));
+            }
+        }
+    }
+    #[test]
+    fn partial_publication_cannot_masquerade_as_complete_or_accept_unknown_fields() {
+        let base = json!({"ok":false,"error":{"kind":"filesystem","message":"partial","partial_publication":{"output_dir":"new","completed_outputs":[],"failed_output":"new/part-0001.pdf","complete":false,"retry":"choose a fresh directory"}}});
+        for variant in 0..3 {
+            let mut value = base.clone();
+            match variant {
+                0 => value["error"]["partial_publication"]["complete"] = json!(true),
+                1 => value["error"]["partial_publication"]["secret"] = json!("unexpected"),
+                _ => {
+                    value["error"]["partial_publication"]["completed_outputs"] =
+                        json!(vec!["file"; pdf_core::MAX_SPLIT_PARTS + 1])
+                }
+            };
+            let reply = reply(
+                3,
+                Format::Json,
+                Some("filesystem"),
+                &serde_json::to_vec(&value).unwrap(),
+            );
+            assert!(validate_reply(&reply, true).is_err());
         }
     }
 
@@ -545,6 +602,36 @@ struct Envelope {
 struct EnvelopeError {
     kind: String,
     message: String,
+    partial_publication: Option<PartialPublication>,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PartialPublication {
+    output_dir: JsonPath,
+    completed_outputs: Vec<JsonPath>,
+    failed_output: Option<JsonPath>,
+    complete: bool,
+    retry: String,
+}
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum JsonPath {
+    Unicode(String),
+    Native(OsString),
+}
+impl JsonPath {
+    fn valid(&self) -> bool {
+        match self {
+            Self::Unicode(value) => {
+                !value.is_empty() && value.len() <= 128 * 1024 && !value.contains('\0')
+            }
+            Self::Native(value) => {
+                !value.is_empty()
+                    && value.len() <= 128 * 1024
+                    && !value.as_encoded_bytes().contains(&0)
+            }
+        }
+    }
 }
 
 fn validate_reply(reply: &Reply, json_requested: bool) -> Result<Output, &'static str> {
@@ -596,6 +683,21 @@ fn validate_reply(reply: &Reply, json_requested: bool) -> Result<Output, &'stati
                     || error.message.is_empty()
                 {
                     return Err("invalid CLI error envelope");
+                }
+                if let Some(partial) = error.partial_publication
+                    && (partial.complete
+                        || !partial.output_dir.valid()
+                        || partial.completed_outputs.len() > pdf_core::MAX_SPLIT_PARTS
+                        || partial.completed_outputs.iter().any(|path| !path.valid())
+                        || partial
+                            .failed_output
+                            .as_ref()
+                            .is_some_and(|path| !path.valid())
+                        || partial.retry.is_empty()
+                        || partial.retry.len() > 2048
+                        || output.code == 2)
+                {
+                    return Err("invalid partial publication report");
                 }
             }
         }

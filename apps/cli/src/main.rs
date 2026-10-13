@@ -30,6 +30,16 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Split consecutive pages into a new directory; this is not privacy cleanup.
+    Split {
+        input: PathBuf,
+        #[arg(long,value_parser=clap::value_parser!(u32).range(1..))]
+        every: u32,
+        #[arg(long)]
+        output_dir: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Add a Unicode text overlay in PDF page coordinates; never edits existing text.
     AddTextOverlay {
         input: PathBuf,
@@ -337,6 +347,36 @@ enum Command {
 fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
     let open = |input: &PathBuf| PdfDocument::open(input, password);
     match &cli.command {
+        Command::Split {
+            input,
+            every,
+            output_dir,
+            dry_run,
+        } => {
+            if output_dir.symlink_metadata().is_ok() {
+                return Err(Error::OutputExists(output_dir.clone()));
+            }
+            let source = open(input)?;
+            let outputs = if *dry_run {
+                source
+                    .split_every(*every)?
+                    .into_iter()
+                    .enumerate()
+                    .map(|(index, part)| pdf_core::SplitOutput {
+                        first_page: part.first_page,
+                        last_page: part.last_page,
+                        file: output_dir.join(format!("part-{:04}.pdf", index + 1)),
+                        info: part.info,
+                    })
+                    .collect::<Vec<_>>()
+            } else {
+                source.split_new_directory(*every, output_dir)?
+            };
+            let outputs=outputs.into_iter().map(|output|json!({"first_page":output.first_page,"last_page":output.last_page,"output":json_path(&output.file),"info":output.info})).collect::<Vec<_>>();
+            Ok(
+                json!({"operation":"split","outputs":outputs,"output_dir":json_path(output_dir),"dry_run":dry_run,"source_preserved":true,"atomic_batch":false,"unreachable_objects_may_remain":true,"privacy_cleanup":false}),
+            )
+        }
         Command::Sanitize {
             input,
             output,
@@ -803,7 +843,7 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
         }
         Command::Capabilities => Ok(
             json!({ "runtime": "rust-native", "version": env!("CARGO_PKG_VERSION"), "migration_preview": true,
-            "commands": ["add-text-overlay", "info", "sanitize", "list-forms", "list-choices", "fill-button", "fill-text", "fill-choice", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "images-to-pdf", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "duplicate-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
+            "commands": ["split", "add-text-overlay", "info", "sanitize", "list-forms", "list-choices", "fill-button", "fill-text", "fill-choice", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "images-to-pdf", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "duplicate-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
             "image_conversion":"restricted_png_jpeg_color_metadata_orientation_tier_one_pixel_one_pdf_point",
             "metadata":"six_standard_trailer_info_keys_custom_entries_and_xmp_preserved_no_sync_or_secure_erasure",
             "sanitization":"targeted_info_xmp_file_association_action_removal_full_rewrite_gc_not_redaction_or_privacy_proof",
@@ -935,6 +975,40 @@ fn error_envelope(kind: &str, message: &str) -> Value {
     json!({ "ok": false, "error": { "kind": kind, "message": message } })
 }
 
+fn document_error_envelope(error: &Error) -> Value {
+    let (_, kind) = error_class(error);
+    let mut envelope = error_envelope(kind, &error.to_string());
+    if let Error::PartialSplit {
+        directory,
+        completed,
+        failed_output,
+        ..
+    } = error
+    {
+        envelope["error"]["partial_publication"] = json!({"output_dir":json_path(directory),"completed_outputs":completed.iter().map(|path|json_path(path)).collect::<Vec<_>>(),"failed_output":failed_output.as_ref().map(|path|json_path(path)),"complete":false,"retry":"Keep these files; choose a fresh output directory. The original source is unchanged."});
+    }
+    envelope
+}
+fn document_error_message(error: &Error) -> String {
+    let mut message = format!("Error: {error}\n");
+    if let Error::PartialSplit {
+        completed,
+        failed_output,
+        ..
+    } = error
+    {
+        message.push_str("Completed outputs (retained):\n");
+        if completed.is_empty() {
+            message.push_str("  (none)\n");
+        }
+        for path in completed {
+            message.push_str(&format!("  {path:?}\n"));
+        }
+        message.push_str(&format!("Failed output: {failed_output:?}\nKeep all files and choose a fresh output directory for retry. Source unchanged.\n"));
+    }
+    message
+}
+
 fn json_path(path: &std::path::Path) -> Value {
     match path.to_str() {
         Some(path) => Value::String(path.to_owned()),
@@ -944,6 +1018,7 @@ fn json_path(path: &std::path::Path) -> Value {
 
 fn error_class(error: &Error) -> (u8, &'static str) {
     match error {
+        Error::PartialSplit { source, .. } => error_class(source),
         Error::Refused(_) => (4, "refused"),
         Error::Limit(_) => (5, "resource_limit"),
         Error::Io(_) | Error::OutputExists(_) => (3, "filesystem"),
@@ -963,11 +1038,14 @@ fn display_result(cli: &Cli, result: pdf_core::Result<Value>) -> ExitCode {
             }
         }
         Err(error) => {
-            let (code, kind) = error_class(&error);
+            let (code, _) = error_class(&error);
             if cli.json {
-                output_json(&error_envelope(kind, &error.to_string()), false, code)
+                output_json(&document_error_envelope(&error), false, code)
             } else {
-                finish_output(writeln!(io::stderr().lock(), "Error: {error}"), code)
+                finish_output(
+                    write!(io::stderr().lock(), "{}", document_error_message(&error)),
+                    code,
+                )
             }
         }
     }
