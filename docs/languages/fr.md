@@ -6,6 +6,10 @@
 
 [![Native Rust CI](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml/badge.svg)](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml) · [MIT](../../LICENSE)
 
+[![Dernière mise à jour](https://img.shields.io/github/last-commit/OthmaneBlial/pdf-editor-offline/main?label=derni%C3%A8re%20mise%20%C3%A0%20jour)](https://github.com/OthmaneBlial/pdf-editor-offline/commits/main/)
+
+[Essayez la CLI](#installer-la-cli-native-facultatif) · [Lancez le bureau](#compiler-et-lancer) · [Galerie réelle](../../screenshots/native/) · [Dernières versions](https://github.com/OthmaneBlial/pdf-editor-offline/releases)
+
 Ouvrez un PDF, trouvez la page voulue, organisez le document et enregistrez une nouvelle copie. PDF Editor Offline est une application de bureau et un outil en ligne de commande gratuits et libres. Aucun compte, abonnement ou téléversement de document n'est nécessaire.
 
 Il s'agit de l'aperçu natif Rust. Compilez l'application de bureau depuis les sources pour la tester. macOS, Windows et Linux sont les plateformes visées ; les interactions de bureau ont surtout été vérifiées sur macOS. Les installateurs de bureau et l'édition PDF complète restent en développement. La [préversion CLI native 4.0.0-preview.1](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.1) est disponible ; les [versions de bureau archivées](https://github.com/OthmaneBlial/pdf-editor-offline/releases) correspondent à des versions antérieures.
@@ -66,6 +70,19 @@ cargo build --release --locked -p pdf-editor-offline-native -p pdf-editor-offlin
 Sur Windows, lancez `target\release\pdf-editor-offline-native.exe`. Les pages commencent à 1. `--dry-run` valide sans écrire ; choisissez un nouveau chemin de sortie, les fichiers et liens symboliques existants ne sont jamais écrasés.
 
 ## Local et vérifiable
+
+### Une première session avec le PDF de démonstration
+
+Ouvrez `examples/sample_pdfs/demo-basic.pdf` dans l'application. Cherchez un mot,
+ouvrez l'organiseur et faites pivoter la page. Annulez la rotation, essayez le
+thème sombre et modifiez une propriété. Enregistrez avec **Save As** sous un
+nouveau nom, puis rouvrez votre copie. Le [guide du bureau](../../apps/desktop/README.md)
+détaille les commandes disponibles.
+
+Suivez les [commits récents](https://github.com/OthmaneBlial/pdf-editor-offline/commits/main/)
+et la [préparation de la prochaine CLI](../../distribution/npm/RELEASE_PREPARATION.md).
+La duplication protégée et le traitement en processus enfants sont disponibles
+dans les sources ; la CLI publiée `4.0.0-preview.1` les précède.
 
 Les opérations PDF s'exécutent sur votre machine, sans service de rendu ou conversion à distance. Cela ne prouve ni l'innocuité de chaque PDF ni la suppression de toutes les données cachées. Les [preuves CLI](../RUST_BENCHMARKS.md) présentent 44 contrôles d'opérations avec qpdf/Poppler, des temps de processus et des empreintes, dont un PDF synthétique de 1 000 pages. Elles ne garantissent pas la fidélité de tous les documents, la réactivité du bureau ou un gain de vitesse universel.
 

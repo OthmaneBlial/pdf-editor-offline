@@ -3,7 +3,7 @@
 set -euo pipefail
 
 if [[ $# != 1 || $1 == --help || $1 == -h ]]; then
-  printf 'Usage: bash scripts/install_reference_qpdf.sh NEW_ABSOLUTE_PREFIX\n'
+  printf 'Usage: bash tools/reference/install_reference_qpdf.sh NEW_ABSOLUTE_PREFIX\n'
   printf 'Installs official checksum-pinned qpdf 12.4.2 binary/libraries for Linux or macOS.\n'
   if [[ $# == 1 && ( $1 == --help || $1 == -h ) ]]; then exit 0; fi
   exit 2

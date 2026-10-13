@@ -47,8 +47,8 @@ Usage or filesystem errors cannot satisfy those gates. Original inputs are
 rehashed after every operation.
 
 ```sh
-bash scripts/install_reference_poppler.sh /absolute/new/poppler-prefix
-bash scripts/install_reference_qpdf.sh /absolute/new/qpdf-prefix
+bash tools/reference/install_reference_poppler.sh /absolute/new/poppler-prefix
+bash tools/reference/install_reference_qpdf.sh /absolute/new/qpdf-prefix
 cargo build --release --locked -p pdf-editor-offline-cli --message-format=json > target/native-cli-build.json
 cargo build --release --locked -p native-evidence
 target/release/native-evidence \

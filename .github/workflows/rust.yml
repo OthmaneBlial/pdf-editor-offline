@@ -12,8 +12,6 @@ on:
       - 'tools/**'
       - 'vendor/**'
       - 'tests/fixtures/**'
-      - 'scripts/install_reference_poppler.sh'
-      - 'scripts/install_reference_qpdf.sh'
   pull_request:
     paths:
       - 'Cargo.*'
@@ -24,8 +22,6 @@ on:
       - 'tools/**'
       - 'vendor/**'
       - 'tests/fixtures/**'
-      - 'scripts/install_reference_poppler.sh'
-      - 'scripts/install_reference_qpdf.sh'
   workflow_dispatch:
 
 permissions:
@@ -72,8 +68,8 @@ jobs:
       - name: Independent PDF output and measured CLI baseline
         run: |
           sudo apt-get install --yes --no-install-recommends build-essential cmake pkg-config curl unzip xz-utils gnupg libfreetype-dev libfontconfig1-dev zlib1g-dev libbrotli-dev libharfbuzz-dev libjpeg-dev liblcms2-dev poppler-data
-          bash scripts/install_reference_poppler.sh "$RUNNER_TEMP/reference-poppler"
-          bash scripts/install_reference_qpdf.sh "$RUNNER_TEMP/reference-qpdf"
+          bash tools/reference/install_reference_poppler.sh "$RUNNER_TEMP/reference-poppler"
+          bash tools/reference/install_reference_qpdf.sh "$RUNNER_TEMP/reference-qpdf"
           cargo build --release -p pdf-editor-offline-cli --locked --message-format=json > "$RUNNER_TEMP/native-cli-build.json"
           cargo build --release -p native-evidence --locked
           target/release/native-evidence --binary target/release/pdf-editor-offline --build-artifact-json "$RUNNER_TEMP/native-cli-build.json" --reference-bin-dir "$RUNNER_TEMP/reference-poppler/bin" --qpdf "$RUNNER_TEMP/reference-qpdf/bin/qpdf" --output "$RUNNER_TEMP/rust-baseline.json"

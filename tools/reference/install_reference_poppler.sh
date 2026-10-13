@@ -8,8 +8,8 @@ signer_fingerprint=CA262C6C83DE4D2FB28A332A3A6A4DB839EAA6D7
 
 usage() {
   cat <<'EOF'
-Usage: bash scripts/install_reference_poppler.sh EMPTY_ABSOLUTE_PREFIX
-       bash scripts/install_reference_poppler.sh --verify-only
+Usage: bash tools/reference/install_reference_poppler.sh EMPTY_ABSOLUTE_PREFIX
+       bash tools/reference/install_reference_poppler.sh --verify-only
 
 Builds pinned Poppler 26.10.0 pdftotext, pdfinfo and pdftoppm into a private prefix.
 Ubuntu 24.04 prerequisites (install separately):

@@ -9,9 +9,13 @@
 [![Native Rust CI](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml/badge.svg)](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml)
 [![MIT license](https://img.shields.io/badge/license-MIT-forestgreen)](LICENSE)
 [![npm version](https://img.shields.io/npm/v/pdf-editor-offline)](https://www.npmjs.com/package/pdf-editor-offline)
+[![Latest commit on main](https://img.shields.io/github/last-commit/OthmaneBlial/pdf-editor-offline/main?label=last%20update)](https://github.com/OthmaneBlial/pdf-editor-offline/commits/main/)
 [![GitHub stars](https://img.shields.io/github/stars/OthmaneBlial/pdf-editor-offline?style=flat)](https://github.com/OthmaneBlial/pdf-editor-offline/stargazers)
 
 [Explore the workstation](https://othmaneblial.github.io/pdf-editor-offline/) · [Build guide](https://othmaneblial.github.io/pdf-editor-offline/docs.html#native-build) · [Roadmap](ROADMAP.md)
+
+**Download → try → make it yours.** [Get the native CLI](#try-the-native-cli),
+[open the desktop](#build-and-run) or [browse the real app gallery](#your-next-pdf-without-the-upload).
 
 Open a PDF, find the page you need, organize it and save a new copy. PDF Editor
 Offline is a free, open-source desktop app and command-line tool for local PDF
@@ -107,6 +111,11 @@ app with the instructions below.
 
 ## What works today
 
+**Follow the work as it lands:** [latest commits](https://github.com/OthmaneBlial/pdf-editor-offline/commits/main/)
+· [native build results](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml)
+· [published releases](https://github.com/OthmaneBlial/pdf-editor-offline/releases).
+The table covers current source; published CLI differences are called out below.
+
 | Task | Native desktop | Rust CLI |
 | --- | --- | --- |
 | Read and find | Tabs, zoom, visible-page thumbnails, text sidebar, literal search, light/dark themes | Document info, text extraction, literal search, limited text/geometry comparison |
@@ -165,6 +174,20 @@ Try the CLI with the included demonstration file:
 Pages start at **1**. `--dry-run` validates without writing.
 Choose a new output path: existing files and symlinks are never overwritten.
 
+### Your first desktop session
+
+Use the included [demonstration PDF](examples/sample_pdfs/demo-basic.pdf) to explore
+the app before opening your own documents:
+
+1. Open `examples/sample_pdfs/demo-basic.pdf` in the native desktop.
+2. Search for a word on the page, then open the page organizer and rotate it.
+3. Undo the rotation, try the dark theme and edit a document property.
+4. Use **Save As** with a new filename, then reopen your saved copy.
+
+The [desktop guide](apps/desktop/README.md) explains the controls and supported
+document structures. The gallery above shows actual macOS sessions with this
+public sample, so you can compare the workspace before building.
+
 ## Local files, reviewable results
 
 PDF operations run on the local machine. The native app uses no remote rendering
@@ -190,6 +213,11 @@ the [next milestones](ROADMAP.md) and the [implementation status](docs/RUST_STAT
 to see what has shipped and what still needs work. The screenshots above show
 the app; the status documents describe its current limits.
 
+**On the way to the next CLI preview:** guarded page duplication and bounded
+document-processing children are implemented in source. Release preparation is
+tracked [here](distribution/npm/RELEASE_PREPARATION.md); preparation is separate
+from a published download. The npm badge above reflects the public registry.
+
 **Choose a starting point:** [use the CLI](apps/cli/README.md),
 [run the desktop](apps/desktop/README.md),
 [contribute a fix](.github/CONTRIBUTING.md) or
@@ -206,7 +234,7 @@ the app; the status documents describe its current limits.
 | `tests/`, `examples/` | Test fixtures and public demonstration files |
 | `distribution/` | Optional npm installer for the native CLI |
 | `site/`, `screenshots/` | Project website and real app captures |
-| `tools/`, `scripts/` | Validation and release tooling |
+| `tools/` | Native evidence runner and pinned independent reference installers |
 | `vendor/` | Reviewed dependency sources used by this workspace |
 
 `target/` is a local Cargo build cache, ignored by Git. Workspace manifests,

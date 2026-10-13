@@ -7,9 +7,9 @@ application PDF parser or writer to produce its deterministic large fixture.
 Run from the repository root with **Poppler 26.10.0** (`pdftotext`, `pdfinfo`)
 and **qpdf 12.4.2**. Versions are mandatory; missing or different versions fail
 with a JSON error report. The Poppler installer in
-[`scripts/install_reference_poppler.sh`](../../scripts/install_reference_poppler.sh)
+[`tools/reference/install_reference_poppler.sh`](../reference/install_reference_poppler.sh)
 verifies its fixed upstream archive checksum and signature. Use the pinned
-[`scripts/install_reference_qpdf.sh`](../../scripts/install_reference_qpdf.sh)
+[`tools/reference/install_reference_qpdf.sh`](../reference/install_reference_qpdf.sh)
 for qpdf 12.4.2 from its [official release](https://github.com/qpdf/qpdf/releases/tag/v12.4.2).
 Record package/source provenance
 alongside the report; a binary hash alone does not authenticate its supplier.
