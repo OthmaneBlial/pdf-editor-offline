@@ -12,6 +12,11 @@ fn tree(path: &Path) -> Vec<(PathBuf, Vec<u8>)> {
         let entry = entry.unwrap();
         if entry.file_type().unwrap().is_dir() {
             files.extend(tree(&entry.path()));
+        } else if entry.file_name() == "session.lock" {
+            // Windows byte-range locks deny reads; an empty regular lock still has exact bytes.
+            assert!(entry.file_type().unwrap().is_file());
+            assert_eq!(entry.metadata().unwrap().len(), 0);
+            files.push((entry.path(), Vec::new()));
         } else {
             files.push((entry.path(), std::fs::read(entry.path()).unwrap()));
         }
