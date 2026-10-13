@@ -20,6 +20,7 @@ impl EditorApp {
                                     if self.metadata_dialog.as_ref().is_some_and(|d|d.key.tab==id){self.metadata_dialog=None;}
                                     if self.forms_dialog.as_ref().is_some_and(|d|d.key.tab==id){self.forms_dialog=None;}
                                     if self.overlay_dialog.as_ref().is_some_and(|d|d.key.tab==id){self.overlay_dialog=None;}
+                                    if self.notes_dialog.as_ref().is_some_and(|d|d.key.tab==id){self.notes_dialog=None;}
                                     self.close_target=None;self.request_close(id);
                                 }
                                 return;

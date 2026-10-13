@@ -440,6 +440,13 @@ impl EditorApp {
                     }
                 }
                 Event::Closed(id) => {
+                    if self
+                        .notes_dialog
+                        .as_ref()
+                        .is_some_and(|dialog| dialog.key.tab == id)
+                    {
+                        self.notes_dialog = None;
+                    }
                     self.pending_saves.remove(&id);
                     self.tabs.retain(|tab| tab.id != id);
                     if self.active == Some(id) {
@@ -766,6 +773,10 @@ impl EditorApp {
                 .is_some_and(|dialog| dialog.key.tab == id && dialog.has_changes())
             || self
                 .overlay_dialog
+                .as_ref()
+                .is_some_and(|dialog| dialog.key.tab == id && dialog.has_changes())
+            || self
+                .notes_dialog
                 .as_ref()
                 .is_some_and(|dialog| dialog.key.tab == id && dialog.has_changes())
     }

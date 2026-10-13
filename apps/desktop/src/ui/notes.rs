@@ -198,7 +198,7 @@ impl EditorApp {
         }
     }
     pub(super) fn notes_dialog_ui(&mut self, context: &egui::Context) {
-        if self.notes_dialog.is_none() {
+        if self.notes_dialog.is_none() || self.close_target.is_some() {
             return;
         }
         let editable = self.selected().is_some_and(|tab| tab.editable());
@@ -424,8 +424,12 @@ mod tests {
         assert!(app.notes_dialog.as_ref().unwrap().confirm_remove);
         click(&mut app, &context, "Confirm remove occurrence");
         assert!(app.notes_dialog.as_ref().unwrap().submitting);
-        std::thread::sleep(std::time::Duration::from_millis(30));
-        app.poll(&context);
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(3);
+        while app.notes_dialog.as_ref().unwrap().submitting && std::time::Instant::now() < deadline
+        {
+            app.poll(&context);
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
         assert!(!app.notes_dialog.as_ref().unwrap().submitting);
         assert!(app.notes_dialog.as_ref().unwrap().error.is_some());
         assert_eq!(app.tabs.len(), 1);
@@ -453,5 +457,21 @@ mod tests {
         );
         assert!(!app.apply_note(false));
         assert_eq!(app.notes_dialog.as_ref().unwrap().contents, "Changed");
+    }
+    #[test]
+    fn clean_tab_note_draft_requires_explicit_close_choice_and_remains_on_return() {
+        let mut app = app();
+        app.notes_dialog.as_mut().unwrap().contents = "Unapplied draft".into();
+        assert!(!app.tabs[0].status.dirty);
+        assert!(app.needs_exit_guard());
+        app.request_close(1);
+        assert_eq!(app.close_target, Some(super::super::CloseTarget::Tab(1)));
+        assert!(!app.busy);
+        app.close_target = None;
+        assert_eq!(
+            app.notes_dialog.as_ref().unwrap().contents,
+            "Unapplied draft"
+        );
+        assert_eq!(app.tabs.len(), 1);
     }
 }
