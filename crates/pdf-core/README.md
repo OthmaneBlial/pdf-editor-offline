@@ -8,6 +8,12 @@ that shared viewing boundary; ordinary rendering still uses original PDF bytes.
 See [encrypted viewing](../../docs/ENCRYPTED_VIEWING_RUST.md) for the tested tiers
 and explicit session-only desktop privacy policy.
 
+Existing content text editing now has a narrow transactional core tier: equal-length
+printable ASCII replacements in explicitly positioned standard Courier `Tj` runs.
+It replaces original operands and preserves shared-page resources, with stale
+identity and unsupported-layout refusals. This is not redaction; original streams
+remain retained. See [the supported tier and evidence](../../docs/CONTENT_TEXT_EDITING_RUST.md).
+
 Native Rust document processing for PDF Editor Offline. No network,
 HTTP service or GUI dependency. API page numbers are one-based.
 

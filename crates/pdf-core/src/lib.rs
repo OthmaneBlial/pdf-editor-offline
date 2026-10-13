@@ -1,6 +1,7 @@
 //! Offline PDF processing. Page numbers in this public API are one-based.
 //! Saving creates a verified new copy and never replaces an existing file.
 
+mod content_edit;
 mod error;
 mod forms;
 mod input;
@@ -19,6 +20,7 @@ mod structure;
 mod text;
 mod viewing;
 
+pub use content_edit::*;
 pub use error::{Error, Result};
 pub use forms::*;
 pub use input::{read_input_bytes, read_pdf_bytes};

@@ -2708,6 +2708,7 @@ dependencies = [
  "rustix 1.1.5",
  "serde",
  "serde_json",
+ "sha2",
  "skrifa 0.44.0",
  "tempfile",
  "thiserror 2.0.21",
