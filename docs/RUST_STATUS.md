@@ -1,5 +1,31 @@
 # Native Rust migration status
 
+## 13 October: composed typed and image visual signatures
+
+Frozen native/CI source `9657c57` passed **229 native tests, zero failures and
+zero ignored tests**, after a normal workspace/helper build with all pinned
+references. Strict all-target workspace Clippy and warning-free rustdoc passed.
+The core, CLI, worker protocol, dependencies and distribution code are unchanged
+from the preceding 798-test full-workspace composition; this scoped native gate
+is not a new full-workspace test-count claim.
+
+**Sign → Type visual signature…** and **Image visual signature…** reuse actual
+text/image overlays, file pickers, source/draft guards, durable Undo/Redo and
+verified new-copy saving. An exclusivity regression retains active image-removal
+and chosen-font dialogs. The image-removal window title is shorter to fit its
+header. [Mode scope](VISUAL_SIGNATURES_RUST.md).
+
+The [actual macOS signature review](VISUAL_SIGNATURES_NATIVE_REVIEW.md) belongs
+to isolated source `fa123d2`, with independently checked UI-saved files and exact
+unmodified captures. It is not a manual review of this later composition.
+Certificate signing, reusable personal assets, full-composition/all-platform UI
+and new release gates remain open. New native modes require current source.
+
+The prior font milestone `de01a28` passed all five platform jobs and quality in
+[Native Rust run 38406860198](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38406860198)
+and [security scanning](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38406860699).
+Those successful runs do not prove the later image-removal/signature compositions.
+
 ## 13 October: composed whole-image redaction
 
 Frozen source `e9bec71` passed **798 tests across 95 suites, zero failures and

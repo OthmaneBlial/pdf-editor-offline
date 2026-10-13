@@ -42,14 +42,17 @@ The screenshot is a real app window using a public synthetic PDF.
 
 ## Made this week · 13 October 2026
 
-**Today's source checkpoint:** original-text font changes, Unicode TrueType
+**Today's source checkpoints:** original-text font changes, Unicode TrueType
 embedding, whole-image/text redaction and decoding fixes passed **798 tests across 95 suites**,
 including pinned independent readers and actual native workers, with no failures
-or ignored tests. Strict Clippy, documentation and dependency checks passed.
-The preceding redaction/decoding source passed all five platforms and the quality
-job in [native CI](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38401278482)
-and [security scanning](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38401278510).
-Those platform runs do not verify the newer font changes.
+or ignored tests. The newer typed/image signature integration passed **229 native
+tests**, including every pinned reference, with no failures or ignored tests.
+Strict workspace Clippy and documentation checks passed; the dependency graph
+is unchanged from the audited workspace. [Exact sources and scope](docs/RUST_STATUS.md).
+The preceding font milestone passed all five platforms and the quality job in
+[native CI](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38406860198)
+and [security scanning](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38406860699).
+Those platform runs do not verify the newer image-redaction/signature changes.
 Preview.4 is published on GitHub and npm, with five-platform HTTPS global-install
 checks passed. [Release and registry evidence](docs/NATIVE_RELEASE_PREVIEW4.md).
 
@@ -58,7 +61,7 @@ Numbering, image placement/replacement and original text properties ship in
 build the desktop for the native canvas workflows.
 
 **Fresh tools to play with:** [draw on the canvas](docs/VECTOR_DRAWING_RUST.md),
-[draw a visual signature](docs/VISUAL_SIGNATURES_RUST.md),
+[draw, type or place a visual signature](docs/VISUAL_SIGNATURES_RUST.md),
 [place an image](docs/IMAGE_OVERLAYS_RUST.md),
 [replace one existing image](docs/IMAGE_REPLACEMENT_RUST.md),
 [number pages](docs/PAGE_NUMBERING_RUST.md),
@@ -275,7 +278,7 @@ The table covers current source; published CLI differences are called out below.
 | New page text | Drag placement, move/eight resize handles, snapping and arrow nudges, numeric controls, covering-font picker, guarded apply and durable undo/redo | `add-text-overlay` adds bounded Unicode text with an explicit font, rectangle, color and alignment in current source |
 | Existing text | Replace eligible standard-face text, adjust size/position/RGB, choose a standard face or embed a covering TrueType font; source-bound history and Save As | `inspect-content-text`, `replace-content-text`, `set-content-text-properties` and source-only `set-content-text-font`; explicit width changes, dry-run and new-copy saving |
 | New drawings | Rectangles, ellipses, lines and bounded freehand paths, colors/paint opacity, snapping, nudges and protected drafts | `add-vector-overlay` with a strict JSON request, dry-run and fresh-copy saving in current source |
-| Visual signatures | Separate pen strokes and dots, color/width, one Apply and one durable Undo; **Sign → Draw visual signature…** | `add-vector-overlay` accepts bounded `multi_polyline` strokes; artwork only, without certificate signing or identity verification |
+| Visual signatures | Draw, type with a covering font or place a restricted PNG/JPEG; source-bound drafts, durable Undo/Redo and verified Save As | `add-vector-overlay`, `add-text-overlay` and `add-image-overlay` create artwork; no certificate signing or identity verification |
 | Forms | Checkboxes/radios, single/multiline text, dropdowns and single/multiple list selections; guarded apply and undo/redo | Discover fields and indexed options; `fill-button`, `fill-text`, `list-choices` and `fill-choice` in current source |
 | Inspect and export | Verified Save As to a new path | Read-only action/attachment/form/layer markers, lossless stream compression, verified fresh output copies |
 | Targeted cleanup | Separate unsaved copy, removal report and verified Save As | `sanitize` removes supported metadata/file/action structures through a full rewrite in current source; includes dry-run and a partial-scope report |

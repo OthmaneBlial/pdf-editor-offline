@@ -2,6 +2,10 @@
 
 ## Unreleased — current Rust source
 
+- Add native typed and image visual signature modes through the existing overlay
+  workflows, retaining active font/redaction drafts and guarded durable history.
+  These add artwork, without certificate signing or personal asset storage.
+
 - Remove complete selected plain/Flate RGB/Gray8 image assets and supported masks
   into source-bound verified new copies through core, isolated CLI/worker and
   native controls. All shared uses must be selected; unsupported carriers refuse.

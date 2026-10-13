@@ -62,7 +62,8 @@ manual platform verification claim.
   this does not promise secure memory erasure or prevent OS swap/crash capture.
 - [Drawn visual signatures](VISUAL_SIGNATURES_RUST.md) are vector artwork only.
   They add no certificate, signature field, identity proof or tamper protection.
-  Typed/image signature assets, an asset library and certificate signing remain open.
+  Current source also places typed/image visual artwork through text/image
+  overlays. A reusable personal asset library and certificate signing remain open.
 - Cropping hides content. Ordinary metadata/note removal, text replacement and
   image replacement can retain old values/streams/images. Overlays can conceal
   visible information while leaving it recoverable. These operations do not
