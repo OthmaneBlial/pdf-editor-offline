@@ -119,13 +119,20 @@ impl EditorApp {
 mod tests {
     #![allow(clippy::unwrap_used)]
     use super::*;
-    #[test]
-    fn real_replacement_controls_selection_outline_stale_and_error_retention() {
+    fn exercise_replacement_controls(size: egui::Vec2, image_file: std::path::PathBuf) {
         let context = egui::Context::default();
         let mut app = super::super::tests::editor(&context);
         app.image_dialog = None;
+        // This controls-only fixture has no worker document or preview request.
+        app.tabs[0].needs_render = false;
         app.open_image_replacement();
-        app.busy = false;
+        let deadline =
+            std::time::Instant::now() + std::time::Duration::from_secs(pdf_worker::CPU_SECONDS + 5);
+        while app.busy && std::time::Instant::now() < deadline {
+            app.poll(&context);
+            std::thread::yield_now();
+        }
+        assert!(!app.busy, "image read did not settle: {}", app.message);
         let key = app.image_dialog.as_ref().unwrap().key;
         let pdf =
             pdf_core::PdfDocument::from_bytes(&crate::worker::test_pdf::fixture(2), None).unwrap();
@@ -138,10 +145,7 @@ mod tests {
         let frame = |app: &mut EditorApp, events| {
             let mut output = context.run_ui(
                 egui::RawInput {
-                    screen_rect: Some(egui::Rect::from_min_size(
-                        egui::Pos2::ZERO,
-                        egui::vec2(1000.0, 900.0),
-                    )),
+                    screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, size)),
                     events,
                     ..Default::default()
                 },
@@ -157,7 +161,14 @@ mod tests {
                 .shapes
                 .iter()
                 .find_map(|s| match &s.shape {
-                    egui::Shape::Text(t) if t.galley.job.text == label => {
+                    egui::Shape::Text(t)
+                        if t.galley.job.text == label
+                            && s.clip_rect
+                                .contains_rect(t.galley.rect.translate(t.pos.to_vec2()))
+                            && context
+                                .content_rect()
+                                .contains_rect(t.galley.rect.translate(t.pos.to_vec2())) =>
+                    {
                         Some(t.galley.rect.translate(t.pos.to_vec2()).center())
                     }
                     _ => None,
@@ -186,7 +197,7 @@ mod tests {
                 instances[0].selection.operator
             ),
         );
-        app.image_dialog.as_mut().unwrap().image_file = Some("chosen.png".into());
+        app.image_dialog.as_mut().unwrap().image_file = Some(image_file);
         assert!(app.has_tab_draft(1));
         assert!(app.needs_exit_guard());
         let page = app.tabs[0].status.info.pages[0].clone();
@@ -205,7 +216,11 @@ mod tests {
         assert!(app.image_dialog.as_ref().unwrap().image_file.is_some());
         app.tabs[0].status.revision = 0;
         click(&mut app, "Replace selected instance");
-        assert!(app.image_dialog.as_ref().unwrap().submitting);
+        assert!(
+            app.image_dialog.as_ref().unwrap().submitting,
+            "replacement was not queued: {}",
+            app.message
+        );
         app.busy = false;
         app.image_dialog.as_mut().unwrap().submitting = false;
         app.image_dialog.as_mut().unwrap().error = Some("Decode failed; draft retained".into());
@@ -226,5 +241,18 @@ mod tests {
         );
         click(&mut app, "Discard image draft");
         assert!(app.image_dialog.is_none());
+    }
+    #[test]
+    fn real_replacement_controls_selection_outline_stale_and_error_retention() {
+        exercise_replacement_controls(egui::vec2(1000.0, 900.0), "chosen.png".into());
+    }
+    #[test]
+    fn short_replacement_footer_remains_visible_with_long_native_asset_name() {
+        let temp = tempfile::tempdir().unwrap();
+        exercise_replacement_controls(
+            egui::vec2(640.0, 420.0),
+            temp.path()
+                .join(format!("{}chosen.png", "signature-".repeat(18))),
+        );
     }
 }

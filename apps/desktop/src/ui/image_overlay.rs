@@ -211,9 +211,8 @@ impl EditorApp {
         })
         .collapsible(false)
         .resizable(false)
-        .vscroll(true)
-        .default_height((context.content_rect().height() - 140.0).clamp(220.0, 660.0))
-        .max_height((context.content_rect().height() - 140.0).max(220.0))
+        .default_height((context.content_rect().height() - 140.0).clamp(120.0, 660.0))
+        .max_height((context.content_rect().height() - 140.0).max(120.0))
         .default_width(440.0)
         .max_width((context.content_rect().width() - 32.0).max(240.0));
         let window = if dialog.canvas_mode {
@@ -222,6 +221,7 @@ impl EditorApp {
             window
         };
         window.show(context,|ui|{
+            egui::ScrollArea::vertical().max_height((ui.available_height()-72.0).max(40.0)).show(ui,|ui|{
             ui.label(if dialog.replacement_mode {"Changes exactly one selected image draw. Its transform, clipping and opacity are retained; other instances stay unchanged. Old image data remain in the PDF: this is not secure erasure or redaction."}else{"Adds a new image over existing artwork. Existing images remain unchanged; this is not image replacement or redaction."});
             if dialog.replacement_mode {instances::controls(dialog,ui,enabled);}
             if let Some(path)=&dialog.image_file{ui.label(path.file_name().unwrap_or(path.as_os_str()).to_string_lossy());}else{ui.label("No image selected");}
@@ -235,11 +235,12 @@ impl EditorApp {
             if let Some(error)=&dialog.error{ui.colored_label(egui::Color32::LIGHT_RED,error);}
             if dialog.stale{ui.colored_label(egui::Color32::YELLOW,"Source changed; the draft is retained. Discard and reopen on the current page.");}
             if let Err(reason)=dialog.validate(){ui.label(reason);}
-            ui.horizontal(|ui|{
+            if dialog.replacement_mode {ui.small("PNG/JPEG: 32 MiB, 8192 per side, 8 million pixels; combined PDF/image 128 MiB. The replacement is fitted to the original image transform, so its aspect ratio may stretch. Signed/encrypted/tagged images are read-only; metadata and old objects are not sanitized.");} else {ui.small("Coordinates use unrotated PDF space; the rectangle must fit the crop/media boxes. Its aspect ratio can stretch the image. PNG/JPEG: 32 MiB, 8192 per side, 8 million pixels; combined PDF/image 128 MiB. Unsupported color/orientation metadata and tagged pages are refused. Signed/encrypted PDFs are read only. Image metadata is not sanitized.");}
+            });
+            ui.separator();ui.horizontal_wrapped(|ui|{
                 if ui.add_enabled(enabled && dialog.validate().is_ok(),egui::Button::new(if dialog.replacement_mode {"Replace selected instance"}else{"Insert image"})).clicked(){apply=true;}
                 if ui.add_enabled(!dialog.submitting,egui::Button::new("Discard image draft")).clicked(){discard=true;}
             });
-            if dialog.replacement_mode {ui.small("PNG/JPEG: 32 MiB, 8192 per side, 8 million pixels; combined PDF/image 128 MiB. The replacement is fitted to the original image transform, so its aspect ratio may stretch. Signed/encrypted/tagged images are read-only; metadata and old objects are not sanitized.");} else {ui.small("Coordinates use unrotated PDF space; the rectangle must fit the crop/media boxes. Its aspect ratio can stretch the image. PNG/JPEG: 32 MiB, 8192 per side, 8 million pixels; combined PDF/image 128 MiB. Unsupported color/orientation metadata and tagged pages are refused. Signed/encrypted PDFs are read only. Image metadata is not sanitized.");}
         });
         if pick
             && let Some(path) = rfd::FileDialog::new()
