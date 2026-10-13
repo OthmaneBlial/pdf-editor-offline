@@ -5,6 +5,12 @@ Help, version, completions and capabilities remain local. [Processing controls](
 describe password stdin, native paths, output budgets and interrupted writes.
 The published CLI `4.0.0-preview.1` predates this isolation milestone.
 
+Current source also provides `list-forms` and guarded `fill-button` for existing
+checkbox/radio appearances. Select a full field name and `--off` or a discovered
+`--widget OBJECT GENERATION`; dry-run and verified new-copy saving are supported.
+Text/choice filling and signing remain unimplemented. See the [form guide](../../docs/FORMS_RUST.md)
+for runnable synthetic examples, refusal policies and pinned independent checks.
+
 Build with Rust 1.95+ from the repository root. Use explicit binary paths during
 development to avoid running an older installed version with the same name.
 

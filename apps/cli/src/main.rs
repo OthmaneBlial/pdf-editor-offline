@@ -30,6 +30,22 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Discover AcroForm fields and existing checkbox/radio appearance choices.
+    ListForms { input: PathBuf },
+    /// Fill one checkbox/radio using validated existing appearances; save a new copy.
+    FillButton {
+        input: PathBuf,
+        #[arg(long)]
+        field: String,
+        #[arg(long, conflicts_with = "widget", required_unless_present = "widget")]
+        off: bool,
+        #[arg(long, num_args = 2, value_names = ["OBJECT", "GENERATION"], conflicts_with = "off", required_unless_present = "off")]
+        widget: Option<Vec<u32>>,
+        #[arg(short, long)]
+        output: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Inspect pages, geometry and signature/encryption flags.
     Info { input: PathBuf },
     /// Read six standard trailer Info fields; XMP is preserved separately.
@@ -258,6 +274,43 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
     match &cli.command {
         Command::Info { input } => Ok(json!(open(input)?.info()?)),
         Command::Metadata { input } => Ok(json!(open(input)?.metadata()?)),
+        Command::ListForms { input } => Ok(json!({"fields":open(input)?.list_form_fields()?})),
+        Command::FillButton {
+            input,
+            field,
+            off,
+            widget,
+            output,
+            dry_run,
+        } => {
+            let selection = if *off {
+                pdf_core::ButtonSelection::Off
+            } else {
+                let widget = widget
+                    .as_deref()
+                    .ok_or(Error::Invalid("widget selection is required"))?;
+                let [object, generation] = widget else {
+                    return Err(Error::Invalid("widget needs object and generation"));
+                };
+                let generation = u16::try_from(*generation)
+                    .map_err(|_| Error::Invalid("widget generation exceeds 65535"))?;
+                pdf_core::ButtonSelection::On {
+                    widget: (*object, generation),
+                }
+            };
+            let mut document = open(input)?;
+            document.fill_buttons(&[pdf_core::ButtonChange {
+                name: field.clone(),
+                selection,
+            }])?;
+            let fields = document.list_form_fields()?;
+            if !dry_run {
+                document.save_new(output)?;
+            }
+            Ok(
+                json!({"operation":"fill-button","field":field,"fields":fields,"output":json_path(output),"dry_run":dry_run,"existing_appearances":true,"secure_erasure":false}),
+            )
+        }
         Command::SetMetadata {
             input,
             key,
@@ -570,12 +623,13 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
         }
         Command::Capabilities => Ok(
             json!({ "runtime": "rust-native", "version": env!("CARGO_PKG_VERSION"), "migration_preview": true,
-            "commands": ["info", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "images-to-pdf", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "duplicate-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
+            "commands": ["info", "list-forms", "fill-button", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "images-to-pdf", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "duplicate-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
             "image_conversion":"restricted_png_jpeg_color_metadata_orientation_tier_one_pixel_one_pdf_point",
             "metadata":"six_standard_trailer_info_keys_custom_entries_and_xmp_preserved_no_sync_or_secure_erasure",
             "annotations": "sticky_text_notes_add_list_guarded_edit_remove_with_preserved_appearance",
+            "forms": "bounded_acroform_discovery_and_guarded_checkbox_radio_fill_using_existing_appearances",
             "saving": "verified_new_copy_no_clobber", "signed_inputs": "read_only", "encrypted_inputs": "read_only",
-            "unmigrated": ["complete_page_organization", "existing_content_editing", "forms", "cryptographic_signing", "secure_redaction", "sanitization", "ocr", "office_conversion", "recovery", "wasm"] }),
+            "unmigrated": ["complete_page_organization", "existing_content_editing", "text_choice_form_filling", "cryptographic_signing", "secure_redaction", "sanitization", "ocr", "office_conversion", "recovery", "wasm"] }),
         ),
         Command::Completions { .. } => Err(Error::Refused(
             "completion scripts are handled before document processing",

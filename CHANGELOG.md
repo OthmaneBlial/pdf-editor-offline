@@ -2,6 +2,9 @@
 
 ## Unreleased — native Rust preview
 
+- Added bounded AcroForm discovery and transactional checkbox/radio filling to the core, isolated CLI and path-free worker. Existing appearance streams are preserved; incomplete field/widget graphs and unsupported semantics are refused. Text/choice generation remains open. Added real subprocess and pinned qpdf/Poppler structure/pixel gates.
+- Corrected npm concurrent-install verification: after a metadata race, reopen and hash the complete pinned binary again, accepting only a stable result. Persistent changes and tampered bytes remain refused. The failed preview 2 tag is preserved; the correction requires a new release version.
+
 - Added guarded page duplication to the Rust API, isolated CLI and desktop organizer/palette. Copies follow their originals with independent page dictionaries, preserved inherited geometry/resources, durable undo/redo and stale-selection guards. Dedicated qpdf/Poppler gates check saved text, boxes and pixels; unsupported structures are refused.
 - Isolated every current CLI document command in a bounded self-hosted child, preserving public formats, password stdin, native paths and verified no-clobber output. Added large text/JSON reply domains and supervisor-death cleanup.
 - Corrected the Windows test step to stop on any Cargo failure, and retained the real metadata byte-limit test with a Unicode input that fits the OS command-line budget.

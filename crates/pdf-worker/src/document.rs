@@ -9,6 +9,7 @@ pub const MAX_TEXT_BYTES: usize = 1024 * 1024;
 #[serde(tag = "operation", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Operation {
     Info,
+    Forms,
     Render {
         page: usize,
         scale: f32,
@@ -33,6 +34,10 @@ pub enum Operation {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "mutation", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Mutation {
+    FillButtons {
+        changes: Vec<pdf_core::ButtonChange>,
+        page: u32,
+    },
     DuplicatePages {
         pages: Vec<u32>,
         page: u32,
@@ -86,6 +91,9 @@ pub struct RasterResult {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "result", rename_all = "snake_case", deny_unknown_fields)]
 pub enum DocumentResult {
+    Forms {
+        fields: Vec<pdf_core::FormField>,
+    },
     Info {
         info: DocumentInfo,
     },
@@ -133,7 +141,7 @@ fn execute(request: Request) -> Result<Reply, String> {
     // deny_unknown_fields. These operations accept only their tag, never paths.
     if matches!(
         operation,
-        Operation::Info | Operation::Metadata | Operation::PrepareSave
+        Operation::Info | Operation::Forms | Operation::Metadata | Operation::PrepareSave
     ) && field_count != 1
     {
         return Err("This document operation accepts no extra fields or paths".into());
@@ -144,6 +152,15 @@ fn execute(request: Request) -> Result<Reply, String> {
     let mut document =
         PdfDocument::from_bytes(&request.payload, None).map_err(|error| error.to_string())?;
     match operation {
+        Operation::Forms => reply(
+            DocumentResult::Forms {
+                fields: document
+                    .list_form_fields()
+                    .map_err(|error| error.to_string())?,
+            },
+            PayloadKind::None,
+            vec![],
+        ),
         Operation::Info => reply(
             DocumentResult::Info {
                 info: document.info().map_err(|error| error.to_string())?,
@@ -275,6 +292,16 @@ fn document_reply(document: PdfDocument, selected_page: Option<usize>) -> Result
 
 fn apply(document: &mut PdfDocument, mutation: Mutation) -> Result<Option<usize>, String> {
     let selected = match mutation {
+        Mutation::FillButtons { changes, page } => {
+            let index = (page as usize)
+                .checked_sub(1)
+                .filter(|index| *index < document.page_count())
+                .ok_or("Current page is outside the document")?;
+            document
+                .fill_buttons(&changes)
+                .map_err(|error| error.to_string())?;
+            Some(index)
+        }
         Mutation::DuplicatePages { pages, page } => {
             let index = (page as usize)
                 .checked_sub(1)

@@ -1,8 +1,22 @@
 # Native Rust migration status
 
-Current source version: **4.0.0-preview.1**. The [released CLI and npm package](NATIVE_RELEASE_EVIDENCE.md)
-have verified five-platform installation evidence. Desktop installers and complete
+Current source version: **4.0.0-preview.2**. The public
+**4.0.0-preview.1** [CLI and npm package](NATIVE_RELEASE_EVIDENCE.md)
+have verified five-platform installation evidence. Preview 2 release construction
+failed a Linux concurrent-installer gate; the preserved tag is not a publication.
+[Release preparation](../distribution/npm/RELEASE_PREPARATION.md) records the
+correction and next-version requirement. Desktop installers and complete
 feature parity remain open.
+
+The checkbox/radio milestone adds bounded AcroForm discovery, existing-appearance
+filling and transactional `/V`/`/AS` updates to the core, isolated CLI and typed
+worker. Main-checkout validation passed **125 core tests** and **100 CLI/worker
+tests**; their ordinary commands leave 3 and 7 explicit gates ignored respectively.
+The dedicated form gates were run separately with pinned qpdf 12.4.2 and Poppler
+26.10, checking saved object values, unchanged appearance streams and actual
+widget pixels. Strict core/CLI/worker Clippy passed. [Form scope](FORMS_RUST.md)
+describes field-graph refusals and remaining text/choice generation, flattening,
+signing and desktop interaction work.
 
 The source now builds the native Rust preview. The previous source is preserved
 under `recovery-before-native-cleanup-20261012`; old release assets remain in

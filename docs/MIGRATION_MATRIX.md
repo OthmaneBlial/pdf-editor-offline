@@ -54,7 +54,7 @@ Historical baseline tests do not establish native parity. Current results must i
 | File/sound annotations | Preserve attachment bytes/types/appearance; safe inspection without executing embedded payloads | Pending | P2 / embedded payload exposure |
 | Bookmarks/TOC/links | Nested outlines and destinations, URI/internal links, update/delete and remapping after organization | Pending | P1 / navigation corruption |
 | Object/property inspection | Safe bounded resource/object inspection with stable identifiers; unsupported transforms explicit | Pending | P2 / unsafe arbitrary edits |
-| AcroForms | All supported field types/values/options/appearances; flatten to separate copy; detect XFA/JS; never execute actions | Pending | P1 / field loss |
+| AcroForms | All supported field types/values/options/appearances; flatten to separate copy; detect XFA/JS; never execute actions | Partial: bounded discovery and guarded existing checkbox/radio filling in core/CLI/worker; text/choice generation, flattening and desktop interaction remain open | P1 / field loss |
 | Drawn/image/typed signatures | Local signature asset storage and placement; clear visual-signature label | Pending | P1 / false identity claims |
 | Certificate signing/verification | PKCS#12 credentials ephemeral, byte-range correctness, offline certificate trust, existing-signature invalidation warnings | Pending | P0 / invalid trust claims |
 | Password/encryption/permissions | Supported algorithms explicitly enumerated, wrong-password safe errors, permissions inspection, no plaintext temp leaks | Pending | P0 / confidentiality |

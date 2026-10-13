@@ -9,6 +9,12 @@ accepted by the typed handler. Snapshot history and publication belong to the
 parent journal. A crash or timeout returns an error without replacing a committed
 snapshot; transport does not retry edits.
 
+`Forms` returns bounded field/widget discovery without a binary payload.
+`FillButtons` changes supported checkbox/radio states transactionally and returns
+a verified PDF while preserving the selected page. Nested request fields are
+strict; oversized controls fail rather than being truncated. [Form scope and
+reference checks](../../docs/FORMS_RUST.md) describe the unsupported structures.
+
 Frames have a fixed version/type header, big-endian control/body lengths and a
 SHA-256 of the raw binary body. JSON controls are capped at 8 MiB, input/PDF bytes
 at 128 MiB and RGBA at 64 MiB. Lengths and role/kind are checked before allocation,
