@@ -46,9 +46,9 @@ The screenshot is a real app window using a public synthetic PDF.
 text-property source and two CI repairs passed **717 local tests**, including the
 pinned independent
 readers and actual native workers, with no failures or ignored tests. Strict
-Clippy passed. All five platform jobs in
+Clippy passed. All five platforms and the quality job in
 [native CI](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38383270114)
-passed; the quality job is still running. The repaired source passed
+passed. The repaired source passed
 [security scanning](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38383092873).
 The downloadable CLI remains preview.3. [Scope and evidence](docs/RUST_STATUS.md).
 
