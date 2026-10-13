@@ -176,6 +176,12 @@ impl PdfDocument {
         }
         self.validate_selection(&[request.page])?;
         let (bounds, operations) = request.planned()?;
+        let encoded_bounds = bounds.map(|value| value as f32);
+        if encoded_bounds[0] >= encoded_bounds[2] || encoded_bounds[1] >= encoded_bounds[3] {
+            return Err(Error::Invalid(
+                "vector paint bounds collapse at PDF number precision",
+            ));
+        }
         let info = self.info()?;
         let geometry = &info.pages[request.page as usize - 1];
         for b in [geometry.media_box, geometry.crop_box] {
@@ -258,7 +264,7 @@ impl PdfDocument {
             name = format!("NativeVectorOverlay{index}").into_bytes();
         }
         if self.document.objects.len().saturating_add(3) > crate::MAX_OBJECTS
-            || self.document.max_id as usize + 3 >= crate::MAX_OBJECTS
+            || (self.document.max_id as usize).saturating_add(3) >= crate::MAX_OBJECTS
         {
             return Err(Error::Limit("vector object allocation budget"));
         }

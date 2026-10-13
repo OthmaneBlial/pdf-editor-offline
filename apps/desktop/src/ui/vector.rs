@@ -645,6 +645,45 @@ mod tests {
         assert!(app.vector_dialog.is_none());
     }
     #[test]
+    fn closing_loaded_tab_retires_its_empty_vector_dialog() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("source.pdf");
+        std::fs::write(
+            &path,
+            include_bytes!("../../../../tests/fixtures/pdfs/forms.pdf"),
+        )
+        .unwrap();
+        let ctx = egui::Context::default();
+        let mut app = EditorApp::new(&eframe::CreationContext::_new_kittest(ctx.clone()));
+        assert!(app.begin_open(path));
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        while (app.tabs.is_empty() || app.busy) && std::time::Instant::now() < deadline {
+            app.poll(&ctx);
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        assert_eq!(app.tabs.len(), 1, "{}", app.message);
+        assert!(!app.busy, "{}", app.message);
+        let id = app.tabs[0].id;
+        app.open_vector();
+        assert!(
+            app.vector_dialog.is_some(),
+            "busy={}, pending={}, active={:?}, info={:?}",
+            app.busy,
+            app.pending_saves.len(),
+            app.active,
+            app.tabs[0].status.info
+        );
+        assert!(!app.vector_dialog.as_ref().unwrap().has_changes());
+        app.request_close(id);
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        while !app.tabs.is_empty() && std::time::Instant::now() < deadline {
+            app.poll(&ctx);
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        assert!(app.tabs.is_empty(), "{}", app.message);
+        assert!(app.vector_dialog.is_none());
+    }
+    #[test]
     fn real_freehand_overflow_and_view_change_cancel_without_truncation() {
         let ctx = egui::Context::default();
         let page = page(0);

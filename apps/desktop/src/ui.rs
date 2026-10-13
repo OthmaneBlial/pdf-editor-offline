@@ -482,6 +482,13 @@ impl EditorApp {
                 }
                 Event::Closed(id) => {
                     if self
+                        .vector_dialog
+                        .as_ref()
+                        .is_some_and(|dialog| dialog.key.tab == id)
+                    {
+                        self.vector_dialog = None;
+                    }
+                    if self
                         .notes_dialog
                         .as_ref()
                         .is_some_and(|dialog| dialog.key.tab == id)

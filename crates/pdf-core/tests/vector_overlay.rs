@@ -210,6 +210,12 @@ fn invalid_geometry_paint_paths_and_source_fail_atomically() {
     });
     filled.fill = Some([0.0, 0.0, 0.0]);
     invalid.push(filled);
+    let mut collapsed = request(VectorShape::Rectangle {
+        rectangle: [50.0, 50.0, 50.000_000_1, 70.0],
+    });
+    collapsed.stroke = None;
+    collapsed.fill = Some([0.0, 0.0, 0.0]);
+    invalid.push(collapsed);
     for req in invalid {
         assert!(p.add_vector_overlay(&req).is_err());
         assert_eq!(p.verified_bytes().unwrap(), before);
