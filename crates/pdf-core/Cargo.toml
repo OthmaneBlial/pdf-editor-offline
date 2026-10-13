@@ -19,6 +19,7 @@ rustix = { version = "1", features = ["fs"] }
 
 [dev-dependencies]
 serde_json.workspace = true
+pdf-render = { path = "../pdf-render" }
 
 [lints]
 workspace = true

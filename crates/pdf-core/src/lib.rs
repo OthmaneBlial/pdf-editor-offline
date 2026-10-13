@@ -2,6 +2,7 @@
 //! Saving creates a verified new copy and never replaces an existing file.
 
 mod error;
+mod forms;
 mod input;
 mod inspect;
 mod merge;
@@ -15,6 +16,7 @@ mod structure;
 mod text;
 
 pub use error::{Error, Result};
+pub use forms::*;
 pub use input::{read_input_bytes, read_pdf_bytes};
 pub use inspect::*;
 use lopdf::{Document, LoadOptions, Object, ObjectId};

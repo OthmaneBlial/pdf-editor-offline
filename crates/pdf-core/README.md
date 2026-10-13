@@ -3,6 +3,18 @@
 Native Rust document processing for PDF Editor Offline. No network,
 HTTP service or GUI dependency. API page numbers are one-based.
 
+`list_form_fields()` discovers bounded AcroForm field names, inherited types,
+flags, values and widget placements. Password values are omitted. `fill_buttons`
+transactionally selects a checkbox/radio widget by object ID or clears a supported
+button with `ButtonSelection::Off`, updating `/V` and every relevant `/AS` together.
+It preserves existing appearance streams and unrelated objects. Signed/decrypted
+inputs, calculations/XFA/actions, missing or inconsistent appearances, ambiguous
+names, unindexed widgets and locked/read-only fields are refused. Text/choice
+appearance generation is a later stage; this API does not provide secure erasure.
+Discovery caps 10,000 fields, 100,000 nodes/widgets, depth 128, two million lookups,
+4 MiB of names/values and 64 MiB of decoded unique button appearance streams
+(32 MiB per stream). These are structural bounds, not a general OS sandbox.
+
 ```rust,no_run
 use pdf_core::PdfDocument;
 let mut document = PdfDocument::open("input.pdf", None)?;
