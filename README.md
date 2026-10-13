@@ -43,9 +43,10 @@ The screenshot is a real app window using a public synthetic PDF.
 ## Made this week · 13 October 2026
 
 **Today's checkpoint:** the combined numbering, image-replacement and original
-text-property source passed **716 local tests**, including the pinned independent
+text-property source and two CI repairs passed **717 local tests**, including the pinned independent
 readers and actual native workers, with no failures or ignored tests. Strict
-Clippy passed. Its new cross-platform CI is pending; the preceding source passed
+Clippy passed. Cross-platform CI is being rechecked after Windows interaction
+and deadline-test failures; the preceding source passed
 [native CI](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38365398613)
 and [security scanning](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38365398878).
 The downloadable CLI remains preview.3. [Scope and evidence](docs/RUST_STATUS.md).

@@ -2,6 +2,9 @@
 
 ## Unreleased — native Rust preview
 
+- Keep image-replacement Apply/Discard controls visible in small windows with long filenames; wait for the real worker-read lifecycle in the interaction test.
+- Separate child deadline testing from fixture-setup time while retaining production subprocess limits.
+
 - Add atomic upright page-numbering batches through the core, bounded CLI/worker and durable native history, with one covering font and verified new-copy saving.
 - Replace one source-bound direct image draw while preserving shared occurrences, original transforms and untouched content bytes. Old image objects remain; this is ordinary editing, not secure deletion.
 - Extend guarded original-text editing to twelve standard Latin faces with explicit width-change policy; add original text size, position and DeviceRGB properties. Raw operand splicing fixes rounding of untouched high-precision content operands.

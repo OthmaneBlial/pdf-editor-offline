@@ -3,23 +3,24 @@
 ## 13 October: composed editing milestone
 
 Implementation source
-[`668921e`](https://github.com/OthmaneBlial/pdf-editor-offline/tree/668921e60b32807d179b763a9b1503ee37d8599d)
-matches frozen review source `3bc2760` for Cargo manifests/lockfile, all crates,
+[`4ee05bb`](https://github.com/OthmaneBlial/pdf-editor-offline/tree/4ee05bbd21fced3acb0ed7c6cd45d8185b551ff1)
+matches frozen review source `70d5c42` for Cargo manifests/lockfile, all crates,
 apps, vendored code, tools, distribution files and the Rust workflow. The frozen
-macOS workspace passed **716 tests across 84 suites, with zero failures and zero
+macOS workspace passed **717 tests across 84 suites, with zero failures and zero
 ignored tests**, followed by strict workspace/all-target Clippy with the worker
 test helper. Normal native/CLI/worker/helper builds, formatting, workflow lint
 and diff checks passed. Remote CI for this new milestone is still pending.
 
 The first [remote native run](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38372325112)
 reported failures in the Windows image-replacement interaction test and the
-quality job's subprocess-deadline test. Linux x64/ARM64 and macOS ARM64 passed;
-the Intel job was still running at that observation. Release preview.4 remains
-unpublished while these failures are repaired. The deadline test's isolated
-operation-budget repair passed all 13 evidence-tool tests, including the child
-helper, and strict all-target Clippy locally; its new remote result is not yet
-available. This repair does not relax the production 60-second operation or
-180-second evidence budget. The Windows interaction repair is still in review.
+quality job's subprocess-deadline test. Linux x64/ARM64 and macOS ARM64/Intel
+passed. Both repairs are included in the frozen 717-test checkpoint; a new
+remote result is still pending, and release preview.4 remains unpublished.
+The deadline test separates fixture setup from its child-operation timeout
+without relaxing the production 60-second operation or 180-second evidence
+budget. Image replacement now keeps Apply/Discard visible at 640×420 with long
+filenames; its interaction test waits for the real worker-read lifecycle.
+The exact causes of the original remote assertion failures remain unproven.
 
 - [Page numbering](PAGE_NUMBERING_RUST.md) plans an atomic, upright batch with a
   chosen covering font, one durable native undo transaction and verified saving.
