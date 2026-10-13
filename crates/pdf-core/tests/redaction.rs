@@ -62,9 +62,62 @@ fn fixture() -> Vec<u8> {
     ));
     save(doc)
 }
+fn uniform_fixture() -> Vec<u8> {
+    let mut doc = Document::load_mem(&fixture()).unwrap();
+    let stream = doc.get_object_mut((5, 0)).unwrap().as_stream_mut().unwrap();
+    let raw = String::from_utf8(stream.content.clone()).unwrap();
+    stream.set_content(
+        raw.replace("10 10 20 20 re f", "0 0 200 300 re f 0 g")
+            .into_bytes(),
+    );
+    save(doc)
+}
+#[test]
+fn decorative_square_is_outside_the_proven_profile_and_refuses_atomically() {
+    let source = fixture();
+    let pdf = PdfDocument::from_bytes(&source, None).unwrap();
+    let before = pdf.verified_bytes().unwrap();
+    assert!(pdf.redact_text_copy(&[SECRET.into()]).is_err());
+    assert_eq!(before, pdf.verified_bytes().unwrap());
+    assert!(pdf.extract_text(&[1, 2]).unwrap().contains(SECRET));
+    let mut unsupported = Document::load_mem(&fixture()).unwrap();
+    unsupported
+        .get_object_mut((5, 0))
+        .unwrap()
+        .as_stream_mut()
+        .unwrap()
+        .set_content(b"0 0 m 10 10 l 20 0 l h f BT /F1 10 Tf 20 180 Td (public) Tj ET".to_vec());
+    let unsupported = PdfDocument::from_bytes(&save(unsupported), None).unwrap();
+    let (clean, _) = unsupported.sanitized_copy().unwrap();
+    assert!(clean.verify_redaction(&[SECRET.into()]).is_err());
+}
+#[test]
+fn outlined_paths_clipping_transforms_and_overpainting_refuse_without_source_mutation() {
+    for artwork in [
+        "0 0 m 200 0 l 200 300 l h f",
+        "0 0 200 300 re W n",
+        "0 0 m 200 300 l W n",
+        "1 0 0 1 0 0 cm 0 0 200 300 re f",
+        "0 0 200 300 re S",
+        "0 0 200 300 re f 0 0 200 300 re f",
+        "0 0 200 300 re",
+        "BT /F1 10 Tf 20 180 Td (PRIVATE) Tj ET 0 0 200 300 re f",
+    ] {
+        let mut doc = Document::load_mem(&uniform_fixture()).unwrap();
+        doc.get_object_mut((5, 0))
+            .unwrap()
+            .as_stream_mut()
+            .unwrap()
+            .set_content(format!("{artwork}\nBT /F1 10 Tf 20 180 Td (PRIVATE) Tj ET").into_bytes());
+        let pdf = PdfDocument::from_bytes(&save(doc), None).unwrap();
+        let before = pdf.verified_bytes().unwrap();
+        assert!(pdf.redact_text_copy(&[SECRET.into()]).is_err(), "{artwork}");
+        assert_eq!(before, pdf.verified_bytes().unwrap(), "{artwork}");
+    }
+}
 #[test]
 fn exact_targets_are_permanently_removed_from_text_and_targeted_carriers_with_positions_retained() {
-    let source = fixture();
+    let source = uniform_fixture();
     let pdf = PdfDocument::from_bytes(&source, None).unwrap();
     let original = Document::load_mem(&source).unwrap();
     assert_eq!(
@@ -164,7 +217,7 @@ fn exact_targets_are_permanently_removed_from_text_and_targeted_carriers_with_po
 
 #[test]
 fn incremental_old_revisions_and_contents_arrays_leave_no_recoverable_old_streams() {
-    let mut compressed = Document::load_mem(&fixture()).unwrap();
+    let mut compressed = Document::load_mem(&uniform_fixture()).unwrap();
     compressed
         .get_object_mut((8, 0))
         .unwrap()
@@ -198,13 +251,13 @@ fn incremental_old_revisions_and_contents_arrays_leave_no_recoverable_old_stream
             .all(|s| !s.dict.has(b"Filter"))
     );
     pdf_core::verify_redaction_bytes(&output, None, &[SECRET.into()]).unwrap();
-    let mut streamed = Document::load_mem(&fixture()).unwrap();
+    let mut streamed = Document::load_mem(&uniform_fixture()).unwrap();
     streamed.reference_table.cross_reference_type = lopdf::xref::XrefType::CrossReferenceStream;
     let pdf = PdfDocument::from_bytes(&save(streamed), None).unwrap();
     let (output, _) = pdf.redact_text_copy(&[SECRET.into()]).unwrap();
     let reopened = PdfDocument::from_bytes(&output.verified_bytes().unwrap(), None).unwrap();
     reopened.verify_redaction(&[SECRET.into()]).unwrap();
-    let source = fixture();
+    let source = uniform_fixture();
     let original = Document::load_mem(&source).unwrap();
     let mut incremental = lopdf::IncrementalDocument::create_from(source, original);
     incremental
@@ -226,7 +279,7 @@ fn incremental_old_revisions_and_contents_arrays_leave_no_recoverable_old_stream
     assert!(!saved.windows(SECRET.len()).any(|v| v == SECRET.as_bytes()));
     assert!(!saved.windows(5).any(|v| v == b"/Prev"));
     output.verify_redaction(&[SECRET.into()]).unwrap();
-    let mut doc = Document::load_mem(&fixture()).unwrap();
+    let mut doc = Document::load_mem(&uniform_fixture()).unwrap();
     let first = doc.add_object(Stream::new(
         dictionary! {},
         b"BT /F1 10 Tf 20 180 Td (prefix PRI) Tj ".to_vec(),
@@ -277,7 +330,7 @@ fn independent_readers_prove_secret_absence_and_retained_word_positions() {
         "Times-Italic",
         "Times-BoldItalic",
     ] {
-        let mut doc = Document::load_mem(&fixture()).unwrap();
+        let mut doc = Document::load_mem(&uniform_fixture()).unwrap();
         doc.get_object_mut((3, 0))
             .unwrap()
             .as_dict_mut()
@@ -380,7 +433,7 @@ fn independent_readers_prove_secret_absence_and_retained_word_positions() {
             // Independent hand-authored blank-advance control (Courier600),
             // without calling redaction or its metric planner.
             let mut control = Document::load_mem(&source).unwrap();
-            let raw=b"% untouched high precision artwork\n0.123456789012345678 0.234567890123456789 0.3 rg 10 10 20 20 re f\nBT /F1 10 Tf 20 180 Td [(prefix ) -4200 ( suffix)] TJ ( tail) Tj ET\nBT /F1 10 Tf 20 120 Td [(split ) -1800 -12.123456789012345678 -2400 ( retained)] TJ ET\n";
+            let raw=b"% untouched high precision artwork\n0.123456789012345678 0.234567890123456789 0.3 rg 0 0 200 300 re f 0 g\nBT /F1 10 Tf 20 180 Td [(prefix ) -4200 ( suffix)] TJ ( tail) Tj ET\nBT /F1 10 Tf 20 120 Td [(split ) -1800 -12.123456789012345678 -2400 ( retained)] TJ ET\n";
             control
                 .get_object_mut((5, 0))
                 .unwrap()
@@ -432,7 +485,7 @@ fn unsupported_carriers_and_state_or_unremoved_comments_fail_without_source_muta
         ("PieceInfo", Object::string_literal(SECRET)),
         ("Thumb", Object::Reference((4, 0))),
     ] {
-        let mut doc = Document::load_mem(&fixture()).unwrap();
+        let mut doc = Document::load_mem(&uniform_fixture()).unwrap();
         doc.get_object_mut((6, 0))
             .unwrap()
             .as_dict_mut()
@@ -453,7 +506,7 @@ fn unsupported_carriers_and_state_or_unremoved_comments_fail_without_source_muta
         b"BT /F1 10 Tf 20 180 Td 1 Tc (PRIVATE) Tj ET".as_slice(),
         b"BT /F1 10 Tf 20 180 Td (PRIVATE) Tj ET /Im1 Do".as_slice(),
     ] {
-        let mut doc = Document::load_mem(&fixture()).unwrap();
+        let mut doc = Document::load_mem(&uniform_fixture()).unwrap();
         doc.get_object_mut((5, 0))
             .unwrap()
             .as_stream_mut()
@@ -462,7 +515,7 @@ fn unsupported_carriers_and_state_or_unremoved_comments_fail_without_source_muta
         let pdf = PdfDocument::from_bytes(&save(doc), None).unwrap();
         assert!(pdf.redact_text_copy(&[SECRET.into()]).is_err());
     }
-    let pdf = PdfDocument::from_bytes(&fixture(), None).unwrap();
+    let pdf = PdfDocument::from_bytes(&uniform_fixture(), None).unwrap();
     assert!(pdf.verify_redaction(&[SECRET.into()]).is_err());
     assert!(pdf.redact_text_copy(&["absent-target".into()]).is_err());
     assert!(pdf.redact_text_copy(&["".into()]).is_err());
@@ -498,7 +551,7 @@ fn proportional_fonts_overlap_and_readonly_or_cross_object_residuals_are_checked
         "Times-Italic",
         "Times-BoldItalic",
     ] {
-        let mut doc = Document::load_mem(&fixture()).unwrap();
+        let mut doc = Document::load_mem(&uniform_fixture()).unwrap();
         doc.get_object_mut((3, 0))
             .unwrap()
             .as_dict_mut()
@@ -518,11 +571,11 @@ fn proportional_fonts_overlap_and_readonly_or_cross_object_residuals_are_checked
         assert!(text.contains("suffix"));
         assert!(text.contains("tail"));
     }
-    let mut doc = Document::load_mem(&fixture()).unwrap();
+    let mut doc = Document::load_mem(&uniform_fixture()).unwrap();
     doc.add_object(dictionary! {"FT"=>"Sig"});
     let pdf = PdfDocument::from_bytes(&save(doc), None).unwrap();
     assert!(pdf.redact_text_copy(&[SECRET.into()]).is_err());
-    let mut doc = Document::load_mem(&fixture()).unwrap();
+    let mut doc = Document::load_mem(&uniform_fixture()).unwrap();
     doc.get_object_mut((1, 0))
         .unwrap()
         .as_dict_mut()
@@ -530,7 +583,7 @@ fn proportional_fonts_overlap_and_readonly_or_cross_object_residuals_are_checked
         .set("MarkInfo", dictionary! {"Marked"=>true});
     let pdf = PdfDocument::from_bytes(&save(doc), None).unwrap();
     assert!(pdf.redact_text_copy(&[SECRET.into()]).is_err());
-    let mut doc = Document::load_mem(&fixture()).unwrap();
+    let mut doc = Document::load_mem(&uniform_fixture()).unwrap();
     doc.get_object_mut((5,0)).unwrap().as_stream_mut().unwrap().set_content(b"BT /F1 10 Tf 20 180 Td (PRIVATE) Tj ET BT /F1 10 Tf 20 160 Td (PRI) Tj ET BT /F1 10 Tf 20 140 Td (VATE) Tj ET".to_vec());
     let pdf = PdfDocument::from_bytes(&save(doc), None).unwrap();
     assert!(pdf.redact_text_copy(&[SECRET.into()]).is_err());
@@ -543,7 +596,7 @@ fn escaped_and_hex_targets_are_removed_but_opaque_font_images_forms_and_unicode_
         "% <50524956415445> hex",
         "% (PR\\111VATE) escaped",
     ] {
-        let mut doc = Document::load_mem(&fixture()).unwrap();
+        let mut doc = Document::load_mem(&uniform_fixture()).unwrap();
         doc.get_object_mut((5, 0))
             .unwrap()
             .as_stream_mut()
@@ -559,7 +612,7 @@ fn escaped_and_hex_targets_are_removed_but_opaque_font_images_forms_and_unicode_
         b"<50524956415445>".as_slice(),
         b"[(PR) 0 <4956415445>]".as_slice(),
     ] {
-        let mut doc = Document::load_mem(&fixture()).unwrap();
+        let mut doc = Document::load_mem(&uniform_fixture()).unwrap();
         let mut raw = b"BT /F1 10 Tf 20 180 Td ".to_vec();
         raw.extend(glyphs);
         raw.extend_from_slice(if glyphs[0] == b'[' {
@@ -578,7 +631,7 @@ fn escaped_and_hex_targets_are_removed_but_opaque_font_images_forms_and_unicode_
         output.verify_redaction(&[SECRET.into()]).unwrap();
     }
     for key in ["ToUnicode", "FontDescriptor"] {
-        let mut doc = Document::load_mem(&fixture()).unwrap();
+        let mut doc = Document::load_mem(&uniform_fixture()).unwrap();
         let carrier = doc.add_object(Stream::new(dictionary! {}, SECRET.as_bytes().to_vec()));
         doc.get_object_mut((3, 0))
             .unwrap()
@@ -589,7 +642,7 @@ fn escaped_and_hex_targets_are_removed_but_opaque_font_images_forms_and_unicode_
         assert!(pdf.redact_text_copy(&[SECRET.into()]).is_err());
     }
     for subtype in ["Image", "Form"] {
-        let mut doc = Document::load_mem(&fixture()).unwrap();
+        let mut doc = Document::load_mem(&uniform_fixture()).unwrap();
         let carrier=doc.add_object(Stream::new(dictionary!{"Type"=>"XObject","Subtype"=>subtype,"BBox"=>vec![0.into(),0.into(),10.into(),10.into()]},SECRET.as_bytes().to_vec()));
         doc.get_object_mut((2, 0))
             .unwrap()
@@ -603,7 +656,7 @@ fn escaped_and_hex_targets_are_removed_but_opaque_font_images_forms_and_unicode_
         let pdf = PdfDocument::from_bytes(&save(doc), None).unwrap();
         assert!(pdf.redact_text_copy(&[SECRET.into()]).is_err());
     }
-    let mut doc = Document::load_mem(&fixture()).unwrap();
+    let mut doc = Document::load_mem(&uniform_fixture()).unwrap();
     doc.get_object_mut((5, 0))
         .unwrap()
         .as_stream_mut()

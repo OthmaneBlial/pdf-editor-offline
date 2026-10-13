@@ -479,6 +479,7 @@ fn pieces(value: &[u8], mask: &[bool], font: &Font) -> Result<Vec<u8>> {
 fn plan(
     bytes: &[u8],
     fonts: &Fonts,
+    media_box: [f32; 4],
     targets: &[Needle<'_>],
     search: &mut Search,
 ) -> Result<(Vec<u8>, usize, usize)> {
@@ -492,13 +493,25 @@ fn plan(
     let mut changed_shows = 0;
     let mut matches = 0;
     let mut graphics_depth = 0usize;
+    let mut background_path = false;
+    let mut background_painted = false;
+    let mut text_started = false;
     for (ordinal, op) in program.operations.iter().enumerate() {
+        // A single complete page background is the only admitted painted path.
+        // Require its fill immediately: no clipping, transformed/path lettering,
+        // accumulated shapes, or background painting over already shown text.
+        if background_path && !matches!(op.operator.as_str(), "f" | "F" | "f*") {
+            return Err(Error::Refused(
+                "redaction background rectangle needs an immediate fill",
+            ));
+        }
         match op.operator.as_str() {
             "BT" => {
                 if block || !op.operands.is_empty() {
                     return Err(Error::Refused("invalid redaction text object"));
                 }
                 block = true;
+                text_started = true;
                 font = None;
                 positioned = false;
                 text.clear();
@@ -647,33 +660,51 @@ fn plan(
                 }
                 graphics_depth -= 1;
             }
-            "cm" | "m" | "l" | "c" | "v" | "y" | "h" | "re" | "S" | "s" | "f" | "F" | "f*"
-            | "B" | "B*" | "b" | "b*" | "n" | "W" | "W*" | "w" | "J" | "j" | "M" | "d" | "G"
-            | "g" | "RG" | "rg" | "K" | "k" => {
-                // Artwork is retained byte-for-byte. Only finite numeric operands and
-                // dash arrays are admitted: no string/property/resource carriers.
+            "re" => {
+                let expected = [
+                    media_box[0],
+                    media_box[1],
+                    media_box[2] - media_box[0],
+                    media_box[3] - media_box[1],
+                ];
+                if text_started
+                    || background_painted
+                    || op.operands.len() != 4
+                    || op.operands.iter().zip(expected).any(|(value, expected)| {
+                        !value
+                            .as_float()
+                            .is_ok_and(|actual| actual.is_finite() && actual == expected)
+                    })
+                {
+                    return Err(Error::Refused(
+                        "redaction only admits one uniform full-page background before text",
+                    ));
+                }
+                background_path = true;
+            }
+            "f" | "F" | "f*" => {
+                if !background_path || !op.operands.is_empty() {
+                    return Err(Error::Refused("redaction excludes arbitrary painted paths"));
+                }
+                background_path = false;
+                background_painted = true;
+            }
+            "g" | "rg" | "k" => {
+                // Color setters and the uniform background are kept as exact raw
+                // bytes. Numeric encodings are not a visual/steganographic proof.
                 let arity = match op.operator.as_str() {
-                    "cm" | "c" => 6,
-                    "m" | "l" | "d" => 2,
-                    "v" | "y" | "re" | "K" | "k" => 4,
-                    "RG" | "rg" => 3,
-                    "w" | "J" | "j" | "M" | "G" | "g" => 1,
-                    _ => 0,
+                    "k" => 4,
+                    "rg" => 3,
+                    _ => 1,
                 };
                 if op.operands.len() != arity {
                     return Err(Error::Refused("invalid redaction artwork operator arity"));
                 }
-                if op.operator == "d"
-                    && (op.operands[0].as_array().is_err() || op.operands[1].as_float().is_err())
-                {
-                    return Err(Error::Refused("invalid redaction dash operands"));
-                }
                 for value in &op.operands {
                     match value {
-                        Object::Integer(_) | Object::Real(_) if value.as_float()?.is_finite() => {}
-                        Object::Array(a)
-                            if op.operator == "d"
-                                && a.iter().all(|v| v.as_float().is_ok_and(f32::is_finite)) => {}
+                        Object::Integer(_) | Object::Real(_)
+                            if value.as_float()?.is_finite()
+                                && (0.0..=1.0).contains(&value.as_float()?) => {}
                         _ => return Err(Error::Refused("unsupported redaction artwork operand")),
                     }
                 }
@@ -685,7 +716,7 @@ fn plan(
             }
         }
     }
-    if block || graphics_depth != 0 {
+    if block || graphics_depth != 0 || background_path {
         return Err(Error::Refused("unbalanced redaction content"));
     }
     let mut output = Vec::new();
@@ -738,11 +769,12 @@ impl PdfDocument {
         .pages()?;
         let mut report=TextRedactionReport {
             changed_text_shows:0, matched_targets:0, affected_pages:Vec::new(),
-            full_rewrite:true, profile:"ascii-standard-type1-explicit-text-state-v1".into(),
+            full_rewrite:true, profile:"ascii-standard-type1-uniform-background-v2".into(),
             cleanup, rewritten_stream_orphans_removed:0,content_comments_removed:0,
             limitations:vec![
                 "Exact ASCII target glyphs are removed; their advance is retained as a TJ adjustment, preserving unmatched glyph positions.".into(),
-                "Only printable ASCII, unembedded standard Type1 fonts and the explicitly inspected page/vector profile are supported; opaque, image, form, annotation and custom carriers refuse.".into(),
+                "Only printable ASCII, unembedded standard Type1 fonts and the explicitly inspected semantic-text/uniform-background profile are supported; opaque, image, form, annotation and custom carriers refuse.".into(),
+                "Arbitrary painted paths, transforms and clipping refuse; this is not proof against every visual or steganographic encoding. Broader vector/image redaction remains unsupported.".into(),
                 "This proves absence of the supplied exact targets within this supported output profile, not absence of other private information or erasure of source, backups, recovery journals or filesystem copies.".into(),
             ],
         };
@@ -750,7 +782,12 @@ impl PdfDocument {
         let mut output_bytes = 0usize;
         for (index, (bytes, fonts)) in pages.iter().enumerate() {
             let (bytes, comments) = crate::content_spans::clear_content_comments(bytes)?;
-            let (output, count, matches) = plan(&bytes, fonts, &needles, &mut search)?;
+            let media_box = crate::structure::page_box(
+                &candidate.document,
+                candidate.pages[index],
+                b"MediaBox",
+            )?;
+            let (output, count, matches) = plan(&bytes, fonts, media_box, &needles, &mut search)?;
             output_bytes = output_bytes.saturating_add(output.len());
             if output_bytes > crate::MAX_INPUT_BYTES {
                 return Err(Error::Limit(
@@ -819,13 +856,15 @@ impl PdfDocument {
         .pages()?;
         let mut search = Search::default();
         let mut all_glyphs = Vec::new();
-        for (bytes, fonts) in pages {
+        for (index, (bytes, fonts)) in pages.into_iter().enumerate() {
             if crate::content_spans::clear_content_comments(&bytes)?.1 != 0 {
                 return Err(Error::Refused(
                     "redaction output contains unsupported content-comment carriers",
                 ));
             }
-            let (_, count, _) = plan(&bytes, &fonts, &needles, &mut search)?;
+            let media_box =
+                crate::structure::page_box(&self.document, self.pages[index], b"MediaBox")?;
+            let (_, count, _) = plan(&bytes, &fonts, media_box, &needles, &mut search)?;
             if count != 0 || search.contains(&bytes, &needles)? {
                 return Err(Error::Verification(
                     "redaction target remains in page text or decoded content",

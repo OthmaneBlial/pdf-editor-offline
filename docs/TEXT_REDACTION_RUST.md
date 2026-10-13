@@ -20,8 +20,13 @@ quote codes 39/96 refuse because their glyph meanings differ from ASCII. Each
 text object must explicitly select its font and position; only `Tf`, `Tm`, `Td`,
 `Tj` and `TJ` are admitted within `BT`/`ET`. Character/word spacing, horizontal
 scaling, text rendering modes, marked-content properties and complex layout need
-additional proved implementations. Ordinary finite numeric vector artwork and
-balanced graphics-state operations are preserved.
+additional proved implementations. Profile `ascii-standard-type1-uniform-background-v2`
+admits semantic text, balanced `q`/`Q`, ordinary fill colors, and at most one uniform
+rectangle exactly covering the MediaBox, filled before any text. Its original
+bytes are preserved. Other painted paths, strokes, transforms and clipping refuse:
+they can encode outlined text that glyph extraction cannot verify. This is a narrow
+semantic-text profile, not verification of every visual or steganographic encoding.
+Arbitrary vector/image redaction and broader PDF support remain unfinished stages.
 
 Images, nested Forms, embedded/custom fonts, ToUnicode maps, retained annotations, forms,
 layers, tagging, unknown dictionaries and opaque carriers refuse. Signed or
