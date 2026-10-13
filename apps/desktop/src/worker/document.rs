@@ -907,6 +907,7 @@ impl WorkingDocument {
                 saved_revision: None,
                 next_revision: 1,
                 path: None,
+                password: None,
             });
         }
         Ok(result)

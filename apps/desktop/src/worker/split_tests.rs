@@ -183,6 +183,7 @@ fn pending_save_and_capacity_refuse_without_changes() {
                 saved_revision: None,
                 next_revision: 1,
                 path: None,
+                password: None,
             },
         );
     }

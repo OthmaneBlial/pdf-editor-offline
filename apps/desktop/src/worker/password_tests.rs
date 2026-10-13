@@ -101,6 +101,21 @@ fn password_retry_keeps_ciphertext_and_never_writes_a_recovery_snapshot() {
         .is_err()
     );
     assert!(!output.exists());
+    assert!(
+        process_with_journal(
+            &mut docs,
+            Command::Split {
+                id: 1,
+                revision: 0,
+                new_ids: vec![2],
+                every: 1,
+            },
+            Some(&mut journal),
+        )
+        .is_err()
+    );
+    assert_eq!(docs.len(), 1);
+    assert_eq!(docs[&1].current.bytes, cipher);
     assert_eq!(journal.summary().document_count, 0);
     assert_eq!(tree(journal.directory()), before);
     assert_eq!(std::fs::read(path).unwrap(), cipher);
