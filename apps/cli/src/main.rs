@@ -223,6 +223,16 @@ enum Command {
         #[arg(long)]
         dry_run: bool,
     },
+    /// Duplicate selected pages after each original; complex structures may be refused.
+    DuplicatePages {
+        input: PathBuf,
+        #[arg(long)]
+        pages: String,
+        #[arg(short, long)]
+        output: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Remove selected pages; this does not securely erase their content.
     DeletePages {
         input: PathBuf,
@@ -501,6 +511,22 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
                 json!({"operation": "extract-pages", "pages": pages, "output": json_path(output), "dry_run": dry_run, "privacy_operation": false}),
             )
         }
+        Command::DuplicatePages {
+            input,
+            pages,
+            output,
+            dry_run,
+        } => {
+            let mut document = open(input)?;
+            let pages = selection::parse_unique(pages, document.page_count())?;
+            document.duplicate_pages(&pages)?;
+            if !dry_run {
+                document.save_new(output)?;
+            }
+            Ok(
+                json!({"operation": "duplicate-pages", "pages": pages, "page_count": document.page_count(), "placement": "after_each_original", "output": json_path(output), "dry_run": dry_run}),
+            )
+        }
         Command::DeletePages {
             input,
             pages,
@@ -544,7 +570,7 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
         }
         Command::Capabilities => Ok(
             json!({ "runtime": "rust-native", "version": env!("CARGO_PKG_VERSION"), "migration_preview": true,
-            "commands": ["info", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "images-to-pdf", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
+            "commands": ["info", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "images-to-pdf", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "duplicate-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
             "image_conversion":"restricted_png_jpeg_color_metadata_orientation_tier_one_pixel_one_pdf_point",
             "metadata":"six_standard_trailer_info_keys_custom_entries_and_xmp_preserved_no_sync_or_secure_erasure",
             "annotations": "sticky_text_notes_add_list_guarded_edit_remove_with_preserved_appearance",

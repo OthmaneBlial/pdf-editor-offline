@@ -69,6 +69,90 @@ fn edit(bytes: &[u8], mutation: Mutation) -> Reply {
 }
 
 #[test]
+fn duplicated_leaves_preserve_text_geometry_metadata_and_original_selection() {
+    let bytes = fixture(false);
+    let original = bytes.clone();
+    for (page, mapped) in [(1, 0), (2, 2)] {
+        let reply = edit(
+            &bytes,
+            Mutation::DuplicatePages {
+                pages: vec![2, 1],
+                page,
+            },
+        );
+        let DocumentResult::Document {
+            info,
+            selected_page,
+        } = result(&reply)
+        else {
+            panic!("document result")
+        };
+        assert_eq!(reply.kind, PayloadKind::Pdf);
+        assert_eq!(info.page_count, 4);
+        assert_eq!(selected_page, Some(mapped));
+        let pdf = PdfDocument::from_bytes(&reply.payload, None).expect("duplicated PDF");
+        for (number, text) in [
+            (1, "Page One"),
+            (2, "Page One"),
+            (3, "Page Two"),
+            (4, "Page Two"),
+        ] {
+            assert!(
+                pdf.extract_text(&[number])
+                    .expect("page text")
+                    .contains(text)
+            );
+        }
+        for (original, copied) in [(0, 1), (2, 3)] {
+            assert_eq!(info.pages[original].media_box, info.pages[copied].media_box);
+            assert_eq!(info.pages[original].crop_box, info.pages[copied].crop_box);
+            assert_eq!(info.pages[original].rotation, info.pages[copied].rotation);
+        }
+        assert_eq!(
+            pdf.metadata().expect("metadata").fields[&MetadataKey::Title],
+            "Original"
+        );
+    }
+    assert_eq!(bytes, original);
+}
+
+#[test]
+fn duplicate_mutations_reject_invalid_current_page_selections_and_signed_input() {
+    let bytes = fixture(false);
+    for (pages, page) in [
+        (vec![1], 0),
+        (vec![1], 3),
+        (vec![], 1),
+        (vec![1, 1], 1),
+        (vec![3], 1),
+    ] {
+        assert!(
+            execute_document(Request {
+                control: serde_json::to_value(Operation::Edit {
+                    mutation: Mutation::DuplicatePages { pages, page },
+                })
+                .expect("operation JSON"),
+                payload: bytes.clone(),
+            })
+            .is_err()
+        );
+    }
+    assert!(
+        execute_document(Request {
+            control: serde_json::to_value(Operation::Edit {
+                mutation: Mutation::DuplicatePages {
+                    pages: vec![1],
+                    page: 1
+                },
+            })
+            .expect("operation JSON"),
+            payload: fixture(true),
+        })
+        .is_err()
+    );
+}
+
+#[test]
 fn subsets_preserve_order_geometry_metadata_and_original_bytes() {
     let bytes = fixture(false);
     let extracted = run(Operation::ExtractPages { pages: vec![2, 1] }, &bytes);
@@ -666,6 +750,47 @@ fn production_child_roundtrips_real_operations_and_retains_input_after_rejection
                 .contains("Page Two")
         );
     }
+    let duplicated = pdf_worker::execute(
+        helper,
+        &[],
+        request(
+            Operation::Edit {
+                mutation: Mutation::DuplicatePages {
+                    pages: vec![1],
+                    page: 2,
+                },
+            },
+            bytes.clone(),
+        ),
+        pdf_worker::Limits::default(),
+    )
+    .expect("isolated duplication");
+    assert_eq!(duplicated.kind, PayloadKind::Pdf);
+    let DocumentResult::Document {
+        info,
+        selected_page,
+    } = result(&duplicated)
+    else {
+        panic!("document reply");
+    };
+    assert_eq!(info.page_count, 3);
+    assert_eq!(selected_page, Some(2));
+    let pdf = PdfDocument::from_bytes(&duplicated.payload, None).expect("duplicated PDF");
+    assert!(
+        pdf.extract_text(&[1])
+            .expect("first original")
+            .contains("Page One")
+    );
+    assert!(
+        pdf.extract_text(&[2])
+            .expect("first copy")
+            .contains("Page One")
+    );
+    assert!(
+        pdf.extract_text(&[3])
+            .expect("second original")
+            .contains("Page Two")
+    );
     let changed = pdf_worker::execute(
         helper,
         &[],

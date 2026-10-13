@@ -33,6 +33,10 @@ pub enum Operation {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "mutation", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Mutation {
+    DuplicatePages {
+        pages: Vec<u32>,
+        page: u32,
+    },
     DeletePages {
         pages: Vec<u32>,
         page: u32,
@@ -271,6 +275,19 @@ fn document_reply(document: PdfDocument, selected_page: Option<usize>) -> Result
 
 fn apply(document: &mut PdfDocument, mutation: Mutation) -> Result<Option<usize>, String> {
     let selected = match mutation {
+        Mutation::DuplicatePages { pages, page } => {
+            let index = (page as usize)
+                .checked_sub(1)
+                .filter(|index| *index < document.page_count())
+                .ok_or("Current page is outside the document")?;
+            if pages.len() > pdf_core::MAX_PAGES {
+                return Err("Page selection exceeds the supported page count".into());
+            }
+            document
+                .duplicate_pages(&pages)
+                .map_err(|error| error.to_string())?;
+            Some(index + pages.iter().filter(|number| **number < page).count())
+        }
         Mutation::DeletePages { pages, page } => {
             let index = (page as usize)
                 .checked_sub(1)

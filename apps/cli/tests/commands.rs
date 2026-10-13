@@ -158,6 +158,85 @@ fn rotations(path: &Path) -> Vec<i64> {
 }
 
 #[test]
+fn duplicate_pages_preserves_original_order_and_refuses_clobber() {
+    let directory = tempfile::tempdir().unwrap();
+    let input = directory.path().join("source.pdf");
+    let output = directory.path().join("copies.pdf");
+    plain_three_pages(&input);
+    let original = std::fs::read(&input).unwrap();
+    let args = [
+        "duplicate-pages",
+        input.to_str().unwrap(),
+        "--pages",
+        "3,1",
+        "-o",
+        output.to_str().unwrap(),
+        "--json",
+    ];
+    let mut dry_run = args.to_vec();
+    dry_run.push("--dry-run");
+    let preview = cli(&dry_run);
+    assert!(preview.status.success(), "{preview:?}");
+    assert_eq!(json(&preview)["data"]["page_count"], 5);
+    assert_eq!(json(&preview)["data"]["placement"], "after_each_original");
+    assert!(!output.exists());
+    let written = cli(&args);
+    assert!(written.status.success(), "{written:?}");
+    assert_eq!(rotations(&output), [0, 0, 90, 180, 180]);
+    let saved = std::fs::read(&output).unwrap();
+    assert_eq!(cli(&args).status.code(), Some(3));
+    assert_eq!(std::fs::read(&output).unwrap(), saved);
+    assert_eq!(std::fs::read(&input).unwrap(), original);
+    assert!(
+        json(&cli(&["capabilities", "--json"]))["data"]["commands"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|c| c == "duplicate-pages")
+    );
+}
+
+#[test]
+fn duplicate_pages_refuses_invalid_selections_and_complex_inputs_without_output() {
+    let directory = tempfile::tempdir().unwrap();
+    let input = directory.path().join("source.pdf");
+    let output = directory.path().join("copies.pdf");
+    plain_three_pages(&input);
+    let original = std::fs::read(&input).unwrap();
+    for pages in ["0", "4", "1,1", ""] {
+        let refused = cli(&[
+            "duplicate-pages",
+            input.to_str().unwrap(),
+            "--pages",
+            pages,
+            "-o",
+            output.to_str().unwrap(),
+            "--json",
+        ]);
+        assert_eq!(refused.status.code(), Some(1), "{refused:?}");
+        assert!(!output.exists());
+    }
+    for name in ["signed.pdf", "forms.pdf", "bookmarks.pdf"] {
+        let input = fixture(name);
+        let before = std::fs::read(&input).unwrap();
+        let refused = cli(&[
+            "duplicate-pages",
+            input.to_str().unwrap(),
+            "--pages",
+            "1",
+            "-o",
+            output.to_str().unwrap(),
+            "--json",
+        ]);
+        assert_eq!(refused.status.code(), Some(4), "{refused:?}");
+        assert_eq!(json(&refused)["error"]["kind"], "refused");
+        assert!(!output.exists());
+        assert_eq!(std::fs::read(&input).unwrap(), before);
+    }
+    assert_eq!(std::fs::read(&input).unwrap(), original);
+}
+
+#[test]
 fn reverse_and_complete_reorder_preserve_caller_order_and_source() {
     let directory = tempfile::tempdir().unwrap();
     let input = directory.path().join("source.pdf");

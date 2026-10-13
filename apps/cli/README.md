@@ -30,6 +30,7 @@ cargo build --release -p pdf-editor-offline-cli
 ./target/release/pdf-editor-offline crop input.pdf --pages 1 --rectangle 10 20 500 700 -o cropped.pdf
 ./target/release/pdf-editor-offline insert-blank input.pdf --position 2 --width 612 --height 792 -o inserted.pdf
 ./target/release/pdf-editor-offline extract-pages input.pdf --pages 3,1-2 -o selected.pdf
+./target/release/pdf-editor-offline duplicate-pages input.pdf --pages 3,1 -o duplicates.pdf
 ./target/release/pdf-editor-offline delete-pages input.pdf --pages 2 -o remaining.pdf
 ./target/release/pdf-editor-offline search input.pdf "literal search"
 ./target/release/pdf-editor-offline compare old.pdf new.pdf --json
@@ -153,7 +154,15 @@ underlying content remains recoverable. Extraction/deletion refuse catalogs or
 pages with bookmarks, forms, annotations, layers, tags, actions or references that
 are not safely remapped by the current core. They are not privacy operations:
 unreachable content may remain in the saved copy. Deleting every page is refused.
-All six organization commands support `--dry-run`, `--json` and the global
+`duplicate-pages` is available in current source builds. It inserts one new page
+dictionary immediately after each selected original, retaining original document
+order even for `--pages 3,1`. Page dictionaries have distinct identities; content
+and resource objects remain shared. The core refuses advanced catalogs,
+annotations/actions/tag structures, unknown page fields and custom references to
+page leaves. Inline copies, page counts and object identifiers are bounded before
+publication. This command is not in the published `4.0.0-preview.1` CLI.
+
+All supported organization commands support `--dry-run`, `--json` and the global
 `--password-stdin` policy; every actual save requires a fresh output path.
 
 `merge` requires at least two inputs and appends pages in caller order. It is a

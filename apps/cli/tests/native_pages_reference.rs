@@ -141,6 +141,24 @@ fn cli(input: &Path, output: &Path, operation: &str, options: &[&str], expected:
 
 #[test]
 #[ignore = "independent gate requires Poppler pdfinfo/pdftotext/pdftoppm"]
+fn duplicated_pages_match_independent_text_geometry_and_pixels() {
+    let directory = tempfile::tempdir().unwrap();
+    let input = directory.path().join("source.pdf");
+    let output = directory.path().join("duplicates.pdf");
+    let original = source(true);
+    std::fs::write(&input, &original).unwrap();
+    let pages = (1..=3)
+        .map(|number| page(&input, number))
+        .collect::<Vec<_>>();
+    cli(&input, &output, "duplicate-pages", &["--pages", "3,1"], 0);
+    for (index, source) in [0, 0, 1, 2, 2].into_iter().enumerate() {
+        assert_eq!(page(&output, index + 1), pages[source]);
+    }
+    assert_eq!(std::fs::read(&input).unwrap(), original);
+}
+
+#[test]
+#[ignore = "independent gate requires Poppler pdfinfo/pdftotext/pdftoppm"]
 fn native_page_outputs_match_independent_text_geometry_and_pixels() {
     let directory = tempfile::tempdir().unwrap();
     let input = directory.path().join("source.pdf");
