@@ -16,7 +16,15 @@ feature set; their capabilities do not describe this Rust implementation.
   private information or redact page content; visible text, images, form values,
   hidden content and unrelated custom payloads can remain.
 - Signed and successfully decrypted inputs are read-only. The desktop has no
-  password-entry workflow.
+  encrypted writing workflow; current source offers a masked password prompt
+  for supported read-only sessions. Credentials/decrypted snapshots are excluded
+  from recovery. See [encrypted viewing](ENCRYPTED_VIEWING_RUST.md).
+- Existing-text edits currently re-encode the selected active stream. Untouched
+  high-precision numbers can round to the parser's f32 precision, including
+  artwork operands. Original streams remain, but exact numeric tokens are not
+  yet preserved in that active stream. A failed-before regression and shared
+  lexical-splicing repair are in progress; broader precision-sensitive editing
+  is not verified.
 - Cropping hides content. Removed metadata and ordinary notes can remain in the
   file. These operations do not erase private data.
 - Merge, subsets, notes and image import support restricted structures. See the

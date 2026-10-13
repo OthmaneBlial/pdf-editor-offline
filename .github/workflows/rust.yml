@@ -106,6 +106,7 @@ jobs:
           PDF_QPDF_BIN="$RUNNER_TEMP/reference-qpdf/bin/qpdf" PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" cargo test --locked -p pdf-editor-offline-native production_native_vector_worker_and_independent_saved_pixels -- --ignored
           PDF_QPDF_BIN="$RUNNER_TEMP/reference-qpdf/bin/qpdf" PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" cargo test --locked -p pdf-editor-offline-native production_native_visual_signature_worker_and_independent_saved_pixels -- --ignored
           PDF_QPDF_BIN="$RUNNER_TEMP/reference-qpdf/bin/qpdf" PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" cargo test --locked -p pdf-convert --test overlay -- --ignored
+          PDF_QPDF_BIN="$RUNNER_TEMP/reference-qpdf/bin/qpdf" PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" cargo test --locked -p pdf-core --test image_overlay -- --ignored
           PDF_QPDF_BIN="$RUNNER_TEMP/reference-qpdf/bin/qpdf" PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" cargo test --locked -p pdf-editor-offline-cli --test image_overlay -- --ignored
           PDF_QPDF_BIN="$RUNNER_TEMP/reference-qpdf/bin/qpdf" PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" cargo test --locked -p pdf-editor-offline-native production_native_image_worker_save_history_and_independent_pixels -- --ignored
           PDF_QPDF_BIN="$RUNNER_TEMP/reference-qpdf/bin/qpdf" PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" cargo test --locked -p pdf-core --test content_edit -- --ignored

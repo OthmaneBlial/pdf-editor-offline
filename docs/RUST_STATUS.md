@@ -1,5 +1,15 @@
 # Native Rust migration status
 
+The image-clipping correction at `7b8f164` consumes the original pending path
+before restoring graphics state. Nine affected image-core tests passed, including
+failed-before/passed-after native `W`/`W*` raster checks, source-object preservation
+and pinned qpdf/Poppler equivalence. Poppler did not reproduce the original
+native-renderer defect. Strict core Clippy passed; the larger frozen integration
+containing the same correction passed 679 tests across 79 suites with no failures
+or ignored tests and strict workspace Clippy. That integration also includes
+held font-editing changes, so its count is not a new release claim. Remote checks
+for this correction remain pending.
+
 Current source adds [drawn visual signatures](VISUAL_SIGNATURES_RUST.md), with
 separate pen strokes and round dots through the shared core/worker/CLI vector
 format and native **Sign → Draw visual signature…** controls. One Apply creates

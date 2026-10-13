@@ -2,6 +2,8 @@
 
 ## Unreleased — native Rust preview
 
+- Consume pending `W`/`W*` clipping paths inside the original graphics-state wrapper before inserting an image. The old suffix hid inserted pixels in the native renderer; failed-before/passed-after tests preserve original objects and verify pinned Poppler equivalence. CI runs the independent image-core gate explicitly.
+
 - Draw visual signatures as separate bounded pen strokes and round dots through the shared core/worker/CLI artwork format and native Sign menu. Pen lifts never create connecting lines; all strokes apply as one durable edit with Undo/Redo and verified new-copy saving. Overflow blocks Apply without truncation. This is visual artwork, not certificate signing, identity verification or tamper protection.
 
 - Edit supported existing Courier text operands through core, isolated worker, CLI and native selection/replacement controls. Exact source/stream identities, proven character mappings and unchanged text advances guard the first ASCII tier; stale requests and competing canvas tools retain drafts. Durable Undo/Redo and verified new copies are covered. This changes active content rather than adding an overlay, but retains original streams and is not secure erasure.
