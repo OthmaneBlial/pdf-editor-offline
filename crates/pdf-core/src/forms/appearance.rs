@@ -3,7 +3,7 @@
 #[path = "fonts.rs"]
 pub(super) mod fonts;
 #[path = "multiline.rs"]
-mod multiline;
+pub(super) mod multiline;
 use super::{Budget, FormField, FormFieldKind, MAX_FIELDS, MAX_REPORT_BYTES, inherited, numeric};
 use crate::{Error, PdfDocument, Result};
 use fonts::{FontPlan, Line, unicode_string};
@@ -105,7 +105,7 @@ fn style(bytes: &[u8]) -> Result<Style> {
 
 /// Bound copied inline dictionaries before cloning shared resources. Indirect
 /// resources remain references; their streams are never copied by this walk.
-fn copied(object: &Object, depth: usize, budget: &mut Budget) -> Result<()> {
+pub(super) fn copied(object: &Object, depth: usize, budget: &mut Budget) -> Result<()> {
     if depth >= 128 {
         return Err(Error::Limit("text resources exceed 128 levels"));
     }
@@ -807,7 +807,7 @@ pub(super) fn generated_line(layout: LineLayout<'_>, font_name: &[u8]) -> Result
     let line = layout.line;
     text_operations(layout, font_name, size, &line.glyphs, x, y)
 }
-fn text_operations(
+pub(super) fn text_operations(
     layout: LineLayout<'_>,
     font_name: &[u8],
     size: f64,

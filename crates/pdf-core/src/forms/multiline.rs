@@ -9,12 +9,14 @@ use std::collections::BTreeSet;
 use unicode_segmentation::UnicodeSegmentation;
 
 const MAX_LINES: usize = 1024;
-pub(super) struct Layout {
+pub(in crate::forms) struct Layout {
     pub glyphs: Vec<Glyph>,
     pub size: f64,
+    pub runs: Vec<(std::ops::Range<usize>, std::ops::Range<usize>)>,
 }
 struct Paragraph<'a> {
     text: &'a str,
+    logical: std::ops::Range<usize>,
     breaks: Vec<usize>,
     lines: Vec<std::ops::Range<usize>>,
 }
@@ -27,21 +29,22 @@ fn paragraphs(value: &str) -> Result<Vec<Paragraph<'_>>> {
     let mut characters = value.char_indices().peekable();
     while let Some((index, character)) = characters.next() {
         if matches!(character, '\r' | '\n' | '\u{85}' | '\u{2029}') {
-            parts.push(&value[start..index]);
+            let begin = start;
             start = index + character.len_utf8();
             if character == '\r' && characters.peek().is_some_and(|(_, c)| *c == '\n') {
                 characters.next();
                 start += 1;
             }
+            parts.push((&value[begin..index], begin..start));
         }
     }
-    parts.push(&value[start..]);
+    parts.push((&value[start..], start..value.len()));
     if parts.len() > MAX_LINES {
         return Err(Error::Limit("multiline field exceeds 1024 explicit lines"));
     }
     let paragraphs: Vec<_> = parts
         .into_iter()
-        .map(|text| {
+        .map(|(text, logical)| {
             let graphemes: BTreeSet<_> = text
                 .grapheme_indices(true)
                 .map(|(i, _)| i)
@@ -68,6 +71,7 @@ fn paragraphs(value: &str) -> Result<Vec<Paragraph<'_>>> {
             breaks.dedup();
             Paragraph {
                 text,
+                logical,
                 breaks,
                 lines,
             }
@@ -102,7 +106,7 @@ fn shape(
 fn attempt(
     font: &mut FontPlan<'_>,
     paragraphs: &[Paragraph<'_>],
-    plan: &WidgetPlan,
+    plan: &BoxLayout,
     size: f64,
     minimum_height: f64,
     work: &mut usize,
@@ -114,10 +118,14 @@ fn attempt(
         return Ok(None);
     }
     let mut lines = Vec::new();
+    let mut logical_runs = Vec::new();
     for paragraph in paragraphs {
-        for segment in &paragraph.lines {
+        for (segment_index, segment) in paragraph.lines.iter().enumerate() {
             if segment.is_empty() {
                 lines.push(shape(font, paragraph.text, segment.clone(), work)?);
+                logical_runs.push(
+                    paragraph.logical.start + segment.start..paragraph.logical.start + segment.end,
+                );
             } else {
                 let mut start = segment.start;
                 while start < segment.end {
@@ -140,6 +148,8 @@ fn attempt(
                         return Ok(None);
                     };
                     lines.push(line);
+                    logical_runs
+                        .push(paragraph.logical.start + start..paragraph.logical.start + end);
                     start = end;
                     if lines.len() > capacity {
                         return Ok(None);
@@ -149,6 +159,15 @@ fn attempt(
             if lines.len() > capacity {
                 return Ok(None);
             }
+            let last = logical_runs
+                .last_mut()
+                .ok_or(Error::Invalid("multiline has no semantic line"))?;
+            last.end = paragraph
+                .lines
+                .get(segment_index + 1)
+                .map_or(paragraph.logical.end, |next| {
+                    paragraph.logical.start + next.start
+                });
         }
     }
     let ascent = lines
@@ -166,27 +185,56 @@ fn attempt(
         return Ok(None);
     }
     let mut glyphs = Vec::new();
-    for (index, line) in lines.into_iter().enumerate() {
+    let mut runs = Vec::new();
+    for (index, (line, logical)) in lines.into_iter().zip(logical_runs).enumerate() {
         let spare = width / size - (line.bounds[2] - line.bounds[0]);
         let x = -line.bounds[0]
-            + match plan.q {
+            + match plan.alignment {
                 1 => spare / 2.0,
                 2 => spare,
                 _ => 0.0,
             };
         let y = -ascent - index as f64 * leading;
+        let first = glyphs.len();
         for mut glyph in line.glyphs {
             glyph.x += x;
             glyph.y += y;
             glyphs.push(glyph);
         }
+        runs.push((first..glyphs.len(), logical));
     }
-    Ok(Some(Layout { glyphs, size }))
+    Ok(Some(Layout { glyphs, size, runs }))
+}
+pub(in crate::forms) struct BoxLayout {
+    pub width: f64,
+    pub height: f64,
+    pub padding: f64,
+    pub size: f64,
+    pub alignment: i64,
 }
 pub(super) fn layout(
     font: &mut FontPlan<'_>,
     value: &str,
     plan: &WidgetPlan,
+    work: &mut usize,
+) -> Result<Layout> {
+    layout_box(
+        font,
+        value,
+        &BoxLayout {
+            width: plan.width,
+            height: plan.height,
+            padding: plan.padding,
+            size: plan.style.size,
+            alignment: plan.q,
+        },
+        work,
+    )
+}
+pub(in crate::forms) fn layout_box(
+    font: &mut FontPlan<'_>,
+    value: &str,
+    plan: &BoxLayout,
     work: &mut usize,
 ) -> Result<Layout> {
     let paragraphs = paragraphs(value)?;
@@ -199,18 +247,10 @@ pub(super) fn layout(
             minimum_height = minimum_height.max(line.bounds[3] - line.bounds[1]);
         }
     }
-    if plan.style.size != 0.0 {
-        return attempt(
-            font,
-            &paragraphs,
-            plan,
-            plan.style.size,
-            minimum_height,
-            work,
-        )?
-        .ok_or(Error::Refused(
-            "multiline text does not fit without overflow",
-        ));
+    if plan.size != 0.0 {
+        return attempt(font, &paragraphs, plan, plan.size, minimum_height, work)?.ok_or(
+            Error::Refused("multiline text does not fit without overflow"),
+        );
     }
     let mut best = attempt(font, &paragraphs, plan, 1.0, minimum_height, work)?.ok_or(
         Error::Refused("multiline text cannot fit at the minimum one-point size"),
