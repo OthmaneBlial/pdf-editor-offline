@@ -18,7 +18,7 @@ pub use image_overlay::ImageOverlay;
 mod overlay;
 pub use overlay::{TextAlignment, TextOverlay};
 mod vector;
-pub use vector::{VectorOverlay, VectorShape, VectorStroke};
+pub use vector::{MAX_VECTOR_POINTS, MAX_VECTOR_STROKES, VectorOverlay, VectorShape, VectorStroke};
 mod choice;
 pub use choice::{ChoiceChange, ChoiceField, ChoiceOption};
 

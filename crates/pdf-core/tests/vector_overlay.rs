@@ -380,3 +380,104 @@ fn independent_vector_pixels_text_and_original_objects() {
     }
     assert_eq!(std::fs::read(input).unwrap(), source(ART));
 }
+#[test]
+fn separate_pen_strokes_and_dots_are_real_paint_without_connectors_or_signature_fields() {
+    let original = source(ART);
+    let before = pdf_render::render_page(&original, 0, 1.0).unwrap();
+    let mut pdf = PdfDocument::from_bytes(&original, None).unwrap();
+    let info = pdf.info().unwrap();
+    let text = pdf.extract_text(&[1]).unwrap();
+    pdf.add_vector_overlay(&request(VectorShape::MultiPolyline {
+        strokes: vec![
+            vec![[130.0, 140.0], [160.0, 180.0], [180.0, 140.0]],
+            vec![[220.0, 180.0], [240.0, 140.0]],
+            vec![[250.0, 240.0]],
+        ],
+    }))
+    .unwrap();
+    let output = pdf.verified_bytes().unwrap();
+    let after = pdf_render::render_page(&output, 0, 1.0).unwrap();
+    let at = |x: usize, y: usize| (y * 300 + x) * 4;
+    assert_eq!(
+        &before.rgba[at(200, 140)..at(200, 140) + 4],
+        &after.rgba[at(200, 140)..at(200, 140) + 4],
+        "pen lift must not paint a connector"
+    );
+    assert_ne!(
+        &before.rgba[at(250, 60)..at(250, 60) + 4],
+        &after.rgba[at(250, 60)..at(250, 60) + 4],
+        "pen tap must paint a dot"
+    );
+    assert_eq!(pdf.info().unwrap().pages, info.pages);
+    assert_eq!(pdf.info().unwrap().signature_fields, info.signature_fields);
+    assert_eq!(pdf.extract_text(&[1]).unwrap(), text);
+    let parsed = Document::load_mem(&output).unwrap();
+    let form = parsed
+        .objects
+        .values()
+        .filter_map(|object| object.as_stream().ok())
+        .find(|stream| {
+            stream
+                .dict
+                .get(b"Subtype")
+                .is_ok_and(|value| value.as_name().is_ok_and(|name| name == b"Form"))
+        })
+        .unwrap();
+    let operations = lopdf::content::Content::decode_strict(&form.decompressed_content().unwrap())
+        .unwrap()
+        .operations;
+    assert_eq!(operations.iter().filter(|op| op.operator == "m").count(), 3);
+    assert_eq!(operations.iter().filter(|op| op.operator == "l").count(), 3);
+    assert_eq!(operations.iter().filter(|op| op.operator == "f").count(), 1);
+}
+#[test]
+fn multi_stroke_combined_limits_and_invalid_strokes_refuse_atomically() {
+    let mut document = PdfDocument::from_bytes(&source(ART), None).unwrap();
+    let before = document.verified_bytes().unwrap();
+    for strokes in [
+        vec![],
+        vec![vec![]],
+        vec![vec![[f64::NAN, 150.0]]],
+        vec![vec![[150.0, 150.0]]; pdf_core::MAX_VECTOR_STROKES + 1],
+        vec![vec![[150.0, 150.0]; 2049], vec![[160.0, 160.0]; 2048]],
+    ] {
+        assert!(
+            document
+                .add_vector_overlay(&request(VectorShape::MultiPolyline { strokes }))
+                .is_err()
+        );
+        assert_eq!(document.verified_bytes().unwrap(), before);
+    }
+    let mut fill = request(VectorShape::MultiPolyline {
+        strokes: vec![vec![[150.0, 150.0]]],
+    });
+    fill.fill = Some([0.0; 3]);
+    assert!(document.add_vector_overlay(&fill).is_err());
+    assert_eq!(document.verified_bytes().unwrap(), before);
+}
+
+#[path = "../../pdf-worker/tests/support/encryption.rs"]
+#[allow(dead_code)]
+mod encryption;
+#[test]
+fn visual_signature_strokes_never_bypass_signed_or_decrypted_readonly() {
+    let overlay = request(VectorShape::MultiPolyline {
+        strokes: vec![vec![[150.0, 150.0], [200.0, 200.0]], vec![[240.0, 240.0]]],
+    });
+    let signed = include_bytes!("../../../tests/fixtures/pdfs/signed.pdf");
+    let mut pdf = PdfDocument::from_bytes(signed, None).unwrap();
+    assert!(matches!(
+        pdf.add_vector_overlay(&overlay),
+        Err(pdf_core::Error::Refused(_))
+    ));
+    assert!(pdf.info().unwrap().signature_fields > 0);
+    let (bytes, _) = encryption::fixture(4, "reader", false);
+    let mut pdf = PdfDocument::from_bytes(&bytes, Some("reader")).unwrap();
+    let before = pdf.extract_text(&[1]).unwrap();
+    assert!(matches!(
+        pdf.add_vector_overlay(&overlay),
+        Err(pdf_core::Error::Refused(_))
+    ));
+    assert_eq!(pdf.extract_text(&[1]).unwrap(), before);
+    assert!(pdf.info().unwrap().encrypted);
+}

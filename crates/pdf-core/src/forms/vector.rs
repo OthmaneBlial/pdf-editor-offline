@@ -8,14 +8,29 @@ use lopdf::{
 };
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
+pub const MAX_VECTOR_POINTS: usize = 4096;
+pub const MAX_VECTOR_STROKES: usize = 64;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "shape", rename_all = "snake_case", deny_unknown_fields)]
 pub enum VectorShape {
-    Rectangle { rectangle: [f64; 4] },
-    Ellipse { rectangle: [f64; 4] },
-    Line { from: [f64; 2], to: [f64; 2] },
-    Polyline { points: Vec<[f64; 2]> },
+    Rectangle {
+        rectangle: [f64; 4],
+    },
+    Ellipse {
+        rectangle: [f64; 4],
+    },
+    Line {
+        from: [f64; 2],
+        to: [f64; 2],
+    },
+    Polyline {
+        points: Vec<[f64; 2]>,
+    },
+    /// Separate pen strokes; a one-point stroke is a round dot.
+    MultiPolyline {
+        strokes: Vec<Vec<[f64; 2]>>,
+    },
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -118,7 +133,7 @@ impl VectorOverlay {
                 ]
             }
             VectorShape::Polyline { points } => {
-                if points.len() > 4096 {
+                if points.len() > MAX_VECTOR_POINTS {
                     return Err(Error::Limit("freehand overlay exceeds 4096 points"));
                 }
                 if self.fill.is_some()
@@ -144,15 +159,84 @@ impl VectorOverlay {
                 }
                 b
             }
+            VectorShape::MultiPolyline { strokes } => {
+                if strokes.len() > MAX_VECTOR_STROKES {
+                    return Err(Error::Limit("multi-stroke overlay exceeds 64 strokes"));
+                }
+                let mut count = 0usize;
+                for points in strokes {
+                    count = count
+                        .checked_add(points.len())
+                        .filter(|count| *count <= MAX_VECTOR_POINTS)
+                        .ok_or(Error::Limit(
+                            "multi-stroke overlay exceeds 4096 combined points",
+                        ))?;
+                }
+                if strokes.is_empty()
+                    || self.fill.is_some()
+                    || self.stroke.is_none()
+                    || strokes
+                        .iter()
+                        .any(|points| points.is_empty() || points.iter().any(|p| !point(*p)))
+                {
+                    return Err(Error::Invalid(
+                        "multi-stroke overlay requires finite nonempty strokes and stroke-only paint",
+                    ));
+                }
+                let stroke = self
+                    .stroke
+                    .as_ref()
+                    .ok_or(Error::Invalid("multi-stroke paint missing"))?;
+                let first = strokes[0][0];
+                let mut bounds = [first[0], first[1], first[0], first[1]];
+                ops.push(op("rg", stroke.color));
+                for points in strokes {
+                    let first = points[0];
+                    for p in points {
+                        bounds = [
+                            bounds[0].min(p[0]),
+                            bounds[1].min(p[1]),
+                            bounds[2].max(p[0]),
+                            bounds[3].max(p[1]),
+                        ];
+                    }
+                    if points.iter().all(|p| *p == first) {
+                        // Paint an explicit round dot so both native and independent
+                        // readers show pen taps without relying on zero-length strokes.
+                        let [x, y] = first;
+                        let radius = stroke.width / 2.0;
+                        let k = 0.552_284_749_830_793_6 * radius;
+                        ops.extend([
+                            op("m", [x + radius, y]),
+                            op("c", [x + radius, y + k, x + k, y + radius, x, y + radius]),
+                            op("c", [x - k, y + radius, x - radius, y + k, x - radius, y]),
+                            op("c", [x - radius, y - k, x - k, y - radius, x, y - radius]),
+                            op("c", [x + k, y - radius, x + radius, y - k, x + radius, y]),
+                            op("h", []),
+                            op("f", []),
+                        ]);
+                    } else {
+                        ops.push(op("m", first));
+                        for p in &points[1..] {
+                            ops.push(op("l", *p));
+                        }
+                        // End each path independently: pen lifts never add connectors.
+                        ops.push(op("S", []));
+                    }
+                }
+                bounds
+            }
         };
-        ops.push(op(
-            match (self.stroke.is_some(), self.fill.is_some()) {
-                (true, true) => "B",
-                (true, false) => "S",
-                _ => "f",
-            },
-            [],
-        ));
+        if !matches!(self.shape, VectorShape::MultiPolyline { .. }) {
+            ops.push(op(
+                match (self.stroke.is_some(), self.fill.is_some()) {
+                    (true, true) => "B",
+                    (true, false) => "S",
+                    _ => "f",
+                },
+                [],
+            ));
+        }
         ops.push(op("Q", []));
         let margin = self.stroke.as_ref().map_or(0.0, |s| s.width / 2.0);
         Ok((
