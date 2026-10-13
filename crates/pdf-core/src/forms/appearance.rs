@@ -519,6 +519,7 @@ pub(super) fn text_eligibility(
             Line {
                 glyphs: vec![],
                 bounds: [0., 0., 0., 1.],
+                advance: 0.,
             },
             budget,
         )?;

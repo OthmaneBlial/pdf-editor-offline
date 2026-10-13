@@ -9,9 +9,11 @@ use std::ops::Range;
 
 const MAX_RUNS: usize = 10_000;
 const MAX_TEXT: usize = 4 * 1024 * 1024;
+mod embedded;
 mod face;
 pub(crate) mod layout;
 mod properties;
+pub use embedded::ContentTextEmbeddedChange;
 pub use face::ContentTextFaceChange;
 use layout::GraphicsTextState;
 pub use layout::{ContentTextLayout, ContentTextPosition};
@@ -20,6 +22,7 @@ pub use properties::ContentTextPropertyChange;
 #[derive(Default)]
 struct TextState {
     font: Option<(ContentTextFont, ContentTextEncoding)>,
+    embedded: Option<ObjectId>,
     zero_character_spacing: bool,
     size: Option<f64>,
     matrix: Option<[f64; 6]>,
@@ -43,6 +46,8 @@ pub struct ContentTextRun {
     pub identity: ContentTextIdentity,
     pub encoding: Option<ContentTextEncoding>,
     pub standard_font: Option<ContentTextFont>,
+    #[serde(default)]
+    pub embedded_font: Option<ContentTextEmbeddedFont>,
     /// Different glyph counts require an explicit `0 Tc` in this text object.
     pub allows_variable_length: bool,
     pub layout: Option<ContentTextLayout>,
@@ -52,6 +57,16 @@ pub struct ContentTextRun {
     pub refusal_reason: Option<String>,
     pub properties_writable: bool,
     pub properties_refusal_reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContentTextEmbeddedFont {
+    pub font_object: ObjectId,
+    pub program_fingerprint: [u8; 32],
+    pub postscript_name: String,
+    /// Actual PDF /W advances in 1/1000 em, not glyph-ink bounds.
+    pub widths: Vec<f64>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -192,6 +207,18 @@ impl ContentTextRun {
     }
     /// Nominal content-space baseline endpoints, not a glyph-ink clipping box.
     pub fn replacement_position(&self, value: &str) -> Result<ContentTextPosition> {
+        if let Some(font) = &self.embedded_font {
+            if self.text.as_deref() != Some(value) {
+                return Err(Error::Refused(
+                    "changed embedded text requires document-bound font validation",
+                ));
+            }
+            return self
+                .layout
+                .as_ref()
+                .ok_or(Error::Refused("bounded text layout unavailable"))?
+                .position_widths(&font.widths);
+        }
         let encoding = self
             .encoding
             .filter(|encoding| encoding.accepts_ascii(value))
@@ -416,6 +443,8 @@ impl PdfDocument {
         let mut block = None;
         let mut graphics = GraphicsTextState::default();
         let mut stack = Vec::new();
+        let mut font_reads = crate::forms::content_font::FontReadContext::default();
+        let mut font_width_bytes = 0usize;
         for (index, op) in content.operations.iter().enumerate() {
             if block.is_none()
                 && matches!(
@@ -463,16 +492,50 @@ impl PdfDocument {
                     ),
                     _ => None,
                 };
+                let embedded = if let (Some(font), [Object::String(codes, _)]) = (
+                    block.as_ref().and_then(|state| state.embedded),
+                    op.operands.as_slice(),
+                ) {
+                    match crate::forms::content_font::reopen_with_context(
+                        &self.document,
+                        font,
+                        codes,
+                        &mut font_reads,
+                    ) {
+                        Ok(read) => {
+                            font_width_bytes = font_width_bytes
+                                .checked_add(read.widths.len() * std::mem::size_of::<f64>())
+                                .ok_or(Error::Limit("direct font inventory numeric overflow"))?;
+                            if font_width_bytes > MAX_STREAM_BYTES {
+                                return Err(Error::Limit(
+                                    "direct font inventory metrics exceed32MiB",
+                                ));
+                            }
+                            text = Some(read.text);
+                            Some(ContentTextEmbeddedFont {
+                                font_object: font,
+                                program_fingerprint: read.program_fingerprint,
+                                postscript_name: read.name,
+                                widths: read.widths,
+                            })
+                        }
+                        Err(Error::Refused(_)) => None,
+                        Err(error) => return Err(error),
+                    }
+                } else {
+                    None
+                };
                 text_bytes = text_bytes.saturating_add(text.as_ref().map_or(0, String::len));
                 if text_bytes > MAX_TEXT {
                     return Err(Error::Limit("text inventory exceeds 4 MiB"));
                 }
                 let supported = block.as_ref().is_some_and(|state| {
                     state.valid
-                        && state.font.is_some_and(|(_, encoding)| {
-                            text.as_deref()
-                                .is_some_and(|text| encoding.accepts_ascii(text))
-                        })
+                        && (embedded.is_some()
+                            || state.font.is_some_and(|(_, encoding)| {
+                                text.as_deref()
+                                    .is_some_and(|text| encoding.accepts_ascii(text))
+                            }))
                         && state.render
                         && state.positioned
                 }) && content
@@ -502,6 +565,9 @@ impl PdfDocument {
                             .as_ref()
                             .and_then(|state| Some(graphics.layout(state.size?, state.matrix?)))
                             .filter(|layout| {
+                                if let Some(embedded) = &embedded {
+                                    return layout.position_widths(&embedded.widths).is_ok();
+                                }
                                 let Some((font, encoding)) =
                                     block.as_ref().and_then(|state| state.font)
                                 else {
@@ -529,6 +595,7 @@ impl PdfDocument {
                     } else {
                         None
                     },
+                    embedded_font: if supported && !marked { embedded } else { None },
                     allows_variable_length: supported
                         && !marked
                         && block
@@ -546,6 +613,13 @@ impl PdfDocument {
                     properties_writable: false,
                     properties_refusal_reason: None,
                 };
+                if run.embedded_font.is_some() && run.layout.is_none() {
+                    run.writable = false;
+                    run.refusal_reason = Some(
+                        "embedded text requires bounded layout and zero character/word spacing"
+                            .into(),
+                    );
+                }
                 run.properties_refusal_reason = run
                     .refusal_reason
                     .clone()
@@ -567,6 +641,8 @@ impl PdfDocument {
                 match (op.operator.as_str(), op.operands.as_slice()) {
                     ("Tf", [Object::Name(name), size]) if number(size) => {
                         state.font = standard_font(resources, self, name)?;
+                        state.embedded =
+                            crate::forms::content_font::candidate(&self.document, resources, name)?;
                         state.size = Some(layout::numeric(size)?);
                     }
                     ("Tm", values) if values.len() == 6 && values.iter().all(number) => {
@@ -604,6 +680,42 @@ impl PdfDocument {
             .into_iter()
             .map(|run| (run.identity.operation, run))
             .collect::<BTreeMap<_, _>>();
+        if changes.iter().any(|change| {
+            runs.get(&change.identity.operation)
+                .is_some_and(|run| run.embedded_font.is_some())
+        }) {
+            let [change] = changes else {
+                return Err(Error::Refused(
+                    "embedded content replacement currently edits one selected run",
+                ));
+            };
+            let run = runs
+                .get(&change.identity.operation)
+                .filter(|run| {
+                    run.identity == change.identity
+                        && run.text.as_deref() == Some(change.expected.as_str())
+                })
+                .ok_or(Error::Refused("embedded content inventory is stale"))?;
+            let font = run
+                .embedded_font
+                .as_ref()
+                .ok_or(Error::Refused("embedded font unavailable"))?;
+            let page_content = single_content(self, page)?;
+            let codes = page_content.content.operations[change.identity.operation as usize]
+                .operands[0]
+                .as_str()?;
+            let read = crate::forms::content_font::reopen(&self.document, font.font_object, codes)?;
+            return self.change_content_text_embedded_font(
+                page,
+                &ContentTextEmbeddedChange {
+                    identity: change.identity.clone(),
+                    expected: change.expected.clone(),
+                    replacement: Some(change.replacement.clone()),
+                    layout_policy: change.layout_policy,
+                },
+                &read.program,
+            );
+        }
         let PageContent {
             page_id,
             stream_id,

@@ -3,6 +3,8 @@ use lopdf::{Document, Object, Stream, dictionary};
 use pdf_core::{ContentTextChange, PdfDocument};
 use std::path::PathBuf;
 use std::process::Command;
+#[path = "content_edit/embedded.rs"]
+mod embedded;
 #[path = "content_edit/face.rs"]
 mod face;
 #[path = "content_edit/properties.rs"]

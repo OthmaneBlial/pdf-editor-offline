@@ -2,6 +2,19 @@
 use super::*;
 use lopdf::dictionary;
 
+pub(super) fn fresh_font_name(fonts: &Dictionary, suffix: &mut usize) -> Result<Vec<u8>> {
+    loop {
+        *suffix += 1;
+        if *suffix > 100_000 {
+            return Err(Error::Limit("font resource name budget"));
+        }
+        let name = format!("NativeContentFont{suffix}").into_bytes();
+        if !fonts.has(&name) {
+            return Ok(name);
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ContentTextFaceChange {
@@ -32,6 +45,11 @@ impl ContentTextRun {
             change.layout_policy,
             ContentTextLayoutPolicy::PreserveWordAdvances
         ) {
+            if self.embedded_font.is_some() {
+                return Err(Error::Refused(
+                    "embedded source face changes require explicit width-change policy in this tier",
+                ));
+            }
             let font = self
                 .standard_font
                 .ok_or(Error::Refused("source font unavailable"))?;
@@ -122,16 +140,7 @@ impl PdfDocument {
                 .get(&change.identity.operation)
                 .ok_or(Error::Refused("font inventory is stale"))?;
             run.face_position(change)?;
-            let name = loop {
-                suffix += 1;
-                if suffix > 100_000 {
-                    return Err(Error::Limit("font resource name budget"));
-                }
-                let name = format!("NativeContentFont{suffix}").into_bytes();
-                if !fonts.has(&name) {
-                    break name;
-                }
-            };
+            let name = fresh_font_name(&fonts, &mut suffix)?;
             // Reserve the name before planning the next target; no source resources change.
             fonts.set(name.clone(), Object::Null);
             let show = change.identity.operation as usize;
@@ -148,8 +157,11 @@ impl PdfDocument {
             insert.extend_from_slice(&bytes[spans[setter].operands[1].clone()]);
             insert.extend_from_slice(b" Tf\n");
             splices.push((spans[show].full.start..spans[show].full.start, insert));
-            if let Some(value) = &change.replacement {
-                splices.push((spans[show].operands[0].clone(), ascii_operand(value)));
+            if change.replacement.is_some() || run.embedded_font.is_some() {
+                splices.push((
+                    spans[show].operands[0].clone(),
+                    ascii_operand(change.replacement.as_deref().unwrap_or(&change.expected)),
+                ));
             }
             splices.extend(properties::scope_text_object(
                 &bytes, &content, &spans, show,

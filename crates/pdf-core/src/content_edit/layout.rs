@@ -30,6 +30,69 @@ impl ContentTextLayout {
         encoding: ContentTextEncoding,
         value: &str,
     ) -> Result<ContentTextPosition> {
+        let (matrix, baseline_start) = self.baseline()?;
+        let mut width = 0u64;
+        let mut spaces = 0usize;
+        let mut nominal_advance = 0.0;
+        let mut baseline_end = baseline_start;
+        for (index, code) in value.bytes().enumerate() {
+            width = width
+                .checked_add(u64::from(font.code_width(code, encoding)?))
+                .ok_or(Error::Limit("text metric width overflow"))?;
+            spaces += usize::from(code == b' ');
+            nominal_advance = (width as f64 * self.font_size / 1000.0
+                + (index + 1) as f64 * self.character_spacing
+                + spaces as f64 * self.word_spacing)
+                * self.horizontal_scale
+                / 100.0;
+            baseline_end = [
+                baseline_start[0] + matrix[0] * nominal_advance,
+                baseline_start[1] + matrix[1] * nominal_advance,
+            ];
+            if !bounded(nominal_advance) || baseline_end.into_iter().any(|value| !bounded(value)) {
+                return Err(Error::Limit(
+                    "nominal text layout exceeds one million content-space units",
+                ));
+            }
+        }
+        Ok(ContentTextPosition {
+            nominal_advance,
+            baseline_start,
+            baseline_end,
+        })
+    }
+    pub(super) fn position_widths(&self, widths: &[f64]) -> Result<ContentTextPosition> {
+        if self.character_spacing != 0. || self.word_spacing != 0. || widths.len() > 65_534 {
+            return Err(Error::Refused(
+                "direct embedded text requires zero character and word spacing",
+            ));
+        }
+        let (matrix, baseline_start) = self.baseline()?;
+        let mut result = ContentTextPosition {
+            nominal_advance: 0.,
+            baseline_start,
+            baseline_end: baseline_start,
+        };
+        for width in widths {
+            if !width.is_finite() || *width < 0. {
+                return Err(Error::Invalid("invalid direct glyph width"));
+            }
+            result.nominal_advance += width * self.font_size / 1000. * self.horizontal_scale / 100.;
+            result.baseline_end = [
+                baseline_start[0] + matrix[0] * result.nominal_advance,
+                baseline_start[1] + matrix[1] * result.nominal_advance,
+            ];
+            if !bounded(result.nominal_advance)
+                || result.baseline_end.into_iter().any(|value| !bounded(value))
+            {
+                return Err(Error::Limit(
+                    "direct glyph layout exceeds one million content-space units",
+                ));
+            }
+        }
+        Ok(result)
+    }
+    fn baseline(&self) -> Result<([f64; 6], [f64; 2])> {
         let params = [
             self.font_size,
             self.character_spacing,
@@ -68,35 +131,7 @@ impl ContentTextLayout {
                 "text baseline or nominal glyph basis exceeds one million content-space units",
             ));
         }
-        let mut width = 0u64;
-        let mut spaces = 0usize;
-        let mut nominal_advance = 0.0;
-        let mut baseline_end = baseline_start;
-        for (index, code) in value.bytes().enumerate() {
-            width = width
-                .checked_add(u64::from(font.code_width(code, encoding)?))
-                .ok_or(Error::Limit("text metric width overflow"))?;
-            spaces += usize::from(code == b' ');
-            nominal_advance = (width as f64 * self.font_size / 1000.0
-                + (index + 1) as f64 * self.character_spacing
-                + spaces as f64 * self.word_spacing)
-                * self.horizontal_scale
-                / 100.0;
-            baseline_end = [
-                baseline_start[0] + matrix[0] * nominal_advance,
-                baseline_start[1] + matrix[1] * nominal_advance,
-            ];
-            if !bounded(nominal_advance) || baseline_end.into_iter().any(|value| !bounded(value)) {
-                return Err(Error::Limit(
-                    "nominal text layout exceeds one million content-space units",
-                ));
-            }
-        }
-        Ok(ContentTextPosition {
-            nominal_advance,
-            baseline_start,
-            baseline_end,
-        })
+        Ok((matrix, baseline_start))
     }
 }
 fn bounded(value: f64) -> bool {

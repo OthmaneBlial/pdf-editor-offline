@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
 mod appearance;
+pub(crate) mod content_font;
 pub use appearance::TextChange;
 mod image_instances;
 pub use image_instances::{ImageInstance, ImageSelection};

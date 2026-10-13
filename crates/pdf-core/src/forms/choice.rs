@@ -309,6 +309,7 @@ impl PdfDocument {
                         Line {
                             glyphs: vec![],
                             bounds: [0., 0., 0., 1.],
+                            advance: 0.,
                         },
                         &mut budget,
                     ) {
@@ -425,6 +426,7 @@ impl PdfDocument {
                     Line {
                         glyphs: vec![],
                         bounds: [0., 0., 0., 1.],
+                        advance: 0.,
                     }
                 };
                 glyphs += line.glyphs.len();

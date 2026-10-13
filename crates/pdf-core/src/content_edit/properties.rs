@@ -104,6 +104,9 @@ impl ContentTextRun {
                 "RGB components must be finite and between zero and one",
             ));
         }
+        if let Some(font) = &self.embedded_font {
+            return layout.position_widths(&font.widths);
+        }
         layout.position(
             self.standard_font
                 .ok_or(Error::Refused("standard font metrics unavailable"))?,

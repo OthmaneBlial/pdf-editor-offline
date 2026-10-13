@@ -63,6 +63,7 @@ fn ignorable(c: char) -> bool {
 pub(in crate::forms) struct Line {
     pub glyphs: Vec<Glyph>,
     pub bounds: [f64; 4],
+    pub advance: f64,
 }
 pub(in crate::forms) struct FontPlan<'a> {
     bytes: &'a [u8],
@@ -203,6 +204,7 @@ impl<'a> FontPlan<'a> {
             return Ok(Line {
                 glyphs: Vec::new(),
                 bounds: [0.0, self.descent, 0.0, self.ascent],
+                advance: 0.0,
             });
         }
         if text.len() > 64 * 1024 {
@@ -417,7 +419,58 @@ impl<'a> FontPlan<'a> {
                 }
             }
         }
-        Ok(Line { glyphs, bounds })
+        Ok(Line {
+            glyphs,
+            bounds,
+            advance: pen,
+        })
+    }
+
+    /// First original-content tier: a genuine single CID Tj with no discarded
+    /// shaping offsets, visual-order substitution or invisible formatting glyphs.
+    pub fn direct_codes(&mut self, text: &str) -> Result<(Vec<u8>, Vec<f64>)> {
+        if self.cff.is_some() {
+            return Err(Error::Refused(
+                "repeat-editable content fonts currently require complete static TrueType",
+            ));
+        }
+        let line = self.shape(text)?;
+        let by_cid = self
+            .mappings
+            .iter()
+            .map(|((gid, unicode), cid)| (*cid, (*gid, unicode)))
+            .collect::<BTreeMap<_, _>>();
+        let metrics = self
+            .face
+            .glyph_metrics(Size::unscaled(), LocationRef::default());
+        let mut logical = String::new();
+        let mut codes = Vec::new();
+        let mut widths = Vec::new();
+        let mut pen = 0.;
+        for glyph in &line.glyphs {
+            if glyph.invisible || glyph.y != 0. || (glyph.x - pen).abs() > 1e-10 {
+                return Err(Error::Refused(
+                    "this shaping needs positioned glyphs; a single Tj cannot discard kerning, offsets or formatting",
+                ));
+            }
+            let (gid, unicode) = by_cid
+                .get(&glyph.cid)
+                .ok_or(Error::Invalid("missing direct font mapping"))?;
+            logical.push_str(unicode);
+            let raw = metrics
+                .advance_width(GlyphId::new(u32::from(*gid)))
+                .ok_or(Error::Refused("missing direct glyph advance"))?;
+            pen += f64::from(raw) / self.em;
+            // Use the actual f32 /W metrics written by embed(), not ink bounds.
+            widths.push(f64::from((f64::from(raw) * 1000. / self.em) as f32));
+            codes.extend_from_slice(&glyph.cid.to_be_bytes());
+        }
+        if logical != text || (line.advance - pen).abs() > 1e-10 {
+            return Err(Error::Refused(
+                "this shaping needs positioned or reordered glyphs",
+            ));
+        }
+        Ok((codes, widths))
     }
 
     pub fn existing_program(&self, document: &Document) -> Result<Option<ObjectId>> {
