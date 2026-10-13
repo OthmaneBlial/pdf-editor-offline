@@ -74,6 +74,10 @@ pub enum Mutation {
     VectorOverlay {
         overlay: pdf_core::VectorOverlay,
     },
+    ImageOverlay {
+        overlay: pdf_core::ImageOverlay,
+        image_bytes_len: u32,
+    },
     TextOverlay {
         overlay: pdf_core::TextOverlay,
         font_bytes_len: u32,
@@ -414,6 +418,30 @@ fn execute(request: Request) -> Result<Reply, String> {
     }
     if let Operation::Merge { lengths } = operation {
         return merge(&request.payload, &lengths);
+    }
+    if let Operation::Edit {
+        mutation:
+            Mutation::ImageOverlay {
+                overlay,
+                image_bytes_len,
+            },
+    } = &operation
+    {
+        let length = *image_bytes_len as usize;
+        if length == 0 || length > pdf_core::MAX_STREAM_BYTES {
+            return Err("Overlay image must contain 1 byte to 32 MiB".into());
+        }
+        let split = request
+            .payload
+            .len()
+            .checked_sub(length)
+            .filter(|split| *split > 0)
+            .ok_or("Overlay image length leaves no PDF input")?;
+        let (pdf, image) = request.payload.split_at(split);
+        let mut document = PdfDocument::from_bytes(pdf, None).map_err(|error| error.to_string())?;
+        pdf_convert::add_image_overlay(&mut document, overlay, image)
+            .map_err(|error| error.to_string())?;
+        return document_reply(document, Some(overlay.page as usize - 1));
     }
     if let Operation::Edit {
         mutation: Mutation::TextOverlay {
@@ -814,7 +842,9 @@ fn apply(document: &mut PdfDocument, mutation: Mutation) -> Result<Option<usize>
                 .map_err(|error| error.to_string())?;
             Some(page as usize - 1)
         }
-        Mutation::FillText { .. } | Mutation::TextOverlay { .. } => {
+        Mutation::FillText { .. }
+        | Mutation::TextOverlay { .. }
+        | Mutation::ImageOverlay { .. } => {
             return Err("Text font payload was not split before PDF parsing".into());
         }
         Mutation::FillButtons { changes, page } => {
