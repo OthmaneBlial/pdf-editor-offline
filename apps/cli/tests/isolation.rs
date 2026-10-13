@@ -320,7 +320,12 @@ fn mandatory_real_child_handles_large_encrypted_text_without_password_argv_or_en
     };
     let stdout = output_reader.join().unwrap();
     let stderr = error_reader.join().unwrap();
-    assert!(status.success(), "{}", String::from_utf8_lossy(&stderr));
+    assert!(
+        status.success(),
+        "CLI status {status:?}; stdout {}; stderr {}",
+        String::from_utf8_lossy(&stdout[..stdout.len().min(1024)]),
+        String::from_utf8_lossy(&stderr[..stderr.len().min(1024)])
+    );
     assert!(
         observed,
         "normal parent never exposed an actual self-hosted child; isolation must be mandatory"
