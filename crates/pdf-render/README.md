@@ -35,8 +35,12 @@ An existing unresolved AP remains authoritative and is never replaced by a defau
 icon. Malformed default-icon geometry/color/opacity/name type fails with
 `RendererFailed`. Unknown custom icon names use a generic PushPin. These are
 original symbols, with no claim that their artwork matches another viewer.
-No file attachment is opened or extracted. Text annotations without AP still
-lack a fallback icon; other unsupported annotation kinds can still be omitted.
+No file attachment is opened or extracted. Text annotations without AP have
+original Comment, Key, Note, Help, NewParagraph, Paragraph and Insert vector icons;
+omitted/null Name defaults to Note and custom names use a generic Note. They use
+the same guarded drawing path and remain intrinsically upright and fixed in
+logical screen size. Contents/actions are never activated. Popup interaction is
+not implemented; other unsupported annotation kinds can still be omitted.
 
 The public API rejects invalid scales, invalid or inaccessible PDFs, out-of-range pages, inputs above 128 MiB, output sides above 8192 pixels, and output area above 16,777,216 pixels. Ordinary dependency panics return a typed error. Limits cover the input copy and output buffer, **not** stream decompression, embedded image allocation, parsing recursion, or elapsed time. A hostile PDF still needs a separate process and OS resource limits; this crate does not promise a complete denial-of-service boundary. Hayro may silently ignore unsupported or malformed content, so successful rendering does not certify PDF validity or visual fidelity.
 
@@ -56,4 +60,5 @@ equivalence is not claimed. The known boundary example is recorded in PATCH_NOTE
 cargo test -p pdf-render
 PDF_REFERENCE_BIN_DIR=/path/to/poppler/bin cargo test -p pdf-render --test annotations -- --include-ignored
 PDF_REFERENCE_BIN_DIR=/path/to/poppler/bin cargo test -p pdf-render --test attachment_icons -- --include-ignored
+PDF_REFERENCE_BIN_DIR=/path/to/poppler/bin cargo test -p pdf-render --test text_icons -- --include-ignored
 ```

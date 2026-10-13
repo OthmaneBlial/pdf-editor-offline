@@ -1,4 +1,4 @@
-//! Original fallback FileAttachment vectors; no appearance streams or PDF bytes are generated.
+//! Original fallback annotation vectors; no appearance streams or PDF bytes are generated.
 //! Geometry authored for this project under the vendored crate's Apache-2.0 OR MIT license.
 use super::{annotation_adjustment, finite_rect, numeric_array};
 use crate::color::{Color, ColorComponents, ColorSpace};
@@ -16,6 +16,39 @@ enum Icon {
     Paperclip,
     PushPin,
     Tag,
+    Comment,
+    Key,
+    Note,
+    Help,
+    NewParagraph,
+    Paragraph,
+    Insert,
+}
+
+pub(super) enum Kind {
+    FileAttachment,
+    Text,
+}
+
+fn icon(dict: &Dict<'_>, kind: Kind) -> Option<Icon> {
+    let name = if absent(dict, b"Name") {
+        None
+    } else {
+        Some(dict.get::<Name<'_>>(b"Name")?)
+    };
+    Some(match (kind, name.as_ref().map(|name| name.as_ref())) {
+        (Kind::FileAttachment, Some(b"Graph")) => Icon::Graph,
+        (Kind::FileAttachment, Some(b"Paperclip")) => Icon::Paperclip,
+        (Kind::FileAttachment, Some(b"Tag")) => Icon::Tag,
+        (Kind::FileAttachment, _) => Icon::PushPin,
+        (Kind::Text, Some(b"Comment")) => Icon::Comment,
+        (Kind::Text, Some(b"Key")) => Icon::Key,
+        (Kind::Text, Some(b"Help")) => Icon::Help,
+        (Kind::Text, Some(b"NewParagraph")) => Icon::NewParagraph,
+        (Kind::Text, Some(b"Paragraph")) => Icon::Paragraph,
+        (Kind::Text, Some(b"Insert")) => Icon::Insert,
+        (Kind::Text, _) => Icon::Note,
+    })
 }
 
 fn absent(dict: &Dict<'_>, key: &[u8]) -> bool {
@@ -54,6 +87,7 @@ fn background(dict: &Dict<'_>) -> Option<Option<Color>> {
 
 pub(super) fn draw<'a>(
     annot: &Dict<'a>,
+    kind: Kind,
     rotation: Rotation,
     flags: u32,
     context: &Context<'a>,
@@ -98,16 +132,7 @@ pub(super) fn draw<'a>(
     if !opacity.is_finite() || !(0.0..=1.0).contains(&opacity) {
         return None;
     }
-    let icon = if absent(annot, b"Name") {
-        Icon::PushPin
-    } else {
-        match annot.get::<Name<'_>>(b"Name")?.as_ref() {
-            b"Graph" => Icon::Graph,
-            b"Paperclip" => Icon::Paperclip,
-            b"Tag" => Icon::Tag,
-            _ => Icon::PushPin,
-        }
-    };
+    let icon = icon(annot, kind)?;
     if opacity == 0.0 || !context.ocg_state.is_visible() {
         return Some(());
     }
@@ -199,6 +224,88 @@ pub(super) fn draw<'a>(
             device.draw_path(&body, props(ink), &stroke);
         }
         Icon::Tag => {}
+        Icon::Note => {
+            body = polygon(&[
+                (6.0, 4.0),
+                (18.0, 4.0),
+                (18.0, 14.0),
+                (12.0, 20.0),
+                (6.0, 20.0),
+            ]);
+            body.move_to((12.0, 20.0));
+            body.line_to((12.0, 14.0));
+            body.line_to((18.0, 14.0));
+            for y in [8.0, 11.0] {
+                body.move_to((9.0, y));
+                body.line_to((15.0, y));
+            }
+            device.draw_path(&body, props(ink), &stroke);
+        }
+        Icon::Comment => {
+            body = polygon(&[
+                (5.0, 9.0),
+                (5.0, 19.0),
+                (19.0, 19.0),
+                (19.0, 9.0),
+                (12.0, 9.0),
+                (7.0, 4.0),
+                (7.0, 9.0),
+            ]);
+            for y in [13.0, 16.0] {
+                body.move_to((8.0, y));
+                body.line_to((16.0, y));
+            }
+            device.draw_path(&body, props(ink), &stroke);
+        }
+        Icon::Key => {
+            body = Circle::new((8.0, 16.0), 3.5).to_path(0.1);
+            body.move_to((10.5, 13.5));
+            body.line_to((18.0, 6.0));
+            body.line_to((20.0, 8.0));
+            body.move_to((15.0, 9.0));
+            body.line_to((17.0, 11.0));
+            device.draw_path(&body, props(ink), &stroke);
+        }
+        Icon::Help => {
+            body = BezPath::new();
+            body.move_to((7.0, 17.0));
+            body.curve_to((7.0, 23.0), (18.0, 21.0), (17.0, 16.0));
+            body.curve_to((16.5, 13.5), (12.0, 13.5), (12.0, 10.0));
+            device.draw_path(&body, props(ink.clone()), &stroke);
+            device.draw_path(
+                &Circle::new((12.0, 6.0), 1.0).to_path(0.1),
+                props(ink),
+                &DrawMode::Fill(FillRule::NonZero),
+            );
+        }
+        Icon::Paragraph | Icon::NewParagraph => {
+            body = BezPath::new();
+            body.move_to((18.0, 19.0));
+            body.line_to((10.0, 19.0));
+            body.curve_to((3.0, 19.0), (3.0, 12.0), (10.0, 12.0));
+            body.line_to((12.0, 12.0));
+            body.move_to((12.0, 19.0));
+            body.line_to((12.0, 5.0));
+            body.move_to((16.0, 19.0));
+            body.line_to((16.0, 5.0));
+            if matches!(icon, Icon::NewParagraph) {
+                body.move_to((4.0, 7.0));
+                body.line_to((9.0, 7.0));
+                body.move_to((7.0, 9.0));
+                body.line_to((9.0, 7.0));
+                body.line_to((7.0, 5.0));
+            }
+            device.draw_path(&body, props(ink), &stroke);
+        }
+        Icon::Insert => {
+            body = BezPath::new();
+            body.move_to((5.0, 6.0));
+            body.line_to((12.0, 17.0));
+            body.line_to((19.0, 6.0));
+            body.move_to((6.0, 20.0));
+            body.line_to((18.0, 20.0));
+            device.draw_path(&body, props(ink), &stroke);
+        }
     }
     device.pop_transparency_group();
     device.pop_clip();

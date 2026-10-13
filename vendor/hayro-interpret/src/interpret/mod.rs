@@ -302,7 +302,7 @@ pub fn interpret_page<'a>(
                 (context.settings.warning_sink)(InterpreterWarning::UnresolvedAnnotationAppearance);
             } else if subtype
                 .as_ref()
-                .is_some_and(|name| name.as_ref() == b"FileAttachment")
+                .is_some_and(|name| matches!(name.as_ref(), b"FileAttachment" | b"Text"))
             {
                 // AP overrides Name even when a present normal appearance is unresolved.
                 // A null dictionary entry is equivalent to an absent entry (7.3.7).
@@ -312,10 +312,22 @@ pub fn interpret_page<'a>(
                     (context.settings.warning_sink)(
                         InterpreterWarning::UnresolvedAnnotationAppearance,
                     );
-                } else if annotation_icon::draw(&annot, page.rotation(), flags, context, device)
-                    .is_none()
-                {
-                    (context.settings.warning_sink)(InterpreterWarning::InvalidAnnotationGeometry);
+                } else {
+                    let kind = if subtype
+                        .as_ref()
+                        .is_some_and(|name| name.as_ref() == b"Text")
+                    {
+                        annotation_icon::Kind::Text
+                    } else {
+                        annotation_icon::Kind::FileAttachment
+                    };
+                    if annotation_icon::draw(&annot, kind, page.rotation(), flags, context, device)
+                        .is_none()
+                    {
+                        (context.settings.warning_sink)(
+                            InterpreterWarning::InvalidAnnotationGeometry,
+                        );
+                    }
                 }
             }
         }

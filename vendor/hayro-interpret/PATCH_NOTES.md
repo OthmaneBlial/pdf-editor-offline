@@ -96,5 +96,35 @@ one channel unit between density 1/zoom 1 and density 2/zoom 2; tests assert equ
 painted dimensions and exact solid interior probes, not whole-raster identity.
 The actual public sanitizer fixture pair and its generator/source/hash provenance
 are recorded in [the fixture notice](../../crates/pdf-render/tests/fixtures/README.md).
-Ordinary Text annotations without AP still lack a fallback; this patch does not
-implement attachment activation, file extraction or annotation interaction.
+This patch does not implement attachment activation, file extraction or annotation
+interaction.
+
+## Original Text fallback vectors
+
+Text annotations without AP now draw original Comment, Key, Note, Help,
+NewParagraph, Paragraph and Insert symbols; absent/null Name selects Note.
+Unknown custom names use the generic Note, without claiming custom artwork.
+These standard names and the implicit NoZoom/NoRotate behavior follow
+[PDF 32000-1:2008](https://opensource.adobe.com/dc-acrobat-sdk-docs/standards/pdfstandards/pdf/PDF32000_2008.pdf),
+12.5.6.4 and Table 172. Explicit AP and present unresolved AP retain their existing
+precedence. The shared annotation-icon helper preserves the FileAttachment
+vectors and uses the same bounded Rect mapping, anchored flag adjustment,
+validated color/opacity, clipping and state-independent direct device properties.
+The new Text artwork was authored for this project under Apache-2.0 OR MIT;
+no third-party icon paths or fonts were copied. Contents and actions are never
+interpreted or activated by the icon renderer. Open/pop-up interaction is not
+implemented; rendering shows the icon only.
+
+`text_icons.rs` checks all seven distinct symbols, the default Note, quarter turns,
+crop/nonzero origin, logical zoom/DPR/capped preview, visibility, precedence,
+malformed inputs, whole-icon opacity and exact unrelated-page preservation.
+Pinned Poppler 26.10.0 checks standard-name positive paint, upright source-defined
+footprints, visibility, opacity and AP precedence. Native preservation is exact
+outside the projected Rect. The reference gate separately allows only the same
+fixed one-pixel raster-edge support as the existing appearance/attachment gates.
+The initial macOS Poppler default-AA run observed 18 adjacent pixels at Rotate180,
+starting at (94,47), original red `[255,0,0]` versus painted `[255,11,11]`, beside
+Rect bounds `[70,44,94,68]`. Rotate270 recorded six adjacent pixels starting at
+(80,85), original red versus `[255,32,32]`, beside `[56,70,80,94]`. Logs retain
+the observed boundary counts/colors; no artwork or whole-raster equivalence is
+claimed.
