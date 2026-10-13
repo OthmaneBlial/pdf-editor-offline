@@ -1,0 +1,24 @@
+# Preview 2 preparation
+
+The workspace and package metadata now prepare `4.0.0-preview.2`. The public
+registry and existing GitHub release still provide `4.0.0-preview.1` until the
+new publication has completed.
+
+The checked-in manifest and notices deliberately retain the verified preview 1
+artifacts. `prepack` and installation therefore refuse this checkout's version
+mismatch. Do not relabel their hashes or publish this package in that state.
+
+Before publication:
+
+1. Pass native CI and security checks on the final source.
+2. Tag that exact source and build all five actual-runner CLI artifacts.
+3. Verify assembled source identity, binary versions, sizes, SHA-256 hashes,
+   platform smoke results, Linux static linkage and complete license notices.
+4. Publish the verified GitHub prerelease so HTTPS asset downloads are available.
+5. Replace the package manifest and notices with those verified preview 2 outputs;
+   update its README, pack it and pass real global installs on all five platforms.
+6. Publish npm separately, verify an exact-version registry installation, then
+   promote `latest` and update public installation guidance.
+
+Preserve preview 1 tags, assets and registry history. Preparation is not evidence
+that preview 2 has been released.
