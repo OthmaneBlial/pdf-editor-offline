@@ -235,3 +235,41 @@ fn unbalanced_source_and_tagged_page_refusals_preserve_original_objects() {
         assert_eq!(source.verified_bytes().unwrap(), before);
     }
 }
+#[test]
+fn dimensions_that_encode_as_zero_are_refused_without_changing_the_document() {
+    for rotation in [0, 90, 180, 270] {
+        for rectangle in [[0.0, 0.0, 1e-300, 10.0], [0.0, 0.0, 10.0, 1e-300]] {
+            let mut document = PdfDocument::from_bytes(&support::fixture(2), None).unwrap();
+            let before = document.verified_bytes().unwrap();
+            let placement = ImageOverlay {
+                page: 1,
+                rectangle,
+                rotation,
+            };
+            assert!(
+                document
+                    .add_image_overlay(&placement, &donor(false))
+                    .is_err(),
+                "singular encoded transform accepted: {rectangle:?}/{rotation}"
+            );
+            assert_eq!(document.verified_bytes().unwrap(), before);
+        }
+    }
+}
+#[test]
+fn positive_encoded_dimensions_are_not_replaced_by_an_arbitrary_minimum() {
+    for rotation in [0, 90, 180, 270] {
+        let mut document = PdfDocument::from_bytes(&support::fixture(2), None).unwrap();
+        document
+            .add_image_overlay(
+                &ImageOverlay {
+                    page: 1,
+                    rectangle: [0.0, 0.0, 1e-20, 10.0],
+                    rotation,
+                },
+                &donor(false),
+            )
+            .unwrap();
+        document.verified_bytes().unwrap();
+    }
+}

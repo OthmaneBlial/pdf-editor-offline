@@ -267,6 +267,16 @@ impl PdfDocument {
                 "image overlay rectangle or rotation is invalid",
             ));
         }
+        let w = x1 - x0;
+        let h = y1 - y0;
+        if [w, h]
+            .into_iter()
+            .any(|dimension| !(dimension as f32).is_finite() || dimension as f32 <= 0.0)
+        {
+            return Err(Error::Invalid(
+                "image overlay dimensions collapse at PDF matrix precision",
+            ));
+        }
         let info = self.info()?;
         let page_id = self.pages[placement.page as usize - 1];
         for bounds in [
@@ -358,7 +368,7 @@ impl PdfDocument {
             name = format!("NativeImageOverlay{index}").into_bytes();
         }
         if self.document.objects.len().saturating_add(5) > crate::MAX_OBJECTS
-            || self.document.max_id as usize + 5 >= crate::MAX_OBJECTS
+            || (self.document.max_id as usize).saturating_add(5) >= crate::MAX_OBJECTS
         {
             return Err(Error::Limit("image overlay object budget"));
         }
@@ -386,8 +396,6 @@ impl PdfDocument {
         let image = candidate.add_object(image);
         xobjects.set(name.clone(), image);
         resources.set("XObject", xobjects);
-        let w = x1 - x0;
-        let h = y1 - y0;
         let matrix = match placement.rotation {
             0 => [w, 0.0, 0.0, h, x0, y0],
             90 => [0.0, h, -w, 0.0, x1, y0],
