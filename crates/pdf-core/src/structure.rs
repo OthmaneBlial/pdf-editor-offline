@@ -144,10 +144,20 @@ pub(crate) fn inherited<'a>(
 /// Preserve indirect sharing when materializing inherited attributes during tree edits.
 pub(crate) fn inherited_raw<'a>(
     document: &'a Document,
-    mut page: ObjectId,
+    page: ObjectId,
     key: &[u8],
 ) -> Result<Option<&'a Object>> {
+    inherited_raw_with_work(document, page, key, || Ok(()))
+}
+
+pub(crate) fn inherited_raw_with_work<'a>(
+    document: &'a Document,
+    mut page: ObjectId,
+    key: &[u8],
+    mut visit: impl FnMut() -> Result<()>,
+) -> Result<Option<&'a Object>> {
     for _ in 0..=128 {
+        visit()?;
         let dict = document.get_dictionary(page)?;
         if let Ok(value) = dict.get(key) {
             return Ok(Some(value));

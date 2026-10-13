@@ -32,7 +32,6 @@ pub struct ImageInstance {
 pub(crate) struct Program {
     pub(crate) bytes: Vec<u8>,
     pub(crate) spans: Vec<crate::content_spans::OperatorSpan>,
-    pub(crate) content: lopdf::content::Content<Vec<lopdf::content::Operation>>,
     pub(crate) resources: Dictionary,
     pub(crate) xobjects: Dictionary,
     pub(crate) images: Vec<ImageInstance>,
@@ -168,19 +167,19 @@ fn program(pdf: &PdfDocument, page: u32) -> Result<Program> {
     } else {
         None
     };
-    program_with_hash(pdf, page, &hash, readonly)
+    program_with_hash(pdf, page, &hash, readonly, &mut Budget::new())
 }
 /// Whole-document operations compute the hash/read-only status once. The same
 /// parser, lexical spans, alias handling and instance identities are reused.
-pub(crate) fn program_with_hash(
+pub(super) fn program_with_hash(
     pdf: &PdfDocument,
     page: u32,
     source_hash: &str,
     global_readonly: Option<&'static str>,
+    budget: &mut Budget,
 ) -> Result<Program> {
     pdf.validate_selection(&[page])?;
     let page_id = pdf.pages[page as usize - 1];
-    let mut budget = Budget::new();
     let catalog = budget
         .resolve(&pdf.document, pdf.document.trailer.get(b"Root")?)?
         .1
@@ -196,7 +195,10 @@ pub(crate) fn program_with_hash(
     } else {
         global_readonly
     };
-    let resources = crate::structure::inherited_raw(&pdf.document, page_id, b"Resources")?
+    let resources =
+        crate::structure::inherited_raw_with_work(&pdf.document, page_id, b"Resources", || {
+            budget.work(1)
+        })?
         .map(|v| {
             budget
                 .resolve(&pdf.document, v)
@@ -206,7 +208,7 @@ pub(crate) fn program_with_hash(
     if let Some(resources) = resources {
         for (key, value) in resources.iter() {
             budget.report(key.len())?;
-            appearance::copied(value, 0, &mut budget)?;
+            appearance::copied(value, 0, budget)?;
         }
     }
     let xobjects = resources
@@ -220,7 +222,7 @@ pub(crate) fn program_with_hash(
     if let Some(values) = xobjects {
         for (key, value) in values.iter() {
             budget.report(key.len())?;
-            appearance::copied(value, 0, &mut budget)?;
+            appearance::copied(value, 0, budget)?;
         }
     }
     let mut bytes = Vec::new();
@@ -230,14 +232,7 @@ pub(crate) fn program_with_hash(
         .as_dict()?
         .get(b"Contents")
     {
-        collect(
-            pdf,
-            contents,
-            &mut budget,
-            &mut BTreeSet::new(),
-            &mut bytes,
-            0,
-        )?;
+        collect(pdf, contents, budget, &mut BTreeSet::new(), &mut bytes, 0)?;
     }
     let (content, spans) = crate::content_spans::decode_spanned(&bytes)?;
     if content.operations.len() > 100_000 {
@@ -249,7 +244,7 @@ pub(crate) fn program_with_hash(
     let mut text = false;
     let mut marked = 0usize;
     for (index, op) in content.operations.iter().enumerate() {
-        operands(&op.operands, &mut budget)?;
+        operands(&op.operands, budget)?;
         match op.operator.as_str() {
             "q" if op.operands.is_empty() => {
                 if stack.len() >= 32 {
@@ -370,7 +365,6 @@ pub(crate) fn program_with_hash(
     Ok(Program {
         bytes,
         spans,
-        content,
         resources: resources.cloned().unwrap_or_default(),
         xobjects: xobjects.cloned().unwrap_or_default(),
         images,

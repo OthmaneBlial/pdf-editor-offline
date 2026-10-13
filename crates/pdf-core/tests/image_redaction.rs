@@ -128,6 +128,38 @@ fn complete_shared_image_removal_erases_resources_masks_old_streams_and_orphans(
         assert_eq!(pdf.verified_bytes().unwrap(), original);
     }
 }
+
+#[test]
+fn cumulative_inherited_resource_inventory_work_refuses_before_unbounded_revisits() {
+    let mut doc = Document::load_mem(&support::fixture(50)).unwrap();
+    // Each page inherits the same modest, legal-to-inventory direct resource
+    // array. Per-page discovery remains below its limit; the whole operation
+    // must charge all repeated visits, before cloning/rewrite or later profile
+    // refusal for the unused custom resource category.
+    doc.get_object_mut((2, 0))
+        .unwrap()
+        .as_dict_mut()
+        .unwrap()
+        .get_mut(b"Resources")
+        .unwrap()
+        .as_dict_mut()
+        .unwrap()
+        .set("Unused", Object::Array(vec![Object::Integer(0); 50_000]));
+    let pdf = PdfDocument::from_bytes(&save(doc), None).unwrap();
+    let original = pdf.verified_bytes().unwrap();
+    assert_eq!(pdf.list_image_instances(1).unwrap().len(), 1);
+    assert_eq!(pdf.list_image_instances(50).unwrap().len(), 1);
+    let selections = all(&pdf);
+    let error = pdf.redact_images_copy(&selections).err().unwrap();
+    assert!(
+        matches!(
+            error,
+            pdf_core::Error::Limit("form traversal exceeds two million values")
+        ),
+        "unexpected refusal: {error}"
+    );
+    assert_eq!(pdf.verified_bytes().unwrap(), original);
+}
 #[test]
 fn stale_duplicate_shared_mask_external_alias_and_duplicate_bytes_refuse_atomically() {
     let base = fixture(true, false);

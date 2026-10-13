@@ -207,8 +207,7 @@ impl PdfDocument {
         // One source hash and no retained per-page resource clones. Total retained
         // decoded content and privacy sample buffers are separately capped.
         for page in 1..=self.page_count() as u32 {
-            let program = image_instances::program_with_hash(self, page, &hash, None)?;
-            budget.work(program.content.operations.len())?;
+            let program = image_instances::program_with_hash(self, page, &hash, None, &mut budget)?;
             content_bytes = content_bytes.saturating_add(program.bytes.len());
             if content_bytes > crate::MAX_INPUT_BYTES {
                 return Err(Error::Limit("image redaction content exceeds 128 MiB"));
