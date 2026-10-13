@@ -43,7 +43,7 @@ The screenshot is a real app window using a public synthetic PDF.
 ## Made this week · 13 October 2026
 
 **Today's source checkpoint:** original-text font changes, Unicode TrueType
-embedding, text redaction and decoding fixes passed **784 tests across 92 suites**,
+embedding, whole-image/text redaction and decoding fixes passed **798 tests across 95 suites**,
 including pinned independent readers and actual native workers, with no failures
 or ignored tests. Strict Clippy, documentation and dependency checks passed.
 The preceding redaction/decoding source passed all five platforms and the quality
@@ -64,6 +64,7 @@ build the desktop for the native canvas workflows.
 [number pages](docs/PAGE_NUMBERING_RUST.md),
 [edit supported existing text](docs/CONTENT_TEXT_EDITING_RUST.md),
 [change its font](docs/EXISTING_TEXT_FONT_RUST.md),
+[remove complete supported image assets](docs/IMAGE_REDACTION_RUST.md),
 [add Unicode text](docs/TEXT_OVERLAYS_RUST.md), [finish a form](docs/FORMS_RUST.md)
 or [leave a sticky note](docs/NOTES_RUST.md).
 

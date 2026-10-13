@@ -42,6 +42,13 @@ manual platform verification claim.
   full rewrite and refuses images, opaque carriers and unsupported state/layout.
   Source files, other tabs, histories and recovery copies remain. This newer source
   feature is absent from published preview.4; it provides no general privacy certificate.
+- [Whole-image redaction](IMAGE_REDACTION_RUST.md) removes complete selected
+  plain/Flate RGB/Gray8 assets and supported masks into a verified full rewrite.
+  Every shared use must be selected. Remaining text and images must pass the
+  closed profile; JPEG, predictors, ICC, arbitrary fonts/layouts and opaque
+  carriers refuse. Partial-pixel regions, image OCR/search and general privacy
+  proof remain open. Original files and recovery copies remain. This is newer
+  than preview.4.
 - [Targeted sanitization](SANITIZATION_RUST.md) removes specified metadata, file
   associations and actions through a new-copy full rewrite. It does not scrub all
   private information or redact page content; visible text, images, form values,

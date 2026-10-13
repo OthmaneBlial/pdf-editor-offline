@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased — current Rust source
+
+- Remove complete selected plain/Flate RGB/Gray8 image assets and supported masks
+  into source-bound verified new copies through core, isolated CLI/worker and
+  native controls. All shared uses must be selected; unsupported carriers refuse.
+  Use one aggregate inherited-resource traversal budget across all pages.
+- Change supported original text to standard faces or complete static TrueType
+  fonts, with explicit width acknowledgement and repeat Unicode editing after
+  save/reopen. Correct CID-keyed OpenType CFF rendering; chosen CFF export remains
+  unfinished.
+- Add supported permanent ASCII text redaction with actual-byte verification,
+  and harden Unicode expansion and CMap range/origin handling.
+
+These changes are absent from the immutable published preview.4.
+
 ## 4.0.0-preview.4 — 13 October 2026
 
 Published native CLI and npm package, with verified builds and HTTPS global

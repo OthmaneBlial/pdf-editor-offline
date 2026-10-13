@@ -1,5 +1,22 @@
 # Native Rust migration status
 
+## 13 October: composed whole-image redaction
+
+Frozen source `e9bec71` passed **798 tests across 95 suites, zero failures and
+zero ignored tests**, after a normal workspace/helper build with all pinned
+independent references. Strict all-target workspace Clippy, warning-free rustdoc,
+dependency audit and license/source checks passed. Source-bound core, isolated
+CLI/worker and native controls remove complete selected image assets into a
+verified full-rewrite copy. Shared uses must all be selected; strict privacy
+decoding refuses unsupported images and carriers. The original files and history
+remain. [Actual scope, commands and limits](IMAGE_REDACTION_RUST.md).
+
+This composition retains chosen TrueType editing, supported text redaction and
+decoder/renderer fixes. Automated native controls and real production child/save
+checks passed; manual window review, new platform CI and release gates remain
+separate. It is newer than published preview.4. Partial-pixel redaction, arbitrary
+fonts/layouts/codecs and general privacy verification remain unfinished.
+
 ## 13 October: composed original-text font editing
 
 Frozen Rust source `31f0ac8` passed **784 tests across 92 suites, zero failures
