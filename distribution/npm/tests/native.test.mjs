@@ -77,13 +77,53 @@ test('pinned manifest cannot be incomplete and HTTPS redirect allowlist is exact
   });
 });
 
-test('concurrent installation is no-clobber and both results are verified', async () => {
+test('concurrent installation is no-clobber and every result is verified', async () => {
   await fixture((_req, response) => response.end(bytes), async ({ directory, request }) => {
     const native = path.join(directory, 'native');
-    const files = await Promise.all([ensureInstalled(manifest(bytes), native, { ...platform, request }), ensureInstalled(manifest(bytes), native, { ...platform, request })]);
-    assert.equal(files[0], files[1]); await verifyBinary(files[0], manifest(bytes).assets['darwin-arm64']);
+    const files = await Promise.all(Array.from({ length: 12 }, () => ensureInstalled(manifest(bytes), native, { ...platform, request })));
+    assert.equal(new Set(files).size, 1); await verifyBinary(files[0], manifest(bytes).assets['darwin-arm64']);
     assert.deepEqual(await fs.readdir(native), ['pdf-editor-offline']);
   });
+});
+
+test('metadata races require a fresh full verification and persistent changes are refused', async () => {
+  const directory = await fs.mkdtemp(path.join(tmpdir(), 'pdf-native-stat-'));
+  const filename = path.join(directory, 'binary');
+  await fs.writeFile(filename, bytes);
+  const originalOpen = fs.open;
+  let opens = 0;
+  let persistent = false;
+  // Inject the platform-dependent hard-link ctime change after the real hash read.
+  fs.open = async (...args) => {
+    const handle = await originalOpen(...args);
+    if (args[0] === filename) {
+      const attempt = ++opens;
+      const stat = handle.stat.bind(handle);
+      let calls = 0;
+      handle.stat = async (...statArgs) => {
+        const result = await stat(...statArgs);
+        return ++calls === 3 && (persistent || attempt === 1)
+          ? Object.assign(Object.create(Object.getPrototypeOf(result)), result, { ctimeMs: result.ctimeMs + 1 })
+          : result;
+      };
+    }
+    return handle;
+  };
+  try {
+    const entry = manifest(bytes).assets['darwin-arm64'];
+    await verifyBinary(filename, entry);
+    assert.equal(opens, 2);
+    opens = 0; persistent = true;
+    await assert.rejects(verifyBinary(filename, entry), /changed during verification/);
+    assert.equal(opens, 3);
+    opens = 0;
+    await fs.writeFile(filename, Buffer.alloc(bytes.length, 42));
+    await assert.rejects(verifyBinary(filename, entry), /SHA-256/);
+    assert.equal(opens, 1);
+  } finally {
+    fs.open = originalOpen;
+    await fs.rm(directory, { recursive: true, force: true });
+  }
 });
 
 test('launcher preserves literal argv, exit status and does not invoke a shell', async () => {

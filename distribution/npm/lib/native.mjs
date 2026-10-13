@@ -57,6 +57,13 @@ async function openRegular(filename, flags = constants.O_RDONLY) {
 }
 
 export async function verifyBinary(filename, entry) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    if (await verifyBinaryOnce(filename, entry)) return;
+  }
+  throw new Error('Native binary changed during verification.');
+}
+
+async function verifyBinaryOnce(filename, entry) {
   const handle = await openRegular(filename);
   try {
     const stat = await handle.stat();
@@ -70,7 +77,9 @@ export async function verifyBinary(filename, entry) {
     }
     if (bytes !== entry.bytes || hash.digest('hex') !== entry.sha256) throw new Error('Native binary SHA-256 does not match the pinned release.');
     const after = await handle.stat();
-    if (after.size !== stat.size || after.mtimeMs !== stat.mtimeMs || after.ctimeMs !== stat.ctimeMs) throw new Error('Native binary changed during verification.');
+    // Removing the publisher's temporary hard link can change ctime during a concurrent read.
+    // Reopen and rehash the whole file; accept only a stable, pinned verification.
+    return after.size === stat.size && after.mtimeMs === stat.mtimeMs && after.ctimeMs === stat.ctimeMs;
   } finally { await handle.close(); }
 }
 
