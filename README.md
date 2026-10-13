@@ -14,50 +14,46 @@
 
 [Explore the workstation](https://othmaneblial.github.io/pdf-editor-offline/) · [Build guide](https://othmaneblial.github.io/pdf-editor-offline/docs.html#native-build) · [Roadmap](ROADMAP.md)
 
-## Fresh from the workshop
+## Your PDFs. Your computer.
 
-**Out now: native CLI `4.0.0-preview.3`.** Install it below or download a standalone
-binary for macOS, Windows or Linux. This release adds guarded page duplication,
-checkbox/radio filling and bounded local document workers.
+Finish a form. Put pages in order. Add a note. Save a separate copy.
+PDF Editor Offline is a free, open-source PDF workstation and Rust CLI.
+No account, subscription or document upload is required.
 
-**Growing on `main`:** single/multiline text, dropdowns and list selections with
-embedded covering fonts and desktop undo/redo, plus targeted sanitized copies
-and ordered PDF merging into a separate unsaved document.
-[Try a form](docs/FORMS_RUST.md) · [Review a cleanup copy](docs/SANITIZATION_RUST.md).
+**[Install the CLI](#try-the-native-cli) · [Run the desktop](#build-and-run) · [See what's next](ROADMAP.md)**
 
-**New in the source desktop and CLI:** add Unicode text to a page with a covering font,
-alignment and color. [See the actual before/after PDF exports and try the command](docs/TEXT_OVERLAYS_RUST.md).
-This adds new content; it does not edit or erase existing text.
+**Available now:** native CLI **4.0.0-preview.3** for macOS, Windows and Linux.
+The desktop builds from source; installers and full PDF editing are still in
+development. The gallery shows real macOS sessions with public synthetic PDFs.
 
-**Notes belong beside the document.** The source desktop now lists basic sticky
-notes and supports guarded add/edit/remove with undo history.
-[Try the note workflow](docs/NOTES_RUST.md); ordinary removal is not secure erasure.
-
-**Start with a real document you can inspect.** The repository includes a
-[public form fixture](tests/fixtures/pdfs/forms.pdf). Build the desktop, open it,
-change a supported field, undo the change and save a separate copy. Open that
-copy in another PDF reader and compare it with the original.
-
-[What changed](CHANGELOG.md) · [Live build results](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml)
-· [Next milestones](ROADMAP.md)
-
-**Download → try → make it yours.** [Get the native CLI](#try-the-native-cli),
-[open the desktop](#build-and-run) or [browse the real app gallery](#your-next-pdf-without-the-upload).
-
-Open a PDF, find the page you need, organize it and save a new copy. PDF Editor
-Offline is a free, open-source desktop app and command-line tool for local PDF
-work. No account, subscription or document upload is required.
-
-**Try the native Rust preview.** The CLI is released for macOS, Windows and Linux;
-the desktop app builds from source. Actual desktop interaction evidence is
-primarily from macOS. Native desktop installers and full PDF editing remain in
-progress. [Download the native CLI](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.3);
-historical desktop releases have a different feature set.
-
-![Actual native PDF editor on macOS: local search, page canvas and document inspector in the light theme](screenshots/native/editorial-light-2026-10-12.png)
+![Actual native PDF editor on macOS: local search, page canvas and document inspector in the light theme](docs/assets/screenshots/native/editorial-light-2026-10-12.png)
 
 The screenshot is a real app window using a public synthetic PDF.
-[More native captures](screenshots/native/) · [Runtime evidence](docs/NATIVE_DESKTOP_EVIDENCE.md)
+[More native captures](docs/assets/screenshots/native/) · [Runtime evidence](docs/NATIVE_DESKTOP_EVIDENCE.md)
+
+## Made this week · 13 October 2026
+
+These features are on **`main`**, ahead of the published CLI preview:
+
+| Try it | See it work |
+| --- | --- |
+| Add Unicode text with a font, color and alignment | [Before/after exports and commands](docs/TEXT_OVERLAYS_RUST.md) |
+| Fill text fields, dropdowns and list selections | [A public form you can finish](docs/FORMS_RUST.md) |
+| Add, edit and remove basic sticky notes with undo | [Desktop note walkthrough](docs/NOTES_RUST.md) |
+| Combine supported PDFs into a new desktop tab | [Merge workflow](apps/desktop/README.md) |
+| Make a targeted cleanup copy with a removal report | [What sanitization removes](docs/SANITIZATION_RUST.md) |
+
+### An actual PDF, before and after
+
+| Before | After adding text |
+| --- | --- |
+| ![Original synthetic PDF form](docs/assets/text-overlay-before-2026-10-13.png) | ![The same PDF with Hello offline and Unicode text added](docs/assets/text-overlay-after-2026-10-13.png) |
+
+These are rendered PDF exports, not interface mockups. Added text does not
+replace or erase existing content. [Reproduce the result](docs/TEXT_OVERLAYS_RUST.md).
+
+[Latest changes](CHANGELOG.md) · [Live CI](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml)
+· [Source status and remaining work](docs/RUST_STATUS.md)
 
 ## Your next PDF, without the upload
 
@@ -91,19 +87,19 @@ before sharing. [See exactly what cleanup removes](docs/SANITIZATION_RUST.md).
 
 **Find your page.** Thumbnails follow the document while the canvas gives you room to read.
 
-![Actual native page thumbnails and reading canvas](screenshots/native/thumbnails-light-2026-10-12.png)
+![Actual native page thumbnails and reading canvas](docs/assets/screenshots/native/thumbnails-light-2026-10-12.png)
 
 **Put the pages in order.** Open the organizer to rotate, reorder or crop supported documents.
 
-![Actual native page organizer with crop controls](screenshots/native/organizer-crop-2026-10-12.png)
+![Actual native page organizer with crop controls](docs/assets/screenshots/native/organizer-crop-2026-10-12.png)
 
 **Keep the details right.** Edit document properties, including tested Chinese, Japanese and Korean text, then save a verified copy.
 
-![Actual native document properties with Unicode text](screenshots/native/properties-cjk-2026-10-12.png)
+![Actual native document properties with Unicode text](docs/assets/screenshots/native/properties-cjk-2026-10-12.png)
 
 **Work after dark.** The same native workspace, with a quieter palette.
 
-![Actual native PDF editor in the dark theme](screenshots/native/editorial-dark-2026-10-12.png)
+![Actual native PDF editor in the dark theme](docs/assets/screenshots/native/editorial-dark-2026-10-12.png)
 
 These are real macOS captures with synthetic public documents.
 
@@ -283,10 +279,10 @@ release's remaining checks. The npm badge above reflects the public registry.
 | --- | --- |
 | `apps/` | Native desktop and CLI entry points |
 | `crates/` | Shared Rust PDF processing, rendering, conversion and workers |
-| `docs/` | Guides, translations, architecture and recorded evidence |
+| `docs/` | Guides, translations, screenshots, architecture and recorded evidence |
 | `tests/`, `examples/` | Test fixtures and public demonstration files |
 | `distribution/` | Optional npm installer for the native CLI |
-| `site/`, `screenshots/` | Project website and real app captures |
+| `site/` | Project website and its public assets |
 | `tools/` | Native evidence runner and pinned independent reference installers |
 | `vendor/` | Reviewed dependency sources used by this workspace |
 

@@ -14,4 +14,4 @@ screenshots. Only the repository's synthetic demonstration PDF was used.
 Captures record the build used on 12 October 2026. They do not demonstrate later
 session-recovery or child-process isolation changes.
 
-See [scope and independent validation](../../docs/NATIVE_DESKTOP_EVIDENCE.md).
+See [scope and independent validation](../../../NATIVE_DESKTOP_EVIDENCE.md).

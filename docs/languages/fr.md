@@ -10,13 +10,13 @@
 
 [![Dernière mise à jour](https://img.shields.io/github/last-commit/OthmaneBlial/pdf-editor-offline/main?label=derni%C3%A8re%20mise%20%C3%A0%20jour)](https://github.com/OthmaneBlial/pdf-editor-offline/commits/main/)
 
-[Essayez la CLI](#installer-la-cli-native-facultatif) · [Lancez le bureau](#compiler-et-lancer) · [Galerie réelle](../../screenshots/native/) · [Dernières versions](https://github.com/OthmaneBlial/pdf-editor-offline/releases)
+[Essayez la CLI](#installer-la-cli-native-facultatif) · [Lancez le bureau](#compiler-et-lancer) · [Galerie réelle](../assets/screenshots/native/) · [Dernières versions](https://github.com/OthmaneBlial/pdf-editor-offline/releases)
 
 Ouvrez un PDF, trouvez la page voulue, organisez le document et enregistrez une nouvelle copie. PDF Editor Offline est une application de bureau et un outil en ligne de commande gratuits et libres. Aucun compte, abonnement ou téléversement de document n'est nécessaire.
 
 Il s'agit de l'aperçu natif Rust. Compilez l'application de bureau depuis les sources pour la tester. macOS, Windows et Linux sont les plateformes visées ; les interactions de bureau ont surtout été vérifiées sur macOS. Les installateurs de bureau et l'édition PDF complète restent en développement. La [préversion CLI native 4.0.0-preview.3](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.3) est disponible ; les [versions de bureau archivées](https://github.com/OthmaneBlial/pdf-editor-offline/releases) correspondent à des versions antérieures.
 
-![Vraie fenêtre native sur macOS : recherche locale, page PDF et propriétés du document](../../screenshots/native/editorial-light-2026-10-12.png)
+![Vraie fenêtre native sur macOS : recherche locale, page PDF et propriétés du document](../assets/screenshots/native/editorial-light-2026-10-12.png)
 
 ## Ce qui fonctionne
 
@@ -101,7 +101,7 @@ cargo test --workspace --locked
 cargo clippy --workspace --all-targets --locked -- -D warnings
 ```
 
-[Status](../RUST_STATUS.md) · [Desktop](../../apps/desktop/README.md) · [CLI](../../apps/cli/README.md) · [Security](../SECURITY_INSPECTION_RUST.md) · [Screenshots](../../screenshots/native/)
+[Status](../RUST_STATUS.md) · [Desktop](../../apps/desktop/README.md) · [CLI](../../apps/cli/README.md) · [Security](../SECURITY_INSPECTION_RUST.md) · [Screenshots](../assets/screenshots/native/)
 
 Si un éditeur PDF local vous est utile, ajoutez une étoile au dépôt pour aider d'autres personnes à le trouver.
 

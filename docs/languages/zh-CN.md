@@ -12,7 +12,7 @@
 
 目前是原生 Rust 预览版。请从源码构建桌面应用以体验当前版本。目标平台为 macOS、Windows 和 Linux；实际桌面交互验证主要在 macOS 上进行。桌面安装包和完整 PDF 编辑功能仍在开发。[原生 CLI 预发布版 4.0.0-preview.3](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.3)现已提供；[历史桌面发行版本](https://github.com/OthmaneBlial/pdf-editor-offline/releases)属于早期构建。
 
-![macOS 上真实的原生应用窗口，显示本地搜索、PDF 页面和文档属性](../../screenshots/native/editorial-light-2026-10-12.png)
+![macOS 上真实的原生应用窗口，显示本地搜索、PDF 页面和文档属性](../assets/screenshots/native/editorial-light-2026-10-12.png)
 
 ## 当前可用功能
 
@@ -84,7 +84,7 @@ cargo test --workspace --locked
 cargo clippy --workspace --all-targets --locked -- -D warnings
 ```
 
-[Status](../RUST_STATUS.md) · [Desktop](../../apps/desktop/README.md) · [CLI](../../apps/cli/README.md) · [Security](../SECURITY_INSPECTION_RUST.md) · [Screenshots](../../screenshots/native/)
+[Status](../RUST_STATUS.md) · [Desktop](../../apps/desktop/README.md) · [CLI](../../apps/cli/README.md) · [Security](../SECURITY_INSPECTION_RUST.md) · [Screenshots](../assets/screenshots/native/)
 
 如果你需要在本地工作的 PDF 编辑器，欢迎给仓库点一颗星，帮助更多人找到它。
 

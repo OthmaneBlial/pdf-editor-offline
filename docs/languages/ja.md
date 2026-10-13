@@ -12,7 +12,7 @@ PDF を開き、必要なページを探し、文書を整理して新しいコ�
 
 現在はネイティブ Rust 版のプレビューです。デスクトップアプリはソースからビルドして試してください。対象は macOS、Windows、Linux で、実際のデスクトップ操作の検証は主に macOS で行っています。デスクトップ用インストーラーと完全な PDF 編集機能は開発中です。[ネイティブ CLI のプレリリース 4.0.0-preview.3](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.3)は公開済みです。[過去のデスクトップリリース](https://github.com/OthmaneBlial/pdf-editor-offline/releases)は以前のビルドです。
 
-![macOS 上で動く実際のネイティブアプリ。ローカル検索、PDF ページ、文書情報を表示](../../screenshots/native/editorial-light-2026-10-12.png)
+![macOS 上で動く実際のネイティブアプリ。ローカル検索、PDF ページ、文書情報を表示](../assets/screenshots/native/editorial-light-2026-10-12.png)
 
 ## 現在使える機能
 
@@ -84,7 +84,7 @@ cargo test --workspace --locked
 cargo clippy --workspace --all-targets --locked -- -D warnings
 ```
 
-[Status](../RUST_STATUS.md) · [Desktop](../../apps/desktop/README.md) · [CLI](../../apps/cli/README.md) · [Security](../SECURITY_INSPECTION_RUST.md) · [Screenshots](../../screenshots/native/)
+[Status](../RUST_STATUS.md) · [Desktop](../../apps/desktop/README.md) · [CLI](../../apps/cli/README.md) · [Security](../SECURITY_INSPECTION_RUST.md) · [Screenshots](../assets/screenshots/native/)
 
 ローカルで使える PDF エディターを応援したい方は、リポジトリにスターを付けて見つけやすくしてください。
 

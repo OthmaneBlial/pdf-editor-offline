@@ -12,7 +12,7 @@ Abra um PDF, encontre a página desejada, organize o documento e salve uma nova 
 
 Esta é a prévia nativa em Rust. Compile o aplicativo de desktop a partir do código-fonte para testá-lo. macOS, Windows e Linux são as plataformas previstas; a interação real no desktop foi verificada principalmente no macOS. Instaladores de desktop e edição completa ainda estão em desenvolvimento. A [prévia da CLI nativa 4.0.0-preview.3](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.3) está disponível; o [arquivo de versões de desktop](https://github.com/OthmaneBlial/pdf-editor-offline/releases) contém versões anteriores.
 
-![Janela real do aplicativo nativo no macOS com busca local, página PDF e propriedades](../../screenshots/native/editorial-light-2026-10-12.png)
+![Janela real do aplicativo nativo no macOS com busca local, página PDF e propriedades](../assets/screenshots/native/editorial-light-2026-10-12.png)
 
 ## O que funciona
 
@@ -84,7 +84,7 @@ cargo test --workspace --locked
 cargo clippy --workspace --all-targets --locked -- -D warnings
 ```
 
-[Status](../RUST_STATUS.md) · [Desktop](../../apps/desktop/README.md) · [CLI](../../apps/cli/README.md) · [Security](../SECURITY_INSPECTION_RUST.md) · [Screenshots](../../screenshots/native/)
+[Status](../RUST_STATUS.md) · [Desktop](../../apps/desktop/README.md) · [CLI](../../apps/cli/README.md) · [Security](../SECURITY_INSPECTION_RUST.md) · [Screenshots](../assets/screenshots/native/)
 
 Se um editor de PDF local é útil para você, dê uma estrela ao repositório para ajudar outras pessoas a encontrá-lo.
 

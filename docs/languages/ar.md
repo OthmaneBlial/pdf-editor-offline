@@ -12,7 +12,7 @@
 
 هذه نسخة معاينة لتطبيق Rust الأصلي. اختبر تطبيق سطح المكتب الحالي ببنائه من المصدر. المنصات المستهدفة هي macOS وWindows وLinux؛ أغلب التحقق الفعلي من واجهة سطح المكتب تم على macOS. حزم تثبيت سطح المكتب والتحرير الكامل ما زالت قيد التطوير. [نسخة CLI الأصلية التجريبية 4.0.0-preview.3](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.3) متاحة؛ [إصدارات سطح المكتب المؤرشفة](https://github.com/OthmaneBlial/pdf-editor-offline/releases) تخص نسخًا سابقة.
 
-![نافذة حقيقية للتطبيق على macOS تعرض البحث المحلي وصفحة PDF ومعلومات المستند](../../screenshots/native/editorial-light-2026-10-12.png)
+![نافذة حقيقية للتطبيق على macOS تعرض البحث المحلي وصفحة PDF ومعلومات المستند](../assets/screenshots/native/editorial-light-2026-10-12.png)
 
 ## الوظائف المتاحة
 
@@ -84,7 +84,7 @@ cargo test --workspace --locked
 cargo clippy --workspace --all-targets --locked -- -D warnings
 ```
 
-[Status](../RUST_STATUS.md) · [Desktop](../../apps/desktop/README.md) · [CLI](../../apps/cli/README.md) · [Security](../SECURITY_INSPECTION_RUST.md) · [Screenshots](../../screenshots/native/)
+[Status](../RUST_STATUS.md) · [Desktop](../../apps/desktop/README.md) · [CLI](../../apps/cli/README.md) · [Security](../SECURITY_INSPECTION_RUST.md) · [Screenshots](../assets/screenshots/native/)
 
 إذا كان محرّر PDF محلي مفيدًا لك، امنح المستودع نجمة ليسهل على الآخرين العثور عليه.
 

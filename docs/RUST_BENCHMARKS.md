@@ -113,7 +113,7 @@ sticky icons on rotated pages and preservation outside their defined footprint.
 Matching geometry does not establish identical antialiasing or full visual parity.
 Cross-platform CI and broader hostile-document/render fidelity remain separate gates.
 
-The [rotated-note PNG](../screenshots/render/sticky-note-rotated-2026-10-12.png)
+The [rotated-note PNG](assets/screenshots/render/sticky-note-rotated-2026-10-12.png)
 is an actual native CLI export of the synthetic demo with a sticky note and a
 90-degree page rotation, rendered at 0.75 pixels per PDF point (594 × 459).
 It was visually inspected: page content rotates while the note icon stays upright.

@@ -12,7 +12,7 @@ PDF를 열고 필요한 페이지를 찾은 뒤 문서를 정리하고 새 복�
 
 현재는 네이티브 Rust 미리보기 버전입니다. 데스크톱 앱을 사용하려면 소스에서 빌드하세요. 대상 플랫폼은 macOS, Windows, Linux이며 실제 데스크톱 조작 검증은 주로 macOS에서 진행했습니다. 데스크톱 설치 프로그램과 완전한 PDF 편집 기능은 개발 중입니다. [네이티브 CLI 사전 릴리스 4.0.0-preview.3](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.3)이 공개되어 있으며, [이전 데스크톱 릴리스 모음](https://github.com/OthmaneBlial/pdf-editor-offline/releases)은 과거 빌드입니다.
 
-![macOS에서 실행 중인 실제 네이티브 앱: 로컬 검색, PDF 페이지, 문서 속성](../../screenshots/native/editorial-light-2026-10-12.png)
+![macOS에서 실행 중인 실제 네이티브 앱: 로컬 검색, PDF 페이지, 문서 속성](../assets/screenshots/native/editorial-light-2026-10-12.png)
 
 ## 현재 가능한 작업
 
@@ -84,7 +84,7 @@ cargo test --workspace --locked
 cargo clippy --workspace --all-targets --locked -- -D warnings
 ```
 
-[Status](../RUST_STATUS.md) · [Desktop](../../apps/desktop/README.md) · [CLI](../../apps/cli/README.md) · [Security](../SECURITY_INSPECTION_RUST.md) · [Screenshots](../../screenshots/native/)
+[Status](../RUST_STATUS.md) · [Desktop](../../apps/desktop/README.md) · [CLI](../../apps/cli/README.md) · [Security](../SECURITY_INSPECTION_RUST.md) · [Screenshots](../assets/screenshots/native/)
 
 로컬 PDF 편집기가 유용하다면 저장소에 별표를 눌러 다른 사람이 찾는 데 도움을 주세요.
 

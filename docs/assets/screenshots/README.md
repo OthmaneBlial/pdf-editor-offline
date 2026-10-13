@@ -1,8 +1,8 @@
-# Screenshot Proof Set
+# Historical web-app captures
 
-These screenshots were captured from the local web app after loading the sample PDFs in `examples/sample_pdfs/`. The browser automation waited for the matching API response before saving each proof image.
+These numbered screenshots preserve the former web app. They do not represent the current Rust app or prove current redaction, conversion or image-editing support. [Actual native gallery](native/) · [Native capture scope](../../NATIVE_DESKTOP_EVIDENCE.md).
 
-The 60-second animation in `site/assets/product-demo.gif` and its controlled MP4 equivalent are assembled from a fresh browser run of `demo-redaction.pdf`: local trust console, upload, two search matches, permanent redaction, zero-match verification, and final render. The exact bounded exercise is documented in `docs/FIVE_MINUTE_REDACTION_WORKFLOW.md`.
+The historical workflows below belong to the former implementation. Its source is preserved in the pre-migration archive and Git history; these images are retained as historical evidence.
 
 | File | Operation shown |
 | --- | --- |

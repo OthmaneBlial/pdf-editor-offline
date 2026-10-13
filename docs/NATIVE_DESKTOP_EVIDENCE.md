@@ -81,11 +81,11 @@ SHA-256 `38469031469e883df9a41c1571cae9870c2a71d3ec69ae10a4ea189a67533543`.
 Both were run in a temporary native macOS bundle; neither is a signed installer.
 
 - Opened the public `demo-basic.pdf` through the native file picker and observed
-  a real thumbnail matching its page. [Actual thumbnail capture](../screenshots/native/thumbnails-light-2026-10-12.png)
+  a real thumbnail matching its page. [Actual thumbnail capture](assets/screenshots/native/thumbnails-light-2026-10-12.png)
   has SHA-256 `cd60e3056c1c0b1e7599930ccbbe378490acf0c3f7ddf66a8fba9a9e94890ff7`.
 - Entered `Résumé 中文 東京 한국 ✓` in Document properties. The glyphs render,
   Apply/Cancel remain visible and the loaded-status message clears the earlier
-  reading message. [Actual properties capture](../screenshots/native/properties-cjk-2026-10-12.png)
+  reading message. [Actual properties capture](assets/screenshots/native/properties-cjk-2026-10-12.png)
   has SHA-256 `7affbed46a0aeb6dfe9891c53c3588fc1298457ba1f459234e9da86e4ed1c53c`.
   Applied the title and saved `/tmp/pdf-editor-properties-cjk-20261012.pdf` using
   the native save panel. Both the native CLI and pinned Poppler read the exact
@@ -96,13 +96,13 @@ Both were run in a temporary native macOS bundle; neither is a signed installer.
   `/tmp/pdf-editor-native-images-organized-20261012.pdf`. qpdf 12.4.2 reports no
   syntax/stream encoding errors; Poppler 26.10.0 reports the two expected page
   boxes in that order. Independently decoded image samples are exactly six red
-  RGB pixels. [Actual blank-page dialog](../screenshots/native/organizer-blank-2026-10-12.png)
+  RGB pixels. [Actual blank-page dialog](assets/screenshots/native/organizer-blank-2026-10-12.png)
   has SHA-256 `d3e14fec544480e2ffcfba14d967738b0dba267f0713295a1eea935899adb847`.
 - Undo restored the earlier blank/image order and marked the document dirty.
   Redo restored the saved image/blank order and the clean state.
 - Applied a 280×400-point CropBox to the blank page while its MediaBox stayed
   300×420. The inspector reflected both dimensions; Undo restored the saved
-  CropBox and clean state. [Actual crop dialog](../screenshots/native/organizer-crop-2026-10-12.png)
+  CropBox and clean state. [Actual crop dialog](assets/screenshots/native/organizer-crop-2026-10-12.png)
   has SHA-256 `99720292b5debeab8b070a61b33fe124f30a401b0ee8f2e04b786596e86a0c2a`.
   Its visible warning explains that cropping retains hidden content. This
   blank-page check does not prove secure removal or clipping of real artwork.
@@ -130,8 +130,8 @@ Recorded independent inspection asserted: original rotation 0°, output rotation
 displayed an unsaved-change prompt, disabled background controls, and Keep editing
 retained the tab and dirty state. Undo returned to the saved state.
 
-Real captures: [rotation/save](../screenshots/native/rotation-save-2026-10-12.png)
-and [unsaved guard](../screenshots/native/unsaved-guard-2026-10-12.png).
+Real captures: [rotation/save](assets/screenshots/native/rotation-save-2026-10-12.png)
+and [unsaved guard](assets/screenshots/native/unsaved-guard-2026-10-12.png).
 The GUI binary used for these captures had SHA-256
 `94520ed1d82969d6a4041075b66da26df97a801650848b88783e8f07f7360038`.
 It precedes the later core resource/extraction fixes and workstation redesign.
@@ -162,9 +162,9 @@ automation uses physical key positions: tool `super+a` produced logical Command+
 and `super+w` produced Command+Z. The application uses standard logical shortcuts.
 
 Fresh captures from the fixed binary:
-[search/Retina](../screenshots/native/workstation-search-retina-2026-10-12.png),
-[dark palette](../screenshots/native/workstation-palette-dark-2026-10-12.png),
-[actual Command+Q guard](../screenshots/native/workstation-quit-guard-2026-10-12.png).
+[search/Retina](assets/screenshots/native/workstation-search-retina-2026-10-12.png),
+[dark palette](assets/screenshots/native/workstation-palette-dark-2026-10-12.png),
+[actual Command+Q guard](assets/screenshots/native/workstation-quit-guard-2026-10-12.png).
 Binary SHA-256: `53fac9c411c8a1827c382ec8ff85201f7373db0feba32171c3bf97aa12a0a7dd`.
 Twenty desktop tests, strict Clippy, formatting and build passed.
 
@@ -188,10 +188,10 @@ visible; scrolling reached its advanced details and extracted-text checkbox.
 Palette rotation, actual Command+Q's unsaved guard and Undo back to a clean 0°
 document were rechecked after the styling change.
 
-Actual captures: [light](../screenshots/native/editorial-light-2026-10-12.png),
-[dark](../screenshots/native/editorial-dark-2026-10-12.png),
-[compact](../screenshots/native/editorial-compact-2026-10-12.png) and
-[quit guard](../screenshots/native/editorial-quit-guard-2026-10-12.png).
+Actual captures: [light](assets/screenshots/native/editorial-light-2026-10-12.png),
+[dark](assets/screenshots/native/editorial-dark-2026-10-12.png),
+[compact](assets/screenshots/native/editorial-compact-2026-10-12.png) and
+[quit guard](assets/screenshots/native/editorial-quit-guard-2026-10-12.png).
 Binary SHA-256: `4a87784262b4253437aa4d03cc030ecf86d8b137f02ce56ede61e0d0c381d606`.
 Twenty-four tests, formatting, strict Clippy and build passed. Contrast tests
 cover critical theme text; they do not certify full accessibility. The previous
