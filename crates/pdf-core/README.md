@@ -100,7 +100,7 @@ deletion, sanitization or redaction**. Directory fsync, file locking, recovery,
 signature-safe updates and encrypted export remain migration work.
 
 Page APIs include `reorder`, `reverse`, `crop`, `insert_blank`, `extract_pages`
-and `delete_pages`. Reorder retains page identities and inherited resources.
+and `delete_pages`, plus guarded `duplicate_pages`. Reorder retains page identities and inherited resources.
 Indexed page labels are refused until remapping exists. Extraction/deletion
 refuse unsupported catalog structures, annotations and references to removed
 pages; this conservative gate prevents silent data loss. Unreachable original
@@ -110,6 +110,16 @@ Inert string-only catalog `Info` dictionaries produced by MuPDF 1.28 are retaine
 on subset operations; other catalog `Info` values are refused.
 Direct inherited resource dictionaries are moved into a shared indirect object
 before rebuilding page trees, avoiding one large resource copy per page.
+
+`duplicate_pages(&[3, 1])` inserts fresh page dictionaries after originals 1 and 3
+in document order. Content and resource objects remain shared; current rotation
+and crop operations can change each copied page independently. Unknown page
+fields, advanced catalog/page structures, aliases and custom leaf references are
+refused. Before cloning, growth is checked against the existing page/object limits
+and a combined 128 MiB inline-payload / one-million-inline-value copy budget.
+These are structural bounds, not a strict OS memory quota. The dedicated ignored
+reference test in `tests/pages.rs` checks qpdf structure and original/copy Poppler
+text, geometry and pixels.
 
 `append(&other)` provides **beta simple-catalog merging**, preserving page order,
 inherited resources/geometry and logical orphan graphs. Both inputs are preserved

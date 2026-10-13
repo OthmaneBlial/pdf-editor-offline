@@ -507,3 +507,416 @@ fn malformed_resources_fail_transactionally_before_normalization_commits() {
     assert!(doc.insert_blank(2, 100.0, 100.0).is_err());
     assert_eq!(doc.to_bytes().unwrap(), original);
 }
+
+#[test]
+fn duplicate_pages_use_new_ids_document_order_and_independent_page_geometry() {
+    let mut doc = load(fixture());
+    let before = doc.info().unwrap();
+    let originals = parsed(&doc).get_pages();
+    doc.duplicate_pages(&[3, 1]).unwrap();
+    assert_eq!(doc.page_count(), 5);
+    let copied = parsed(&doc);
+    let ids = copied.get_pages();
+    assert_eq!(ids[&1], originals[&1]);
+    assert_eq!(ids[&3], originals[&2]);
+    assert_eq!(ids[&4], originals[&3]);
+    let unique: std::collections::BTreeSet<_> = ids.values().copied().collect();
+    assert_eq!(unique.len(), 5);
+    assert_ne!(ids[&2], ids[&1]);
+    assert_ne!(ids[&5], ids[&4]);
+    for (new, old) in [(1, 0), (2, 0), (3, 1), (4, 2), (5, 2)] {
+        let page = &doc.info().unwrap().pages[new - 1];
+        assert_eq!(page.media_box, before.pages[old].media_box);
+        assert_eq!(page.crop_box, before.pages[old].crop_box);
+        assert_eq!(page.rotation, before.pages[old].rotation);
+    }
+    let text = doc.extract_text(&[1, 2, 3, 4, 5]).unwrap();
+    assert_eq!(text.matches("Page 1").count(), 2);
+    assert_eq!(text.matches("Page 2").count(), 1);
+    assert_eq!(text.matches("Page 3").count(), 2);
+    let original_content = copied
+        .get_dictionary(ids[&1])
+        .unwrap()
+        .get(b"Contents")
+        .unwrap();
+    assert_eq!(
+        original_content,
+        copied
+            .get_dictionary(ids[&2])
+            .unwrap()
+            .get(b"Contents")
+            .unwrap()
+    );
+    doc.rotate(&[2], 90).unwrap();
+    doc.crop(&[2], [20.0, 20.0, 500.0, 700.0]).unwrap();
+    let info = doc.info().unwrap();
+    assert_eq!(info.pages[0].rotation, 90);
+    assert_eq!(info.pages[1].rotation, 180);
+    assert_eq!(info.pages[0].crop_box, [10.0, 10.0, 590.0, 780.0]);
+    assert_eq!(info.pages[1].crop_box, [20.0, 20.0, 500.0, 700.0]);
+    doc.duplicate_pages(&[2]).unwrap();
+    assert_eq!(doc.page_count(), 6);
+    let saved = doc.verified_bytes().unwrap();
+    let reopened = PdfDocument::from_bytes(&saved, None).unwrap();
+    assert_eq!(reopened.info().unwrap().pages[2].rotation, 180);
+}
+
+#[test]
+fn duplication_normalizes_direct_resources_once_and_preserves_document_metadata() {
+    let mut source = fixture();
+    let root = source
+        .catalog()
+        .unwrap()
+        .get(b"Pages")
+        .unwrap()
+        .as_reference()
+        .unwrap();
+    let branch = source
+        .get_dictionary(root)
+        .unwrap()
+        .get(b"Kids")
+        .unwrap()
+        .as_array()
+        .unwrap()[0]
+        .as_reference()
+        .unwrap();
+    let resource = source
+        .get_dictionary(branch)
+        .unwrap()
+        .get(b"Resources")
+        .unwrap()
+        .as_reference()
+        .unwrap();
+    let direct = source.get_dictionary(resource).unwrap().clone();
+    source
+        .get_dictionary_mut(branch)
+        .unwrap()
+        .set("Resources", direct);
+    let info=source.add_object(dictionary!{"Title"=>Object::string_literal("Duplication title"),"Custom"=>Object::string_literal("preserved")});
+    source.trailer.set("Info", info);
+    let xmp = source.add_object(Stream::new(
+        dictionary! {"Type"=>"Metadata","Subtype"=>"XML"},
+        b"<metadata>preserved</metadata>".to_vec(),
+    ));
+    source.catalog_mut().unwrap().set("Metadata", xmp);
+    let mut doc = load(source);
+    let before = parsed(&doc);
+    let count = before.objects.len();
+    doc.duplicate_pages(&[1, 2, 3]).unwrap();
+    let after = parsed(&doc);
+    assert_eq!(
+        after.objects.len(),
+        count + 4,
+        "three leaves plus one shared normalized resource dictionary"
+    );
+    let resources: std::collections::BTreeSet<_> = after
+        .get_pages()
+        .values()
+        .map(|id| {
+            after
+                .get_dictionary(*id)
+                .unwrap()
+                .get(b"Resources")
+                .unwrap()
+                .as_reference()
+                .unwrap()
+        })
+        .collect();
+    assert_eq!(resources.len(), 1);
+    assert_eq!(
+        after.get_object(info).unwrap(),
+        before.get_object(info).unwrap()
+    );
+    assert_eq!(
+        after.get_object(xmp).unwrap(),
+        before.get_object(xmp).unwrap()
+    );
+}
+
+#[test]
+fn duplication_refuses_unsafe_graphs_without_modifying_original_bytes() {
+    for key in [
+        "Outlines",
+        "AcroForm",
+        "Names",
+        "OCProperties",
+        "StructTreeRoot",
+        "PageLabels",
+        "OpenAction",
+    ] {
+        let mut source = fixture();
+        source.catalog_mut().unwrap().set(key, dictionary! {});
+        let mut doc = load(source);
+        let before = doc.to_bytes().unwrap();
+        assert!(matches!(doc.duplicate_pages(&[1]), Err(Error::Refused(_))));
+        assert!(doc.to_bytes().unwrap() == before);
+    }
+    for kind in 0..6 {
+        let mut source = fixture();
+        let page = *source.get_pages().get(&1).unwrap();
+        match kind {
+            0 => {
+                source
+                    .get_dictionary_mut(page)
+                    .unwrap()
+                    .set("Annots", vec![Object::Null]);
+            }
+            1 => {
+                source
+                    .get_dictionary_mut(page)
+                    .unwrap()
+                    .set("ID", Object::string_literal("opaque page identity"));
+            }
+            2 => {
+                source.add_object(dictionary! {"Target"=>page});
+            }
+            3 => {
+                source
+                    .get_dictionary_mut(page)
+                    .unwrap()
+                    .set("Group", dictionary! {"S"=>"Transparency","SelfPage"=>page});
+            }
+            4 => {
+                source.trailer.set("CustomPage", page);
+            }
+            5 => {
+                let root = source
+                    .catalog()
+                    .unwrap()
+                    .get(b"Pages")
+                    .unwrap()
+                    .as_reference()
+                    .unwrap();
+                source
+                    .get_dictionary_mut(root)
+                    .unwrap()
+                    .set("CustomPage", page);
+            }
+            _ => {
+                source.add_object(dictionary! {"FT"=>"Sig"});
+            }
+        }
+        let mut doc = load(source);
+        let before = doc.to_bytes().unwrap();
+        assert!(
+            matches!(doc.duplicate_pages(&[1]), Err(Error::Refused(_))),
+            "graph case {kind}"
+        );
+        assert!(doc.to_bytes().unwrap() == before);
+    }
+    let mut doc = load(fixture());
+    let before = doc.to_bytes().unwrap();
+    for selection in [&[][..], &[0][..], &[4][..], &[1, 1][..]] {
+        assert!(doc.duplicate_pages(selection).is_err());
+        assert!(doc.to_bytes().unwrap() == before);
+    }
+}
+
+#[test]
+fn duplication_preflights_page_object_and_inline_value_limits_atomically() {
+    let mut source = fixture();
+    let root = source
+        .catalog()
+        .unwrap()
+        .get(b"Pages")
+        .unwrap()
+        .as_reference()
+        .unwrap();
+    let branch = source
+        .get_dictionary(root)
+        .unwrap()
+        .get(b"Kids")
+        .unwrap()
+        .as_array()
+        .unwrap()[0]
+        .as_reference()
+        .unwrap();
+    let template = source
+        .get_dictionary(*source.get_pages().get(&1).unwrap())
+        .unwrap()
+        .clone();
+    let mut kids = Vec::new();
+    for _ in 0..pdf_core::MAX_PAGES {
+        kids.push(Object::Reference(source.add_object(template.clone())));
+    }
+    source.get_dictionary_mut(branch).unwrap().set("Kids", kids);
+    source
+        .get_dictionary_mut(branch)
+        .unwrap()
+        .set("Count", pdf_core::MAX_PAGES as i64);
+    source
+        .get_dictionary_mut(root)
+        .unwrap()
+        .set("Count", pdf_core::MAX_PAGES as i64);
+    let mut doc = load(source);
+    let before = doc.to_bytes().unwrap();
+    assert!(matches!(doc.duplicate_pages(&[1]), Err(Error::Limit(_))));
+    assert!(doc.to_bytes().unwrap() == before);
+    let mut source = fixture();
+    source.objects.insert(
+        ((pdf_core::MAX_OBJECTS as u32) - 2, 0),
+        dictionary! {"Budget"=>1}.into(),
+    );
+    source.max_id = (pdf_core::MAX_OBJECTS as u32) - 2;
+    let mut doc = load(source);
+    let before = doc.to_bytes().unwrap();
+    assert!(matches!(
+        doc.duplicate_pages(&[1, 2, 3]),
+        Err(Error::Limit(_))
+    ));
+    assert!(doc.to_bytes().unwrap() == before);
+    let mut source = fixture();
+    let page = *source.get_pages().get(&1).unwrap();
+    source.get_dictionary_mut(page).unwrap().set("Group",dictionary!{"Type"=>"Group","S"=>"Transparency","Budget"=>vec![Object::Null;pdf_core::MAX_OBJECTS]});
+    let mut doc = load(source);
+    let before = doc.to_bytes().unwrap();
+    assert!(matches!(doc.duplicate_pages(&[1]), Err(Error::Limit(_))));
+    assert!(doc.to_bytes().unwrap() == before);
+}
+
+#[test]
+fn duplication_read_only_guards_preserve_readable_pages_and_refuse_serialization() {
+    let check = |mut doc: PdfDocument| {
+        let before = doc.info().unwrap();
+        let text = doc.extract_text(&doc.all_pages()).unwrap();
+        assert!(doc.to_bytes().is_err());
+        assert!(matches!(doc.duplicate_pages(&[1]), Err(Error::Refused(_))));
+        let after = doc.info().unwrap();
+        assert_eq!(after.page_count, before.page_count);
+        assert_eq!(after.signature_fields, before.signature_fields);
+        assert_eq!(after.encrypted, before.encrypted);
+        assert_eq!(doc.extract_text(&doc.all_pages()).unwrap(), text);
+        assert!(doc.to_bytes().is_err());
+    };
+    let mut signed = fixture();
+    signed.add_object(dictionary! {"FT"=>"Sig"});
+    check(load(signed));
+    let mut encrypted = fixture();
+    encrypted.trailer.set(
+        "ID",
+        vec![
+            Object::string_literal("duplicate-first!"),
+            Object::string_literal("duplicate-last!!"),
+        ],
+    );
+    let encryption = lopdf::EncryptionState::try_from(lopdf::EncryptionVersion::V2 {
+        document: &encrypted,
+        owner_password: "synthetic-owner",
+        user_password: "synthetic-user",
+        key_length: 128,
+        permissions: lopdf::Permissions::all(),
+    })
+    .unwrap();
+    encrypted.encrypt(&encryption).unwrap();
+    check(PdfDocument::from_bytes(&bytes(encrypted), Some("synthetic-user")).unwrap());
+}
+
+#[test]
+#[ignore = "requires pinned Poppler 26.10.0 and qpdf 12.4.2"]
+fn duplicated_pages_match_independent_poppler_pixels_text_geometry_and_qpdf_structure() {
+    use std::process::Command;
+    let references = std::path::PathBuf::from(std::env::var_os("PDF_REFERENCE_BIN_DIR").unwrap());
+    let qpdf = std::env::var_os("PDF_QPDF_BIN").unwrap_or_else(|| "qpdf".into());
+    let version = Command::new(references.join("pdfinfo"))
+        .arg("-v")
+        .output()
+        .unwrap();
+    assert!(String::from_utf8_lossy(&version.stderr).contains("26.10.0"));
+    let version = Command::new(&qpdf).arg("--version").output().unwrap();
+    assert!(String::from_utf8_lossy(&version.stdout).contains("12.4.2"));
+    let directory = tempfile::tempdir().unwrap();
+    let original = directory.path().join("original.pdf");
+    let output = directory.path().join("duplicated.pdf");
+    let mut doc = load(fixture());
+    doc.save_new(&original).unwrap();
+    let original_bytes = std::fs::read(&original).unwrap();
+    doc.duplicate_pages(&[3, 1]).unwrap();
+    doc.save_new(&output).unwrap();
+    assert!(
+        Command::new(&qpdf)
+            .arg("--check")
+            .arg(&output)
+            .output()
+            .unwrap()
+            .status
+            .success()
+    );
+    let info = Command::new(references.join("pdfinfo"))
+        .args(["-f", "1", "-l", "5", "-box"])
+        .arg(&output)
+        .output()
+        .unwrap();
+    assert!(info.status.success());
+    let info = String::from_utf8(info.stdout).unwrap();
+    assert!(
+        info.lines()
+            .any(|line| line.split_whitespace().collect::<Vec<_>>() == vec!["Pages:", "5"])
+    );
+    for (index, (original_page, new_page)) in [(1, 2), (3, 5)].into_iter().enumerate() {
+        let render = |path: &std::path::Path, page: u32, label: &str| {
+            let prefix = directory.path().join(format!("{label}-{index}"));
+            let rendered = Command::new(references.join("pdftoppm"))
+                .args([
+                    "-f",
+                    &page.to_string(),
+                    "-l",
+                    &page.to_string(),
+                    "-r",
+                    "72",
+                    "-singlefile",
+                    "-png",
+                ])
+                .arg(path)
+                .arg(&prefix)
+                .output()
+                .unwrap();
+            assert!(
+                rendered.status.success(),
+                "{}",
+                String::from_utf8_lossy(&rendered.stderr)
+            );
+            std::fs::read(prefix.with_extension("png")).unwrap()
+        };
+        assert!(
+            render(&original, original_page, "original") == render(&output, new_page, "copy"),
+            "independent original/copy PNGs differ"
+        );
+        let text = |path: &std::path::Path, page: u32| {
+            let text = Command::new(references.join("pdftotext"))
+                .args(["-f", &page.to_string(), "-l", &page.to_string()])
+                .arg(path)
+                .arg("-")
+                .output()
+                .unwrap();
+            assert!(text.status.success());
+            text.stdout
+        };
+        assert_eq!(text(&original, original_page), text(&output, new_page));
+        let geometry = |path: &std::path::Path, page: u32| {
+            let info = Command::new(references.join("pdfinfo"))
+                .args(["-f", &page.to_string(), "-l", &page.to_string(), "-box"])
+                .arg(path)
+                .output()
+                .unwrap();
+            assert!(info.status.success());
+            String::from_utf8(info.stdout)
+                .unwrap()
+                .lines()
+                .filter(|line| {
+                    line.contains("MediaBox:") || line.contains("CropBox:") || line.contains("rot:")
+                })
+                .map(|line| {
+                    line.split_whitespace()
+                        .skip(2)
+                        .collect::<Vec<_>>()
+                        .join(" ")
+                })
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(
+            geometry(&original, original_page),
+            geometry(&output, new_page)
+        );
+    }
+    assert!(std::fs::read(original).unwrap() == original_bytes);
+}
