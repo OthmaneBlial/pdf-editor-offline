@@ -354,80 +354,6 @@ fn choice_region(content: &Content<Vec<Operation>>) -> Result<(usize, usize)> {
     Ok((start, end))
 }
 
-/// PDF paths are not saved by q/Q. A replacement's clip must not consume
-/// surrounding artwork, or remove graphics saves/restores owned by that artwork.
-fn replacement_boundaries(
-    content: &Content<Vec<Operation>>,
-    start: usize,
-    end: usize,
-) -> Result<()> {
-    let mut graphics = 0usize;
-    let mut entry = 0usize;
-    let mut path = false;
-    let mut isolated =
-        content.operations[start].operator == "q" && content.operations[end].operator == "Q";
-    for (index, operation) in content.operations.iter().enumerate().take(end + 1) {
-        if index == start {
-            entry = graphics;
-            if path {
-                return Err(Error::Refused(
-                    "appearance path crosses the text replacement boundary",
-                ));
-            }
-        }
-        match operation.operator.as_str() {
-            "q" => graphics += 1,
-            "Q" => {
-                graphics = graphics
-                    .checked_sub(1)
-                    .ok_or(Error::Invalid("unbalanced appearance graphics state"))?
-            }
-            "m" | "l" | "c" | "v" | "y" | "h" | "re" => path = true,
-            "S" | "s" | "f" | "F" | "f*" | "B" | "B*" | "b" | "b*" | "n" => path = false,
-            _ => (),
-        }
-        if index >= start && graphics < entry {
-            return Err(Error::Refused(
-                "appearance graphics state crosses the text replacement boundary",
-            ));
-        }
-        if index >= start && index < end && graphics == entry {
-            isolated = false;
-        }
-    }
-    if graphics != entry || path {
-        return Err(Error::Refused(
-            "appearance graphics or path crosses the text replacement boundary",
-        ));
-    }
-    // Generated text restores its own graphics/text state. Original text may
-    // instead leave colors, line styles, clipping or font settings for later
-    // artwork. Do not silently change those consumers: require an original
-    // enclosing restore before anything besides structural delimiters.
-    if !isolated {
-        for operation in content.operations.iter().skip(end + 1) {
-            match operation.operator.as_str() {
-                "BMC" | "BDC" | "EMC" => (),
-                "q" => graphics += 1,
-                "Q" => {
-                    graphics = graphics
-                        .checked_sub(1)
-                        .ok_or(Error::Invalid("unbalanced appearance graphics state"))?;
-                    if graphics < entry {
-                        break;
-                    }
-                }
-                _ => {
-                    return Err(Error::Refused(
-                        "surrounding appearance depends on replaced text state",
-                    ));
-                }
-            }
-        }
-    }
-    Ok(())
-}
-
 fn clipping(content: &Content<Vec<Operation>>, interior: [f64; 4]) -> Result<()> {
     let mut clip: Option<[f64; 4]> = None;
     let mut stack = Vec::new();
@@ -1089,6 +1015,13 @@ pub(super) fn publish_plans(
     let mut bytes = 0usize;
     for plan in &plans {
         let replacement = replacement(plan, &font_name)?;
+        if plan.content.operations.len() - (plan.text_end - plan.text_start + 1) + replacement.len()
+            > 100_000
+        {
+            return Err(Error::Limit(
+                "generated text appearance exceeds 100000 operators",
+            ));
+        }
         let mut content = plan.content.clone();
         content
             .operations

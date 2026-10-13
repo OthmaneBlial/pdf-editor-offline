@@ -41,7 +41,12 @@ pub enum FormFieldKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "kind", content = "value", rename_all = "snake_case")]
+#[serde(
+    tag = "kind",
+    content = "value",
+    rename_all = "snake_case",
+    deny_unknown_fields
+)]
 pub enum FormValue {
     Empty,
     Text(String),
@@ -52,6 +57,7 @@ pub enum FormValue {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct FormWidget {
     pub object_id: ObjectId,
     pub page: u32,
@@ -62,6 +68,7 @@ pub struct FormWidget {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct FormField {
     pub object_id: ObjectId,
     pub name: String,
