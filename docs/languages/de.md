@@ -8,7 +8,7 @@
 
 Öffne ein PDF, finde die gewünschte Seite, ordne das Dokument und speichere eine neue Kopie. PDF Editor Offline ist eine kostenlose, quelloffene Desktop-App mit Kommandozeilenwerkzeug. Kein Konto, Abo oder Hochladen von Dokumenten ist erforderlich.
 
-Dies ist die native Rust-Vorschau. Baue die Desktop-App aus dem Quellcode, um sie zu testen. Zielplattformen sind macOS, Windows und Linux; die tatsächliche Desktop-Bedienung wurde vor allem unter macOS geprüft. Desktop-Installationspakete und vollständige PDF-Bearbeitung sind noch in Arbeit. Die [native CLI-Vorschau 4.0.0-preview.1](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.1) ist verfügbar; das [Archiv der Desktop-Versionen](https://github.com/OthmaneBlial/pdf-editor-offline/releases) enthält frühere Builds.
+Dies ist die native Rust-Vorschau. Baue die Desktop-App aus dem Quellcode, um sie zu testen. Zielplattformen sind macOS, Windows und Linux; die tatsächliche Desktop-Bedienung wurde vor allem unter macOS geprüft. Desktop-Installationspakete und vollständige PDF-Bearbeitung sind noch in Arbeit. Die [native CLI-Vorschau 4.0.0-preview.3](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.3) ist verfügbar; das [Archiv der Desktop-Versionen](https://github.com/OthmaneBlial/pdf-editor-offline/releases) enthält frühere Builds.
 
 ![Echtes natives App-Fenster unter macOS mit lokaler Suche, PDF-Seite und Dokumenteigenschaften](../../screenshots/native/editorial-light-2026-10-12.png)
 
@@ -24,7 +24,7 @@ Dies ist die native Rust-Vorschau. Baue die Desktop-App aus dem Quellcode, um si
 
 Zusammenführen, Seitenauswahl, Notizen und Bildkonvertierung haben klare Grenzen. Nicht unterstützte Strukturen werden abgewiesen; siehe [CLI-Anleitung](../../apps/cli/README.md). Komprimierung garantiert keine kleinere Datei. Zuschneiden versteckt Inhalte; beim Entfernen von Metadaten oder Notizen können alte Werte erhalten bleiben. Das ist kein sicheres Löschen. OCR, Auswahlfelder und erweiterte Textfelder, digitale Signaturen, freie Textbearbeitung und allgemeine Dokumentkonvertierung fehlen noch. Nicht unterstützte Inhalte können beim Rendern fehlen. Prüfe exportierte Dokumente. Signierte und erfolgreich entschlüsselte Dateien sind nur lesbar.
 
-Der aktuelle Quellcode erkennt AcroForm-Felder und füllt unterstützte Kontrollkästchen und Optionsfelder mit vorhandenen Darstellungen. [Beispiele und Grenzen](../FORMS_RUST.md). Diese Funktion ist noch nicht im veröffentlichten npm-Paket enthalten.
+Der aktuelle Quellcode erkennt AcroForm-Felder und füllt unterstützte Kontrollkästchen und Optionsfelder mit vorhandenen Darstellungen. [Beispiele und Grenzen](../FORMS_RUST.md). Die npm-CLI `4.0.0-preview.3` enthält das Ausfüllen von Kontrollkästchen und Optionsfeldern.
 
 Unterstützte einzeilige Textfelder können mit einer ausdrücklich gewählten TrueType- oder CID-CFF1-Schrift ausgefüllt werden, die den gesamten Wert abdeckt. Fehlende Glyphen und nicht unterstützte Layouts werden abgewiesen.
 

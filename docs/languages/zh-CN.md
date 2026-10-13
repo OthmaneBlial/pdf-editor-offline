@@ -8,7 +8,7 @@
 
 打开 PDF，找到需要的页面，调整文档，然后保存一份新副本。PDF Editor Offline 提供免费、开源的桌面应用和命令行工具，无需账号、订阅或上传文档。
 
-目前是原生 Rust 预览版。请从源码构建桌面应用以体验当前版本。目标平台为 macOS、Windows 和 Linux；实际桌面交互验证主要在 macOS 上进行。桌面安装包和完整 PDF 编辑功能仍在开发。[原生 CLI 预发布版 4.0.0-preview.1](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.1)现已提供；[历史桌面发行版本](https://github.com/OthmaneBlial/pdf-editor-offline/releases)属于早期构建。
+目前是原生 Rust 预览版。请从源码构建桌面应用以体验当前版本。目标平台为 macOS、Windows 和 Linux；实际桌面交互验证主要在 macOS 上进行。桌面安装包和完整 PDF 编辑功能仍在开发。[原生 CLI 预发布版 4.0.0-preview.3](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.3)现已提供；[历史桌面发行版本](https://github.com/OthmaneBlial/pdf-editor-offline/releases)属于早期构建。
 
 ![macOS 上真实的原生应用窗口，显示本地搜索、PDF 页面和文档属性](../../screenshots/native/editorial-light-2026-10-12.png)
 
@@ -24,7 +24,7 @@
 
 合并、页面子集、便笺编辑和图像转换均有明确限制。不支持的结构会被拒绝，详见 [CLI 指南](../../apps/cli/README.md)。压缩不保证文件变小。裁剪只是隐藏内容；删除元数据或便笺可能留下旧值，不等于安全擦除。预览版尚不支持 OCR、选项字段及高级文本字段填写、数字签名、任意页面文本编辑或通用文档转换。渲染器可能遗漏不支持的内容，请检查导出的文档。已签名及成功解密的输入仅可读取。
 
-当前源代码可识别 AcroForm 字段，并填写受支持的复选框和单选按钮，保留原有外观流。[示例与限制](../FORMS_RUST.md)。已发布的 npm 包尚未包含此功能。
+当前源代码可识别 AcroForm 字段，并填写受支持的复选框和单选按钮，保留原有外观流。[示例与限制](../FORMS_RUST.md)。npm CLI `4.0.0-preview.3` 已包含按钮填写功能。
 
 支持的单行文本字段也可使用用户明确选择、覆盖完整值的 TrueType 或 CID CFF1 字体填写。缺失字形或不支持的布局会被拒绝。
 

@@ -1,30 +1,30 @@
 {
-  "version": "4.0.0-preview.1",
+  "version": "4.0.0-preview.3",
   "assets": {
     "darwin-arm64": {
       "asset": "pdf-editor-offline-darwin-arm64",
-      "bytes": 9760592,
-      "sha256": "88f88d33862c99d0340d860917a3e3f41f03cdc27150884f37e2246c5aa502da"
+      "bytes": 10199776,
+      "sha256": "afbe4b8054d95e9048ed7a01b1b90008319c9d907d31a80e9dcce42e46f411a6"
     },
     "darwin-x64": {
       "asset": "pdf-editor-offline-darwin-x64",
-      "bytes": 10956576,
-      "sha256": "d2cdc8e22e596f3a8833ecbb3ca23802b12933a6758c404dc6c32cf3d378c57f"
+      "bytes": 11445708,
+      "sha256": "74e7fb9a6d75f8e38c4ee497fe4048a595d25512ac9e0744b460466de094ce90"
     },
     "win32-x64": {
       "asset": "pdf-editor-offline-windows-x64.exe",
-      "bytes": 10232832,
-      "sha256": "a2671401efc34ba7d083da4afecf1b0e6850a24357f33bec00ff5811f70812b3"
+      "bytes": 10722304,
+      "sha256": "25269209e09bec62e90f907ee81eb88a94d953c6a91ac84e19b256683347246d"
     },
     "linux-x64": {
       "asset": "pdf-editor-offline-linux-x64",
-      "bytes": 12741232,
-      "sha256": "0749dfa4a830df0dbdcb1ea5ef380838f25ba0c2e5bfcfbf5d0aa0c4ae661308"
+      "bytes": 13271872,
+      "sha256": "18674f68ea307ba7336b5018ba3c689ea961e5aee267905d09a98d3cd96facb1"
     },
     "linux-arm64": {
       "asset": "pdf-editor-offline-linux-arm64",
-      "bytes": 11078840,
-      "sha256": "349505d9ba26f7f0d951e2a7eaf9597823854b2a17af3871177ffaaf0daafbd3"
+      "bytes": 11617168,
+      "sha256": "f8cc09c8e4c5d5b0213772bf21bbcde1a4eb3807b5ff301be9677240297cac7f"
     }
   }
 }

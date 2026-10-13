@@ -2,9 +2,9 @@
 
 Current source discovers AcroForm fields and fills supported checkbox/radio
 buttons using their existing appearance streams. Eligible single-line text fields
-generate embedded appearances with an explicitly supplied covering font. These
-source milestones are separate from the published CLI. Choice fields remain
-discoverable and read-only.
+generate embedded appearances with an explicitly supplied covering font. The
+published `4.0.0-preview.3` CLI includes the button tier. Text generation is
+available in current source. Choice fields remain discoverable and read-only.
 
 ## Try the synthetic form
 

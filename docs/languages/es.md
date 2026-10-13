@@ -8,7 +8,7 @@
 
 Abre un PDF, encuentra la página que necesitas, organiza el documento y guarda una copia nueva. PDF Editor Offline es una aplicación de escritorio y una herramienta de línea de comandos gratuitas y de código abierto. No necesitas cuenta, suscripción ni subir tus documentos.
 
-Esta es la versión preliminar nativa en Rust. Compila la aplicación de escritorio desde el código fuente para probarla. macOS, Windows y Linux son las plataformas objetivo; la interacción real del escritorio se ha comprobado principalmente en macOS. Los instaladores de escritorio y la edición completa siguen en desarrollo. La [CLI nativa preliminar 4.0.0-preview.1](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.1) está disponible; el [archivo de versiones de escritorio](https://github.com/OthmaneBlial/pdf-editor-offline/releases) contiene versiones anteriores.
+Esta es la versión preliminar nativa en Rust. Compila la aplicación de escritorio desde el código fuente para probarla. macOS, Windows y Linux son las plataformas objetivo; la interacción real del escritorio se ha comprobado principalmente en macOS. Los instaladores de escritorio y la edición completa siguen en desarrollo. La [CLI nativa preliminar 4.0.0-preview.3](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.3) está disponible; el [archivo de versiones de escritorio](https://github.com/OthmaneBlial/pdf-editor-offline/releases) contiene versiones anteriores.
 
 ![Ventana real de la aplicación nativa en macOS con búsqueda local, página PDF y propiedades](../../screenshots/native/editorial-light-2026-10-12.png)
 
@@ -24,7 +24,7 @@ Esta es la versión preliminar nativa en Rust. Compila la aplicación de escrito
 
 La unión, los subconjuntos de páginas, las notas y la conversión de imágenes tienen restricciones explícitas. Las estructuras no compatibles se rechazan; consulta la [guía CLI](../../apps/cli/README.md). La compresión no garantiza un archivo menor. Recortar oculta contenido; eliminar metadatos o notas puede dejar valores antiguos. No es un borrado seguro. OCR, campos de selección y de texto avanzado, firma digital, edición libre del texto y conversión general no están disponibles. El renderizador puede omitir contenido no compatible. Revisa los documentos exportados. Los archivos firmados y los descifrados correctamente son de solo lectura.
 
-El código actual detecta campos AcroForm y rellena casillas y botones de opción compatibles, conservando sus apariencias existentes. [Ejemplos y límites](../FORMS_RUST.md). Esta función todavía no está en el paquete npm publicado.
+El código actual detecta campos AcroForm y rellena casillas y botones de opción compatibles, conservando sus apariencias existentes. [Ejemplos y límites](../FORMS_RUST.md). El CLI npm `4.0.0-preview.3` incluye el rellenado de botones.
 
 Los campos de texto de una sola línea compatibles también pueden rellenarse con una fuente TrueType o CFF1 CID explícita que cubra todo el valor. Se rechazan los glifos ausentes y los diseños no compatibles.
 

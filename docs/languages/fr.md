@@ -12,7 +12,7 @@
 
 Ouvrez un PDF, trouvez la page voulue, organisez le document et enregistrez une nouvelle copie. PDF Editor Offline est une application de bureau et un outil en ligne de commande gratuits et libres. Aucun compte, abonnement ou téléversement de document n'est nécessaire.
 
-Il s'agit de l'aperçu natif Rust. Compilez l'application de bureau depuis les sources pour la tester. macOS, Windows et Linux sont les plateformes visées ; les interactions de bureau ont surtout été vérifiées sur macOS. Les installateurs de bureau et l'édition PDF complète restent en développement. La [préversion CLI native 4.0.0-preview.1](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.1) est disponible ; les [versions de bureau archivées](https://github.com/OthmaneBlial/pdf-editor-offline/releases) correspondent à des versions antérieures.
+Il s'agit de l'aperçu natif Rust. Compilez l'application de bureau depuis les sources pour la tester. macOS, Windows et Linux sont les plateformes visées ; les interactions de bureau ont surtout été vérifiées sur macOS. Les installateurs de bureau et l'édition PDF complète restent en développement. La [préversion CLI native 4.0.0-preview.3](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.3) est disponible ; les [versions de bureau archivées](https://github.com/OthmaneBlial/pdf-editor-offline/releases) correspondent à des versions antérieures.
 
 ![Vraie fenêtre native sur macOS : recherche locale, page PDF et propriétés du document](../../screenshots/native/editorial-light-2026-10-12.png)
 
@@ -28,7 +28,7 @@ Il s'agit de l'aperçu natif Rust. Compilez l'application de bureau depuis les s
 
 Les fonctions d'assemblage, de sous-ensembles de pages, de notes et d'images ont des restrictions explicites. Les structures non prises en charge sont refusées ; voir le [guide CLI](../../apps/cli/README.md). La compression ne garantit pas un fichier plus petit. Le recadrage masque du contenu ; retirer des métadonnées ou des notes peut laisser d'anciennes valeurs. Ce n'est pas un effacement sécurisé. OCR, champs de choix et texte avancé, signature numérique, modification libre du texte et conversion générale ne sont pas disponibles. Le rendu peut omettre du contenu non pris en charge. Vérifiez les fichiers exportés. Les documents signés et ceux déchiffrés avec succès restent en lecture seule.
 
-Les sources actuelles permettent de découvrir les champs AcroForm et de remplir les cases à cocher et boutons radio pris en charge. Les apparences existantes sont conservées. [Exemples et limites](../FORMS_RUST.md) ; cette fonction précède sa publication npm.
+Les sources actuelles permettent de découvrir les champs AcroForm et de remplir les cases à cocher et boutons radio pris en charge. Les apparences existantes sont conservées. [Exemples et limites](../FORMS_RUST.md) ; les boutons sont disponibles dans le CLI npm `4.0.0-preview.3`.
 
 Les champs texte sur une ligne pris en charge peuvent aussi être remplis avec une police TrueType ou CFF1 CID explicite couvrant toute la valeur. Les glyphes manquants et les mises en page non prises en charge sont refusés.
 
@@ -86,7 +86,7 @@ détaille les commandes disponibles.
 Suivez les [commits récents](https://github.com/OthmaneBlial/pdf-editor-offline/commits/main/)
 et la [préparation de la prochaine CLI](../../distribution/npm/RELEASE_PREPARATION.md).
 La duplication protégée et le traitement en processus enfants sont disponibles
-dans les sources ; la CLI publiée `4.0.0-preview.1` les précède.
+dans les sources ; la CLI publiée `4.0.0-preview.3` les précède.
 
 Les opérations PDF s'exécutent sur votre machine, sans service de rendu ou conversion à distance. Cela ne prouve ni l'innocuité de chaque PDF ni la suppression de toutes les données cachées. Les [preuves CLI](../RUST_BENCHMARKS.md) présentent 44 contrôles d'opérations avec qpdf/Poppler, des temps de processus et des empreintes, dont un PDF synthétique de 1 000 pages. Elles ne garantissent pas la fidélité de tous les documents, la réactivité du bureau ou un gain de vitesse universel.
 

@@ -5,12 +5,17 @@ npm install --global pdf-editor-offline
 pdf-editor-offline --help
 ```
 
-Version 4.0.0-preview.1 migrates the command to the native Rust CLI. This is a
+Version 4.0.0-preview.3 provides the native Rust CLI. This is a
 breaking preview with the capabilities shown by `--help`; it does not claim full
 feature parity with older releases. The package contains a small Node installer
 and launcher; all document processing runs in the native executable, offline.
 Node 22 or newer is required. See the [project documentation](https://github.com/OthmaneBlial/pdf-editor-offline)
 for the supported native operations and current limits.
+
+This version adds bounded self-hosted document workers, guarded page duplication,
+AcroForm discovery and checkbox/radio filling with existing appearances. Text
+form filling, native desktop installers, OCR, digital signing and secure redaction
+remain separate stages. [Verified native CLI release](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.3).
 
 Supported binaries: macOS Apple Silicon/Intel, Windows x64, and static musl Linux
 x64/arm64. Installation downloads an uncompressed executable from the pinned

@@ -8,7 +8,7 @@
 
 PDF를 열고 필요한 페이지를 찾은 뒤 문서를 정리하고 새 복사본으로 저장하세요. PDF Editor Offline은 무료 오픈 소스 데스크톱 앱과 명령줄 도구입니다. 계정, 구독, 문서 업로드가 필요하지 않습니다.
 
-현재는 네이티브 Rust 미리보기 버전입니다. 데스크톱 앱을 사용하려면 소스에서 빌드하세요. 대상 플랫폼은 macOS, Windows, Linux이며 실제 데스크톱 조작 검증은 주로 macOS에서 진행했습니다. 데스크톱 설치 프로그램과 완전한 PDF 편집 기능은 개발 중입니다. [네이티브 CLI 사전 릴리스 4.0.0-preview.1](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.1)이 공개되어 있으며, [이전 데스크톱 릴리스 모음](https://github.com/OthmaneBlial/pdf-editor-offline/releases)은 과거 빌드입니다.
+현재는 네이티브 Rust 미리보기 버전입니다. 데스크톱 앱을 사용하려면 소스에서 빌드하세요. 대상 플랫폼은 macOS, Windows, Linux이며 실제 데스크톱 조작 검증은 주로 macOS에서 진행했습니다. 데스크톱 설치 프로그램과 완전한 PDF 편집 기능은 개발 중입니다. [네이티브 CLI 사전 릴리스 4.0.0-preview.3](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.3)이 공개되어 있으며, [이전 데스크톱 릴리스 모음](https://github.com/OthmaneBlial/pdf-editor-offline/releases)은 과거 빌드입니다.
 
 ![macOS에서 실행 중인 실제 네이티브 앱: 로컬 검색, PDF 페이지, 문서 속성](../../screenshots/native/editorial-light-2026-10-12.png)
 
@@ -24,7 +24,7 @@ PDF를 열고 필요한 페이지를 찾은 뒤 문서를 정리하고 새 복�
 
 병합, 페이지 부분 선택, 메모 수정, 이미지 변환에는 명확한 제한이 있습니다. 지원하지 않는 구조는 거부합니다. [CLI 안내](../../apps/cli/README.md)를 참고하세요. 압축해도 파일이 작아진다는 보장은 없습니다. 자르기는 내용을 숨길 뿐이며 메타데이터나 메모를 제거해도 이전 값이 남을 수 있습니다. 안전한 데이터 삭제가 아닙니다. OCR, 선택 및 고급 텍스트 필드 입력, 디지털 서명, 자유로운 본문 편집, 일반적인 문서 변환은 구현되지 않았습니다. 지원하지 않는 내용이 렌더링에서 빠질 수 있으므로 내보낸 문서를 확인하세요. 서명된 파일과 정상적으로 복호화한 입력은 읽기 전용입니다.
 
-현재 소스는 AcroForm 필드를 검색하고 기존 모양을 유지하면서 지원되는 체크박스와 라디오 버튼을 변경합니다. [사용 예와 제한](../FORMS_RUST.md)을 참고하세요. 공개된 npm 패키지에는 아직 포함되지 않았습니다.
+현재 소스는 AcroForm 필드를 검색하고 기존 모양을 유지하면서 지원되는 체크박스와 라디오 버튼을 변경합니다. [사용 예와 제한](../FORMS_RUST.md)을 참고하세요. npm CLI `4.0.0-preview.3`에는 체크박스와 라디오 버튼 변경 기능이 포함되어 있습니다.
 
 지원하는 한 줄 텍스트 필드에는 전체 값을 표현할 수 있는 TrueType 또는 CID CFF1 글꼴을 직접 선택하여 입력할 수 있습니다. 누락된 글리프와 지원하지 않는 레이아웃은 거부합니다.
 

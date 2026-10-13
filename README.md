@@ -24,7 +24,7 @@ work. No account, subscription or document upload is required.
 **Try the native Rust preview.** The CLI is released for macOS, Windows and Linux;
 the desktop app builds from source. Actual desktop interaction evidence is
 primarily from macOS. Native desktop installers and full PDF editing remain in
-progress. [Download the native CLI](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.1);
+progress. [Download the native CLI](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.3);
 historical desktop releases have a different feature set.
 
 ![Actual native PDF editor on macOS: local search, page canvas and document inspector in the light theme](screenshots/native/editorial-light-2026-10-12.png)
@@ -89,10 +89,10 @@ writes a new copy. Pick an unused output name: existing files are not overwritte
 
 The npm package installs and launches the native Rust CLI; PDF processing stays
 local. Its installer and launcher need Node.js 22+. Prefer a standalone binary?
-[Download one for your platform](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.1)
+[Download one for your platform](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.3)
 and run it directly, without Node.js or a Rust toolchain.
 
-Version **4.0.0-preview.1** passed real binary and global-install checks on macOS
+Version **4.0.0-preview.3** passed real binary and global-install checks on macOS
 ARM64/Intel, Windows x64 and Linux x64/ARM64. It installs the CLI; build the desktop
 app with the instructions below.
 
@@ -132,8 +132,8 @@ safely handle. Merge, page subsets, note editing and image conversion have expli
 scope restrictions; see the [CLI guide](apps/cli/README.md). A smaller compressed
 file is not guaranteed.
 
-[Page duplication](docs/DESKTOP_PAGE_RANGES.md#duplicate) is a current-source
-milestone; it is not included in the published `4.0.0-preview.1` CLI.
+[Page duplication](docs/DESKTOP_PAGE_RANGES.md#duplicate) is available in the
+published `4.0.0-preview.3` CLI.
 
 Cropping hides content. Removing metadata or notes can leave old values in the
 file. None of these operations is secure redaction or private-data erasure.
@@ -144,8 +144,8 @@ successfully decrypted inputs are read-only.
 
 [Try the form fixture](docs/FORMS_RUST.md): buttons preserve existing appearances;
 single-line text embeds a complete covering TrueType or supported CID-keyed CFF1
-font. Missing glyphs and unsupported layouts are refused. These are current-source
-milestones, separate from the published `4.0.0-preview.1` CLI.
+font. Missing glyphs and unsupported layouts are refused. Button filling is in the
+published `4.0.0-preview.3` CLI; text generation is available in current source.
 
 The interface is currently English. These README translations do not imply a
 localized GUI or complete right-to-left layout support. Offline fonts include
@@ -261,7 +261,7 @@ flowchart LR
 
 Current source builds isolate desktop and CLI document processing in local
 children. No document upload service is used. The released CLI
-`4.0.0-preview.1` predates this milestone; see [CLI controls](docs/CLI_ISOLATION.md).
+`4.0.0-preview.3` predates this milestone; see [CLI controls](docs/CLI_ISOLATION.md).
 [Architecture](docs/ARCHITECTURE.md) · [Public Rust API](crates/pdf-core/README.md)
 
 </details>
