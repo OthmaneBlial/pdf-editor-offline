@@ -314,3 +314,22 @@ Automatic list scrolling reveals a selected row and retains other selections.
 The same explicit TrueType/CFF font, dry-run, bounded child, password-stdin,
 no-clobber, signature and read-only restrictions apply. Editable combo free-entry,
 unsupported layouts and missing glyphs are refused; old values can remain.
+
+Insert a PNG/JPEG as new page content:
+
+```sh
+pdf-editor-offline add-image-overlay input.pdf --image logo.png --page 1 --rect 50 60 150 160 --rotation 90 -o with-logo.pdf --dry-run --json
+pdf-editor-offline add-image-overlay input.pdf --image logo.png --page 1 --rect 50 60 150 160 --rotation 90 -o with-logo.pdf --json
+```
+
+Coordinates are unrotated PDF user space; the rectangle must fit the media/crop
+boxes. Its width/height set the image size and can stretch aspect ratio. Rotation
+is counterclockwise and limited to 0/90/180/270 within the rectangle. Source PDF
+and image stay unchanged; dry-run verifies without writing, and publication uses
+verified new-copy/no-clobber saving. PNG alpha and supported sRGB metadata are
+retained; validated JPEG codestreams are preserved. Unsupported color/orientation
+metadata, tagged pages, unbalanced source content and signed/decrypted documents
+are refused. Image input is at most 32 MiB, combined PDF/image input 128 MiB,
+8192 pixels per side and eight million pixels. This adds an image; it does not
+replace existing images, sanitize image metadata or provide secure redaction.
+The universal resource-limited CLI child remains mandatory.

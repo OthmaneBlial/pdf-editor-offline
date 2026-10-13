@@ -30,6 +30,22 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Insert a PNG/JPEG as new page content; does not replace existing images.
+    AddImageOverlay {
+        input: PathBuf,
+        #[arg(long)]
+        image: PathBuf,
+        #[arg(long)]
+        page: u32,
+        #[arg(long,num_args=4,value_names=["X0","Y0","X1","Y1"],allow_hyphen_values=true)]
+        rect: Vec<f64>,
+        #[arg(long, default_value_t = 0)]
+        rotation: u16,
+        #[arg(short, long)]
+        output: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Split consecutive pages into a new directory; this is not privacy cleanup.
     Split {
         input: PathBuf,
@@ -455,6 +471,35 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
                 json!({"operation":"add-vector-overlay","overlay":overlay,"output":json_path(output),"dry_run":dry_run,"info":document.info()?,"existing_content_edited":false,"secure_erasure":false}),
             )
         }
+        Command::AddImageOverlay {
+            input,
+            image,
+            page,
+            rect,
+            rotation,
+            output,
+            dry_run,
+        } => {
+            let image = pdf_core::read_input_bytes(image, pdf_core::MAX_STREAM_BYTES)?;
+            let bytes = pdf_core::read_input_bytes(input, pdf_core::MAX_INPUT_BYTES - image.len())?;
+            let mut document = PdfDocument::from_bytes(&bytes, password)?;
+            let placement = pdf_core::ImageOverlay {
+                page: *page,
+                rectangle: rect
+                    .as_slice()
+                    .try_into()
+                    .map_err(|_| Error::Invalid("image rectangle needs four coordinates"))?,
+                rotation: *rotation,
+            };
+            let image = pdf_convert::add_image_overlay(&mut document, &placement, &image)
+                .map_err(image_error)?;
+            if !dry_run {
+                document.save_new(output)?;
+            }
+            Ok(
+                json!({"operation":"add-image-overlay","page":page,"rectangle":rect,"rotation":rotation,"image":image,"output":json_path(output),"dry_run":dry_run,"info":document.info()?,"scope":"restricted_png_jpeg_color_metadata_orientation_tier","existing_images_replaced":false,"secure_erasure":false}),
+            )
+        }
         Command::AddTextOverlay {
             input,
             page,
@@ -877,8 +922,9 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
         }
         Command::Capabilities => Ok(
             json!({ "runtime": "rust-native", "version": env!("CARGO_PKG_VERSION"), "migration_preview": true,
-            "commands": ["add-vector-overlay", "split", "add-text-overlay", "info", "sanitize", "list-forms", "list-choices", "fill-button", "fill-text", "fill-choice", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "images-to-pdf", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "duplicate-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
+            "commands": ["add-image-overlay", "add-vector-overlay", "split", "add-text-overlay", "info", "sanitize", "list-forms", "list-choices", "fill-button", "fill-text", "fill-choice", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "images-to-pdf", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "duplicate-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
             "vector_overlays":"new_rectangle_ellipse_line_bounded_polyline_with_stroke_fill_paint_alpha_not_redaction",
+            "image_overlay":"restricted_png_jpeg_insert_quarter_turns_pdf_rectangle_no_existing_image_replacement",
             "image_conversion":"restricted_png_jpeg_color_metadata_orientation_tier_one_pixel_one_pdf_point",
             "metadata":"six_standard_trailer_info_keys_custom_entries_and_xmp_preserved_no_sync_or_secure_erasure",
             "sanitization":"targeted_info_xmp_file_association_action_removal_full_rewrite_gc_not_redaction_or_privacy_proof",
@@ -955,16 +1001,7 @@ fn images_to_pdf(inputs: &[PathBuf], output: &PathBuf, dry_run: bool) -> pdf_cor
         images.push(bytes);
     }
     let slices = images.iter().map(Vec::as_slice).collect::<Vec<_>>();
-    let conversion = pdf_convert::images_to_pdf(&slices).map_err(|error| match error {
-        pdf_convert::Error::Invalid(message) | pdf_convert::Error::Decode(message) => {
-            Error::Invalid(message)
-        }
-        pdf_convert::Error::Unsupported(message) => Error::Refused(message),
-        pdf_convert::Error::Limit(message) => Error::Limit(message),
-        pdf_convert::Error::Pdf(error) => Error::Pdf(error),
-        pdf_convert::Error::Core(error) => error,
-        pdf_convert::Error::Io(error) => Error::Io(error),
-    })?;
+    let conversion = pdf_convert::images_to_pdf(&slices).map_err(image_error)?;
     if !dry_run {
         conversion.document.save_new(output)?;
     }
@@ -1152,4 +1189,17 @@ fn parent(arguments: Vec<std::ffi::OsString>) -> ExitCode {
         return display_result(&cli, run(&cli, password.as_deref()));
     }
     isolation::execute(arguments, password, cli.json)
+}
+
+fn image_error(error: pdf_convert::Error) -> Error {
+    match error {
+        pdf_convert::Error::Invalid(message) | pdf_convert::Error::Decode(message) => {
+            Error::Invalid(message)
+        }
+        pdf_convert::Error::Unsupported(message) => Error::Refused(message),
+        pdf_convert::Error::Limit(message) => Error::Limit(message),
+        pdf_convert::Error::Pdf(error) => Error::Pdf(error),
+        pdf_convert::Error::Core(error) => error,
+        pdf_convert::Error::Io(error) => Error::Io(error),
+    }
 }
