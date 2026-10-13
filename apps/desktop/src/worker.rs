@@ -52,6 +52,11 @@ pub struct ContentTextKey {
     pub generation: u64,
 }
 pub enum Edit {
+    ReplaceImage {
+        key: FormsReadKey,
+        selection: pdf_core::ImageSelection,
+        image_file: PathBuf,
+    },
     VectorOverlay {
         key: FormsReadKey,
         overlay: pdf_core::VectorOverlay,
@@ -131,6 +136,10 @@ pub enum Edit {
 
 pub enum Command {
     ContentText(ContentTextKey),
+    ImageInstances {
+        key: FormsReadKey,
+        page: u32,
+    },
     Split {
         id: u64,
         revision: u64,
@@ -227,6 +236,7 @@ impl Command {
             Self::Notes(key) => key.tab,
             Self::ContentText(key) => key.tab,
             Self::Forms(key) => key.tab,
+            Self::ImageInstances { key, .. } => key.tab,
             Self::Search { key, .. } => key.tab,
         }
     }
@@ -254,6 +264,11 @@ pub enum Event {
     ContentText {
         key: ContentTextKey,
         inventory: pdf_worker::document::ContentTextPage,
+    },
+    ImageInstances {
+        key: FormsReadKey,
+        page: u32,
+        instances: Vec<pdf_core::ImageInstance>,
     },
     Split {
         source: u64,
@@ -396,12 +411,14 @@ impl Worker {
                         ..
                     } => Some(TaskKey::ContentText(*key)),
                     Command::Forms(key) => Some(TaskKey::Forms(*key)),
+                    Command::ImageInstances { key, .. } => Some(TaskKey::Overlay(*key)),
                     Command::Edit {
                         edit:
                             Edit::TextOverlay { key, .. }
                             | Edit::PageNumbers { key, .. }
                             | Edit::VectorOverlay { key, .. }
-                            | Edit::ImageOverlay { key, .. },
+                            | Edit::ImageOverlay { key, .. }
+                            | Edit::ReplaceImage { key, .. },
                         ..
                     } => Some(TaskKey::Overlay(*key)),
                     Command::Edit {
@@ -963,6 +980,16 @@ fn process_with_journal(
                 next_offset,
             })
         }
+        Command::ImageInstances { key, page } => {
+            if key.revision != document.current.revision {
+                return Err("Image request is stale".into());
+            }
+            Ok(Event::ImageInstances {
+                key,
+                page,
+                instances: document.image_instances(page)?,
+            })
+        }
         Command::Forms(key) => {
             if key.revision != document.current.revision {
                 return Err("Form request is stale".into());
@@ -1012,7 +1039,8 @@ fn process_with_journal(
             | Edit::TextOverlay { key, .. }
             | Edit::PageNumbers { key, .. }
             | Edit::VectorOverlay { key, .. }
-            | Edit::ImageOverlay { key, .. } = &edit
+            | Edit::ImageOverlay { key, .. }
+            | Edit::ReplaceImage { key, .. } = &edit
                 && key.tab != id
             {
                 return Err("Form draft belongs to another document".into());
@@ -2265,3 +2293,5 @@ mod tests {
 
 #[cfg(test)]
 mod signature_tests;
+#[cfg(test)]
+mod image_instance_tests;

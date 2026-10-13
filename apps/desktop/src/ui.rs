@@ -51,6 +51,7 @@ enum Action {
     ImageOverlay,
     ContentText,
     VisualSignature,
+    ReplaceImage,
     Undo,
     Redo,
     Previous,
@@ -221,6 +222,11 @@ impl EditorApp {
             }
             match event {
                 Event::ContentText { key, inventory } => self.accept_content_text(key, inventory),
+                Event::ImageInstances {
+                    key,
+                    page,
+                    instances,
+                } => self.accept_image_instances(key, page, instances),
                 Event::Notes {
                     key,
                     entries,
@@ -1128,6 +1134,7 @@ impl EditorApp {
             Action::ImageOverlay => self.open_image_overlay(),
             Action::ContentText => self.open_content_text(),
             Action::VisualSignature => self.open_visual_signature(),
+            Action::ReplaceImage => self.open_image_replacement(),
             Action::Undo => {
                 if let Some(tab) = self.selected().filter(|tab| tab.status.can_undo) {
                     self.send(

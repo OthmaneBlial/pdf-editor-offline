@@ -44,6 +44,10 @@ impl EditorApp {
         }) else {
             return;
         };
+        if dialog.replacement_mode {
+            Self::existing_image_outline(dialog, ui, page, image);
+            return;
+        }
         let Some(map) = PageMap::new(page, image) else {
             dialog.gesture = None;
             return;

@@ -544,6 +544,7 @@ impl WorkingDocument {
                 }
                 ReadOperation::Info => Operation::Info,
                 ReadOperation::Forms => Operation::Forms,
+                ReadOperation::ImageInstances { page } => Operation::ImageInstances { page },
                 ReadOperation::Metadata => Operation::Metadata,
                 ReadOperation::Text { page } => Operation::Text { page },
                 ReadOperation::Render {
@@ -884,6 +885,41 @@ impl WorkingDocument {
         Ok(inventory)
     }
 
+    pub fn image_instances(&self, page: u32) -> Result<Vec<pdf_core::ImageInstance>, String> {
+        let (result, reply) = self.read(ReadOperation::ImageInstances { page })?;
+        let DocumentResult::ImageInstances { instances } = result else {
+            return Err("Worker returned unexpected image inventory".into());
+        };
+        if reply.kind != pdf_worker::PayloadKind::None
+            || !reply.payload.is_empty()
+            || instances.len() > 10_000
+        {
+            return Err("Invalid image inventory envelope".into());
+        }
+        for image in &instances {
+            let s = &image.selection;
+            if s.page != page
+                || s.operator == 0
+                || s.operator > 100_000
+                || s.source_hash.len() != 64
+                || !s.source_hash.bytes().all(|b| b.is_ascii_hexdigit())
+                || s.resource_name.len() > 4096
+                || s.image_id.0 == 0
+                || image.pixel_width == 0
+                || image.pixel_height == 0
+                || image
+                    .matrix
+                    .iter()
+                    .chain(image.corners.iter().flatten())
+                    .any(|n| !n.is_finite())
+                || image.refusal_reason.as_ref().is_some_and(|r| r.len() > 512)
+                || image.replaceable == image.refusal_reason.is_some()
+            {
+                return Err("Invalid image inventory values".into());
+            }
+        }
+        Ok(instances)
+    }
     pub fn notes(
         &self,
         page: u32,
@@ -1093,6 +1129,45 @@ impl WorkingDocument {
                 expected_fill = Some((self.current.info.page_count, overlay.page as usize - 1));
                 expected_overlay = true;
                 Mutation::VectorOverlay { overlay }
+            }
+            Edit::ReplaceImage {
+                key,
+                selection,
+                image_file,
+            } => {
+                if self.current.info.encrypted || self.current.info.signature_fields > 0 {
+                    return Err("Signed or encrypted documents are read only".into());
+                }
+                if key.revision != self.current.revision
+                    || selection.page == 0
+                    || selection.page as usize > self.current.info.page_count
+                {
+                    return Err("Image draft revision or page is stale".into());
+                }
+                let remaining = pdf_worker::MAX_PDF_BYTES
+                    .saturating_sub(self.current.bytes.len())
+                    .min(pdf_core::MAX_STREAM_BYTES);
+                if remaining == 0 {
+                    return Err("No input budget remains for the image".into());
+                }
+                let image = pdf_core::read_input_bytes(&image_file, remaining)
+                    .map_err(|error| error.to_string())?;
+                if image.is_empty() {
+                    return Err("Choose a nonempty PNG/JPEG".into());
+                }
+                let mut payload = Vec::new();
+                payload
+                    .try_reserve_exact(self.current.bytes.len() + image.len())
+                    .map_err(|_| "Cannot allocate bounded image overlay payload")?;
+                payload.extend_from_slice(&self.current.bytes);
+                payload.extend_from_slice(&image);
+                expected_fill = Some((self.current.info.page_count, selection.page as usize - 1));
+                expected_overlay = true;
+                text_payload = Some(payload);
+                Mutation::ReplaceImage {
+                    selection,
+                    image_bytes_len: image.len() as u32,
+                }
             }
             Edit::ImageOverlay {
                 key,
