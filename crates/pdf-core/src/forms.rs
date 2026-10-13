@@ -1,5 +1,5 @@
-//! Bounded AcroForm discovery and transactional button filling. No scripts run.
-//! Text/choice appearance generation and XFA remain separate implementation stages.
+//! Bounded AcroForm discovery and transactional supported form filling. No scripts run.
+//! Text/choice appearances and page overlays share font/layout helpers; XFA is unsupported.
 //! Field/reference depth is limited to 128, traversal to two million lookups,
 //! and the graph to 100,000 nodes / 10,000 terminal fields. Names, values and
 //! intermediate inherited-name copies share a 4 MiB text budget. Unique button

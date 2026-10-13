@@ -95,6 +95,8 @@ jobs:
           PDF_QPDF_BIN="$RUNNER_TEMP/reference-qpdf/bin/qpdf" PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" cargo test --locked -p pdf-editor-offline-native production_native_worker_multiline_undo_save_and_independent_reference -- --ignored
           PDF_QPDF_BIN="$RUNNER_TEMP/reference-qpdf/bin/qpdf" PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" cargo test --locked -p pdf-editor-offline-native production_native_merge_and_saved_copy_pass_independent_text_pixels_geometry_checks -- --ignored
           PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" cargo test --locked -p pdf-render --test attachment_icons -- --ignored
+          PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" cargo test --locked -p pdf-render --test text_icons -- --ignored
+          PDF_QPDF_BIN="$RUNNER_TEMP/reference-qpdf/bin/qpdf" PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" cargo test --locked -p pdf-core --test text_overlay -- --ignored
       - name: Preserve independent evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
