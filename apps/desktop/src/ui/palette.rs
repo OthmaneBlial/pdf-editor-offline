@@ -40,6 +40,11 @@ impl EditorApp {
                         Action::Notes,
                         !self.busy && has_document,
                     ),
+                    (
+                        "Draw shapes and freehand",
+                        Action::VectorOverlay,
+                        editable && self.pending_saves.is_empty(),
+                    ),
                     ("PDF form fields", Action::Forms, !self.busy && has_document),
                     ("Recover previous session", Action::Recovery, true),
                     ("Open PDF", Action::Open, !self.busy && self.tabs.len() < 16),

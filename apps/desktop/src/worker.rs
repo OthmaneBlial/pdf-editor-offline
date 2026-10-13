@@ -44,6 +44,10 @@ pub struct NotesKey {
     pub generation: u64,
 }
 pub enum Edit {
+    VectorOverlay {
+        key: FormsReadKey,
+        overlay: pdf_core::VectorOverlay,
+    },
     TextOverlay {
         key: FormsReadKey,
         overlay: pdf_core::TextOverlay,
@@ -357,7 +361,7 @@ impl Worker {
                     Command::Notes(key) => Some(TaskKey::Notes(*key)),
                     Command::Forms(key) => Some(TaskKey::Forms(*key)),
                     Command::Edit {
-                        edit: Edit::TextOverlay { key, .. },
+                        edit: Edit::TextOverlay { key, .. } | Edit::VectorOverlay { key, .. },
                         ..
                     } => Some(TaskKey::Overlay(*key)),
                     Command::Edit {
@@ -440,6 +444,8 @@ mod sanitize_tests;
 mod split_tests;
 #[cfg(test)]
 mod subset_tests;
+#[cfg(test)]
+mod vector_tests;
 use document::WorkingDocument;
 pub use recovery::{RecoveredDocument, RecoverySession};
 
@@ -940,7 +946,8 @@ fn process_with_journal(
             }
             if let Edit::FillButtons { key, .. }
             | Edit::FillText { key, .. }
-            | Edit::TextOverlay { key, .. } = &edit
+            | Edit::TextOverlay { key, .. }
+            | Edit::VectorOverlay { key, .. } = &edit
                 && key.tab != id
             {
                 return Err("Form draft belongs to another document".into());

@@ -1008,6 +1008,20 @@ impl WorkingDocument {
         let mut expected_note = None;
         let mut text_payload = None;
         let mutation = match edit {
+            Edit::VectorOverlay { key, overlay } => {
+                if self.current.info.encrypted || self.current.info.signature_fields > 0 {
+                    return Err("Signed or encrypted documents are read only".into());
+                }
+                if key.revision != self.current.revision {
+                    return Err("Drawing draft is stale. Close and reopen drawing controls.".into());
+                }
+                if overlay.page == 0 || overlay.page as usize > self.current.info.page_count {
+                    return Err("Drawing page is outside this document".into());
+                }
+                expected_fill = Some((self.current.info.page_count, overlay.page as usize - 1));
+                expected_overlay = true;
+                Mutation::VectorOverlay { overlay }
+            }
             Edit::TextOverlay {
                 key,
                 overlay,

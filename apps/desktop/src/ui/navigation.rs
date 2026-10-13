@@ -20,7 +20,10 @@ impl EditorApp {
             )
             .show(ui, |ui| {
                 crate::style::chrome(ui);
-                ui.add_enabled_ui(self.overlay_dialog.is_none(), |ui| self.navigation(ui));
+                ui.add_enabled_ui(
+                    self.overlay_dialog.is_none() && self.vector_dialog.is_none(),
+                    |ui| self.navigation(ui),
+                );
             });
         egui::Panel::top("tab-strip")
             .resizable(false)
@@ -35,7 +38,10 @@ impl EditorApp {
                     }),
             )
             .show(ui, |ui| {
-                ui.add_enabled_ui(self.overlay_dialog.is_none(), |ui| self.document_tabs(ui));
+                ui.add_enabled_ui(
+                    self.overlay_dialog.is_none() && self.vector_dialog.is_none(),
+                    |ui| self.document_tabs(ui),
+                );
             });
         egui::Panel::bottom("status")
             .resizable(false)
@@ -57,7 +63,10 @@ impl EditorApp {
                 .max_size((width * 0.38).clamp(196.0, 360.0))
                 .frame(egui::Frame::new().fill(colors.panel).inner_margin(16))
                 .show(ui, |ui| {
-                    ui.add_enabled_ui(self.overlay_dialog.is_none(), |ui| self.sidebar(ui))
+                    ui.add_enabled_ui(
+                        self.overlay_dialog.is_none() && self.vector_dialog.is_none(),
+                        |ui| self.sidebar(ui),
+                    )
                 });
         }
         if self.selected().is_some() && self.show_inspector && width >= 960.0 {
@@ -71,9 +80,10 @@ impl EditorApp {
                         .id_salt("inspector-scroll")
                         .auto_shrink([false, false])
                         .show(ui, |ui| {
-                            ui.add_enabled_ui(self.overlay_dialog.is_none(), |ui| {
-                                self.inspector(ui)
-                            })
+                            ui.add_enabled_ui(
+                                self.overlay_dialog.is_none() && self.vector_dialog.is_none(),
+                                |ui| self.inspector(ui),
+                            )
                         });
                 });
         }
@@ -108,6 +118,7 @@ impl EditorApp {
                 .on_hover_text("Save a new verified PDF · Command/Ctrl+S · originals are never overwritten").clicked() { action = Some(Action::Save); }
             ui.menu_button("Edit", |ui| {
                 if ui.add_enabled(!self.busy && self.pending_saves.is_empty() && self.selected().is_some_and(Tab::editable),egui::Button::new("Add text overlay…")).clicked(){action=Some(Action::TextOverlay);ui.close();}
+                if ui.add_enabled(!self.busy && self.pending_saves.is_empty() && self.selected().is_some_and(Tab::editable),egui::Button::new("Draw shapes and freehand…")).clicked(){action=Some(Action::VectorOverlay);ui.close();}
                 if ui.add_enabled(!self.busy && self.selected().is_some_and(|tab| tab.status.can_undo), egui::Button::new("Undo · Command/Ctrl+Z")).clicked() { action = Some(Action::Undo); ui.close(); }
                 if ui.add_enabled(!self.busy && self.selected().is_some_and(|tab| tab.status.can_redo), egui::Button::new("Redo · Command/Ctrl+Shift+Z")).clicked() { action = Some(Action::Redo); ui.close(); }
                 ui.separator();
@@ -272,7 +283,9 @@ impl EditorApp {
                 ui.separator();
                 if ui
                     .add_enabled(
-                        self.overlay_dialog.is_none() && tab.page > 0,
+                        self.overlay_dialog.is_none()
+                            && self.vector_dialog.is_none()
+                            && tab.page > 0,
                         egui::Button::new("Prev").small(),
                     )
                     .on_hover_text("Previous page")
@@ -283,7 +296,9 @@ impl EditorApp {
                 ui.label(format!("{} / {}", tab.page + 1, tab.status.info.page_count));
                 if ui
                     .add_enabled(
-                        self.overlay_dialog.is_none() && tab.page + 1 < tab.status.info.page_count,
+                        self.overlay_dialog.is_none()
+                            && self.vector_dialog.is_none()
+                            && tab.page + 1 < tab.status.info.page_count,
                         egui::Button::new("Next").small(),
                     )
                     .on_hover_text("Next page")

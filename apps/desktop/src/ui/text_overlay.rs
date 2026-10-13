@@ -6,7 +6,7 @@ use crate::{
 use eframe::egui;
 use pdf_core::{TextAlignment, TextOverlay};
 use std::path::PathBuf;
-mod placement;
+pub(super) mod placement;
 
 pub(super) struct Dialog {
     pub key: FormsReadKey,
@@ -73,7 +73,11 @@ impl Dialog {
 }
 impl EditorApp {
     pub(super) fn open_text_overlay(&mut self) {
-        if self.busy || !self.pending_saves.is_empty() || self.overlay_dialog.is_some() {
+        if self.busy
+            || !self.pending_saves.is_empty()
+            || self.overlay_dialog.is_some()
+            || self.vector_dialog.is_some()
+        {
             return;
         }
         let Some(tab) = self.selected().filter(|t| t.editable()) else {
@@ -249,10 +253,10 @@ impl EditorApp {
 }
 
 #[cfg(test)]
-mod tests {
+pub(super) mod tests {
     #![allow(clippy::unwrap_used)]
     use super::*;
-    pub(super) fn app(context: &egui::Context) -> EditorApp {
+    pub(in crate::ui) fn app(context: &egui::Context) -> EditorApp {
         let mut app = EditorApp::new(&eframe::CreationContext::_new_kittest(context.clone()));
         let pdf = pdf_core::PdfDocument::from_bytes(
             include_bytes!("../../../../tests/fixtures/pdfs/forms.pdf"),

@@ -2,8 +2,8 @@ use super::EditorApp;
 use eframe::egui;
 
 #[derive(Clone, Copy, PartialEq)]
-pub(super) struct PageMap {
-    bounds: [f64; 4],
+pub(in crate::ui) struct PageMap {
+    pub(in crate::ui) bounds: [f64; 4],
     rotation: i64,
     image: egui::Rect,
 }
