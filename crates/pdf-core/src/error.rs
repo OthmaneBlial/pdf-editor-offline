@@ -2,6 +2,15 @@ use std::path::PathBuf;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    #[error("split publication stopped after {completed_count} outputs in {directory}: {source}", directory=.directory.display())]
+    PartialSplit {
+        directory: PathBuf,
+        completed: Vec<PathBuf>,
+        completed_count: usize,
+        failed_output: Option<PathBuf>,
+        #[source]
+        source: Box<Error>,
+    },
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
     #[error("PDF error: {0}")]

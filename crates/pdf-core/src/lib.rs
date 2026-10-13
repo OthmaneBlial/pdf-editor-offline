@@ -13,6 +13,7 @@ mod pages;
 mod sanitize;
 mod save;
 pub mod selection;
+mod split;
 mod strings;
 mod structure;
 mod text;
@@ -27,6 +28,7 @@ pub use metadata::*;
 pub use notes::*;
 pub use sanitize::*;
 use serde::{Deserialize, Serialize};
+pub use split::*;
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::Path;
 

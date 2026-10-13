@@ -11,6 +11,22 @@ and explicit session-only desktop privacy policy.
 Native Rust document processing for PDF Editor Offline. No network,
 HTTP service or GUI dependency. API page numbers are one-based.
 
+`split_every(every)` returns consecutive verified byte chunks with original page
+ranges and output information. It reuses `extract_pages` and its structural
+refusals, preserving the original document. Output geometry and resources are
+preserved; other pages' unreachable objects can remain. Splitting is not privacy
+cleanup or secure removal. The tier allows at most 1,024 outputs, 128 MiB combined
+serialized/logical-copy payload and a conservative two-million-value aggregate
+copy estimate, checked before expensive cloning.
+
+`split_new_directory(every, path)` verifies every chunk before exclusively
+creating a new directory. It saves predictable numbered files without clobbering.
+Publication is sequential; `Error::PartialSplit` retains the successful paths,
+failed path and underlying error, including a first-file failure with zero
+completed outputs. It never deletes outputs or preexisting files. Process crashes
+can leave a directory and partial outputs without this error report. Choose a
+fresh directory for retry; there is no atomic batch or power-loss guarantee.
+
 `list_form_fields()` discovers bounded AcroForm field names, inherited types,
 flags, values and widget placements. Password values are omitted. `fill_buttons`
 transactionally selects a checkbox/radio widget by object ID or clears a supported
