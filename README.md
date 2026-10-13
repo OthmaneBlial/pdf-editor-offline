@@ -53,6 +53,7 @@ its own remote checks are pending. [Scope and evidence](docs/RUST_STATUS.md).
 These features are on **`main`**, ahead of the published CLI preview:
 
 **Fresh tools to play with:** [draw on the canvas](docs/VECTOR_DRAWING_RUST.md),
+[draw a visual signature](docs/VISUAL_SIGNATURES_RUST.md),
 [place an image](docs/IMAGE_OVERLAYS_RUST.md),
 [edit supported existing text](docs/CONTENT_TEXT_EDITING_RUST.md),
 [add Unicode text](docs/TEXT_OVERLAYS_RUST.md), [finish a form](docs/FORMS_RUST.md)
@@ -239,6 +240,7 @@ The table covers current source; published CLI differences are called out below.
 | New page text | Drag placement, move/eight resize handles, snapping and arrow nudges, numeric controls, covering-font picker, guarded apply and durable undo/redo | `add-text-overlay` adds bounded Unicode text with an explicit font, rectangle, color and alignment in current source |
 | Existing text | Select and replace supported ordinary Courier ASCII operands; source-bound drafts, undo/redo and verified Save As | `inspect-content-text` and `replace-content-text` with exact source identity, dry-run and new-copy saving; equal-length, equal-space-position tier |
 | New drawings | Rectangles, ellipses, lines and bounded freehand paths, colors/paint opacity, snapping, nudges and protected drafts | `add-vector-overlay` with a strict JSON request, dry-run and fresh-copy saving in current source |
+| Visual signatures | Separate pen strokes and dots, color/width, one Apply and one durable Undo; **Sign → Draw visual signature…** | `add-vector-overlay` accepts bounded `multi_polyline` strokes; artwork only, without certificate signing or identity verification |
 | Forms | Checkboxes/radios, single/multiline text, dropdowns and single/multiple list selections; guarded apply and undo/redo | Discover fields and indexed options; `fill-button`, `fill-text`, `list-choices` and `fill-choice` in current source |
 | Inspect and export | Verified Save As to a new path | Read-only action/attachment/form/layer markers, lossless stream compression, verified fresh output copies |
 | Targeted cleanup | Separate unsaved copy, removal report and verified Save As | `sanitize` removes supported metadata/file/action structures through a full rewrite in current source; includes dry-run and a partial-scope report |

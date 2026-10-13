@@ -2,6 +2,8 @@
 
 ## Unreleased — native Rust preview
 
+- Draw visual signatures as separate bounded pen strokes and round dots through the shared core/worker/CLI artwork format and native Sign menu. Pen lifts never create connecting lines; all strokes apply as one durable edit with Undo/Redo and verified new-copy saving. Overflow blocks Apply without truncation. This is visual artwork, not certificate signing, identity verification or tamper protection.
+
 - Edit supported existing Courier text operands through core, isolated worker, CLI and native selection/replacement controls. Exact source/stream identities, proven character mappings and unchanged text advances guard the first ASCII tier; stale requests and competing canvas tools retain drafts. Durable Undo/Redo and verified new copies are covered. This changes active content rather than adding an overlay, but retains original streams and is not secure erasure.
 
 - Insert supported PNG/JPEG images on existing pages through core, converter, CLI, worker and native canvas. Placement/move/resize, quarter-turn rotation, retained drafts, durable history and verified new copies are implemented. Tiny dimensions that collapse in PDF number encoding are refused atomically. Image, text and drawing dialogs cannot compete for the canvas; existing-image replacement remains open.

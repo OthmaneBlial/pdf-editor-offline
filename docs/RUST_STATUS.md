@@ -1,5 +1,21 @@
 # Native Rust migration status
 
+Current source adds [drawn visual signatures](VISUAL_SIGNATURES_RUST.md), with
+separate pen strokes and round dots through the shared core/worker/CLI vector
+format and native **Sign → Draw visual signature…** controls. One Apply creates
+one durable Undo step. Pen lifts remain separate subpaths; bounded overflow
+blocks Apply without truncation. This adds artwork, without a signature field,
+certificate, identity verification or tamper protection.
+
+The frozen combined source corresponding to `5112eb8` passed **667 workspace
+tests across 79 suites, with no failures or ignored tests**, including every
+pinned independent-reader and production-native saved-output gate. Fresh normal
+executables, strict workspace/all-target Clippy with the worker helper,
+formatting, workflow lint and diff checks passed. These are local macOS results;
+the new signature source needs its own remote CI and manual native pointer
+review. No new performance benchmark was produced. Preview.4 remains in
+preparation; the published CLI remains preview.3.
+
 Current source adds [true existing-text operand editing](CONTENT_TEXT_EDITING_RUST.md)
 through the core, isolated worker, CLI and native **Edit → Edit existing text…**
 dialog. The first tier supports ordinary unembedded Courier ASCII, with proven
