@@ -35,6 +35,11 @@ impl EditorApp {
                         Action::TextOverlay,
                         editable && self.pending_saves.is_empty(),
                     ),
+                    (
+                        "Sticky notes on this page",
+                        Action::Notes,
+                        !self.busy && has_document,
+                    ),
                     ("PDF form fields", Action::Forms, !self.busy && has_document),
                     ("Recover previous session", Action::Recovery, true),
                     ("Open PDF", Action::Open, !self.busy && self.tabs.len() < 16),

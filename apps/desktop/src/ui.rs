@@ -8,6 +8,7 @@ mod forms;
 mod merge;
 mod metadata;
 mod navigation;
+mod notes;
 mod organizer;
 mod pages;
 mod palette;
@@ -36,6 +37,7 @@ enum Action {
     InsertBlank,
     Crop,
     Metadata,
+    Notes,
     Forms,
     TextOverlay,
     Undo,
@@ -92,6 +94,8 @@ pub struct EditorApp {
     organizer_dialog: Option<organizer::Dialog>,
     metadata_dialog: Option<metadata::Dialog>,
     metadata_generation: u64,
+    notes_generation: u64,
+    notes_dialog: Option<notes::Dialog>,
     forms_dialog: Option<forms::Dialog>,
     overlay_dialog: Option<text_overlay::Dialog>,
     forms_generation: u64,
@@ -131,6 +135,8 @@ impl EditorApp {
             organizer_dialog: None,
             metadata_dialog: None,
             metadata_generation: 0,
+            notes_generation: 0,
+            notes_dialog: None,
             forms_dialog: None,
             overlay_dialog: None,
             forms_generation: 0,
@@ -186,6 +192,11 @@ impl EditorApp {
                 self.busy = false;
             }
             match event {
+                Event::Notes {
+                    key,
+                    entries,
+                    next_offset,
+                } => self.accept_notes(key, entries, next_offset),
                 Event::Merged { id, path, status } => self.accept_merged(id, path, status, context),
                 Event::Sanitized {
                     id,
@@ -242,6 +253,17 @@ impl EditorApp {
                     status,
                     selected_page,
                 } => {
+                    if let Some(dialog) = self
+                        .notes_dialog
+                        .as_mut()
+                        .filter(|dialog| dialog.key.tab == id)
+                    {
+                        if dialog.submitting {
+                            self.notes_dialog = None;
+                        } else {
+                            dialog.stale = true;
+                        }
+                    }
                     if self
                         .forms_dialog
                         .as_ref()
@@ -426,6 +448,19 @@ impl EditorApp {
                     self.message = "PDF closed.".into();
                 }
                 Event::Error { id, task, message } => {
+                    if self.notes_dialog.as_ref().is_some_and(|dialog| {
+                        dialog.key.tab == id
+                            && (dialog.submitting
+                                || matches!(task,Some(TaskKey::Notes(key)) if key==dialog.key))
+                    }) {
+                        if let Some(dialog) = self.notes_dialog.as_mut() {
+                            dialog.submitting = false;
+                            dialog.error = Some(message.clone());
+                        }
+                        self.message = message;
+                        continue;
+                    }
+
                     if task.is_none()
                         && self.merge_dialog.as_ref().is_some_and(|dialog| {
                             dialog.expected_id.is_some()
@@ -569,6 +604,7 @@ impl EditorApp {
             || self.pages_dialog.is_some()
             || self.sanitize_dialog.is_some()
             || self.merge_dialog.is_some()
+            || self.notes_dialog.is_some()
         {
             return;
         }
@@ -751,6 +787,10 @@ impl EditorApp {
                 || !self.pending_saves.is_empty()
                 || self.tabs.iter().any(|tab| tab.status.dirty)
                 || self
+                    .notes_dialog
+                    .as_ref()
+                    .is_some_and(notes::Dialog::has_changes)
+                || self
                     .metadata_dialog
                     .as_ref()
                     .is_some_and(metadata::Dialog::has_changes)
@@ -850,6 +890,7 @@ impl EditorApp {
             Action::InsertBlank => self.open_organizer_dialog(false),
             Action::Crop => self.open_organizer_dialog(true),
             Action::Metadata => self.open_metadata(),
+            Action::Notes => self.open_notes(),
             Action::Forms => self.open_forms(),
             Action::TextOverlay => self.open_text_overlay(),
             Action::Undo => {
@@ -970,6 +1011,7 @@ impl eframe::App for EditorApp {
             && self.forms_dialog.is_none()
             && self.overlay_dialog.is_none()
             && self.metadata_dialog.is_none()
+            && self.notes_dialog.is_none()
             && !self.recovery.open
             && self.pages_dialog.is_none()
             && self.sanitize_dialog.is_none()
@@ -987,6 +1029,7 @@ impl eframe::App for EditorApp {
                 && !self.palette_open
                 && self.organizer_dialog.is_none()
                 && self.metadata_dialog.is_none()
+                && self.notes_dialog.is_none()
                 && self.forms_dialog.is_none()
                 && self.overlay_dialog.is_none()
                 && !self.recovery.open
@@ -1006,6 +1049,7 @@ impl eframe::App for EditorApp {
         self.pending_save_dialog(&context);
         self.page_ranges_dialog(&context);
         self.sanitization_dialog(&context);
+        self.notes_dialog_ui(&context);
         self.merge_dialog(&context);
     }
 }

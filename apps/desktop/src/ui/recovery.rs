@@ -306,6 +306,7 @@ impl EditorApp {
             return;
         }
         self.metadata_dialog = None;
+        self.notes_dialog = None;
         self.forms_dialog = None;
         self.overlay_dialog = None;
         self.organizer_dialog = None;

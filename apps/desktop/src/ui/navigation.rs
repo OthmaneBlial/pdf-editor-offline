@@ -106,6 +106,7 @@ impl EditorApp {
                 if ui.add_enabled(self.selected().is_some(), egui::Button::new("Search text · Command/Ctrl+F")).clicked() { action = Some(Action::Search); ui.close(); }
                 if ui.add_enabled(!self.busy && self.pending_saves.is_empty() && self.selected().is_some_and(Tab::editable) && self.tabs.len()<crate::worker::MAX_TABS,egui::Button::new("Create targeted sanitized copy…")).clicked() {action=Some(Action::Sanitize);ui.close();}
                 if ui.add_enabled(!self.busy && self.pending_saves.is_empty() && self.selected().is_some_and(Tab::editable) && self.tabs.len()<crate::worker::MAX_TABS,egui::Button::new("Merge PDF files…")).clicked() {action=Some(Action::Merge);ui.close();}
+                if ui.add_enabled(!self.busy && self.selected().is_some(),egui::Button::new("Sticky notes on this page…")).clicked(){action=Some(Action::Notes);ui.close();}
                 if ui.add_enabled(self.selected().is_some(), egui::Button::new("Read extracted page text")).clicked() { action = Some(Action::PageText); ui.close(); }
             });
             ui.menu_button("Organize", |ui| {

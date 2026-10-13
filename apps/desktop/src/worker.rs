@@ -33,11 +33,23 @@ const TEST_BLUE_PNG: &[u8] = &[
     0, 53, 222, 5, 251, 226, 150, 96, 158, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130,
 ];
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct NotesKey {
+    pub tab: u64,
+    pub revision: u64,
+    pub page: u32,
+    pub offset: u32,
+    pub generation: u64,
+}
 pub enum Edit {
     TextOverlay {
         key: FormsReadKey,
         overlay: pdf_core::TextOverlay,
         font_file: PathBuf,
+    },
+    Note {
+        key: NotesKey,
+        change: pdf_worker::document::NoteChange,
     },
     FillText {
         key: FormsReadKey,
@@ -88,6 +100,7 @@ pub enum Edit {
 }
 
 pub enum Command {
+    Notes(NotesKey),
     Merge {
         id: u64,
         new_id: u64,
@@ -166,6 +179,7 @@ impl Command {
             Self::Thumbnail(key) => key.tab,
             Self::Text(key) => key.tab,
             Self::Metadata(key) => key.tab,
+            Self::Notes(key) => key.tab,
             Self::Forms(key) => key.tab,
             Self::Search { key, .. } => key.tab,
         }
@@ -175,6 +189,7 @@ impl Command {
 #[derive(Debug, Clone, Copy)]
 pub enum TaskKey {
     Overlay(FormsReadKey),
+    Notes(NotesKey),
     Render(RenderKey),
     Thumbnail(ThumbnailKey),
     Text(TextKey),
@@ -184,6 +199,11 @@ pub enum TaskKey {
 }
 
 pub enum Event {
+    Notes {
+        key: NotesKey,
+        entries: Vec<pdf_worker::document::NoteEntry>,
+        next_offset: Option<u32>,
+    },
     Merged {
         id: u64,
         path: PathBuf,
@@ -297,6 +317,7 @@ impl Worker {
                     Command::Thumbnail(key) => Some(TaskKey::Thumbnail(*key)),
                     Command::Text(key) => Some(TaskKey::Text(*key)),
                     Command::Metadata(key) => Some(TaskKey::Metadata(*key)),
+                    Command::Notes(key) => Some(TaskKey::Notes(*key)),
                     Command::Forms(key) => Some(TaskKey::Forms(*key)),
                     Command::Edit {
                         edit: Edit::TextOverlay { key, .. },
@@ -369,6 +390,8 @@ mod forms_tests;
 mod merge_tests;
 #[cfg(test)]
 mod multiline_tests;
+#[cfg(test)]
+mod notes_tests;
 #[cfg(test)]
 mod overlay_tests;
 mod recovery;
@@ -661,6 +684,17 @@ fn process_with_journal(
                 values: document.metadata()?,
             })
         }
+        Command::Notes(key) => {
+            if key.revision != document.current.revision {
+                return Err("Note request is stale".into());
+            }
+            let (entries, next_offset) = document.notes(key.page, key.offset)?;
+            Ok(Event::Notes {
+                key,
+                entries,
+                next_offset,
+            })
+        }
         Command::Forms(key) => {
             if key.revision != document.current.revision {
                 return Err("Form request is stale".into());
@@ -695,6 +729,11 @@ fn process_with_journal(
             })
         }
         Command::Edit { edit, .. } => {
+            if let Edit::Note { key, .. } = &edit
+                && key.tab != id
+            {
+                return Err("Note draft belongs to another document".into());
+            }
             if let Edit::FillButtons { key, .. }
             | Edit::FillText { key, .. }
             | Edit::TextOverlay { key, .. } = &edit

@@ -685,6 +685,64 @@ impl WorkingDocument {
         ))
     }
 
+    pub fn notes(
+        &self,
+        page: u32,
+        offset: u32,
+    ) -> Result<(Vec<pdf_worker::document::NoteEntry>, Option<u32>), String> {
+        let (result, reply) = execute(Operation::Notes { page, offset }, &self.current.bytes)?;
+        let DocumentResult::Notes {
+            entries,
+            next_offset,
+        } = result
+        else {
+            return Err("Unexpected notes reply".into());
+        };
+        let mut bytes = 0usize;
+        let mut indices = std::collections::BTreeSet::new();
+        if reply.kind != PayloadKind::None
+            || !reply.payload.is_empty()
+            || entries.len() > 128
+            || next_offset.is_some_and(|next| {
+                Some(next) != offset.checked_add(entries.len() as u32) || entries.is_empty()
+            })
+        {
+            return Err("Invalid bounded note report".into());
+        }
+        for entry in &entries {
+            let note = &entry.note;
+            bytes = bytes.saturating_add(note.contents.len() + note.author.len());
+            if page == 0
+                || page as usize > self.current.info.page_count
+                || note.page != page
+                || note.annotation_index == 0
+                || note.annotation_index > 10_000
+                || !indices.insert(note.annotation_index)
+                || note.contents.len() > pdf_core::MAX_NOTE_CONTENT_BYTES
+                || note.author.len() > pdf_core::MAX_NOTE_AUTHOR_BYTES
+                || note.rectangle.iter().any(|value| !value.is_finite())
+                || note.rectangle[0] >= note.rectangle[2]
+                || note.rectangle[1] >= note.rectangle[3]
+                || note
+                    .object_id
+                    .is_some_and(|id| id.0 == 0 || id.0 as usize > pdf_core::MAX_OBJECTS)
+                || entry.editable != entry.refusal_reason.is_none()
+                || entry
+                    .refusal_reason
+                    .as_ref()
+                    .is_some_and(|reason| reason.is_empty() || reason.len() > 2048)
+                || entry.editable
+                    && (self.current.info.encrypted || self.current.info.signature_fields != 0)
+            {
+                return Err("Invalid note identity, geometry or eligibility".into());
+            }
+        }
+        if bytes > 512 * 1024 {
+            return Err("Notes report exceeds 512 KiB".into());
+        }
+        Ok((entries, next_offset))
+    }
+
     pub fn metadata(&self) -> Result<pdf_core::DocumentMetadata, String> {
         let (result, reply) = execute(Operation::Metadata, &self.current.bytes)?;
         let DocumentResult::Metadata { metadata } = result else {
@@ -775,6 +833,7 @@ impl WorkingDocument {
         let mut expected_duplicate = None;
         let mut expected_fill = None;
         let mut expected_overlay = false;
+        let mut expected_note = None;
         let mut text_payload = None;
         let mutation = match edit {
             Edit::TextOverlay {
@@ -817,6 +876,18 @@ impl WorkingDocument {
                     overlay,
                     font_bytes_len: font.len() as u32,
                 }
+            }
+            Edit::Note { key, change } => {
+                if key.revision != self.current.revision || key.page != change.page() {
+                    return Err("Note request revision or page is stale".into());
+                }
+                expected_note = Some(
+                    (key.page as usize)
+                        .checked_sub(1)
+                        .filter(|page| *page < self.current.info.page_count)
+                        .ok_or("Note page is outside the document")?,
+                );
+                Mutation::Note { change }
             }
             Edit::FillText {
                 key,
@@ -1026,6 +1097,11 @@ impl WorkingDocument {
         validate_info(&info)?;
         if expected_overlay && info.pages != self.current.info.pages {
             return Err("Text overlay changed the original page geometry".into());
+        }
+        if expected_note.is_some_and(|page| {
+            info.pages != self.current.info.pages || selected_page != Some(page)
+        }) {
+            return Err("Note edit changed page geometry or selection".into());
         }
         if expected_fill
             .is_some_and(|(count, page)| info.page_count != count || selected_page != Some(page))

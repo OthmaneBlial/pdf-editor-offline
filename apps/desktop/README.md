@@ -15,6 +15,32 @@ The Organize menu now offers [page-range extraction, duplication and deletion](.
 cargo run -p pdf-editor-offline-native
 ```
 
+Edit → **Sticky notes on this page…** lists bounded Text annotations on the
+current page, including hidden notes. Each batch contains at most 128 notes and
+512 KiB of text; Next notes continues the list. This native tier accepts at most
+64 KiB of contents and 1 KiB of author/title per note; oversized existing text is
+refused rather than truncated. Add a yellow note with an explicit rectangle in
+unrotated PDF points. Existing eligible notes support contents/author edits and
+confirmed removal; geometry, flags and appearance remain unchanged during edits.
+The core reports read-only reasons for linked, named, locked or unsupported notes.
+Signed/encrypted documents, stale revisions and unresolved saves cannot be edited.
+Edits enter durable Undo/Redo history before success, and Save As creates a
+verified new copy. Removal is ordinary editing: old objects, recovery/history
+copies and original files can retain the contents. No secure-erasure claim is made.
+Headless controls and production worker/save tests cover this workflow; real
+window and platform accessibility review remain open.
+
+The explicit independent notes gate uses the normal native executable and pinned
+reference tools to check qpdf metadata/structure, unchanged page-content bytes,
+exact Poppler text/pixels, durable history and source-file preservation:
+
+```sh
+cargo build -p pdf-worker --features test-helper -p pdf-editor-offline-native --locked
+PDF_QPDF_BIN=/path/to/qpdf-12.4.2 \
+PDF_REFERENCE_BIN_DIR=/path/to/poppler-26.10/bin \
+cargo test -p pdf-editor-offline-native production_native_notes_preserve_page_content_pixels_metadata_and_verified_new_copy --locked -- --ignored
+```
+
 Edit → **Merge PDF files…** and the command palette create a separate unsaved
 document with the current PDF first. Add PDFs through the native file picker,
 then move or remove entries before applying. The guarded simple-catalog tier
