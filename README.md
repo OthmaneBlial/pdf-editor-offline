@@ -21,7 +21,7 @@ binary for macOS, Windows or Linux. This release adds guarded page duplication,
 checkbox/radio filling and bounded local document workers.
 
 **Growing on `main`:** single-line text, dropdowns and list selections with
-embedded covering fonts and desktop undo/redo.
+embedded covering fonts and desktop undo/redo, plus targeted sanitized copies.
 [See the form walkthrough](docs/FORMS_RUST.md).
 
 [What changed](CHANGELOG.md) · [Live build results](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml)
@@ -138,6 +138,7 @@ The table covers current source; published CLI differences are called out below.
 | Comments | Existing supported appearances can be displayed | Add/list sticky Text notes; guarded editing/removal of basic notes |
 | Forms | Checkboxes/radios, single-line text, dropdowns and single/multiple list selections; guarded apply and undo/redo | Discover fields and indexed options; `fill-button`, `fill-text`, `list-choices` and `fill-choice` in current source |
 | Inspect and export | Verified Save As to a new path | Read-only action/attachment/form/layer markers, lossless stream compression, verified fresh output copies |
+| Targeted cleanup | Separate unsaved copy, removal report and verified Save As | `sanitize` removes supported metadata/file/action structures through a full rewrite in current source; includes dry-run and a partial-scope report |
 | Resume your work | Recorded document/history snapshots, explicit session restore/discard, interrupted-save retry/cancel in current source | Desktop recovery is separate from the CLI |
 
 Supported edits preserve unrelated PDF objects and refuse structures they cannot
@@ -150,6 +151,9 @@ published `4.0.0-preview.3` CLI.
 
 Cropping hides content. Removing metadata or notes can leave old values in the
 file. None of these operations is secure redaction or private-data erasure.
+[Targeted sanitization](docs/SANITIZATION_RUST.md) removes specified structures
+and unreachable payloads from a new copy. It preserves page content and can leave
+other private information; its report explicitly provides no general privacy proof.
 OCR, advanced text form filling, digital signing, arbitrary page-text editing and broad document
 conversion are not implemented in this preview. Rendering can omit unsupported
 content; inspect exported documents before relying on them. Signed inputs and

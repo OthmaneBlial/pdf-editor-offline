@@ -8,9 +8,13 @@ feature set; their capabilities do not describe this Rust implementation.
 - Rendering may omit unsupported PDF content. Reopen exported copies in another
   reader; the tested fixtures do not establish all-document fidelity.
 - OCR, advanced text forms/free-entry combos, digital signing, arbitrary page-text
-  editing, secure redaction, sanitization and broad Office conversion are not implemented.
+  editing, secure redaction and broad Office conversion are not implemented.
   Supported buttons, single-line text and indexed choices have a guarded
   [form workflow](FORMS_RUST.md); text and choices need an explicit covering font.
+- [Targeted sanitization](SANITIZATION_RUST.md) removes specified metadata, file
+  associations and actions through a new-copy full rewrite. It does not scrub all
+  private information or redact page content; visible text, images, form values,
+  hidden content and unrelated custom payloads can remain.
 - Signed and successfully decrypted inputs are read-only. The desktop has no
   password-entry workflow.
 - Cropping hides content. Removed metadata and ordinary notes can remain in the

@@ -2,6 +2,8 @@
 
 ## Unreleased — native Rust preview
 
+- Added targeted full-rewrite sanitization to the core, isolated CLI/worker and native editor. Supported metadata, file associations and actions are removed into a separate verified copy; native copies are journaled before acknowledgement. Retained private aliases and unsupported structures are refused. Reports explicitly do not certify privacy or secure redaction.
+
 - Added indexed dropdown, single-select and multi-select list filling to the core, isolated CLI/worker and native form dialog. Display labels and export values remain distinct; mixed button/text/choice edits commit together with durable undo/redo. Unsupported free-entry combos and layouts are refused.
 
 - Bound the complete generated text appearance before publication, including retained drawing operators, so a successful fill cannot exceed the editor's own appearance-work limit. Oversized candidates leave the source unchanged.

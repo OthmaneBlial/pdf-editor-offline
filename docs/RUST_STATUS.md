@@ -15,6 +15,23 @@ GitHub and npm publication are verified; npm `latest` is `4.0.0-preview.3` and a
 fresh registry install was checked with Node 22. This later text/CFF source is
 separate from that release; preview 4 is not yet published.
 
+Targeted sanitization now removes supported Info/XMP links, file associations,
+attachment annotations and actions through a verified full rewrite. The CLI and
+path-free worker return a bounded report; the desktop creates a separate unsaved
+tab and records its snapshot before acknowledgement. The original tab, history
+and bytes stay intact. Retained private aliases and unsupported structures are
+refused. [The guide](SANITIZATION_RUST.md) describes what remains; this does not
+prove general privacy or secure text/image redaction.
+
+Validation against the combined choice source passed **311 core/worker/CLI
+tests** (16 explicit gates ignored in that ordinary run), **108 desktop tests**
+with ignored artifact/fault gates enabled, and **four separately run pinned
+reference tests** for sanitization and choice/TTF/CFF forms. Fresh normal builds,
+strict all-target Clippy and formatting passed. The sanitized-source gate checks
+raw/decoded target payloads, object-stream carriers, text and widget footprints
+with qpdf 12.4.2 / Poppler 26.10.0. Actual native window/accessibility review and
+broader privacy workflows remain open.
+
 The checkbox/radio milestone adds bounded AcroForm discovery, existing-appearance
 filling and transactional `/V`/`/AS` updates to the core, isolated CLI and typed
 worker. Main-checkout validation passed **125 core tests** and **100 CLI/worker
