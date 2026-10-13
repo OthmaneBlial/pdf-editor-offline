@@ -8,6 +8,28 @@ use std::ffi::OsString;
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 
+pub(super) fn embedded_report_invalid(run: &pdf_core::ContentTextRun) -> bool {
+    run.embedded_font.as_ref().is_some_and(|font| {
+        run.standard_font.is_some()
+            || run.encoding.is_some()
+            || font.font_object.0 == 0
+            || font.font_object.0 as usize > pdf_core::MAX_OBJECTS
+            || font.postscript_name.is_empty()
+            || font.postscript_name.len() > 128
+            || !font
+                .postscript_name
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
+            || font.widths.len() > 65_535
+            || font.advances.len() > 131_069
+            || font
+                .widths
+                .iter()
+                .any(|width| !width.is_finite() || *width < 0.0)
+            || font.advances.iter().any(|advance| !advance.is_finite())
+    })
+}
+
 pub(super) struct Snapshot {
     pub bytes: Vec<u8>,
     pub info: DocumentInfo,
@@ -970,12 +992,16 @@ impl WorkingDocument {
                     .any(|id| id.0 == 0 || id.0 as usize > pdf_core::MAX_OBJECTS)
                 || run.text.as_ref().is_some_and(|text| {
                     text.len() > 65536
-                        || !run
-                            .encoding
-                            .is_some_and(|encoding| encoding.accepts_ascii(text))
+                        || run.embedded_font.is_none()
+                            && !run
+                                .encoding
+                                .is_some_and(|encoding| encoding.accepts_ascii(text))
                 })
                 || run.standard_font.is_none() != run.encoding.is_none()
-                || run.allows_variable_length && run.standard_font.is_none()
+                || run.allows_variable_length
+                    && run.standard_font.is_none()
+                    && run.embedded_font.is_none()
+                || embedded_report_invalid(run)
                 || run.layout.is_some()
                     && run
                         .text
@@ -1238,6 +1264,47 @@ impl WorkingDocument {
         let mut expected_note = None;
         let mut text_payload = None;
         let mutation = match edit {
+            Edit::ContentTextEmbeddedFont {
+                key,
+                source_fingerprint,
+                change,
+                font_file,
+            } => {
+                if key.revision != self.current.revision
+                    || key.page == 0
+                    || key.page as usize > self.current.info.page_count
+                {
+                    return Err("Existing text font draft revision or page is stale".into());
+                }
+                if source_fingerprint != pdf_worker::payload_fingerprint(&self.current.bytes) {
+                    return Err("Existing text source fingerprint is stale".into());
+                }
+                let remaining = pdf_worker::MAX_PDF_BYTES
+                    .saturating_sub(self.current.bytes.len())
+                    .min(16 * 1024 * 1024);
+                if remaining == 0 {
+                    return Err("No input budget remains for the font".into());
+                }
+                let font =
+                    pdf_core::read_input_bytes(&font_file, remaining).map_err(|e| e.to_string())?;
+                if font.is_empty() {
+                    return Err("Choose a nonempty TrueType font".into());
+                }
+                let mut payload = Vec::new();
+                payload
+                    .try_reserve_exact(self.current.bytes.len() + font.len())
+                    .map_err(|_| "Cannot allocate bounded existing-text font payload")?;
+                payload.extend_from_slice(&self.current.bytes);
+                payload.extend_from_slice(&font);
+                text_payload = Some(payload);
+                expected_note = Some(key.page as usize - 1);
+                Mutation::ContentTextEmbeddedFont {
+                    page: key.page,
+                    source_fingerprint,
+                    change,
+                    font_bytes_len: font.len() as u32,
+                }
+            }
             Edit::ContentTextFace {
                 key,
                 source_fingerprint,

@@ -52,6 +52,12 @@ pub struct ContentTextKey {
     pub generation: u64,
 }
 pub enum Edit {
+    ContentTextEmbeddedFont {
+        key: ContentTextKey,
+        source_fingerprint: [u8; 32],
+        change: pdf_core::ContentTextEmbeddedChange,
+        font_file: PathBuf,
+    },
     ContentTextFace {
         key: ContentTextKey,
         source_fingerprint: [u8; 32],
@@ -433,7 +439,8 @@ impl Worker {
                         edit:
                             Edit::ContentText { key, .. }
                             | Edit::ContentTextProperties { key, .. }
-                            | Edit::ContentTextFace { key, .. },
+                            | Edit::ContentTextFace { key, .. }
+                            | Edit::ContentTextEmbeddedFont { key, .. },
                         ..
                     } => Some(TaskKey::ContentText(*key)),
                     Command::Forms(key) => Some(TaskKey::Forms(*key)),
@@ -1105,7 +1112,8 @@ fn process_with_journal(
         Command::Edit { edit, .. } => {
             if let Edit::ContentText { key, .. }
             | Edit::ContentTextProperties { key, .. }
-            | Edit::ContentTextFace { key, .. } = &edit
+            | Edit::ContentTextFace { key, .. }
+            | Edit::ContentTextEmbeddedFont { key, .. } = &edit
                 && key.tab != id
             {
                 return Err("Existing text draft belongs to another document".into());

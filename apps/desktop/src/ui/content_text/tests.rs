@@ -16,6 +16,151 @@ fn wait(app: &mut EditorApp, ctx: &egui::Context) {
 }
 
 #[test]
+fn chosen_ttf_widgets_require_width_ack_apply_unicode_kerning_and_reopen_history() {
+    let (temp, mut app, ctx, path, bytes) = app();
+    let font = temp.path().join("covering.ttf");
+    const FONT: &[u8] = include_bytes!("../../../assets/fonts/ibm-plex/IBMPlexSans-Regular.ttf");
+    std::fs::write(&font, FONT).unwrap();
+    click(&mut app, &ctx, "Font face");
+    app.content_dialog.as_mut().unwrap().font_file = Some(font.clone());
+    assert!(!app.apply_content_face());
+    click(&mut app, &ctx, "Allow font width change");
+    let body = draw(&mut app, &ctx, vec![])
+        .shapes
+        .iter()
+        .find_map(|shape| match &shape.shape {
+            egui::Shape::Text(t) if t.galley.text() == "Text with chosen font" => {
+                Some(shape.clip_rect.center())
+            }
+            _ => None,
+        })
+        .unwrap();
+    draw(
+        &mut app,
+        &ctx,
+        vec![
+            egui::Event::PointerMoved(body),
+            egui::Event::MouseWheel {
+                unit: egui::MouseWheelUnit::Point,
+                delta: egui::vec2(0.0, -160.0),
+                phase: egui::TouchPhase::Move,
+                modifiers: egui::Modifiers::NONE,
+            },
+        ],
+    );
+    for _ in 0..10 {
+        draw(&mut app, &ctx, vec![]);
+    }
+    click(&mut app, &ctx, "Original");
+    replacement(&mut app, &ctx, "AV Café ΩЖ");
+    assert!(app.has_tab_draft(1));
+    assert!(app.needs_exit_guard());
+    assert!(!app.apply_content_properties());
+    assert!(
+        app.content_dialog
+            .as_ref()
+            .unwrap()
+            .embedded_change()
+            .is_ok()
+    );
+    click(&mut app, &ctx, "Apply font face");
+    assert!(app.busy);
+    wait(&mut app, &ctx);
+    assert!(app.content_dialog.is_none(), "{}", app.message);
+    assert!(app.selected().unwrap().status.dirty && app.selected().unwrap().status.can_undo);
+    for action in [super::super::Action::Undo, super::super::Action::Redo] {
+        app.perform(action, &ctx);
+        wait(&mut app, &ctx);
+    }
+    let output = path.with_file_name("embedded.pdf");
+    assert!(app.send(
+        Command::Save {
+            id: 1,
+            path: output.clone()
+        },
+        "Saving font change"
+    ));
+    wait(&mut app, &ctx);
+    let saved = std::fs::read(output).unwrap();
+    let pdf = pdf_core::PdfDocument::from_bytes(&saved, None).unwrap();
+    assert_eq!(pdf.extract_text(&[1]).unwrap(), "AV Café ΩЖ\nA B\n");
+    assert_eq!(pdf.extract_text(&[2]).unwrap(), "Original\nA B\n");
+    assert_eq!(
+        pdf_render::render_page(&bytes, 1, 1.0).unwrap(),
+        pdf_render::render_page(&saved, 1, 1.0).unwrap()
+    );
+    assert_eq!(std::fs::read(path).unwrap(), bytes);
+    assert_eq!(std::fs::read(font).unwrap(), FONT);
+    app.open_content_text();
+    wait(&mut app, &ctx);
+    assert!(
+        app.content_dialog
+            .as_ref()
+            .unwrap()
+            .inventory
+            .as_ref()
+            .unwrap()
+            .runs[0]
+            .properties_writable
+    );
+    replacement(&mut app, &ctx, "AV Résumé ΩЖ");
+    assert!(
+        !app.apply_content_text(),
+        "embedded value editing must retain explicit width acknowledgement"
+    );
+    click(&mut app, &ctx, "Allow line width change");
+    click(&mut app, &ctx, "Replace existing text");
+    wait(&mut app, &ctx);
+    assert!(app.content_dialog.is_none(), "{}", app.message);
+    let repeated = temp.path().join("repeated.pdf");
+    assert!(app.send(
+        Command::Save {
+            id: 1,
+            path: repeated.clone()
+        },
+        "Saving repeated value"
+    ));
+    wait(&mut app, &ctx);
+    let pdf = pdf_core::PdfDocument::open(repeated, None).unwrap();
+    assert_eq!(pdf.extract_text(&[1]).unwrap(), "AV Résumé ΩЖ\nA B\n");
+    assert_eq!(pdf.extract_text(&[2]).unwrap(), "Original\nA B\n");
+}
+#[test]
+fn chosen_font_draft_staleness_pending_save_and_explicit_reset_preserve_values() {
+    let (_temp, mut app, ctx, _path, _bytes) = app();
+    click(&mut app, &ctx, "Font face");
+    let dialog = app.content_dialog.as_mut().unwrap();
+    dialog.font_file = Some("chosen.ttf".into());
+    dialog.replacement = "Retained Ω".into();
+    dialog.allow_width_change = true;
+    let key = dialog.key;
+    app.open_text_overlay();
+    app.open_image_overlay();
+    assert!(app.overlay_dialog.is_none() && app.image_dialog.is_none());
+    app.tabs[0].status.revision = 1;
+    draw(&mut app, &ctx, vec![]);
+    assert!(!app.apply_content_face());
+    assert_eq!(
+        app.content_dialog.as_ref().unwrap().replacement,
+        "Retained Ω"
+    );
+    assert_eq!(app.content_dialog.as_ref().unwrap().key, key);
+    app.tabs[0].status.revision = 0;
+    assert!(
+        !app.apply_content_face(),
+        "stale draft cannot revalidate on Undo"
+    );
+    click(&mut app, &ctx, "Discard draft and close");
+    assert!(app.content_dialog.is_none());
+    app.open_content_text();
+    wait(&mut app, &ctx);
+    click(&mut app, &ctx, "Font face");
+    app.content_dialog.as_mut().unwrap().font_file = Some("chosen.ttf".into());
+    click(&mut app, &ctx, "Reset replacement");
+    assert!(app.content_dialog.as_ref().unwrap().font_file.is_none());
+    assert!(!app.has_tab_draft(1));
+}
+#[test]
 fn real_font_face_widgets_require_width_ack_and_commit_durable_undo_save() {
     let (_temp, mut app, ctx, path, bytes) = app();
     click(&mut app, &ctx, "Font face");

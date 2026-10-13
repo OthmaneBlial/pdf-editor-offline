@@ -1,5 +1,7 @@
 #![allow(clippy::unwrap_used)]
 use super::*;
+#[path = "content_tests/embedded.rs"]
+mod embedded;
 #[path = "content_tests/face.rs"]
 mod face;
 #[path = "../../../../tests/support/content_fixture.rs"]

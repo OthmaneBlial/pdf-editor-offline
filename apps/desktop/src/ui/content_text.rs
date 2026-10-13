@@ -24,17 +24,19 @@ pub(super) struct Dialog {
     properties_mode: bool,
     face_mode: bool,
     target_face: Option<pdf_core::ContentTextFont>,
+    font_file: Option<std::path::PathBuf>,
 }
 impl Dialog {
     pub(super) fn has_changes(&self) -> bool {
         self.text_changed() || self.property_draft() || self.face_draft()
     }
     fn face_draft(&self) -> bool {
-        self.target_face.is_some_and(|font| {
-            self.selected
-                .and_then(|index| self.inventory.as_ref()?.runs.get(index)?.standard_font)
-                != Some(font)
-        })
+        self.font_file.is_some()
+            || self.target_face.is_some_and(|font| {
+                self.selected
+                    .and_then(|index| self.inventory.as_ref()?.runs.get(index)?.standard_font)
+                    != Some(font)
+            })
     }
     fn property_draft(&self) -> bool {
         self.size_enabled || self.position_enabled || self.rgb_enabled
@@ -51,6 +53,7 @@ impl Dialog {
         self.rgb = [0.0; 3];
         self.allow_width_change = false;
         self.target_face = None;
+        self.font_file = None;
         self.selected = Some(index);
         self.replacement = self
             .inventory
@@ -84,6 +87,25 @@ impl Dialog {
         if !run.writable {
             return Err("This run is outside the supported editing tier.");
         }
+        if run.embedded_font.is_some() {
+            if !self.allow_width_change {
+                return Err(
+                    "Editing embedded-font text requires explicit width-change acknowledgement.",
+                );
+            }
+            if self.replacement.len() > 64 * 1024 {
+                return Err("Text must fit within 64 KiB; it has not been truncated.");
+            }
+            if run.layout.is_none() {
+                return Err("Bounded embedded-font layout is unavailable.");
+            }
+            if !self.text_changed() {
+                return Err("Enter a changed value.");
+            }
+            // Font coverage and positioned shaping require the real PDF font
+            // program, so the existing child validates them before mutation.
+            return Ok(());
+        }
         if run
             .validate_replacement_with_policy(&self.replacement, self.layout_policy())
             .is_err()
@@ -94,7 +116,7 @@ impl Dialog {
                 return Err("StandardEncoding quote codes are ambiguous; no value was truncated.");
             }
             return Err(
-                "Preserve each word's nominal advance, or explicitly enable bounded width change. Use unambiguous printable ASCII; no value was truncated.",
+                "Preserve word advances or explicitly allow bounded width change. Text must be covered by this run's supported font and encoding; no value was truncated or substituted.",
             );
         }
         if !self.text_changed() {
@@ -138,6 +160,9 @@ impl Dialog {
         Ok(change)
     }
     fn face_change(&self) -> Result<pdf_core::ContentTextFaceChange, &'static str> {
+        if self.font_file.is_some() {
+            return Err("Apply or reset the chosen-font draft first.");
+        }
         if self.text_changed() || self.property_draft() {
             return Err("Apply or reset other drafts before changing the font face.");
         }
@@ -158,6 +183,34 @@ impl Dialog {
         };
         run.face_position(&change).map_err(|_|"Choose a supported run and explicitly allow width changes if the new face changes word or space advances.")?;
         Ok(change)
+    }
+    fn embedded_change(&self) -> Result<pdf_core::ContentTextEmbeddedChange, &'static str> {
+        if self.font_file.is_none() {
+            return Err("Choose a TrueType font.");
+        }
+        if self.property_draft() {
+            return Err("Apply or reset property drafts before changing the font.");
+        }
+        if !self.allow_width_change {
+            return Err("Explicitly allow font width change before applying a chosen font.");
+        }
+        let run = self
+            .selected
+            .and_then(|index| self.inventory.as_ref()?.runs.get(index))
+            .ok_or("Select a text run.")?;
+        if !run.properties_writable {
+            return Err("This run is outside the supported embedded-font tier.");
+        }
+        if self.replacement.len() > 64 * 1024 {
+            return Err("Text must fit within 64 KiB; it has not been truncated.");
+        }
+        let expected = run.text.clone().ok_or("Text is unavailable.")?;
+        Ok(pdf_core::ContentTextEmbeddedChange {
+            identity: run.identity.clone(),
+            replacement: (self.replacement != expected).then(|| self.replacement.clone()),
+            expected,
+            layout_policy: self.layout_policy(),
+        })
     }
 }
 impl EditorApp {
@@ -196,6 +249,7 @@ impl EditorApp {
             properties_mode: false,
             face_mode: false,
             target_face: None,
+            font_file: None,
         });
         self.send(Command::ContentText(key), "Inspecting existing page text…");
     }
@@ -359,22 +413,32 @@ impl EditorApp {
         {
             return false;
         }
-        let Ok(change) = dialog.face_change() else {
-            return false;
-        };
         let Some(inventory) = &dialog.inventory else {
             return false;
         };
         let key = dialog.key;
+        let edit = if let Some(font_file) = &dialog.font_file {
+            let Ok(change) = dialog.embedded_change() else {
+                return false;
+            };
+            Edit::ContentTextEmbeddedFont {
+                key,
+                source_fingerprint: inventory.source_fingerprint,
+                change,
+                font_file: font_file.clone(),
+            }
+        } else {
+            let Ok(change) = dialog.face_change() else {
+                return false;
+            };
+            Edit::ContentTextFace {
+                key,
+                source_fingerprint: inventory.source_fingerprint,
+                change,
+            }
+        };
         if self.send(
-            Command::Edit {
-                id: key.tab,
-                edit: Edit::ContentTextFace {
-                    key,
-                    source_fingerprint: inventory.source_fingerprint,
-                    change,
-                },
-            },
+            Command::Edit { id: key.tab, edit },
             "Changing the original text font in document history…",
         ) {
             if let Some(dialog) = &mut self.content_dialog {
@@ -411,11 +475,11 @@ impl EditorApp {
         let mut next = None;
         egui::Window::new("Edit existing text").default_width(540.0).max_width((context.content_rect().width()-32.0).max(220.0)).max_height((context.content_rect().height()-32.0).max(180.0)).collapsible(false).anchor(egui::Align2::CENTER_CENTER,egui::Vec2::ZERO).show(context,|ui|{
             ui.label(format!("Page {} · original text operands",dialog.key.page));
-            ui.small("Standard Courier/Helvetica/Times ASCII. Default: preserve word advances. Value edits keep the font; face edits keep the text and matrix. No wrapping or fitting. Old bytes remain recoverable.");
+            ui.small("Guarded direct text runs and recognized generated Tj/TJ. Default: preserve word advances. A chosen TrueType font requires explicit width change. No wrapping or fitting. Old bytes remain recoverable.");
             if !editable {ui.colored_label(ui.visuals().error_fg_color,"This document is read-only.");}
             if dialog.stale {ui.colored_label(ui.visuals().error_fg_color,"The document or page changed. Copy your draft, then discard and reopen.");}
             if let Some(inventory)=&dialog.inventory {
-                    if inventory.runs.is_empty(){ui.label("No direct text runs in this tier; Form XObjects and TJ arrays are not inventoried.");}
+                    if inventory.runs.is_empty(){ui.label("No supported direct text runs; arbitrary TJ arrays and Form XObjects remain outside this tier.");}
                     else {ui.label(format!("Runs {}–{} of {}",inventory.offset+1,inventory.offset as usize+inventory.runs.len(),inventory.total_runs));}
                     let mut selected=None;
                     let select_enabled=enabled&&!dialog.has_changes();
@@ -471,24 +535,29 @@ impl EditorApp {
                     if dialog.face_mode {
                         if let Some(reason)=&run.properties_refusal_reason {ui.label(reason);}
                         if let Some(font)=run.standard_font {ui.label(format!("Original font: {}",font.pdf_name()));}
+                        if let Some(font)=&run.embedded_font {ui.label(format!("Original embedded font: {}",font.postscript_name));}
                         let label=ui.label("New standard font face");
                         ui.add_enabled_ui(enabled&&editable&&run.properties_writable,|ui|{
-                            egui::ComboBox::from_id_salt("existing-font-face").selected_text(dialog.target_face.map(|font|font.pdf_name()).unwrap_or("Choose a face")).show_ui(ui,|ui|{for font in pdf_core::ContentTextFont::ALL {ui.selectable_value(&mut dialog.target_face,Some(font),font.pdf_name());}}).response.labelled_by(label.id);
                             ui.checkbox(&mut dialog.allow_width_change,"Allow font width change");
+                            if ui.button("Choose TrueType font…").clicked() && let Some(path)=rfd::FileDialog::new().add_filter("TrueType font",&["ttf"]).pick_file(){dialog.font_file=Some(path);dialog.target_face=None;}
+                            if let Some(path)=&dialog.font_file{ui.label(path.file_name().unwrap_or(path.as_os_str()).to_string_lossy());let label=ui.label("Text with chosen font");ui.add(egui::TextEdit::multiline(&mut dialog.replacement).desired_rows(2).desired_width(f32::INFINITY).id_salt("chosen-font-text")).labelled_by(label.id);}
+                            ui.add_enabled_ui(dialog.font_file.is_none(),|ui|{
+                            egui::ComboBox::from_id_salt("existing-font-face").selected_text(dialog.target_face.map(|font|font.pdf_name()).unwrap_or("Choose a face")).show_ui(ui,|ui|{for font in pdf_core::ContentTextFont::ALL {ui.selectable_value(&mut dialog.target_face,Some(font),font.pdf_name());}}).response.labelled_by(label.id);
+                            });
                         });
                         if let (Some(expected),Ok(change))=(&run.text,dialog.face_change()) && let (Ok(before),Ok(after))=(run.replacement_position(expected),run.face_position(&change)) {
                             ui.label(format!("Nominal advance: {:.3} → {:.3} content-space units",before.nominal_advance,after.nominal_advance));
                         }
-                        ui.small("Keeps the original size, matrix and text. New glyph ink and width may overlap artwork or leave the page. No wrapping, fitting or old-ink clipping. User-selected embedded fonts are not yet supported here.");
+                        ui.small("Keeps the original size and matrix. Chosen static TrueType fonts can encode covered Unicode and positioned kerning; unsupported fonts, scripts, missing glyphs or source structures are refused. No CFF, RTL, wrapping, fitting or old-ink clipping. New ink and width may overlap artwork or leave the page.");
                     }
                 }
-                if dialog.text_changed() && let Err(reason)=dialog.validate(){ui.colored_label(ui.visuals().error_fg_color,reason);}
+                if !dialog.face_mode && dialog.text_changed() && let Err(reason)=dialog.validate(){ui.colored_label(ui.visuals().error_fg_color,reason);}
                 if dialog.property_draft() && let Err(reason)=dialog.property_change(){ui.colored_label(ui.visuals().error_fg_color,reason);}
-                if dialog.face_draft() && let Err(reason)=dialog.face_change(){ui.colored_label(ui.visuals().error_fg_color,reason);}
+                if dialog.face_draft(){let reason=if dialog.font_file.is_some(){dialog.embedded_change().err()}else{dialog.face_change().err()};if let Some(reason)=reason{ui.colored_label(ui.visuals().error_fg_color,reason);}}
                 if let Some(error)=&dialog.error {ui.colored_label(ui.visuals().error_fg_color,error);}
             });
             ui.horizontal_wrapped(|ui|{
-                if dialog.face_mode {apply_face=ui.add_enabled(enabled&&editable&&dialog.face_change().is_ok(),egui::Button::new("Apply font face")).clicked();}
+                if dialog.face_mode {apply_face=ui.add_enabled(enabled&&editable&&if dialog.font_file.is_some(){dialog.embedded_change().is_ok()}else{dialog.face_change().is_ok()},egui::Button::new("Apply font face")).clicked();}
                 else if !dialog.properties_mode {apply|=ui.add_enabled(enabled&&editable&&dialog.validate().is_ok(),crate::style::primary("Replace existing text",ui.visuals().dark_mode)).clicked();}
                 else {apply_properties=ui.add_enabled(enabled&&editable&&dialog.property_change().is_ok(),egui::Button::new("Apply text properties")).clicked();}
                 discard=ui.add_enabled(!dialog.submitting,egui::Button::new("Discard draft and close")).clicked();
