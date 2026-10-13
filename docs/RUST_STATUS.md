@@ -1,5 +1,27 @@
 # Native Rust migration status
 
+Current source adds [true existing-text operand editing](CONTENT_TEXT_EDITING_RUST.md)
+through the core, isolated worker, CLI and native **Edit → Edit existing text…**
+dialog. The first tier supports ordinary unembedded Courier ASCII, with proven
+encoding, equal-length replacements and spaces retained at the same positions.
+Inventory identities bind the original PDF and complete decoded stream;
+unrelated artwork/resources and shared pages are preserved. Applied edits enter
+durable Undo/Redo and verified Save As. Original streams remain recoverable:
+this is not redaction. Broader text/font/layout editing remains unfinished.
+
+The frozen combined source corresponding to `010a64c` passed **659 workspace
+tests across 79 suites, with no failures or ignored tests**, including all
+pinned independent-reader and production-native output gates. Fresh normal
+executables, strict workspace/all-target Clippy with the worker helper,
+formatting and workflow lint checks passed. Two competing-dialog regressions
+failed before the shared draft guard was fixed and passed afterward.
+An initial full run failed the existing large encrypted CLI isolation check
+with no stderr. Its scoped retry and the complete fresh run both passed;
+the cause was not reproduced. Assertions and limits were retained, and bounded
+exit/stdout/stderr diagnostics were added. These are local macOS checks;
+remote CI and actual existing-text dialog review remain pending.
+
+
 Current source adds [image insertion](IMAGE_OVERLAYS_RUST.md) through core,
 converter, CLI, limited document worker and native canvas. Supported PNG/JPEG
 assets retain transparency/color data within the documented tier, with drag
@@ -12,8 +34,13 @@ This includes all pinned qpdf/Poppler and production-native saved-output gates,
 plus a failed-before/passed-after regression for competing canvas dialogs.
 Fresh normal executables, strict workspace/all-target Clippy with the worker
 helper, formatting and workflow lint checks passed. These are local macOS
-results; the new image source needs its own remote CI. Manual native picker,
-window and accessibility review remain open. No new performance benchmark was
+results; the image source also passed all five platform jobs plus quality in
+[native CI](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38354908054)
+and [security scanning](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38354908068).
+Actual macOS image picking, numeric placement, nudging, quarter-turn rotation,
+Insert, Undo/Redo and Save As were reviewed; independent saved-output checks
+confirmed unchanged text/artwork outside the inserted rectangle. Manual canvas
+drag/resize, broader platform and accessibility review remain open. No new performance benchmark was
 produced; preview.4 is still in preparation and the published CLI remains .3.
 
 Current source also adds [new vector artwork](VECTOR_DRAWING_RUST.md):

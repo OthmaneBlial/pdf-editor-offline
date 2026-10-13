@@ -42,16 +42,19 @@ The screenshot is a real app window using a public synthetic PDF.
 
 ## Made this week · 13 October 2026
 
-**Today's checkpoint:** the latest checked source passed native CI on Windows,
+**Today's checkpoint:** the image/drawing source passed native CI on Windows,
 macOS ARM64 and Intel, and Linux ARM64 and x64. The quality and security jobs
-also passed. [Inspect the native run](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38349608325)
-· [Inspect the security run](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38349608254).
+also passed. [Inspect the native run](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38354908054)
+· [Inspect the security run](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38354908068).
 These checks cover source builds; the downloadable CLI remains preview.3.
+The newer existing-text milestone passed 659 local tests and strict Clippy;
+its own remote checks are pending. [Scope and evidence](docs/RUST_STATUS.md).
 
 These features are on **`main`**, ahead of the published CLI preview:
 
 **Fresh tools to play with:** [draw on the canvas](docs/VECTOR_DRAWING_RUST.md),
 [place an image](docs/IMAGE_OVERLAYS_RUST.md),
+[edit supported existing text](docs/CONTENT_TEXT_EDITING_RUST.md),
 [add Unicode text](docs/TEXT_OVERLAYS_RUST.md), [finish a form](docs/FORMS_RUST.md)
 or [leave a sticky note](docs/NOTES_RUST.md). Build the current source to try them.
 
@@ -226,6 +229,7 @@ The table covers current source; published CLI differences are called out below.
 | Images | Create PDF pages from supported PNG/JPEG files; place, resize and quarter-turn a new image on an existing page with protected drafts and history | Restricted images-to-PDF conversion; export one PDF page as PNG; current-source `add-image-overlay` with dry-run and new-copy saving |
 | Comments | Bounded sticky-note discovery, guarded add/edit/remove, durable history; supported appearances and standard Text/FileAttachment icons | Add/list sticky Text notes; guarded editing/removal of basic notes |
 | New page text | Drag placement, move/eight resize handles, snapping and arrow nudges, numeric controls, covering-font picker, guarded apply and durable undo/redo | `add-text-overlay` adds bounded Unicode text with an explicit font, rectangle, color and alignment in current source |
+| Existing text | Select and replace supported ordinary Courier ASCII operands; source-bound drafts, undo/redo and verified Save As | `inspect-content-text` and `replace-content-text` with exact source identity, dry-run and new-copy saving; equal-length, equal-space-position tier |
 | New drawings | Rectangles, ellipses, lines and bounded freehand paths, colors/paint opacity, snapping, nudges and protected drafts | `add-vector-overlay` with a strict JSON request, dry-run and fresh-copy saving in current source |
 | Forms | Checkboxes/radios, single/multiline text, dropdowns and single/multiple list selections; guarded apply and undo/redo | Discover fields and indexed options; `fill-button`, `fill-text`, `list-choices` and `fill-choice` in current source |
 | Inspect and export | Verified Save As to a new path | Read-only action/attachment/form/layer markers, lossless stream compression, verified fresh output copies |
