@@ -24,7 +24,13 @@ impl EditorApp {
                             egui::Frame::new().fill(egui::Color32::WHITE).stroke(egui::Stroke::new(1.0, if ui.visuals().dark_mode { egui::Color32::from_gray(91) } else { colors.border }))
                                 .shadow(egui::epaint::Shadow { offset: [0, 5], blur: 24, spread: 0, color: egui::Color32::from_black_alpha(if ui.visuals().dark_mode { 60 } else { 24 }) })
                                 .show(ui, |ui| {
-                                    ui.add(egui::Image::new((texture.id(), size)).alt_text(format!("PDF page {}. Read its extracted text using the Text sidebar.", tab.page + 1)));
+                                    let image=ui.add(egui::Image::new((texture.id(), size)).alt_text(format!("PDF page {}. Read its extracted text using the Text sidebar.", tab.page + 1)));
+                                    if let Some(dialog)=self.overlay_dialog.as_ref().filter(|d|d.key.tab==tab.id && d.key.revision==tab.status.revision)
+                                        && let Some(page)=tab.status.info.pages.get(tab.page)
+                                        && let Some(rectangle)=dialog.placement(page,image.rect) {
+                                        ui.painter().rect_stroke(rectangle,2.0,egui::Stroke::new(1.5,colors.copper),egui::StrokeKind::Inside);
+                                    }
+
                                 });
                         });
                         ui.add_space(28.0);

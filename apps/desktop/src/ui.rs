@@ -14,6 +14,7 @@ mod palette;
 mod recovery;
 mod sanitize;
 mod sidebar;
+mod text_overlay;
 
 const MAIN_PIXEL_BUDGET: usize = 64 * 1024 * 1024;
 const _: () = assert!(pdf_render::MAX_PIXELS * 4 <= MAIN_PIXEL_BUDGET as u64);
@@ -36,6 +37,7 @@ enum Action {
     Crop,
     Metadata,
     Forms,
+    TextOverlay,
     Undo,
     Redo,
     Previous,
@@ -91,6 +93,7 @@ pub struct EditorApp {
     metadata_dialog: Option<metadata::Dialog>,
     metadata_generation: u64,
     forms_dialog: Option<forms::Dialog>,
+    overlay_dialog: Option<text_overlay::Dialog>,
     forms_generation: u64,
     pages_dialog: Option<pages::Dialog>,
     sanitize_dialog: Option<sanitize::Dialog>,
@@ -129,6 +132,7 @@ impl EditorApp {
             metadata_dialog: None,
             metadata_generation: 0,
             forms_dialog: None,
+            overlay_dialog: None,
             forms_generation: 0,
             pages_dialog: None,
             sanitize_dialog: None,
@@ -251,6 +255,17 @@ impl EditorApp {
                             self.forms_dialog = None;
                         } else if let Some(dialog) = self.forms_dialog.as_mut() {
                             dialog.stale = true;
+                        }
+                    }
+                    if self
+                        .overlay_dialog
+                        .as_ref()
+                        .is_some_and(|d| d.key.tab == id)
+                    {
+                        if self.overlay_dialog.as_ref().is_some_and(|d| d.submitting) {
+                            self.overlay_dialog = None;
+                        } else if let Some(d) = self.overlay_dialog.as_mut() {
+                            d.stale = true;
                         }
                     }
                     if self.pages_dialog.as_ref().is_some_and(|dialog| {
@@ -463,6 +478,13 @@ impl EditorApp {
                     }
                     if task.is_none() {
                         self.discard_quit = false;
+                    }
+                    if let Some(TaskKey::Overlay(key)) = task {
+                        if let Some(d) = self.overlay_dialog.as_mut().filter(|d| d.key == key) {
+                            d.error = Some(message);
+                            d.submitting = false;
+                        }
+                        continue;
                     }
                     if let Some(TaskKey::Forms(key)) = task {
                         if let Some(dialog) = self
@@ -702,7 +724,12 @@ impl EditorApp {
         if self.busy {
             return;
         }
-        if self.tabs.iter().any(|tab| tab.id == id && tab.status.dirty) {
+        if self.tabs.iter().any(|tab| tab.id == id && tab.status.dirty)
+            || self
+                .overlay_dialog
+                .as_ref()
+                .is_some_and(|dialog| dialog.key.tab == id && dialog.has_changes())
+        {
             self.close_target = Some(CloseTarget::Tab(id));
         } else {
             self.send(Command::Close(id), "Closing PDF…");
@@ -721,7 +748,11 @@ impl EditorApp {
                 || self
                     .forms_dialog
                     .as_ref()
-                    .is_some_and(forms::Dialog::has_changes))
+                    .is_some_and(forms::Dialog::has_changes)
+                || self
+                    .overlay_dialog
+                    .as_ref()
+                    .is_some_and(text_overlay::Dialog::has_changes))
     }
 
     fn request_exit(&mut self, context: &egui::Context) {
@@ -811,6 +842,7 @@ impl EditorApp {
             Action::Crop => self.open_organizer_dialog(true),
             Action::Metadata => self.open_metadata(),
             Action::Forms => self.open_forms(),
+            Action::TextOverlay => self.open_text_overlay(),
             Action::Undo => {
                 if let Some(tab) = self.selected().filter(|tab| tab.status.can_undo) {
                     self.send(
@@ -927,6 +959,7 @@ impl eframe::App for EditorApp {
         }
         if self.organizer_dialog.is_none()
             && self.forms_dialog.is_none()
+            && self.overlay_dialog.is_none()
             && self.metadata_dialog.is_none()
             && !self.recovery.open
             && self.pages_dialog.is_none()
@@ -946,6 +979,7 @@ impl eframe::App for EditorApp {
                 && self.organizer_dialog.is_none()
                 && self.metadata_dialog.is_none()
                 && self.forms_dialog.is_none()
+                && self.overlay_dialog.is_none()
                 && !self.recovery.open
                 && self.pending_saves.is_empty()
                 && self.pages_dialog.is_none()
@@ -958,6 +992,7 @@ impl eframe::App for EditorApp {
         self.organizer_dialog_ui(&context);
         self.metadata_dialog_ui(&context);
         self.forms_dialog_ui(&context);
+        self.text_overlay_dialog(&context);
         self.recovery_dialog(&context);
         self.pending_save_dialog(&context);
         self.page_ranges_dialog(&context);

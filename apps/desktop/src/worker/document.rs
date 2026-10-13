@@ -774,8 +774,50 @@ impl WorkingDocument {
         }
         let mut expected_duplicate = None;
         let mut expected_fill = None;
+        let mut expected_overlay = false;
         let mut text_payload = None;
         let mutation = match edit {
+            Edit::TextOverlay {
+                key,
+                overlay,
+                font_file,
+            } => {
+                if self.current.info.encrypted || self.current.info.signature_fields > 0 {
+                    return Err("Signed or encrypted documents are read only".into());
+                }
+                if key.revision != self.current.revision {
+                    return Err("Overlay draft is stale. Reopen the overlay dialog.".into());
+                }
+                if overlay.page == 0
+                    || overlay.page as usize > self.current.info.page_count
+                    || overlay.value.is_empty()
+                    || overlay.value.len() > 64 * 1024
+                {
+                    return Err("Overlay page or text value is invalid".into());
+                }
+                let font = pdf_core::read_input_bytes(&font_file, 16 * 1024 * 1024)
+                    .map_err(|e| e.to_string())?;
+                let combined = self
+                    .current
+                    .bytes
+                    .len()
+                    .checked_add(font.len())
+                    .filter(|len| *len <= pdf_worker::MAX_PDF_BYTES)
+                    .ok_or("Combined document and overlay font exceed the input limit")?;
+                if font.is_empty() {
+                    return Err("Choose a nonempty covering font".into());
+                }
+                let mut payload = Vec::with_capacity(combined);
+                payload.extend_from_slice(&self.current.bytes);
+                payload.extend_from_slice(&font);
+                expected_fill = Some((self.current.info.page_count, overlay.page as usize - 1));
+                expected_overlay = true;
+                text_payload = Some(payload);
+                Mutation::TextOverlay {
+                    overlay,
+                    font_bytes_len: font.len() as u32,
+                }
+            }
             Edit::FillText {
                 key,
                 changes,
@@ -982,6 +1024,9 @@ impl WorkingDocument {
             return Err("Unexpected edit response".into());
         };
         validate_info(&info)?;
+        if expected_overlay && info.pages != self.current.info.pages {
+            return Err("Text overlay changed the original page geometry".into());
+        }
         if expected_fill
             .is_some_and(|(count, page)| info.page_count != count || selected_page != Some(page))
         {

@@ -34,6 +34,11 @@ const TEST_BLUE_PNG: &[u8] = &[
 ];
 
 pub enum Edit {
+    TextOverlay {
+        key: FormsReadKey,
+        overlay: pdf_core::TextOverlay,
+        font_file: PathBuf,
+    },
     FillText {
         key: FormsReadKey,
         changes: Vec<pdf_core::TextChange>,
@@ -169,6 +174,7 @@ impl Command {
 
 #[derive(Debug, Clone, Copy)]
 pub enum TaskKey {
+    Overlay(FormsReadKey),
     Render(RenderKey),
     Thumbnail(ThumbnailKey),
     Text(TextKey),
@@ -293,6 +299,10 @@ impl Worker {
                     Command::Metadata(key) => Some(TaskKey::Metadata(*key)),
                     Command::Forms(key) => Some(TaskKey::Forms(*key)),
                     Command::Edit {
+                        edit: Edit::TextOverlay { key, .. },
+                        ..
+                    } => Some(TaskKey::Overlay(*key)),
+                    Command::Edit {
                         edit: Edit::FillButtons { key, .. } | Edit::FillText { key, .. },
                         ..
                     } => Some(TaskKey::Forms(*key)),
@@ -359,6 +369,8 @@ mod forms_tests;
 mod merge_tests;
 #[cfg(test)]
 mod multiline_tests;
+#[cfg(test)]
+mod overlay_tests;
 mod recovery;
 #[cfg(test)]
 mod sanitize_tests;
@@ -683,7 +695,9 @@ fn process_with_journal(
             })
         }
         Command::Edit { edit, .. } => {
-            if let Edit::FillButtons { key, .. } | Edit::FillText { key, .. } = &edit
+            if let Edit::FillButtons { key, .. }
+            | Edit::FillText { key, .. }
+            | Edit::TextOverlay { key, .. } = &edit
                 && key.tab != id
             {
                 return Err("Form draft belongs to another document".into());

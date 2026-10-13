@@ -99,6 +99,7 @@ impl EditorApp {
             if spacious && ui.add_enabled(!self.busy && self.selected().is_some_and(Tab::editable), egui::Button::new("Save As…"))
                 .on_hover_text("Save a new verified PDF · Command/Ctrl+S · originals are never overwritten").clicked() { action = Some(Action::Save); }
             ui.menu_button("Edit", |ui| {
+                if ui.add_enabled(!self.busy && self.pending_saves.is_empty() && self.selected().is_some_and(Tab::editable),egui::Button::new("Add text overlay…")).clicked(){action=Some(Action::TextOverlay);ui.close();}
                 if ui.add_enabled(!self.busy && self.selected().is_some_and(|tab| tab.status.can_undo), egui::Button::new("Undo · Command/Ctrl+Z")).clicked() { action = Some(Action::Undo); ui.close(); }
                 if ui.add_enabled(!self.busy && self.selected().is_some_and(|tab| tab.status.can_redo), egui::Button::new("Redo · Command/Ctrl+Shift+Z")).clicked() { action = Some(Action::Redo); ui.close(); }
                 ui.separator();

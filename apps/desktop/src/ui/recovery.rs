@@ -307,6 +307,7 @@ impl EditorApp {
         }
         self.metadata_dialog = None;
         self.forms_dialog = None;
+        self.overlay_dialog = None;
         self.organizer_dialog = None;
         self.discard_quit = true;
         self.continue_discard_quit(context);
