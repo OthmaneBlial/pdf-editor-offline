@@ -46,6 +46,91 @@ fn assert_value(pdf: &PdfDocument, value: &str) {
 }
 
 #[test]
+fn generated_operator_limit_includes_retained_artwork_and_preserves_editability() {
+    let mut source = Document::load_mem(SOURCE).unwrap();
+    let field = source.get_dictionary_mut((8, 0)).unwrap();
+    let mut rect = field.get(b"Rect").unwrap().as_array().unwrap().clone();
+    rect[2] = 100072.into();
+    field.set("Rect", rect);
+    field.set("DA", Object::string_literal("/Helv 1 Tf 0 g"));
+    let old = source.get_object((9, 0)).unwrap().as_stream().unwrap();
+    let mut dict = old.dict.clone();
+    dict.remove(b"Filter");
+    dict.remove(b"DecodeParms");
+    dict.set("BBox", vec![0.into(), 0.into(), 100000.into(), 30.into()]);
+    let content = String::from_utf8(old.get_plain_content().unwrap())
+        .unwrap()
+        .replace("0 0 228 30 re", "0 0 100000 30 re");
+    source
+        .objects
+        .insert((9, 0), Stream::new(dict, content.into_bytes()).into());
+    let input = bytes(&mut source);
+    let mut pdf = PdfDocument::from_bytes(&input, None).unwrap();
+    let before = pdf.to_bytes().unwrap();
+    let error = pdf
+        .fill_text(
+            &[TextChange {
+                name: "full_name".into(),
+                value: "A".repeat(33333),
+            }],
+            PLEX,
+        )
+        .unwrap_err();
+    assert!(matches!(error, pdf_core::Error::Limit(_)), "{error}");
+    assert!(error.to_string().contains("100000 operators"), "{error}");
+    assert_eq!(pdf.to_bytes().unwrap(), before);
+    // The same document accepts an appearance within the source parser budget,
+    // remains writable after verified reopening, and supports another edit.
+    fill(&mut pdf, "Short", PLEX);
+    let saved = pdf.verified_bytes().unwrap();
+    let mut reopened = PdfDocument::from_bytes(&saved, None).unwrap();
+    assert!(
+        reopened
+            .list_form_fields()
+            .unwrap()
+            .into_iter()
+            .find(|field| field.name == "full_name")
+            .unwrap()
+            .writable_text
+    );
+    fill(&mut reopened, "Again", PLEX);
+    assert_value(&reopened, "Again");
+
+    // Retained nonpainting artwork counts too, even when generated glyph
+    // operations alone fit. Keep a valid balanced original appearance.
+    let mut source = Document::load_mem(&input).unwrap();
+    let old = source.get_object((9, 0)).unwrap().as_stream().unwrap();
+    let mut content = Content::decode(&old.get_plain_content().unwrap()).unwrap();
+    content.operations.splice(
+        0..0,
+        (0..500).flat_map(|_| {
+            [
+                lopdf::content::Operation::new("q", vec![]),
+                lopdf::content::Operation::new("Q", vec![]),
+            ]
+        }),
+    );
+    let dict = old.dict.clone();
+    source
+        .objects
+        .insert((9, 0), Stream::new(dict, content.encode().unwrap()).into());
+    let mut pdf = PdfDocument::from_bytes(&bytes(&mut source), None).unwrap();
+    let before = pdf.to_bytes().unwrap();
+    let error = pdf
+        .fill_text(
+            &[TextChange {
+                name: "full_name".into(),
+                value: "A".repeat(33000),
+            }],
+            PLEX,
+        )
+        .unwrap_err();
+    assert!(matches!(error, pdf_core::Error::Limit(_)), "{error}");
+    assert!(error.to_string().contains("100000 operators"), "{error}");
+    assert_eq!(pdf.to_bytes().unwrap(), before);
+}
+
+#[test]
 fn persistent_text_state_cannot_change_dependent_outside_artwork_or_later_text() {
     for stroke in [false, true] {
         let mut source = Document::load_mem(SOURCE).unwrap();

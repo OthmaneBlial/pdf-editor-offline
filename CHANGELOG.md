@@ -2,6 +2,8 @@
 
 ## Unreleased — native Rust preview
 
+- Bound the complete generated text appearance before publication, including retained drawing operators, so a successful fill cannot exceed the editor's own appearance-work limit. Oversized candidates leave the source unchanged.
+
 - Added guarded single-line text form filling with explicit covering TrueType or static CID-keyed CFF1 fonts, shaped embedded appearances, logical Unicode values/mappings, fit checks and atomic refusals. The isolated CLI and desktop support text changes and mixed button/text history transactions; choice and advanced text fields remain separate stages.
 
 - Preserve PDF text strings consistently across form names/values, metadata, notes and attachment filenames. Undefined PDFDocEncoding bytes and malformed Unicode now fail explicitly instead of silently dropping or replacing characters; valid UTF-16 and UTF-8 BOM strings retain supplementary characters.

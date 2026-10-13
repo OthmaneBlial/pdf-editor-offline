@@ -826,6 +826,14 @@ impl PdfDocument {
         let mut bytes = 0usize;
         for plan in &plans {
             let replacement = generated(plan, &font_name)?;
+            if plan.content.operations.len() - (plan.text_end - plan.text_start + 1)
+                + replacement.len()
+                > 100_000
+            {
+                return Err(Error::Limit(
+                    "generated text appearance exceeds 100000 operators",
+                ));
+            }
             let mut content = plan.content.clone();
             content
                 .operations
