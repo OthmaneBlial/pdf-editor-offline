@@ -2,6 +2,8 @@
 
 ## Unreleased — native Rust preview
 
+- Add bounded rectangles, ellipses, lines and freehand paths through core, CLI, isolated worker and native canvas controls. Drawing drafts survive tool changes until explicit discard, enter durable Undo/Redo history on Apply, and save to verified new copies. Collapsed serialized bounds and opacity underflow are refused atomically. Shapes add content; filled rectangles are not secure redaction.
+
 - Consume pending clipping paths inside the original-content graphics wrapper before adding text. Native and independent-reader regressions confirm that old clipping state cannot hide the new overlay.
 
 - Place new text-overlay drafts on the actual page canvas with drag creation, move/eight resize handles, optional snapping and keyboard nudges. Numeric controls and draft protection remain available.

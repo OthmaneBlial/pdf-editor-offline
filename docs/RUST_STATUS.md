@@ -1,5 +1,22 @@
 # Native Rust migration status
 
+Current source also adds [new vector artwork](VECTOR_DRAWING_RUST.md):
+rectangles, ellipses, lines and bounded freehand paths through the core, CLI,
+worker and native canvas. Tool changes preserve drafts until explicit discard;
+Apply enters durable history and Save As publishes a verified new copy.
+Shapes preserve underlying content and are not redaction. Manual native window
+and accessibility review remain open, and the released CLI remains preview.3.
+
+The composed drawing source corresponding to `e535a0d` passed **607 workspace
+tests across 72 suites, with no failures or ignored tests**, including the
+pinned independent-reader and production native-worker gates. The final opacity
+precision correction at `6d9fa73` then passed **20 affected core/CLI/worker/native
+tests**, including independent output checks, after rebuilding the normal
+executables. Strict workspace/all-target Clippy with the worker helper, formatting
+and workflow lint checks passed. These are local macOS results; the new source
+still requires its own remote CI and manual native review. No new performance
+benchmark was produced.
+
 Current source adds canvas placement/move/resize handles for new text overlays,
 guarded PDF splitting into durable native tab batches or CLI files, and
 [explicit read-only encrypted viewing](ENCRYPTED_VIEWING_RUST.md). The encrypted
@@ -15,7 +32,7 @@ gates with pinned qpdf/Poppler, canvas placement and pending-clipping regression
 Strict workspace/all-target Clippy with the worker test helper, formatting and
 workflow lint checks passed. The CLI parent's explicit-stack change separately
 passed all **84 CLI tests**. These macOS checks do not replace
-[cross-platform CI](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38348658226)
+[cross-platform CI](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38349608325)
 or manual review of the new dialogs. No new performance benchmark was produced;
 earlier measurements remain tied to their recorded source and fixtures.
 
@@ -46,7 +63,8 @@ ignored tests. Strict workspace/all-target Clippy and fresh native/CLI/helper
 builds passed.
 [Reproduce the real PDF exports](TEXT_OVERLAYS_RUST.md). Native placement uses PDF
 coordinate controls and a true canvas outline, with durable history and protected
-drafts. Drag/resize handles and manual native interaction remain separate work.
+drafts. Canvas drag/resize handles are now implemented; manual native interaction
+remains open.
 Standard omitted-AP Text icons now render using original vectors;
 their tested behavior does not imply popup interaction or artwork parity.
 

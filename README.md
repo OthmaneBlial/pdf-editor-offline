@@ -44,6 +44,7 @@ These features are on **`main`**, ahead of the published CLI preview:
 | Try it | See it work |
 | --- | --- |
 | Add Unicode text with a font, color and alignment | [Before/after exports and commands](docs/TEXT_OVERLAYS_RUST.md) |
+| Draw rectangles, ellipses, lines and freehand paths | [Canvas controls and reproducible CLI example](docs/VECTOR_DRAWING_RUST.md) |
 | Fill text fields, dropdowns and list selections | [A public form you can finish](docs/FORMS_RUST.md) |
 | Add, edit and remove basic sticky notes with undo | [Desktop note walkthrough](docs/NOTES_RUST.md) |
 | Combine supported PDFs into a new desktop tab | [Merge workflow](apps/desktop/README.md) |

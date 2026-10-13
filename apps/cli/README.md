@@ -1,5 +1,12 @@
 # Native Rust CLI preview
 
+Current source adds rectangles, ellipses, lines and bounded polylines with
+`add-vector-overlay`. A strict JSON request controls page, geometry, stroke,
+fill and paint opacity; dry-run and verified no-clobber saving are supported.
+[Reproduce an example](../../docs/VECTOR_DRAWING_RUST.md). New artwork preserves
+underlying content and is not redaction. This command requires a source build;
+the published preview.3 CLI does not include it.
+
 Current source supports consecutive page splitting:
 
 ```sh

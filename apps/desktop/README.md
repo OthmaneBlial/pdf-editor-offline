@@ -1,5 +1,14 @@
 # Native desktop milestone
 
+Edit → **Draw shapes and freehand…** places new rectangles, ellipses, lines and
+bounded freehand paths on the page canvas. Stroke/fill color, width, paint opacity,
+snapping, numerical coordinates and keyboard nudges are available. Changing tools
+retains the drawing until explicit discard. Apply uses the isolated worker and
+durable history; Undo/Redo and verified Save As preserve the original file.
+[Drawing walkthrough and limits](../../docs/VECTOR_DRAWING_RUST.md). Automated
+controls and independent output checks pass; manual native interaction remains
+open. Drawing over content is not redaction.
+
 The **PDF form fields…** action and command palette expose bounded AcroForm
 discovery and guarded checkbox/radio editing. Apply uses the actual document
 worker and durable history, with undo/redo, verified Save As, stale/tab/save guards

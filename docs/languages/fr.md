@@ -1,5 +1,7 @@
 # PDF Editor Offline
 
+**Dessin dans les sources actuelles :** rectangles, ellipses, lignes et tracés à main levée, avec couleurs, opacité et historique. Changer d’outil conserve le dessin jusqu’à un abandon explicite. [Guide et exemple CLI](../VECTOR_DRAWING_RUST.md) (en anglais). L’ajout de formes ne constitue pas un effacement sécurisé ; cette fonction n’est pas dans la CLI publiée `4.0.0-preview.3`.
+
 **Suivez un projet qui avance :** [derniers commits](https://github.com/OthmaneBlial/pdf-editor-offline/commits/main/) · [tests natifs en direct](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml) · [feuille de route](../../ROADMAP.md). Essayez un parcours et contribuez avec un PDF de démonstration sans données privées. Si cet outil vous est utile, [ajoutez une étoile](https://github.com/OthmaneBlial/pdf-editor-offline).
 
 **Nouveau dans le code source :** placement du nouveau texte à la souris avec poignées, découpage en nouveaux onglets et ouverture des PDF protégés par un dialogue de mot de passe. Les documents chiffrés restent en lecture seule ; leur contenu déchiffré et le mot de passe ne sont pas conservés dans la récupération. La CLI publiée reste `4.0.0-preview.3`.
