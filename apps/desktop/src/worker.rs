@@ -2252,3 +2252,6 @@ mod tests {
         assert!(process(&mut documents, Command::Render(invalid)).is_err());
     }
 }
+
+#[cfg(test)]
+mod signature_tests;

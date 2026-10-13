@@ -5,7 +5,7 @@ use crate::{
     worker::{Command, Edit},
 };
 use eframe::egui;
-use pdf_core::{VectorOverlay, VectorShape, VectorStroke};
+use pdf_core::{MAX_VECTOR_POINTS, MAX_VECTOR_STROKES, VectorOverlay, VectorShape, VectorStroke};
 #[derive(Clone, Copy, PartialEq)]
 enum Tool {
     Rectangle,
@@ -23,6 +23,7 @@ pub(super) struct Dialog {
     pub submitting: bool,
     pub stale: bool,
     pub error: Option<String>,
+    visual_signature: bool,
     page: u32,
     bounds: [f64; 4],
     tool: Tool,
@@ -62,6 +63,56 @@ impl Dialog {
             opacity: self.opacity,
         })
     }
+    fn signature_overflow(&mut self) {
+        self.overflow = true;
+        self.error = Some("Signature exceeds 64 strokes or 4096 combined points. Clear the whole draft; overflow is never truncated or applied.".into());
+    }
+    fn start_signature_stroke(&mut self, point: [f64; 2]) {
+        if self.overflow {
+            return;
+        }
+        let strokes = match self.shape.as_mut() {
+            Some(VectorShape::MultiPolyline { strokes }) => strokes,
+            None => {
+                self.shape = Some(VectorShape::MultiPolyline { strokes: vec![] });
+                if let Some(VectorShape::MultiPolyline { strokes }) = self.shape.as_mut() {
+                    strokes
+                } else {
+                    return;
+                }
+            }
+            _ => return,
+        };
+        if strokes.len() >= MAX_VECTOR_STROKES
+            || strokes.iter().map(Vec::len).sum::<usize>() >= MAX_VECTOR_POINTS
+        {
+            self.signature_overflow();
+            return;
+        }
+        strokes.push(vec![point]);
+    }
+    fn append_signature_point(&mut self, point: [f64; 2]) {
+        if self.overflow {
+            return;
+        }
+        let Some(VectorShape::MultiPolyline { strokes }) = self.shape.as_mut() else {
+            return;
+        };
+        if strokes
+            .last()
+            .and_then(|s| s.last())
+            .is_some_and(|p| *p == point)
+        {
+            return;
+        }
+        if strokes.iter().map(Vec::len).sum::<usize>() >= MAX_VECTOR_POINTS {
+            self.signature_overflow();
+            return;
+        }
+        if let Some(stroke) = strokes.last_mut() {
+            stroke.push(point);
+        }
+    }
     fn change_tool(&mut self, tool: Tool) {
         if tool == self.tool {
             return;
@@ -85,6 +136,17 @@ impl Dialog {
     }
 }
 impl EditorApp {
+    pub(super) fn open_visual_signature(&mut self) {
+        if self.vector_dialog.is_some() {
+            return;
+        }
+        self.open_vector();
+        if let Some(d) = self.vector_dialog.as_mut() {
+            d.visual_signature = true;
+            d.tool = Tool::Freehand;
+            d.stroke = [0.08, 0.1, 0.18];
+        }
+    }
     pub(super) fn open_vector(&mut self) {
         if self.busy || !self.pending_saves.is_empty() || self.has_page_content_dialog() {
             return;
@@ -113,6 +175,7 @@ impl EditorApp {
                 revision,
                 generation,
             },
+            visual_signature: false,
             page,
             bounds: map.bounds,
             tool: Tool::Rectangle,
@@ -188,19 +251,19 @@ impl EditorApp {
         };
         let mut apply = false;
         let mut discard = false;
-        egui::Window::new("Draw new artwork").anchor(egui::Align2::RIGHT_TOP,egui::vec2(-12.0,88.0)).default_width(285.0).max_width((ctx.content_rect().width()-32.0).max(220.0)).collapsible(false).show(ctx,|ui|{
-            ui.label("Drag on the paper to draw. Arrow keys nudge the selected draft. This adds artwork; it does not erase underlying content.");
+        egui::Window::new(if d.visual_signature {"Draw visual signature"} else {"Draw new artwork"}).anchor(egui::Align2::RIGHT_TOP,egui::vec2(-12.0,88.0)).default_width(285.0).max_width((ctx.content_rect().width()-32.0).max(220.0)).collapsible(false).show(ctx,|ui|{
+            ui.label(if d.visual_signature {"Draw on the paper; lift the pen between strokes and tap for dots. Arrow keys move the whole draft. Visual only: no digital signature, certificate, identity verification or tamper protection."} else {"Drag on the paper to draw. Arrow keys nudge the selected draft. This adds artwork; it does not erase underlying content."});
             egui::ScrollArea::vertical().max_height((ctx.content_rect().height()-290.0-if d.pending_tool.is_some(){90.0}else{0.0}).max(40.0)).show(ui,|ui|{
                 ui.add_enabled_ui(controls&&!d.submitting&&d.pending_tool.is_none(),|ui|{
-                    ui.horizontal_wrapped(|ui|{for (tool,label)in [(Tool::Rectangle,"Rectangle"),(Tool::Ellipse,"Ellipse"),(Tool::Line,"Line"),(Tool::Freehand,"Freehand")]{if ui.selectable_label(d.tool==tool,label).clicked(){d.change_tool(tool);}}});
+                    if !d.visual_signature {ui.horizontal_wrapped(|ui|{for (tool,label)in [(Tool::Rectangle,"Rectangle"),(Tool::Ellipse,"Ellipse"),(Tool::Line,"Line"),(Tool::Freehand,"Freehand")]{if ui.selectable_label(d.tool==tool,label).clicked(){d.change_tool(tool);}}});}
                     d.edited|=ui.checkbox(&mut d.snap,"Snap to 1 PDF unit").changed();
                     if matches!(d.tool,Tool::Rectangle|Tool::Ellipse){d.edited|=ui.checkbox(&mut d.stroked,"Stroke shape").changed();}
                     ui.label("Stroke RGB");d.edited|=ui.color_edit_button_rgb(&mut d.stroke).changed();
                     ui.horizontal(|ui|{ui.label("Stroke width (PDF units)");d.edited|=ui.add(egui::DragValue::new(&mut d.width).range(0.01..=1024.0).speed(0.1)).changed();});
                     if matches!(d.tool,Tool::Rectangle|Tool::Ellipse){d.edited|=ui.checkbox(&mut d.filled,"Fill shape").changed();if d.filled{ui.label("Fill RGB");d.edited|=ui.color_edit_button_rgb(&mut d.fill).changed();}}
-                    d.edited|=ui.add(egui::Slider::new(&mut d.opacity,0.01..=1.0).text("Paint opacity")).changed();
-                    match d.shape.as_mut(){Some(VectorShape::Rectangle{rectangle})|Some(VectorShape::Ellipse{rectangle})=>{ui.label("PDF rectangle");for (label,v)in ["Left","Bottom","Right","Top"].into_iter().zip(rectangle.iter_mut()){ui.horizontal(|ui|{ui.label(label);d.edited|=ui.add(egui::DragValue::new(v).speed(0.5)).changed();});}},Some(VectorShape::Line{from,to})=>{for(label,v)in ["Start X","Start Y","End X","End Y"].into_iter().zip(from.iter_mut().chain(to.iter_mut())){ui.horizontal(|ui|{ui.label(label);d.edited|=ui.add(egui::DragValue::new(v).speed(0.5)).changed();});}},Some(VectorShape::Polyline{points})=>{ui.label(format!("{} of 4096 freehand points",points.len()));ui.collapsing("PDF point coordinates",|ui|{egui::ScrollArea::vertical().max_height(90.0).show_rows(ui,ui.text_style_height(&egui::TextStyle::Body)+8.0,points.len(),|ui,rows|{for i in rows{ui.push_id(i,|ui|{ui.horizontal(|ui|{ui.label(format!("Point {}",i+1));for (axis,v)in ["X","Y"].into_iter().zip(&mut points[i]){ui.label(axis);d.edited|=ui.add(egui::DragValue::new(v).speed(0.5)).changed();}});});}});});},None=>{ui.label("Draw a shape on the paper first.");}}
-                    if ui.button("Start a new drawing").clicked(){d.shape=None;d.gesture=None;d.overflow=false;d.edited=true;d.error=None;}
+                    if !d.visual_signature {d.edited|=ui.add(egui::Slider::new(&mut d.opacity,0.01..=1.0).text("Paint opacity")).changed();}
+                    match d.shape.as_mut(){Some(VectorShape::Rectangle{rectangle})|Some(VectorShape::Ellipse{rectangle})=>{ui.label("PDF rectangle");for (label,v)in ["Left","Bottom","Right","Top"].into_iter().zip(rectangle.iter_mut()){ui.horizontal(|ui|{ui.label(label);d.edited|=ui.add(egui::DragValue::new(v).speed(0.5)).changed();});}},Some(VectorShape::Line{from,to})=>{for(label,v)in ["Start X","Start Y","End X","End Y"].into_iter().zip(from.iter_mut().chain(to.iter_mut())){ui.horizontal(|ui|{ui.label(label);d.edited|=ui.add(egui::DragValue::new(v).speed(0.5)).changed();});}},Some(VectorShape::Polyline{points})=>{ui.label(format!("{} of 4096 freehand points",points.len()));ui.collapsing("PDF point coordinates",|ui|{egui::ScrollArea::vertical().max_height(90.0).show_rows(ui,ui.text_style_height(&egui::TextStyle::Body)+8.0,points.len(),|ui,rows|{for i in rows{ui.push_id(i,|ui|{ui.horizontal(|ui|{ui.label(format!("Point {}",i+1));for (axis,v)in ["X","Y"].into_iter().zip(&mut points[i]){ui.label(axis);d.edited|=ui.add(egui::DragValue::new(v).speed(0.5)).changed();}});});}});});},Some(VectorShape::MultiPolyline{strokes})=>{ui.label(format!("{} of {MAX_VECTOR_STROKES} strokes · {} of {MAX_VECTOR_POINTS} points",strokes.len(),strokes.iter().map(Vec::len).sum::<usize>()));},None=>{ui.label("Draw on the paper first.");}}
+                    if ui.button(if d.visual_signature {"Clear entire signature draft"} else {"Start a new drawing"}).clicked(){d.shape=None;d.gesture=None;d.overflow=false;d.edited=true;d.error=None;}
                 });
                 if d.stale{ui.label("The document changed. This draft is retained; close and reopen drawing controls before applying.");}
                 if let Some(error)=&d.error{ui.colored_label(crate::style::palette(ui.visuals().dark_mode).copper,error);}
@@ -214,8 +277,8 @@ impl EditorApp {
                 });
             }
             ui.horizontal_wrapped(|ui|{
-                if ui.add_enabled(controls&&!d.submitting&&d.request().is_some(),egui::Button::new("Add artwork")).clicked(){apply=true;}
-                if ui.add_enabled(may_discard&&!d.submitting,egui::Button::new("Discard drawing draft")).clicked(){discard=true;}
+                if ui.add_enabled(controls&&!d.submitting&&d.request().is_some(),egui::Button::new(if d.visual_signature {"Add visual signature"} else {"Add artwork"})).clicked(){apply=true;}
+                if ui.add_enabled(may_discard&&!d.submitting,egui::Button::new(if d.visual_signature {"Discard signature draft"} else {"Discard drawing draft"})).clicked(){discard=true;}
             });
         });
         if discard {
@@ -270,8 +333,8 @@ impl EditorApp {
             if response.clicked() || response.drag_started() {
                 response.request_focus();
             }
+            let margin = if d.stroked { d.width / 2.0 } else { 0.0 };
             let inset = |p: [f64; 2]| {
-                let margin = if d.stroked { d.width / 2.0 } else { 0.0 };
                 if !margin.is_finite()
                     || margin < 0.0
                     || map.bounds[0] + margin > map.bounds[2] - margin
@@ -293,10 +356,18 @@ impl EditorApp {
                 d.gesture = Some(Gesture {
                     map,
                     start,
-                    original: d.shape.take(),
+                    original: if d.visual_signature {
+                        d.shape.clone()
+                    } else {
+                        d.shape.take()
+                    },
                 });
-                d.overflow = false;
-                d.error = None;
+                if d.visual_signature {
+                    d.start_signature_stroke(start);
+                } else {
+                    d.overflow = false;
+                    d.error = None;
+                }
                 d.edited = true;
             }
             if let Some(g) = &d.gesture
@@ -326,6 +397,12 @@ impl EditorApp {
                         from: g.start,
                         to: p,
                     },
+                    Tool::Freehand if d.visual_signature => {
+                        d.append_signature_point(p);
+                        d.shape
+                            .take()
+                            .unwrap_or(VectorShape::MultiPolyline { strokes: vec![] })
+                    }
                     Tool::Freehand => {
                         let mut points = match d.shape.take() {
                             Some(VectorShape::Polyline { points }) => points,
@@ -348,7 +425,20 @@ impl EditorApp {
                 && let Some(g) = d.gesture.take()
             {
                 d.shape = g.original;
-                d.overflow = false;
+                if !d.visual_signature {
+                    d.overflow = false;
+                }
+            }
+            if d.visual_signature
+                && response.clicked()
+                && d.gesture.is_none()
+                && let Some(p) = response
+                    .interact_pointer_pos()
+                    .and_then(|p| map.inverse(p, d.snap))
+                    .and_then(inset)
+            {
+                d.start_signature_stroke(p);
+                d.edited = true;
             }
             if response.drag_stopped() {
                 d.gesture = None;
@@ -451,6 +541,19 @@ impl EditorApp {
                     ui.painter()
                         .line_segment([map.point(*from), map.point(*to)], stroke);
                 }
+                VectorShape::MultiPolyline { strokes } => {
+                    for points in strokes {
+                        if let Some(p) = points.first().filter(|p| points.iter().all(|q| q == *p)) {
+                            ui.painter()
+                                .circle_filled(map.point(*p), stroke.width / 2.0, c);
+                        } else {
+                            ui.painter().add(egui::Shape::line(
+                                points.iter().map(|p| map.point(*p)).collect(),
+                                stroke,
+                            ));
+                        }
+                    }
+                }
                 VectorShape::Polyline { points } => {
                     ui.painter().add(egui::Shape::line(
                         points.iter().map(|p| map.point(*p)).collect(),
@@ -468,6 +571,9 @@ fn finite_shape(shape: &VectorShape) -> bool {
         }
         VectorShape::Line { from, to } => from.iter().chain(to).all(|v| v.is_finite()),
         VectorShape::Polyline { points } => points.iter().flatten().all(|v| v.is_finite()),
+        VectorShape::MultiPolyline { strokes } => {
+            strokes.iter().flatten().flatten().all(|v| v.is_finite())
+        }
     }
 }
 fn translate(shape: &mut VectorShape, delta: [f64; 2]) {
@@ -480,6 +586,12 @@ fn translate(shape: &mut VectorShape, delta: [f64; 2]) {
         }
         VectorShape::Line { from, to } => {
             for p in [from, to] {
+                p[0] += delta[0];
+                p[1] += delta[1];
+            }
+        }
+        VectorShape::MultiPolyline { strokes } => {
+            for p in strokes.iter_mut().flatten() {
                 p[0] += delta[0];
                 p[1] += delta[1];
             }
@@ -547,6 +659,7 @@ mod tests {
             }
             VectorShape::Line { from, to } => vec![*from, *to],
             VectorShape::Polyline { points } => points.clone(),
+            VectorShape::MultiPolyline { strokes } => strokes.iter().flatten().copied().collect(),
         }
     }
     #[test]
@@ -1020,5 +1133,163 @@ mod tests {
         assert!(app.needs_exit_guard());
         app.request_close(1);
         assert!(app.close_target.is_some());
+    }
+    #[test]
+    fn actual_signature_pen_lifts_dots_and_whole_draft_guards() {
+        for rotation in [0, 90, 180, 270] {
+            let ctx = egui::Context::default();
+            let page = page(rotation);
+            let mut app = app(&ctx, &page);
+            app.vector_dialog = None;
+            app.perform(super::super::Action::VisualSignature, &ctx);
+            assert!(app.vector_dialog.as_ref().unwrap().visual_signature);
+            let image = egui::Rect::from_min_size(
+                egui::pos2(200.0, 200.0),
+                if rotation % 180 == 0 {
+                    egui::vec2(400.0, 200.0)
+                } else {
+                    egui::vec2(200.0, 400.0)
+                },
+            );
+            let map = PageMap::new(&page, image).unwrap();
+            draw(&mut app, &ctx, &page, image, vec![]);
+            for (a, b) in [
+                ([40.0, 50.0], [80.0, 100.0]),
+                ([120.0, 60.0], [160.0, 100.0]),
+            ] {
+                let a = map.point(a);
+                let b = map.point(b);
+                draw(
+                    &mut app,
+                    &ctx,
+                    &page,
+                    image,
+                    vec![egui::Event::PointerMoved(a), pointer(a, true)],
+                );
+                draw(
+                    &mut app,
+                    &ctx,
+                    &page,
+                    image,
+                    vec![egui::Event::PointerMoved(b)],
+                );
+                draw(&mut app, &ctx, &page, image, vec![pointer(b, false)]);
+            }
+            let dot = map.point([180.0, 110.0]);
+            draw(
+                &mut app,
+                &ctx,
+                &page,
+                image,
+                vec![egui::Event::PointerMoved(dot), pointer(dot, true)],
+            );
+            draw(&mut app, &ctx, &page, image, vec![pointer(dot, false)]);
+            let d = app.vector_dialog.as_ref().unwrap();
+            let VectorShape::MultiPolyline { strokes } = d.request().unwrap().shape else {
+                panic!("not multi-stroke")
+            };
+            assert_eq!(strokes.len(), 3);
+            assert_eq!(strokes[2].len(), 1);
+            assert!(app.needs_exit_guard());
+            assert!(app.has_tab_draft(1));
+            app.tabs[0].status.revision += 1;
+            assert!(!app.apply_vector());
+            assert_eq!(
+                points(app.vector_dialog.as_ref().unwrap().shape.as_ref().unwrap()).len(),
+                strokes.iter().map(Vec::len).sum::<usize>()
+            );
+        }
+    }
+    #[test]
+    fn signature_overflow_preserves_points_and_requires_explicit_clear() {
+        let ctx = egui::Context::default();
+        let page = page(0);
+        let mut app = app(&ctx, &page);
+        app.vector_dialog = None;
+        app.open_visual_signature();
+        let d = app.vector_dialog.as_mut().unwrap();
+        for _ in 0..MAX_VECTOR_STROKES {
+            d.start_signature_stroke([50.0, 60.0]);
+        }
+        let original = points(d.shape.as_ref().unwrap());
+        d.start_signature_stroke([70.0, 80.0]);
+        assert!(d.overflow);
+        assert!(d.request().is_none());
+        assert_eq!(points(d.shape.as_ref().unwrap()), original);
+        d.shape = Some(VectorShape::MultiPolyline {
+            strokes: vec![vec![[50.0, 60.0]; MAX_VECTOR_POINTS]],
+        });
+        d.overflow = false;
+        d.append_signature_point([70.0, 80.0]);
+        assert!(d.overflow);
+        assert!(d.request().is_none());
+        assert_eq!(points(d.shape.as_ref().unwrap()).len(), MAX_VECTOR_POINTS);
+    }
+    #[test]
+    fn real_sign_menu_clear_discard_and_apply_controls() {
+        let ctx = egui::Context::default();
+        let page = page(0);
+        let mut app = app(&ctx, &page);
+        app.vector_dialog = None;
+        let frame = |app: &mut EditorApp, events| {
+            let mut out = ctx.run_ui(
+                egui::RawInput {
+                    screen_rect: Some(egui::Rect::from_min_size(
+                        egui::Pos2::ZERO,
+                        egui::vec2(1000.0, 800.0),
+                    )),
+                    events,
+                    ..Default::default()
+                },
+                |ui| {
+                    app.workstation(ui);
+                    app.vector_dialog_ui(&ctx);
+                },
+            );
+            out.textures_delta.clear();
+            out
+        };
+        let click = |app: &mut EditorApp, label: &str| {
+            frame(app, vec![]);
+            let out = frame(app, vec![]);
+            let pos = out
+                .shapes
+                .iter()
+                .find_map(|s| match &s.shape {
+                    egui::Shape::Text(t) if t.galley.job.text == label => {
+                        Some(t.galley.rect.translate(t.pos.to_vec2()).center())
+                    }
+                    _ => None,
+                })
+                .unwrap_or_else(|| panic!("missing control {label}"));
+            frame(
+                app,
+                vec![egui::Event::PointerMoved(pos), pointer(pos, true)],
+            );
+            frame(app, vec![pointer(pos, false)]);
+        };
+        click(&mut app, "Sign");
+        click(&mut app, "Draw visual signature…");
+        assert!(app.vector_dialog.as_ref().unwrap().visual_signature);
+        app.vector_dialog
+            .as_mut()
+            .unwrap()
+            .start_signature_stroke([50.0, 60.0]);
+        click(&mut app, "Clear entire signature draft");
+        assert!(app.vector_dialog.as_ref().unwrap().shape.is_none());
+        app.vector_dialog
+            .as_mut()
+            .unwrap()
+            .start_signature_stroke([50.0, 60.0]);
+        click(&mut app, "Discard signature draft");
+        assert!(app.vector_dialog.is_none());
+        app.open_visual_signature();
+        app.vector_dialog
+            .as_mut()
+            .unwrap()
+            .start_signature_stroke([50.0, 60.0]);
+        click(&mut app, "Add visual signature");
+        assert!(app.vector_dialog.as_ref().unwrap().submitting);
+        assert!(app.busy);
     }
 }

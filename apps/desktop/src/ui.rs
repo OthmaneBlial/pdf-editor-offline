@@ -48,6 +48,7 @@ enum Action {
     VectorOverlay,
     ImageOverlay,
     ContentText,
+    VisualSignature,
     Undo,
     Redo,
     Previous,
@@ -1090,6 +1091,7 @@ impl EditorApp {
             Action::VectorOverlay => self.open_vector(),
             Action::ImageOverlay => self.open_image_overlay(),
             Action::ContentText => self.open_content_text(),
+            Action::VisualSignature => self.open_visual_signature(),
             Action::Undo => {
                 if let Some(tab) = self.selected().filter(|tab| tab.status.can_undo) {
                     self.send(
