@@ -30,6 +30,28 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Add a Unicode text overlay in PDF page coordinates; never edits existing text.
+    AddTextOverlay {
+        input: PathBuf,
+        #[arg(long)]
+        page: u32,
+        #[arg(long, num_args = 4, value_names = ["X0", "Y0", "X1", "Y1"], allow_hyphen_values = true)]
+        rect: Vec<f64>,
+        #[arg(long, allow_hyphen_values = true)]
+        text: String,
+        #[arg(long)]
+        font_file: PathBuf,
+        #[arg(long, default_value_t = 12.0)]
+        font_size: f64,
+        #[arg(long, num_args = 3, default_values = ["0", "0", "0"], value_names = ["R", "G", "B"])]
+        color: Vec<f64>,
+        #[arg(long, default_value = "left", value_parser = ["left", "center", "right"])]
+        align: String,
+        #[arg(short, long)]
+        output: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Remove supported metadata, attachment and action structures into a full-rewrite new copy.
     /// This is targeted sanitization, not text/image redaction or a privacy certificate.
     Sanitize {
@@ -357,6 +379,48 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
             }
             Ok(
                 json!({"operation":"fill-choice","choices":choices,"output":json_path(output),"dry_run":dry_run,"embedded_complete_font":true,"font_fallback":false,"secure_erasure":false}),
+            )
+        }
+        Command::AddTextOverlay {
+            input,
+            page,
+            rect,
+            text,
+            font_file,
+            font_size,
+            color,
+            align,
+            output,
+            dry_run,
+        } => {
+            let font = pdf_core::read_input_bytes(font_file, 16 * 1024 * 1024)?;
+            let bytes = pdf_core::read_input_bytes(input, pdf_core::MAX_INPUT_BYTES - font.len())?;
+            let mut document = PdfDocument::from_bytes(&bytes, password)?;
+            let overlay = pdf_core::TextOverlay {
+                page: *page,
+                rectangle: rect
+                    .as_slice()
+                    .try_into()
+                    .map_err(|_| Error::Invalid("overlay rectangle needs four coordinates"))?,
+                value: text.clone(),
+                size: *font_size,
+                color: color
+                    .as_slice()
+                    .try_into()
+                    .map_err(|_| Error::Invalid("overlay RGB color needs three components"))?,
+                alignment: match align.as_str() {
+                    "left" => pdf_core::TextAlignment::Left,
+                    "center" => pdf_core::TextAlignment::Center,
+                    "right" => pdf_core::TextAlignment::Right,
+                    _ => return Err(Error::Invalid("overlay alignment is invalid")),
+                },
+            };
+            document.add_text_overlay(&overlay, &font)?;
+            if !dry_run {
+                document.save_new(output)?;
+            }
+            Ok(
+                json!({"operation":"add-text-overlay","page":page,"rectangle":rect,"font_size":font_size,"color":color,"alignment":align,"output":json_path(output),"dry_run":dry_run,"info":document.info()?,"existing_text_edited":false,"secure_erasure":false,"font_fallback":false}),
             )
         }
         Command::FillText {
@@ -739,7 +803,7 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
         }
         Command::Capabilities => Ok(
             json!({ "runtime": "rust-native", "version": env!("CARGO_PKG_VERSION"), "migration_preview": true,
-            "commands": ["info", "sanitize", "list-forms", "list-choices", "fill-button", "fill-text", "fill-choice", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "images-to-pdf", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "duplicate-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
+            "commands": ["add-text-overlay", "info", "sanitize", "list-forms", "list-choices", "fill-button", "fill-text", "fill-choice", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "images-to-pdf", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "duplicate-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
             "image_conversion":"restricted_png_jpeg_color_metadata_orientation_tier_one_pixel_one_pdf_point",
             "metadata":"six_standard_trailer_info_keys_custom_entries_and_xmp_preserved_no_sync_or_secure_erasure",
             "sanitization":"targeted_info_xmp_file_association_action_removal_full_rewrite_gc_not_redaction_or_privacy_proof",

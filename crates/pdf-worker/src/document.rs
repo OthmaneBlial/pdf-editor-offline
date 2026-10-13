@@ -38,6 +38,10 @@ pub enum Operation {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "mutation", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Mutation {
+    TextOverlay {
+        overlay: pdf_core::TextOverlay,
+        font_bytes_len: u32,
+    },
     FillText {
         changes: Vec<pdf_core::TextChange>,
         #[serde(default)]
@@ -173,6 +177,30 @@ fn execute(request: Request) -> Result<Reply, String> {
     }
     if let Operation::Merge { lengths } = operation {
         return merge(&request.payload, &lengths);
+    }
+    if let Operation::Edit {
+        mutation: Mutation::TextOverlay {
+            overlay,
+            font_bytes_len,
+        },
+    } = &operation
+    {
+        let font_len = *font_bytes_len as usize;
+        if font_len == 0 || font_len > 16 * 1024 * 1024 {
+            return Err("Overlay font must contain 1 byte to 16 MiB".into());
+        }
+        let split = request
+            .payload
+            .len()
+            .checked_sub(font_len)
+            .filter(|split| *split > 0)
+            .ok_or("Overlay font length leaves no PDF input")?;
+        let (pdf, font) = request.payload.split_at(split);
+        let mut document = PdfDocument::from_bytes(pdf, None).map_err(|error| error.to_string())?;
+        document
+            .add_text_overlay(overlay, font)
+            .map_err(|error| error.to_string())?;
+        return document_reply(document, Some(overlay.page as usize - 1));
     }
     if let Operation::Edit {
         mutation:
@@ -382,7 +410,7 @@ fn document_reply(document: PdfDocument, selected_page: Option<usize>) -> Result
 
 fn apply(document: &mut PdfDocument, mutation: Mutation) -> Result<Option<usize>, String> {
     let selected = match mutation {
-        Mutation::FillText { .. } => {
+        Mutation::FillText { .. } | Mutation::TextOverlay { .. } => {
             return Err("Text font payload was not split before PDF parsing".into());
         }
         Mutation::FillButtons { changes, page } => {
