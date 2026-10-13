@@ -96,8 +96,11 @@ unsaved tab, verifies the returned blob in a second bounded child and journals i
 before acknowledgement. Its new history does not retain the unredacted source.
 Source history and other recovery copies remain. Actual self-hosted child saving
 is checked with qpdf and Poppler extraction, retained word coordinates and changed
-glyph pixels. Headless keyboard/pointer controls pass; manual native interaction
-is still unverified.
+glyph pixels. Headless keyboard/pointer controls pass. An actual macOS public
+fixture passed Create Copy, Save As/reopen, extracted-text inspection and the
+separate-copy history check; [exact review and screenshot](TEXT_REDACTION_NATIVE_REVIEW.md)
+retain its independent saved-file evidence. Other manual interactions and platforms
+remain unverified. This source is later than published preview.4.
 
 This stage is not complete arbitrary-PDF redaction. It does not erase the original
 file, another application copy, recovery journals, backups or filesystem history.

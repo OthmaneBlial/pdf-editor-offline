@@ -1,5 +1,18 @@
 # Native Rust migration status
 
+## 13 October: permanent text-redaction profile
+
+Checked composition `d8bfc1b` passed **746 tests across 89 suites, zero failures
+and zero ignored tests**, with all independent-reference gates and strict
+workspace Clippy. Core, isolated CLI/worker and native controls remove exact ASCII
+target glyphs into a verified full-rewrite copy under a closed standard-font
+profile, including bounded text state and invisible text. Unsupported carriers
+refuse; original files and recovery copies remain. [Scope and limits](TEXT_REDACTION_RUST.md).
+An [actual macOS review](TEXT_REDACTION_NATIVE_REVIEW.md) passed creation,
+Save As/reopen, separate-copy history and qpdf/Poppler preservation checks.
+This source is later than published preview.4. Images, arbitrary layouts/fonts,
+broader privacy proof, every-platform review and release gates remain open.
+
 ## 13 October: budgeted text decoding
 
 Current source checks Unicode expansion before output append in the shared core

@@ -252,6 +252,7 @@ The table covers current source; published CLI differences are called out below.
 | Forms | Checkboxes/radios, single/multiline text, dropdowns and single/multiple list selections; guarded apply and undo/redo | Discover fields and indexed options; `fill-button`, `fill-text`, `list-choices` and `fill-choice` in current source |
 | Inspect and export | Verified Save As to a new path | Read-only action/attachment/form/layer markers, lossless stream compression, verified fresh output copies |
 | Targeted cleanup | Separate unsaved copy, removal report and verified Save As | `sanitize` removes supported metadata/file/action structures through a full rewrite in current source; includes dry-run and a partial-scope report |
+| Permanent text redaction · newer source | Confirmed separate copy under a closed standard-font ASCII profile; original tab retained | `redact-text` and `verify-redaction` check the rewritten file bytes; unsupported carriers refuse. Absent from published preview.4 |
 | Resume your work | Recorded document/history snapshots, explicit session restore/discard, interrupted-save retry/cancel in current source | Desktop recovery is separate from the CLI |
 
 </details>
@@ -269,6 +270,11 @@ file. None of these operations is secure redaction or private-data erasure.
 [Targeted sanitization](docs/SANITIZATION_RUST.md) removes specified structures
 and unreachable payloads from a new copy. It preserves page content and can leave
 other private information; its report explicitly provides no general privacy proof.
+[Permanent text redaction](docs/TEXT_REDACTION_RUST.md) is a separate newer-source
+workflow for exact ASCII targets within its supported standard-font profile.
+It removes glyphs and verifies a full-rewrite copy; images and unsupported carriers
+refuse. [See the actual native review](docs/TEXT_REDACTION_NATIVE_REVIEW.md).
+Published preview.4 predates this feature. Original files and recovery copies remain.
 OCR, cryptographic signing, arbitrary embedded-font editing and high-fidelity Office
 conversion are not implemented in this preview. Rendering can omit unsupported
 content; inspect exported documents before relying on them. Signed inputs and

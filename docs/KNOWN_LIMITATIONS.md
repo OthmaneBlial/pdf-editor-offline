@@ -27,9 +27,14 @@ manual platform verification claim.
   general watermarks/custom headers and footers. Unsupported structure, missing
   glyphs, unfit layout and limits refuse the complete batch.
 - OCR, comb/rich-text forms/free-entry combos, digital signing, arbitrary page-text
-  editing, secure redaction and broad Office conversion are not implemented.
+  editing, arbitrary-PDF redaction and broad Office conversion are not implemented.
   Supported buttons, single/multiline text and indexed choices have a guarded
   [form workflow](FORMS_RUST.md); text and choices need an explicit covering font.
+- [Permanent text redaction](TEXT_REDACTION_RUST.md) supports exact ASCII targets
+  only within a closed standard-Type1 semantic-text profile. It verifies a separate
+  full rewrite and refuses images, opaque carriers and unsupported state/layout.
+  Source files, other tabs, histories and recovery copies remain. This newer source
+  feature is absent from published preview.4; it provides no general privacy certificate.
 - [Targeted sanitization](SANITIZATION_RUST.md) removes specified metadata, file
   associations and actions through a new-copy full rewrite. It does not scrub all
   private information or redact page content; visible text, images, form values,
