@@ -42,12 +42,12 @@ The screenshot is a real app window using a public synthetic PDF.
 
 ## Made this week · 13 October 2026
 
-**Today's checkpoint:** the image/drawing source passed native CI on Windows,
+**Today's checkpoint:** the existing-text source passed native CI on Windows,
 macOS ARM64 and Intel, and Linux ARM64 and x64. The quality and security jobs
-also passed. [Inspect the native run](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38354908054)
-· [Inspect the security run](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38354908068).
+also passed. [Inspect the native run](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38358673702)
+· [Inspect the security run](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38358673357).
 These checks cover source builds; the downloadable CLI remains preview.3.
-The newer existing-text milestone passed 659 local tests and strict Clippy;
+The newer visual-signature milestone passed 667 local tests and strict Clippy;
 its own remote checks are pending. [Scope and evidence](docs/RUST_STATUS.md).
 
 These features are on **`main`**, ahead of the published CLI preview:
