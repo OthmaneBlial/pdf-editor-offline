@@ -1,5 +1,13 @@
 # PDF operation subprocesses
 
+Native `open` challenges encrypted inputs even with an empty password. `unlock`
+accepts only the strict `ReadOperation` enum (info/render/text/metadata/forms/notes);
+the credential is a maximum 4096-byte UTF-8 body suffix, never a JSON value,
+path, argument or environment variable. A successful reply contains inspected
+information, pixels or bounded text/report data, never a plaintext PDF. Request
+and reply Debug output redacts both control and body data. See the
+[encrypted viewing policy](../../docs/ENCRYPTED_VIEWING_RUST.md).
+
 `execute(absolute_helper, args, Request, Limits::default())` starts a fresh child
 with a cleared environment. `serve_once(execute_document)` also supports the
 desktop's own executable with `--pdf-worker`. The child installs limits, announces

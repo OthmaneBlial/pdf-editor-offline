@@ -25,6 +25,7 @@ windows-sys = { version = "=0.61.2", features = ["Win32_Foundation", "Win32_Secu
 
 [dev-dependencies]
 tempfile.workspace = true
+lopdf.workspace = true
 
 [features]
 test-helper = []

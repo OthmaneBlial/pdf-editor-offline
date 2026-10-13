@@ -1,7 +1,7 @@
 use super::{Edit, HISTORY_BYTES, HISTORY_LIMIT};
 use crate::state::DocumentStatus;
 use pdf_core::DocumentInfo;
-use pdf_worker::document::{DocumentResult, MetadataChange, Mutation, Operation};
+use pdf_worker::document::{DocumentResult, MetadataChange, Mutation, Operation, ReadOperation};
 use pdf_worker::journal::{DocumentStateRef, Journal, SnapshotRef};
 use pdf_worker::{PayloadKind, Reply, Request};
 use std::ffi::OsString;
@@ -21,6 +21,13 @@ pub(super) struct WorkingDocument {
     pub saved_revision: Option<u64>,
     pub next_revision: u64,
     pub path: Option<PathBuf>,
+    // Session-only credentials; never included in DocumentStateRef or any diagnostics.
+    pub(super) password: Option<String>,
+}
+
+pub(super) enum OpenResult {
+    Open(WorkingDocument),
+    PasswordRequired([u8; 32]),
 }
 
 fn validate_forms(fields: &[pdf_core::FormField], pages: usize) -> Result<(), String> {
@@ -380,6 +387,34 @@ pub(super) fn execute_limited(
     Ok((result, reply))
 }
 
+fn unlock_read(
+    read: ReadOperation,
+    bytes: &[u8],
+    password: &str,
+) -> Result<(DocumentResult, Reply), String> {
+    if password.len() > pdf_worker::document::MAX_PASSWORD_BYTES {
+        return Err("Password exceeds 4096 UTF-8 bytes".into());
+    }
+    let length = bytes
+        .len()
+        .checked_add(password.len())
+        .filter(|size| *size <= pdf_worker::MAX_PDF_BYTES)
+        .ok_or("Encrypted PDF and password exceed the 128 MiB transport bound")?;
+    let mut payload = Vec::new();
+    payload
+        .try_reserve_exact(length)
+        .map_err(|_| "Cannot allocate bounded password request")?;
+    payload.extend_from_slice(bytes);
+    payload.extend_from_slice(password.as_bytes());
+    execute(
+        Operation::Unlock {
+            password_bytes_len: password.len() as u32,
+            read,
+        },
+        &payload,
+    )
+}
+
 pub(super) fn validate_info(info: &DocumentInfo) -> Result<(), String> {
     if info.version.len() > 128
         || info.page_count == 0
@@ -410,17 +445,35 @@ pub(super) fn validate_info(info: &DocumentInfo) -> Result<(), String> {
 }
 
 impl WorkingDocument {
+    #[cfg(test)]
     pub fn load(path: &Path) -> Result<Self, String> {
+        match Self::probe(path)? {
+            OpenResult::Open(document) => Ok(document),
+            OpenResult::PasswordRequired(_) => {
+                Err("PDF requires an explicit read-only password opening".into())
+            }
+        }
+    }
+
+    pub fn probe(path: &Path) -> Result<OpenResult, String> {
         let bytes = pdf_core::read_pdf_bytes(path).map_err(|error| error.to_string())?;
-        let (result, reply) = execute(Operation::Info, &bytes)?;
-        let DocumentResult::Info { info } = result else {
-            return Err("Unexpected document information response".into());
-        };
+        let (result, reply) = execute(Operation::Open, &bytes)?;
         if reply.kind != PayloadKind::None || !reply.payload.is_empty() {
             return Err("Unexpected document information payload".into());
         }
+        if let DocumentResult::PasswordRequired { incorrect: false } = result {
+            return Ok(OpenResult::PasswordRequired(
+                pdf_worker::payload_fingerprint(&bytes),
+            ));
+        }
+        let DocumentResult::Info { info } = result else {
+            return Err("Unexpected document opening response".into());
+        };
         validate_info(&info)?;
-        Ok(Self {
+        if info.encrypted {
+            return Err("Encrypted opening must require explicit session-only consent".into());
+        }
+        Ok(OpenResult::Open(Self {
             current: Snapshot {
                 bytes,
                 info,
@@ -431,7 +484,77 @@ impl WorkingDocument {
             saved_revision: Some(0),
             next_revision: 1,
             path: Some(std::path::absolute(path).map_err(|error| error.to_string())?),
-        })
+            password: None,
+        }))
+    }
+
+    pub fn unlock(
+        path: &Path,
+        fingerprint: [u8; 32],
+        password: String,
+    ) -> Result<OpenResult, String> {
+        if password.len() > pdf_worker::document::MAX_PASSWORD_BYTES {
+            return Err("Password exceeds 4096 UTF-8 bytes".into());
+        }
+        let bytes = pdf_core::read_pdf_bytes(path).map_err(|error| error.to_string())?;
+        if pdf_worker::payload_fingerprint(&bytes) != fingerprint {
+            return Err("The encrypted source changed. Cancel and open the PDF again.".into());
+        }
+        let (result, reply) = unlock_read(ReadOperation::Info, &bytes, &password)?;
+        if reply.kind != PayloadKind::None || !reply.payload.is_empty() {
+            return Err("Unexpected password-opening payload".into());
+        }
+        if let DocumentResult::PasswordRequired { incorrect: true } = result {
+            return Ok(OpenResult::PasswordRequired(fingerprint));
+        }
+        let DocumentResult::Info { info } = result else {
+            return Err("Unexpected password-opening response".into());
+        };
+        validate_info(&info)?;
+        if !info.encrypted {
+            return Err("Password opening must preserve encrypted read-only status".into());
+        }
+        Ok(OpenResult::Open(Self {
+            current: Snapshot {
+                bytes,
+                info,
+                revision: 0,
+            },
+            undo: vec![],
+            redo: vec![],
+            saved_revision: Some(0),
+            next_revision: 1,
+            path: Some(std::path::absolute(path).map_err(|error| error.to_string())?),
+            password: Some(password),
+        }))
+    }
+
+    pub fn session_only(&self) -> bool {
+        self.password.is_some() || self.current.info.encrypted
+    }
+
+    pub fn read(&self, read: ReadOperation) -> Result<(DocumentResult, Reply), String> {
+        if let Some(password) = &self.password {
+            unlock_read(read, &self.current.bytes, password)
+        } else {
+            let operation = match read {
+                ReadOperation::Notes { page, offset } => Operation::Notes { page, offset },
+                ReadOperation::Info => Operation::Info,
+                ReadOperation::Forms => Operation::Forms,
+                ReadOperation::Metadata => Operation::Metadata,
+                ReadOperation::Text { page } => Operation::Text { page },
+                ReadOperation::Render {
+                    page,
+                    scale,
+                    logical_zoom,
+                } => Operation::Render {
+                    page,
+                    scale,
+                    logical_zoom,
+                },
+            };
+            execute(operation, &self.current.bytes)
+        }
     }
 
     pub fn merge(&self, revision: u64, paths: &[PathBuf]) -> Result<Self, String> {
@@ -502,6 +625,7 @@ impl WorkingDocument {
             saved_revision: None,
             next_revision: 1,
             path: None,
+            password: None,
         })
     }
 
@@ -563,6 +687,7 @@ impl WorkingDocument {
             saved_revision: None,
             next_revision: 1,
             path: None,
+            password: None,
         })
     }
 
@@ -620,6 +745,7 @@ impl WorkingDocument {
             saved_revision: None,
             next_revision: 1,
             path: None,
+            password: None,
         })
     }
 
@@ -680,6 +806,7 @@ impl WorkingDocument {
                 saved_revision: None,
                 next_revision: 1,
                 path: None,
+                password: None,
             },
             report,
         ))
@@ -690,7 +817,7 @@ impl WorkingDocument {
         page: u32,
         offset: u32,
     ) -> Result<(Vec<pdf_worker::document::NoteEntry>, Option<u32>), String> {
-        let (result, reply) = execute(Operation::Notes { page, offset }, &self.current.bytes)?;
+        let (result, reply) = self.read(ReadOperation::Notes { page, offset })?;
         let DocumentResult::Notes {
             entries,
             next_offset,
@@ -744,7 +871,7 @@ impl WorkingDocument {
     }
 
     pub fn metadata(&self) -> Result<pdf_core::DocumentMetadata, String> {
-        let (result, reply) = execute(Operation::Metadata, &self.current.bytes)?;
+        let (result, reply) = self.read(ReadOperation::Metadata)?;
         let DocumentResult::Metadata { metadata } = result else {
             return Err("Unexpected metadata response".into());
         };
@@ -755,7 +882,7 @@ impl WorkingDocument {
     }
 
     pub fn forms(&self) -> Result<(Vec<pdf_core::FormField>, Vec<pdf_core::ChoiceField>), String> {
-        let (result, reply) = execute(Operation::Forms, &self.current.bytes)?;
+        let (result, reply) = self.read(ReadOperation::Forms)?;
         let DocumentResult::Forms { fields, choices } = result else {
             return Err("Unexpected forms response".into());
         };
@@ -796,6 +923,9 @@ impl WorkingDocument {
         id: &str,
         commit: impl FnOnce(&DocumentStateRef<'_>) -> Result<(), String>,
     ) -> Result<Option<usize>, String> {
+        if self.session_only() {
+            return Err("Password-opened PDFs are read only and session only".into());
+        }
         let budget = budget.min(HISTORY_BYTES);
         if matches!(edit, Edit::Undo | Edit::Redo) {
             let undo = matches!(edit, Edit::Undo);
@@ -1164,6 +1294,9 @@ impl WorkingDocument {
     }
 
     pub fn prepare_save(&self) -> Result<Vec<u8>, String> {
+        if self.session_only() {
+            return Err("Password-opened PDFs cannot be saved or exported".into());
+        }
         let (result, reply) = execute(Operation::PrepareSave, &self.current.bytes)?;
         let DocumentResult::Document { info, .. } = result else {
             return Err("Unexpected save preparation response".into());

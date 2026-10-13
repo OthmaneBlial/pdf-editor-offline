@@ -2762,6 +2762,7 @@ name = "pdf-worker"
 version = "4.0.0-preview.4"
 dependencies = [
  "libc",
+ "lopdf",
  "pdf-convert",
  "pdf-core",
  "pdf-render",

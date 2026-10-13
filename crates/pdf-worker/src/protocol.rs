@@ -41,16 +41,32 @@ impl ReplyPolicy {
         }
     }
 }
-#[derive(Debug)]
 pub struct Request {
     pub control: Value,
     pub payload: Vec<u8>,
 }
-#[derive(Debug)]
 pub struct Reply {
     pub control: Value,
     pub payload: Vec<u8>,
     pub kind: PayloadKind,
+}
+
+impl std::fmt::Debug for Request {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Request")
+            .field("control", &"<redacted>")
+            .field("payload_bytes", &self.payload.len())
+            .finish()
+    }
+}
+impl std::fmt::Debug for Reply {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Reply")
+            .field("control", &"<redacted>")
+            .field("payload_bytes", &self.payload.len())
+            .field("kind", &self.kind)
+            .finish()
+    }
 }
 
 fn limit(kind: PayloadKind) -> usize {

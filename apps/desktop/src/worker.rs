@@ -8,7 +8,9 @@ use eframe::egui;
 use pdf_core::PdfDocument;
 use pdf_render::RenderedPage;
 use pdf_worker::PayloadKind;
-use pdf_worker::document::{DocumentResult, Operation};
+#[cfg(test)]
+use pdf_worker::document::Operation;
+use pdf_worker::document::{DocumentResult, ReadOperation};
 use pdf_worker::journal::Journal;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -139,6 +141,12 @@ pub enum Command {
         id: u64,
         path: PathBuf,
     },
+    Unlock {
+        id: u64,
+        path: PathBuf,
+        fingerprint: [u8; 32],
+        password: String,
+    },
     Render(RenderKey),
     Thumbnail(ThumbnailKey),
     Text(TextKey),
@@ -166,6 +174,7 @@ impl Command {
         match self {
             Self::RecoveryList | Self::RestoreSession { .. } | Self::DiscardSession { .. } => 0,
             Self::Load { id, .. }
+            | Self::Unlock { id, .. }
             | Self::Sanitize { id, .. }
             | Self::Merge { id, .. }
             | Self::ExtractPages { id, .. }
@@ -203,6 +212,17 @@ pub enum Event {
         key: NotesKey,
         entries: Vec<pdf_worker::document::NoteEntry>,
         next_offset: Option<u32>,
+    },
+    PasswordRequired {
+        id: u64,
+        path: PathBuf,
+        fingerprint: [u8; 32],
+        incorrect: bool,
+    },
+    Unlocked {
+        id: u64,
+        path: PathBuf,
+        status: DocumentStatus,
     },
     Merged {
         id: u64,
@@ -394,6 +414,8 @@ mod multiline_tests;
 mod notes_tests;
 #[cfg(test)]
 mod overlay_tests;
+#[cfg(test)]
+pub(crate) mod password_tests;
 mod recovery;
 #[cfg(test)]
 mod sanitize_tests;
@@ -407,6 +429,45 @@ fn process_durable(
     recovery: &mut Result<recovery::Recovery, String>,
     command: Command,
 ) -> Result<Event, String> {
+    if matches!(&command, Command::Load { .. }) {
+        // A password challenge is read-only and may proceed without recovery.
+        // Ordinary PDFs must not be inserted without a durable commit, including
+        // tests that deliberately mock persist(None) for unrelated actor coverage.
+        let journal = recovery
+            .as_mut()
+            .ok()
+            .and_then(|recovery| recovery.journal().ok());
+        if journal.is_none() {
+            let Command::Load { id, path } = command else {
+                unreachable!()
+            };
+            opening_available(documents, id)?;
+            return match WorkingDocument::probe(&path)? {
+                document::OpenResult::PasswordRequired(fingerprint) => {
+                    Ok(Event::PasswordRequired {
+                        id,
+                        path,
+                        fingerprint,
+                        incorrect: false,
+                    })
+                }
+                document::OpenResult::Open(_) => Err(
+                    "A durable recovery journal is required before opening an ordinary document"
+                        .into(),
+                ),
+            };
+        }
+        return process_with_journal(documents, command, journal);
+    }
+    // These documents are explicitly session-only; their credentials and view
+    // outputs must not enter recovery, including when the journal is unavailable.
+    if matches!(&command, Command::Unlock { .. })
+        || documents
+            .get(&command.id())
+            .is_some_and(WorkingDocument::session_only)
+    {
+        return process_with_journal(documents, command, None);
+    }
     let recovery = recovery.as_mut().map_err(|error| error.clone())?;
     match command {
         Command::RecoveryList => recovery.list(),
@@ -439,6 +500,18 @@ fn persist(
         #[cfg(not(test))]
         None => Err("A durable recovery journal is required before changing documents".into()),
     }
+}
+
+fn opening_available(documents: &HashMap<u64, WorkingDocument>, id: u64) -> Result<(), String> {
+    if id == 0 || id == u64::MAX || documents.contains_key(&id) {
+        return Err("Opening requires a fresh document identifier".into());
+    }
+    if documents.len() >= MAX_TABS {
+        return Err(
+            "Close a PDF before opening another document; at most 16 tabs can be open.".into(),
+        );
+    }
+    Ok(())
 }
 
 fn process_with_journal(
@@ -586,23 +659,56 @@ fn process_with_journal(
         });
     }
     if let Command::Load { id, path } = command {
-        if documents.contains_key(&id) {
-            return Err("Document identifier is already open".into());
-        }
-        if documents.len() >= MAX_TABS {
-            return Err(
-                "Close a PDF before opening another document; at most 16 tabs can be open.".into(),
-            );
-        }
-        let document = WorkingDocument::load(&path)?;
+        opening_available(documents, id)?;
+        let document = match WorkingDocument::probe(&path)? {
+            document::OpenResult::Open(document) => document,
+            document::OpenResult::PasswordRequired(fingerprint) => {
+                return Ok(Event::PasswordRequired {
+                    id,
+                    path,
+                    fingerprint,
+                    incorrect: false,
+                });
+            }
+        };
         check_snapshot_budget(documents, &document)?;
         persist(journal.as_deref_mut(), &document.as_ref(&id.to_string()))?;
         let status = document.status()?;
         documents.insert(id, document);
         return Ok(Event::Loaded { id, path, status });
     }
+    if let Command::Unlock {
+        id,
+        path,
+        fingerprint,
+        password,
+    } = command
+    {
+        opening_available(documents, id)?;
+        let document = match WorkingDocument::unlock(&path, fingerprint, password)? {
+            document::OpenResult::Open(document) => document,
+            document::OpenResult::PasswordRequired(fingerprint) => {
+                return Ok(Event::PasswordRequired {
+                    id,
+                    path,
+                    fingerprint,
+                    incorrect: true,
+                });
+            }
+        };
+        check_snapshot_budget(documents, &document)?;
+        let status = document.status()?;
+        // Deliberately no journal commit: only ciphertext and a transient password
+        // are retained in the actor. This session-only policy is disclosed in UI.
+        documents.insert(id, document);
+        return Ok(Event::Unlocked { id, path, status });
+    }
     if let Command::Close(id) = command {
-        if let Some(journal) = &mut journal {
+        if !documents
+            .get(&id)
+            .is_some_and(WorkingDocument::session_only)
+            && let Some(journal) = &mut journal
+        {
             if journal
                 .save_intents()
                 .iter()
@@ -839,6 +945,7 @@ fn process_with_journal(
             })
         }
         Command::Load { .. }
+        | Command::Unlock { .. }
         | Command::Images { .. }
         | Command::ExtractPages { .. }
         | Command::Sanitize { .. }
@@ -860,14 +967,11 @@ fn render(
     if key.revision != document.current.revision {
         return Err("Preview request is stale".into());
     }
-    let (result, reply) = document::execute(
-        Operation::Render {
-            page: key.page,
-            scale: f32::from_bits(key.scale_bits),
-            logical_zoom: view_zoom,
-        },
-        &document.current.bytes,
-    )?;
+    let (result, reply) = document.read(ReadOperation::Render {
+        page: key.page,
+        scale: f32::from_bits(key.scale_bits),
+        logical_zoom: view_zoom,
+    })?;
     let DocumentResult::Render { raster } = result else {
         return Err("Unexpected raster response".into());
     };
@@ -901,12 +1005,9 @@ fn page_text(document: &WorkingDocument, page: usize) -> Result<(String, bool), 
     if page >= document.current.info.page_count {
         return Err("Page is outside document".into());
     }
-    let (result, reply) = document::execute(
-        Operation::Text {
-            page: page as u32 + 1,
-        },
-        &document.current.bytes,
-    )?;
+    let (result, reply) = document.read(ReadOperation::Text {
+        page: page as u32 + 1,
+    })?;
     let DocumentResult::Text { text, truncated } = result else {
         return Err("Unexpected page text response".into());
     };

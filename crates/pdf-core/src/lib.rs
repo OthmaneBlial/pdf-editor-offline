@@ -16,6 +16,7 @@ pub mod selection;
 mod strings;
 mod structure;
 mod text;
+mod viewing;
 
 pub use error::{Error, Result};
 pub use forms::*;

@@ -21,3 +21,10 @@ pub enum Error {
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
+
+impl Error {
+    /// Authentication failed; the password itself is never part of this error.
+    pub fn is_invalid_password(&self) -> bool {
+        matches!(self, Self::Pdf(lopdf::Error::InvalidPassword))
+    }
+}

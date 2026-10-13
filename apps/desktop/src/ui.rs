@@ -12,6 +12,7 @@ mod notes;
 mod organizer;
 mod pages;
 mod palette;
+mod password;
 mod recovery;
 mod sanitize;
 mod sidebar;
@@ -102,6 +103,8 @@ pub struct EditorApp {
     pages_dialog: Option<pages::Dialog>,
     sanitize_dialog: Option<sanitize::Dialog>,
     merge_dialog: Option<merge::Dialog>,
+    pending_open: Option<password::Opening>,
+    password_dialog: Option<password::Dialog>,
     recovery: recovery::State,
     discard_quit: bool,
     pending_saves: std::collections::BTreeMap<u64, recovery::PendingSave>,
@@ -143,6 +146,8 @@ impl EditorApp {
             pages_dialog: None,
             sanitize_dialog: None,
             merge_dialog: None,
+            pending_open: None,
+            password_dialog: None,
             recovery: Default::default(),
             discard_quit: false,
             pending_saves: Default::default(),
@@ -197,6 +202,15 @@ impl EditorApp {
                     entries,
                     next_offset,
                 } => self.accept_notes(key, entries, next_offset),
+                Event::PasswordRequired {
+                    id,
+                    path,
+                    fingerprint,
+                    incorrect,
+                } => self.accept_password_required(id, path, fingerprint, incorrect),
+                Event::Unlocked { id, path, status } => {
+                    self.accept_unlocked(id, path, status, context)
+                }
                 Event::Merged { id, path, status } => self.accept_merged(id, path, status, context),
                 Event::Sanitized {
                     id,
@@ -240,6 +254,13 @@ impl EditorApp {
                     }
                 }
                 Event::Loaded { id, path, status } => {
+                    if self
+                        .pending_open
+                        .as_ref()
+                        .is_some_and(|opening| opening.id == id)
+                    {
+                        self.pending_open = None;
+                    }
                     let mut tab = Tab::new(id, path, status);
                     tab.set_device_ratio(context.pixels_per_point());
                     self.tabs.push(tab);
@@ -447,6 +468,13 @@ impl EditorApp {
                     {
                         self.notes_dialog = None;
                     }
+                    if self
+                        .password_dialog
+                        .as_ref()
+                        .is_some_and(|dialog| dialog.related_to(id))
+                    {
+                        self.cancel_password();
+                    }
                     self.pending_saves.remove(&id);
                     self.tabs.retain(|tab| tab.id != id);
                     if self.active == Some(id) {
@@ -468,6 +496,17 @@ impl EditorApp {
                         continue;
                     }
 
+                    if task.is_none() && self.password_error(id, &message) {
+                        continue;
+                    }
+                    if task.is_none()
+                        && self
+                            .pending_open
+                            .as_ref()
+                            .is_some_and(|opening| opening.id == id)
+                    {
+                        self.pending_open = None;
+                    }
                     if task.is_none()
                         && self.merge_dialog.as_ref().is_some_and(|dialog| {
                             dialog.expected_id.is_some()
@@ -612,6 +651,7 @@ impl EditorApp {
             || self.sanitize_dialog.is_some()
             || self.merge_dialog.is_some()
             || self.notes_dialog.is_some()
+            || self.password_dialog.is_some()
         {
             return;
         }
@@ -676,22 +716,14 @@ impl EditorApp {
     }
 
     fn open(&mut self) {
-        if self.busy || self.tabs.len() >= 16 {
+        if self.busy || self.tabs.len() >= 16 || self.password_dialog.is_some() {
             return;
         }
         if let Some(path) = rfd::FileDialog::new()
             .add_filter("PDF document", &["pdf"])
             .pick_file()
         {
-            let id = self.next_id;
-            let Some(next) = id.checked_add(1) else {
-                self.message =
-                    "Document identifier limit reached. Restart after saving your work.".into();
-                return;
-            };
-            if self.send(Command::Load { id, path }, "Opening and validating PDF…") {
-                self.next_id = next;
-            }
+            self.begin_open(path);
         }
     }
 
@@ -816,6 +848,9 @@ impl EditorApp {
     }
 
     fn request_exit(&mut self, context: &egui::Context) {
+        if !self.busy {
+            self.cancel_password();
+        }
         if self.needs_exit_guard() {
             context.send_viewport_cmd(egui::ViewportCommand::CancelClose);
             self.close_target = Some(CloseTarget::Exit);
@@ -1027,6 +1062,7 @@ impl eframe::App for EditorApp {
             && self.pages_dialog.is_none()
             && self.sanitize_dialog.is_none()
             && self.merge_dialog.is_none()
+            && self.password_dialog.is_none()
             && self.pending_saves.is_empty()
         {
             self.shortcuts(&context);
@@ -1046,7 +1082,8 @@ impl eframe::App for EditorApp {
                 && self.pending_saves.is_empty()
                 && self.pages_dialog.is_none()
                 && self.sanitize_dialog.is_none()
-                && self.merge_dialog.is_none(),
+                && self.merge_dialog.is_none()
+                && self.password_dialog.is_none(),
             |ui| self.workstation(ui),
         );
         self.command_palette(&context);
@@ -1061,6 +1098,7 @@ impl eframe::App for EditorApp {
         self.sanitization_dialog(&context);
         self.notes_dialog_ui(&context);
         self.merge_dialog(&context);
+        self.password_dialog_ui(&context);
     }
 }
 

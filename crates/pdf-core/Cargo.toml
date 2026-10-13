@@ -19,13 +19,13 @@ unicode-bidi = "0.3"
 unicode-script = "=0.5.8"
 unicode-segmentation = "=1.13.3"
 unicode-linebreak = "=0.1.5"
+pdf-render = { path = "../pdf-render" }
 
 [target.'cfg(unix)'.dependencies]
 rustix = { version = "1", features = ["fs"] }
 
 [dev-dependencies]
 serde_json.workspace = true
-pdf-render = { path = "../pdf-render" }
 
 [lints]
 workspace = true

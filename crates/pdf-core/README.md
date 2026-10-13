@@ -1,5 +1,13 @@
 # pdf-core
 
+Authenticated encrypted documents remain read-only. `render_decrypted_page`
+returns pixels through the locked native renderer using a bounded, verified
+memory-only representation; it exposes no plaintext serialization/export API.
+Run this API inside the limited worker. The core-to-render dependency exists for
+that shared viewing boundary; ordinary rendering still uses original PDF bytes.
+See [encrypted viewing](../../docs/ENCRYPTED_VIEWING_RUST.md) for the tested tiers
+and explicit session-only desktop privacy policy.
+
 Native Rust document processing for PDF Editor Offline. No network,
 HTTP service or GUI dependency. API page numbers are one-based.
 

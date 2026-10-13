@@ -4,10 +4,36 @@ use pdf_core::{DocumentInfo, DocumentMetadata, PageInfo, PdfDocument};
 use serde::{Deserialize, Serialize};
 
 pub const MAX_TEXT_BYTES: usize = 1024 * 1024;
+pub const MAX_PASSWORD_BYTES: usize = 4096;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "action", rename_all = "snake_case", deny_unknown_fields)]
+pub enum ReadOperation {
+    Notes {
+        page: u32,
+        offset: u32,
+    },
+    Info,
+    Forms,
+    Render {
+        page: usize,
+        scale: f32,
+        logical_zoom: f32,
+    },
+    Text {
+        page: u32,
+    },
+    Metadata,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "operation", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Operation {
+    Open,
+    Unlock {
+        password_bytes_len: u32,
+        read: ReadOperation,
+    },
     Info,
     Forms,
     Notes {
@@ -156,6 +182,9 @@ pub enum DocumentResult {
         entries: Vec<NoteEntry>,
         next_offset: Option<u32>,
     },
+    PasswordRequired {
+        incorrect: bool,
+    },
     Sanitized {
         info: DocumentInfo,
         report: pdf_core::SanitizationReport,
@@ -205,13 +234,19 @@ fn execute(request: Request) -> Result<Reply, String> {
         .as_object()
         .ok_or("Document control must be an object")?
         .len();
+    let read_fields = request
+        .control
+        .get("read")
+        .and_then(serde_json::Value::as_object)
+        .map(|value| value.len());
     let operation: Operation = serde_json::from_value(request.control)
         .map_err(|error| format!("Invalid document operation: {error}"))?;
     // Serde's internally tagged unit variants can ignore extra fields despite
     // deny_unknown_fields. These operations accept only their tag, never paths.
     if matches!(
         operation,
-        Operation::Info
+        Operation::Open
+            | Operation::Info
             | Operation::Forms
             | Operation::Metadata
             | Operation::PrepareSave
@@ -219,6 +254,73 @@ fn execute(request: Request) -> Result<Reply, String> {
     ) && field_count != 1
     {
         return Err("This document operation accepts no extra fields or paths".into());
+    }
+    if matches!(operation, Operation::Open) {
+        return match PdfDocument::from_bytes(&request.payload, Some("")) {
+            Ok(document)
+                if document
+                    .info()
+                    .map_err(|error| error.to_string())?
+                    .encrypted =>
+            {
+                reply(
+                    DocumentResult::PasswordRequired { incorrect: false },
+                    PayloadKind::None,
+                    vec![],
+                )
+            }
+            Ok(document) => read_reply(&document, ReadOperation::Info, Some(&request.payload)),
+            Err(error) if error.is_invalid_password() => reply(
+                DocumentResult::PasswordRequired { incorrect: false },
+                PayloadKind::None,
+                vec![],
+            ),
+            Err(error) => Err(error.to_string()),
+        };
+    }
+    if let Operation::Unlock {
+        password_bytes_len,
+        read,
+    } = &operation
+    {
+        if matches!(
+            read,
+            ReadOperation::Info | ReadOperation::Forms | ReadOperation::Metadata
+        ) && read_fields != Some(1)
+        {
+            return Err("This read operation accepts no extra fields or paths".into());
+        }
+        let length = *password_bytes_len as usize;
+        if length > MAX_PASSWORD_BYTES {
+            return Err("Password exceeds 4096 UTF-8 bytes".into());
+        }
+        let split = request
+            .payload
+            .len()
+            .checked_sub(length)
+            .filter(|split| *split > 0)
+            .ok_or("Password length leaves no PDF input")?;
+        let (ciphertext, password) = request.payload.split_at(split);
+        let password = std::str::from_utf8(password).map_err(|_| "Password must be UTF-8")?;
+        let document = match PdfDocument::from_bytes(ciphertext, Some(password)) {
+            Ok(document) => document,
+            Err(error) if error.is_invalid_password() => {
+                return reply(
+                    DocumentResult::PasswordRequired { incorrect: true },
+                    PayloadKind::None,
+                    vec![],
+                );
+            }
+            Err(error) => return Err(error.to_string()),
+        };
+        if !document
+            .info()
+            .map_err(|error| error.to_string())?
+            .encrypted
+        {
+            return Err("Unlock only accepts an encrypted PDF".into());
+        }
+        return read_reply(&document, read.clone(), None);
     }
     if let Operation::Images { lengths } = operation {
         return images(&request.payload, &lengths);
@@ -300,7 +402,77 @@ fn execute(request: Request) -> Result<Reply, String> {
     let mut document =
         PdfDocument::from_bytes(&request.payload, None).map_err(|error| error.to_string())?;
     match operation {
-        Operation::Notes { page, offset } => {
+        Operation::Notes { page, offset } => read_reply(
+            &document,
+            ReadOperation::Notes { page, offset },
+            Some(&request.payload),
+        ),
+        Operation::Forms => read_reply(&document, ReadOperation::Forms, Some(&request.payload)),
+        Operation::Info => read_reply(&document, ReadOperation::Info, Some(&request.payload)),
+        Operation::Render {
+            page,
+            scale,
+            logical_zoom,
+        } => read_reply(
+            &document,
+            ReadOperation::Render {
+                page,
+                scale,
+                logical_zoom,
+            },
+            Some(&request.payload),
+        ),
+        Operation::Text { page } => read_reply(
+            &document,
+            ReadOperation::Text { page },
+            Some(&request.payload),
+        ),
+        Operation::Metadata => {
+            read_reply(&document, ReadOperation::Metadata, Some(&request.payload))
+        }
+        Operation::Edit { mutation } => {
+            let selected_page = apply(&mut document, mutation)?;
+            document_reply(document, selected_page)
+        }
+        Operation::PrepareSave => document_reply(document, None),
+        Operation::Sanitize => {
+            let (candidate, report) = document
+                .sanitized_copy()
+                .map_err(|error| error.to_string())?;
+            let payload = candidate
+                .verified_bytes()
+                .map_err(|error| error.to_string())?;
+            let info = candidate.info().map_err(|error| error.to_string())?;
+            reply(
+                DocumentResult::Sanitized { info, report },
+                PayloadKind::Pdf,
+                payload,
+            )
+        }
+        Operation::ExtractPages { pages } => {
+            if pages.len() > pdf_core::MAX_PAGES {
+                return Err("Page selection exceeds the supported page count".into());
+            }
+            let extracted = document
+                .extract_pages(&pages)
+                .map_err(|error| error.to_string())?;
+            document_reply(extracted, Some(0))
+        }
+        Operation::Images { .. } => unreachable!("images handled before PDF parsing"),
+        Operation::Merge { .. } => unreachable!("merge handled before PDF parsing"),
+        Operation::Open | Operation::Unlock { .. } => {
+            unreachable!("opening handled before PDF parsing")
+        }
+    }
+}
+
+fn read_reply(
+    document: &PdfDocument,
+    operation: ReadOperation,
+    original: Option<&[u8]>,
+) -> Result<Reply, String> {
+    match operation {
+        ReadOperation::Notes { page, offset } => {
             let notes = document
                 .list_notes(&[page])
                 .map_err(|error| error.to_string())?;
@@ -343,7 +515,7 @@ fn execute(request: Request) -> Result<Reply, String> {
                 vec![],
             )
         }
-        Operation::Forms => reply(
+        ReadOperation::Forms => reply(
             DocumentResult::Forms {
                 fields: document
                     .list_form_fields()
@@ -355,14 +527,14 @@ fn execute(request: Request) -> Result<Reply, String> {
             PayloadKind::None,
             vec![],
         ),
-        Operation::Info => reply(
+        ReadOperation::Info => reply(
             DocumentResult::Info {
                 info: document.info().map_err(|error| error.to_string())?,
             },
             PayloadKind::None,
             vec![],
         ),
-        Operation::Render {
+        ReadOperation::Render {
             page,
             scale,
             logical_zoom,
@@ -380,8 +552,14 @@ fn execute(request: Request) -> Result<Reply, String> {
                 .get(page)
                 .ok_or("Render page is outside the document")?;
             let expected = dimensions(geometry, scale)?;
-            let image = pdf_render::render_view_page(&request.payload, page, scale, logical_zoom)
-                .map_err(|error| error.to_string())?;
+            let image = if let Some(original) = original {
+                pdf_render::render_view_page(original, page, scale, logical_zoom)
+                    .map_err(|error| error.to_string())?
+            } else {
+                document
+                    .render_decrypted_page(page, scale, logical_zoom)
+                    .map_err(|error| error.to_string())?
+            };
             let pixels = u64::from(image.width) * u64::from(image.height);
             if [image.width, image.height] != expected
                 || pixels > pdf_render::MAX_PIXELS
@@ -406,7 +584,7 @@ fn execute(request: Request) -> Result<Reply, String> {
                 image.rgba,
             )
         }
-        Operation::Text { page } => {
+        ReadOperation::Text { page } => {
             let mut text = document
                 .extract_text(&[page])
                 .map_err(|error| error.to_string())?;
@@ -424,46 +602,15 @@ fn execute(request: Request) -> Result<Reply, String> {
                 vec![],
             )
         }
-        Operation::Metadata => reply(
+        ReadOperation::Metadata => reply(
             DocumentResult::Metadata {
                 metadata: document.metadata().map_err(|error| error.to_string())?,
             },
             PayloadKind::None,
             vec![],
         ),
-        Operation::Edit { mutation } => {
-            let selected_page = apply(&mut document, mutation)?;
-            document_reply(document, selected_page)
-        }
-        Operation::PrepareSave => document_reply(document, None),
-        Operation::Sanitize => {
-            let (candidate, report) = document
-                .sanitized_copy()
-                .map_err(|error| error.to_string())?;
-            let payload = candidate
-                .verified_bytes()
-                .map_err(|error| error.to_string())?;
-            let info = candidate.info().map_err(|error| error.to_string())?;
-            reply(
-                DocumentResult::Sanitized { info, report },
-                PayloadKind::Pdf,
-                payload,
-            )
-        }
-        Operation::ExtractPages { pages } => {
-            if pages.len() > pdf_core::MAX_PAGES {
-                return Err("Page selection exceeds the supported page count".into());
-            }
-            let extracted = document
-                .extract_pages(&pages)
-                .map_err(|error| error.to_string())?;
-            document_reply(extracted, Some(0))
-        }
-        Operation::Images { .. } => unreachable!("images handled before PDF parsing"),
-        Operation::Merge { .. } => unreachable!("merge handled before PDF parsing"),
     }
 }
-
 fn reply(result: DocumentResult, kind: PayloadKind, payload: Vec<u8>) -> Result<Reply, String> {
     let control = serde_json::to_value(result).map_err(|error| error.to_string())?;
     if serde_json::to_vec(&control)

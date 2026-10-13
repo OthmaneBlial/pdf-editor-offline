@@ -236,6 +236,7 @@ impl Recovery {
                 saved_revision: state.saved_revision,
                 next_revision: state.next_revision,
                 path: state.path,
+                password: None,
             };
             incoming.push((next_id, working));
         }
@@ -302,7 +303,11 @@ impl Recovery {
     }
 
     pub fn finish(mut self, documents: &HashMap<u64, WorkingDocument>) {
-        if documents.is_empty()
+        if documents.values().all(WorkingDocument::session_only)
+            && self
+                .journal
+                .as_ref()
+                .is_some_and(|journal| journal.summary().document_count == 0)
             && self
                 .journal
                 .as_ref()
@@ -323,7 +328,10 @@ fn inspect_snapshot(bytes: &[u8], started: Instant) -> Result<pdf_core::Document
         remaining.min(Duration::from_secs(pdf_worker::CPU_SECONDS)),
     )
     .map_err(|error| error.to_string())?;
-    let (result, reply) = document::execute_limited(Operation::Info, bytes, limits)?;
+    let (result, reply) = document::execute_limited(Operation::Open, bytes, limits)?;
+    if matches!(result, DocumentResult::PasswordRequired { .. }) {
+        return Err("Encrypted recovery snapshots require explicit reopening of the original with its password; the source session remains retained".into());
+    }
     let DocumentResult::Info { info } = result else {
         return Err("Recovery child returned an unexpected response".into());
     };
@@ -332,6 +340,16 @@ fn inspect_snapshot(bytes: &[u8], started: Instant) -> Result<pdf_core::Document
     }
     document::validate_info(&info)?;
     Ok(info)
+}
+
+#[test]
+#[allow(clippy::unwrap_used)]
+fn legacy_encrypted_snapshots_including_empty_passwords_never_restore_without_awareness() {
+    for password in ["", "reader"] {
+        let (cipher, _) = super::password_tests::encryption::fixture(3, password, false);
+        let error = inspect_snapshot(&cipher, Instant::now()).unwrap_err();
+        assert!(error.contains("explicit reopening"));
+    }
 }
 
 #[cfg(not(test))]

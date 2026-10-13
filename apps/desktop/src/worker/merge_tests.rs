@@ -193,6 +193,7 @@ fn limits_readonly_sources_and_pending_saves_refuse_without_new_document() {
                 saved_revision: None,
                 next_revision: 1,
                 path: None,
+                password: None,
             },
         );
     }

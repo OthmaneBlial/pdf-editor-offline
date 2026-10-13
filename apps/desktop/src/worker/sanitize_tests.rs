@@ -166,6 +166,7 @@ fn full_tab_budget_refuses_before_creating_another_snapshot() {
                 saved_revision: None,
                 next_revision: 1,
                 path: None,
+                password: None,
             },
         );
     }

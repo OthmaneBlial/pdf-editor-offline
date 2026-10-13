@@ -25,6 +25,12 @@ pub const MEMORY_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 pub const CPU_SECONDS: u64 = 30;
 const PROCESSING_STACK_BYTES: usize = 8 * 1024 * 1024;
 
+/// Bind an asynchronous opening challenge to the exact opaque source bytes.
+pub fn payload_fingerprint(bytes: &[u8]) -> [u8; 32] {
+    use sha2::Digest;
+    sha2::Sha256::digest(bytes).into()
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("worker I/O failed: {0}")]
