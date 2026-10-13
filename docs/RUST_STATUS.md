@@ -11,6 +11,16 @@ ignored tests**, followed by strict workspace/all-target Clippy with the worker
 test helper. Normal native/CLI/worker/helper builds, formatting, workflow lint
 and diff checks passed. Remote CI for this new milestone is still pending.
 
+The first [remote native run](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38372325112)
+reported failures in the Windows image-replacement interaction test and the
+quality job's subprocess-deadline test. Linux x64/ARM64 and macOS ARM64 passed;
+the Intel job was still running at that observation. Release preview.4 remains
+unpublished while these failures are repaired. The deadline test's isolated
+operation-budget repair passed all 13 evidence-tool tests, including the child
+helper, and strict all-target Clippy locally; its new remote result is not yet
+available. This repair does not relax the production 60-second operation or
+180-second evidence budget. The Windows interaction repair is still in review.
+
 - [Page numbering](PAGE_NUMBERING_RUST.md) plans an atomic, upright batch with a
   chosen covering font, one durable native undo transaction and verified saving.
 - [Existing image replacement](IMAGE_REPLACEMENT_RUST.md) changes one discovered

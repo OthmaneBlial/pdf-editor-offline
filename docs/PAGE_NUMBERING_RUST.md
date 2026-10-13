@@ -44,5 +44,5 @@ and 30.591 seconds respectively. The earlier binary SHA-256 is
 `026da1165f80c2a90cee10075fe7cafee90f9b9239c83d0eeac974313d059323`.
 Owned-child sampling timed out without producing a stack report. This rules out
 neither a shared runtime issue nor environmental effects; no cause is claimed.
-The comparison records are `forensic-stage18-observation.json` and
-`forensic-checked-observation.json` in the same local proof directory.
+The comparison records are `forensic-stage18-observations.json` and
+`forensic-checked-observations.json` in the same local proof directory.
