@@ -990,7 +990,10 @@ mod tests {
         let image = directory.path().join("red.png");
         std::fs::write(&image, crate::worker::TEST_RED_PNG).expect("fixture");
         assert!(app.start_image_conversion(vec![image]));
-        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+        // Actual bounded child work may contend with the parallel suite. Wait for
+        // its production deadline plus event-delivery grace, not host speed.
+        let deadline =
+            std::time::Instant::now() + std::time::Duration::from_secs(pdf_worker::CPU_SECONDS + 5);
         while app.busy && std::time::Instant::now() < deadline {
             app.poll(&context.egui_ctx);
             std::thread::yield_now();
@@ -1043,7 +1046,8 @@ mod tests {
         app.active = Some(9);
         assert!(!app.start_image_conversion(vec![]));
         assert!(app.start_image_conversion(vec![invalid.clone()]));
-        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+        let deadline =
+            std::time::Instant::now() + std::time::Duration::from_secs(pdf_worker::CPU_SECONDS + 5);
         while app.busy && std::time::Instant::now() < deadline {
             app.poll(&context.egui_ctx);
             std::thread::yield_now();

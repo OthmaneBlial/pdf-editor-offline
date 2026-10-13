@@ -67,6 +67,20 @@ fn validate_forms(fields: &[pdf_core::FormField], pages: usize) -> Result<(), St
         {
             return Err("Form refusal reason exceeds its bound".into());
         }
+        if field
+            .text_refusal_reason
+            .as_ref()
+            .is_some_and(|reason| reason.len() > 8192)
+            || field.writable_text
+                && (field.kind != FormFieldKind::Text
+                    || field.name.is_empty()
+                    || field.flags & (1 | 1 << 12 | 1 << 13 | 1 << 20 | 1 << 24 | 1 << 25) != 0
+                    || field.widgets.is_empty()
+                    || field.text_refusal_reason.is_some()
+                    || !matches!(field.value, FormValue::Text(_) | FormValue::Empty))
+        {
+            return Err("Invalid writable text capability or refusal bound".into());
+        }
         if field.writable_button
             && (!matches!(
                 field.kind,
@@ -496,7 +510,84 @@ impl WorkingDocument {
         }
         let mut expected_duplicate = None;
         let mut expected_fill = None;
+        let mut text_payload = None;
         let mutation = match edit {
+            Edit::FillText {
+                key,
+                changes,
+                buttons,
+                page,
+                font_file,
+            } => {
+                if self.current.info.encrypted || self.current.info.signature_fields > 0 {
+                    return Err("Signed or encrypted form documents are read only".into());
+                }
+                if key.revision != self.current.revision {
+                    return Err("Form draft is stale. Read the form again.".into());
+                }
+                if page == 0 || page as usize > self.current.info.page_count {
+                    return Err("Current form page is outside the document".into());
+                }
+                if changes.is_empty() || changes.len() > 10_000 || buttons.len() > 10_000 {
+                    return Err("Text changes exceed the bounded form request".into());
+                }
+                let mut names = std::collections::BTreeSet::new();
+                if changes.iter().any(|change| {
+                    change.name.is_empty()
+                        || change.name.len() > 4096
+                        || change.value.len() > 65_536
+                        || !names.insert(&change.name)
+                }) {
+                    return Err("Text changes must have unique bounded names and values".into());
+                }
+                if buttons.iter().any(|change| {
+                    change.name.is_empty()
+                        || change.name.len() > 4096
+                        || !names.insert(&change.name)
+                }) {
+                    return Err("Mixed form names must be unique and bounded".into());
+                }
+                let raw_bytes = changes
+                    .iter()
+                    .map(|change| change.name.len() + change.value.len())
+                    .sum::<usize>()
+                    + buttons
+                        .iter()
+                        .map(|change| change.name.len())
+                        .sum::<usize>();
+                if raw_bytes > 4 * 1024 * 1024
+                    || serde_json::to_vec(&(&changes, &buttons))
+                        .map_err(|error| error.to_string())?
+                        .len()
+                        > 4 * 1024 * 1024
+                {
+                    return Err("Text and button changes exceed the bounded form request".into());
+                }
+                let font = pdf_core::read_input_bytes(&font_file, 16 * 1024 * 1024)
+                    .map_err(|error| error.to_string())?;
+                if font.is_empty()
+                    || self
+                        .current
+                        .bytes
+                        .len()
+                        .checked_add(font.len())
+                        .is_none_or(|len| len > pdf_worker::MAX_PDF_BYTES)
+                {
+                    return Err("Combined document and text font exceed the input limit".into());
+                }
+                let font_bytes_len = font.len() as u32;
+                let mut payload = Vec::with_capacity(self.current.bytes.len() + font.len());
+                payload.extend_from_slice(&self.current.bytes);
+                payload.extend_from_slice(&font);
+                text_payload = Some(payload);
+                expected_fill = Some((self.current.info.page_count, page as usize - 1));
+                Mutation::FillText {
+                    changes,
+                    buttons,
+                    page,
+                    font_bytes_len,
+                }
+            }
             Edit::FillButtons { key, changes, page } => {
                 if self.current.info.encrypted || self.current.info.signature_fields > 0 {
                     return Err("Signed or encrypted form documents are read only".into());
@@ -594,7 +685,10 @@ impl WorkingDocument {
             }
             Edit::Undo | Edit::Redo => unreachable!("history handled above"),
         };
-        let (result, reply) = execute(Operation::Edit { mutation }, &self.current.bytes)?;
+        let (result, reply) = execute(
+            Operation::Edit { mutation },
+            text_payload.as_deref().unwrap_or(&self.current.bytes),
+        )?;
         let DocumentResult::Document {
             info,
             selected_page,

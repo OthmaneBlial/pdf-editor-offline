@@ -34,6 +34,13 @@ pub enum Operation {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "mutation", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Mutation {
+    FillText {
+        changes: Vec<pdf_core::TextChange>,
+        #[serde(default)]
+        buttons: Vec<pdf_core::ButtonChange>,
+        page: u32,
+        font_bytes_len: u32,
+    },
     FillButtons {
         changes: Vec<pdf_core::ButtonChange>,
         page: u32,
@@ -148,6 +155,42 @@ fn execute(request: Request) -> Result<Reply, String> {
     }
     if let Operation::Images { lengths } = operation {
         return images(&request.payload, &lengths);
+    }
+    if let Operation::Edit {
+        mutation:
+            Mutation::FillText {
+                changes,
+                buttons,
+                page,
+                font_bytes_len,
+            },
+    } = &operation
+    {
+        let font_len = *font_bytes_len as usize;
+        if font_len == 0 || font_len > 16 * 1024 * 1024 {
+            return Err("Text font must contain 1 byte to 16 MiB".into());
+        }
+        let split = request
+            .payload
+            .len()
+            .checked_sub(font_len)
+            .filter(|split| *split > 0)
+            .ok_or("Text font length leaves no PDF input")?;
+        let (pdf, font) = request.payload.split_at(split);
+        let mut document = PdfDocument::from_bytes(pdf, None).map_err(|error| error.to_string())?;
+        let selected = (*page as usize)
+            .checked_sub(1)
+            .filter(|index| *index < document.page_count())
+            .ok_or("Current page is outside the document")?;
+        if !buttons.is_empty() {
+            document
+                .fill_buttons(buttons)
+                .map_err(|error| error.to_string())?;
+        }
+        document
+            .fill_text(changes, font)
+            .map_err(|error| error.to_string())?;
+        return document_reply(document, Some(selected));
     }
     let mut document =
         PdfDocument::from_bytes(&request.payload, None).map_err(|error| error.to_string())?;
@@ -292,6 +335,9 @@ fn document_reply(document: PdfDocument, selected_page: Option<usize>) -> Result
 
 fn apply(document: &mut PdfDocument, mutation: Mutation) -> Result<Option<usize>, String> {
     let selected = match mutation {
+        Mutation::FillText { .. } => {
+            return Err("Text font payload was not split before PDF parsing".into());
+        }
         Mutation::FillButtons { changes, page } => {
             let index = (page as usize)
                 .checked_sub(1)

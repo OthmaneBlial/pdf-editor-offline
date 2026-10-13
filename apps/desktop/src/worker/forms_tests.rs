@@ -3,6 +3,143 @@ use super::*;
 use pdf_core::{ButtonChange, ButtonSelection, FormFieldKind, PdfDocument};
 
 #[test]
+fn mixed_text_buttons_are_one_durable_transaction_and_failures_preserve_history() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("forms.pdf");
+    let font = directory.path().join("font.ttf");
+    let original = include_bytes!("../../../../tests/fixtures/pdfs/forms.pdf");
+    std::fs::write(&path, original).unwrap();
+    std::fs::write(
+        &font,
+        include_bytes!("../../assets/fonts/ibm-plex/IBMPlexSans-Regular.ttf"),
+    )
+    .unwrap();
+    let mut journal = Journal::open(directory.path().join("journal")).unwrap();
+    let mut documents = HashMap::new();
+    process_with_journal(
+        &mut documents,
+        Command::Load {
+            id: 1,
+            path: path.clone(),
+        },
+        Some(&mut journal),
+    )
+    .unwrap();
+    let before = documents[&1].current.bytes.clone();
+    let key = FormsReadKey {
+        tab: 1,
+        revision: 0,
+        generation: 1,
+    };
+    let command = |key, value: &str, font_file: PathBuf| Command::Edit {
+        id: 1,
+        edit: Edit::FillText {
+            key,
+            changes: vec![pdf_core::TextChange {
+                name: "full_name".into(),
+                value: value.into(),
+            }],
+            buttons: vec![ButtonChange {
+                name: "approved".into(),
+                selection: ButtonSelection::Off,
+            }],
+            page: 1,
+            font_file,
+        },
+    };
+    let bad = directory.path().join("bad.ttf");
+    std::fs::write(&bad, b"not a font").unwrap();
+    for invalid in [
+        command(key, "Ada", bad),
+        command(
+            FormsReadKey {
+                revision: 99,
+                ..key
+            },
+            "Ada",
+            font.clone(),
+        ),
+        command(FormsReadKey { tab: 2, ..key }, "Ada", font.clone()),
+        command(key, &"a".repeat(65_537), font.clone()),
+    ] {
+        assert!(process_with_journal(&mut documents, invalid, Some(&mut journal)).is_err());
+        assert_eq!(documents[&1].current.bytes, before);
+        assert!(documents[&1].undo.is_empty());
+        assert_eq!(journal.recover().unwrap()[0].current.bytes, before);
+    }
+    let Event::Updated {
+        status,
+        selected_page,
+        ..
+    } = process_with_journal(
+        &mut documents,
+        command(key, "Ada é", font.clone()),
+        Some(&mut journal),
+    )
+    .unwrap()
+    else {
+        panic!("edit response")
+    };
+    assert!(status.dirty && status.can_undo);
+    assert_eq!(selected_page, Some(0));
+    let changed = documents[&1].current.bytes.clone();
+    assert_eq!(documents[&1].undo.len(), 1);
+    let oversized_layout = command(
+        FormsReadKey {
+            revision: status.revision,
+            ..key
+        },
+        &"wide text ".repeat(500),
+        font.clone(),
+    );
+    assert!(process_with_journal(&mut documents, oversized_layout, Some(&mut journal)).is_err());
+    assert_eq!(documents[&1].current.bytes, changed);
+    assert_eq!(documents[&1].undo.len(), 1);
+    assert_eq!(journal.recover().unwrap()[0].current.bytes, changed);
+    let doc = PdfDocument::from_bytes(&changed, None).unwrap();
+    assert!(doc.extract_text(&[1]).unwrap().contains("Ada é"));
+    let fields = doc.list_form_fields().unwrap();
+    assert_eq!(
+        fields
+            .iter()
+            .find(|f| f.name == "approved")
+            .unwrap()
+            .widgets[0]
+            .appearance_state
+            .as_deref(),
+        Some(b"Off".as_slice())
+    );
+    for (edit, expected) in [(Edit::Undo, before.clone()), (Edit::Redo, changed.clone())] {
+        process_with_journal(
+            &mut documents,
+            Command::Edit { id: 1, edit },
+            Some(&mut journal),
+        )
+        .unwrap();
+        assert_eq!(documents[&1].current.bytes, expected);
+        assert_eq!(journal.recover().unwrap()[0].current.bytes, expected);
+    }
+    let output = directory.path().join("saved.pdf");
+    process_with_journal(
+        &mut documents,
+        Command::Save {
+            id: 1,
+            path: output.clone(),
+        },
+        Some(&mut journal),
+    )
+    .unwrap();
+    assert!(
+        PdfDocument::open(output, None)
+            .unwrap()
+            .extract_text(&[1])
+            .unwrap()
+            .contains("Ada é")
+    );
+    assert_eq!(std::fs::read(path).unwrap(), original);
+}
+
+#[test]
 fn real_form_read_fill_save_and_durable_undo_preserve_original_and_other_fields() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("forms.pdf");
@@ -250,5 +387,25 @@ fn invalid_cross_tab_and_pending_save_form_edits_never_change_committed_state() 
         .is_err()
     );
     assert_eq!(journal.recover().unwrap()[0].current.bytes, original);
+    let pending_text = Command::Edit {
+        id: 1,
+        edit: Edit::FillText {
+            key: FormsReadKey {
+                tab: 1,
+                revision: 0,
+                generation: 3,
+            },
+            changes: vec![pdf_core::TextChange {
+                name: "full_name".into(),
+                value: "Ada".into(),
+            }],
+            buttons: vec![],
+            page: 1,
+            font_file: directory.path().join("not-read-while-save-pending.ttf"),
+        },
+    };
+    assert!(process_with_journal(&mut documents, pending_text, Some(&mut journal)).is_err());
+    assert_eq!(documents[&1].current.bytes, original);
+    assert!(documents[&1].undo.is_empty());
     assert_eq!(journal.save_intents().len(), 1);
 }

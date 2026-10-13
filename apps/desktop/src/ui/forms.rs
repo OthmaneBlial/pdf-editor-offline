@@ -2,7 +2,7 @@ use super::EditorApp;
 use crate::state::FormsReadKey;
 use crate::worker::{Command, Edit};
 use eframe::egui;
-use pdf_core::{ButtonChange, ButtonSelection, FormField, FormFieldKind, FormValue};
+use pdf_core::{ButtonChange, ButtonSelection, FormField, FormFieldKind, FormValue, TextChange};
 
 pub(super) struct Dialog {
     pub key: FormsReadKey,
@@ -12,6 +12,9 @@ pub(super) struct Dialog {
     fields: Option<Vec<FormField>>,
     original: Vec<ButtonSelection>,
     drafts: Vec<ButtonSelection>,
+    text_original: Vec<String>,
+    text_drafts: Vec<String>,
+    font_file: Option<std::path::PathBuf>,
     selected: usize,
 }
 
@@ -37,7 +40,7 @@ fn kind_label(kind: &FormFieldKind) -> &'static str {
     match kind {
         FormFieldKind::CheckBox => "Checkbox",
         FormFieldKind::RadioButton => "Radio button",
-        FormFieldKind::Text => "Text · read only",
+        FormFieldKind::Text => "Text",
         FormFieldKind::Choice => "Choice · read only",
         FormFieldKind::PushButton => "Push button · read only",
         FormFieldKind::Signature => "Signature · read only",
@@ -79,21 +82,48 @@ impl Dialog {
             fields: None,
             original: vec![],
             drafts: vec![],
+            text_original: vec![],
+            text_drafts: vec![],
+            font_file: None,
             selected: 0,
         }
     }
     fn loaded(&mut self, fields: Vec<FormField>) {
         self.original = fields.iter().map(selection).collect();
         self.drafts = self.original.clone();
+        self.text_original = fields
+            .iter()
+            .map(|field| match &field.value {
+                FormValue::Text(value) => value.clone(),
+                _ => String::new(),
+            })
+            .collect();
+        self.text_drafts = self.text_original.clone();
         self.selected = fields
             .iter()
-            .position(|field| field.writable_button)
+            .position(|field| field.writable_button || field.writable_text)
             .unwrap_or(0);
         self.fields = Some(fields);
         self.error = None;
     }
     pub fn has_changes(&self) -> bool {
-        self.original != self.drafts
+        self.original != self.drafts || self.text_original != self.text_drafts
+    }
+    fn text_changes(&self) -> Vec<TextChange> {
+        self.fields
+            .as_ref()
+            .map(|fields| {
+                fields
+                    .iter()
+                    .zip(self.text_original.iter().zip(&self.text_drafts))
+                    .filter(|(field, (original, draft))| field.writable_text && original != draft)
+                    .map(|(field, (_, draft))| TextChange {
+                        name: field.name.clone(),
+                        value: draft.clone(),
+                    })
+                    .collect()
+            })
+            .unwrap_or_default()
     }
     fn changes(&self) -> Vec<ButtonChange> {
         self.fields
@@ -148,7 +178,7 @@ impl EditorApp {
         {
             dialog.loaded(fields);
             self.message =
-                "Form fields loaded. Only eligible checkboxes and radio buttons can be changed."
+                "Form fields loaded. Eligible text fields require an explicit covering font."
                     .into();
         }
     }
@@ -169,14 +199,28 @@ impl EditorApp {
         {
             return false;
         }
-        let edit = Edit::FillButtons {
-            key: dialog.key,
-            changes: dialog.changes(),
-            page: tab.page as u32 + 1,
+        let text = dialog.text_changes();
+        let edit = if text.is_empty() {
+            Edit::FillButtons {
+                key: dialog.key,
+                changes: dialog.changes(),
+                page: tab.page as u32 + 1,
+            }
+        } else {
+            let Some(font_file) = dialog.font_file.clone() else {
+                return false;
+            };
+            Edit::FillText {
+                key: dialog.key,
+                changes: text,
+                buttons: dialog.changes(),
+                page: tab.page as u32 + 1,
+                font_file,
+            }
         };
         if !self.send(
             Command::Edit { id: tab.id, edit },
-            "Applying checkbox and radio changes…",
+            "Applying PDF form changes…",
         ) {
             return false;
         }
@@ -219,7 +263,12 @@ impl EditorApp {
             window = window.open(&mut open);
         }
         window.show(context, |ui| {
-            ui.label("Checkboxes and radio buttons use existing PDF appearances. Text, choice and other fields are read only.");
+            ui.label("Buttons use existing appearances. Supported text fields embed one complete, editable TrueType or static CID-keyed CFF1 font; missing glyphs or unsupported layouts are refused. Choice and other fields remain read only.");
+            if dialog.fields.as_ref().is_some_and(|fields|fields.iter().any(|field|field.writable_text)) {
+                if ui.add_enabled(editable, egui::Button::new("Choose text font…")).clicked()
+                    && let Some(path) = rfd::FileDialog::new().add_filter("OpenType font", &["ttf", "otf"]).pick_file() { dialog.font_file=Some(path); }
+                ui.label(dialog.font_file.as_ref().map(|path|path.file_name().unwrap_or_default().to_string_lossy().into_owned()).unwrap_or_else(||"No text font selected".into()));
+            }
             if dialog.stale { ui.colored_label(ui.visuals().error_fg_color, "This draft is stale. Close and read the form again before applying."); }
             if let Some(error) = &dialog.error { ui.colored_label(ui.visuals().error_fg_color, preview(error)); }
             if !self.pending_saves.is_empty() { ui.label("Resolve the recorded save attempt before applying form changes."); }
@@ -236,6 +285,18 @@ impl EditorApp {
                 let field = &fields[dialog.selected];
                 ui.separator();
                 ui.label(egui::RichText::new(preview(&field.name)).strong());
+                if field.kind == FormFieldKind::Text {
+                    if let Some(reason)=&field.text_refusal_reason { ui.label(format!("Read only: {}",preview(reason))); }
+                    if field.writable_text {
+                        let unique=fields.iter().filter(|other|other.name==field.name).take(2).count()==1;
+                        let value=&mut dialog.text_drafts[dialog.selected];
+                        ui.label("Text field value");
+                        ui.add_enabled(editable && unique && field.flags&1==0, egui::TextEdit::singleline(value).id_salt(("form-text",field.object_id)).hint_text("Text field value"));
+                        if value.len()>65_536 { ui.colored_label(ui.visuals().error_fg_color,"Value exceeds the 64 KiB UTF-8 limit; Apply will refuse it."); }
+                        ui.small("The selected font must cover the complete value. Apply validates fit and supported layout before any document change.");
+                        return;
+                    }
+                }
                 if let Some(reason) = &field.refusal_reason { ui.label(format!("Read only: {}", preview(reason))); }
                 if !field.writable_button {
                     let value = value_text(&field.value);
@@ -274,7 +335,8 @@ impl EditorApp {
             });
             ui.separator();
             ui.horizontal_wrapped(|ui| {
-                apply = ui.add_enabled(editable && dialog.has_changes(), crate::style::primary("Apply button changes", ui.visuals().dark_mode)).clicked();
+                let text_ready = dialog.text_changes().is_empty() || dialog.font_file.is_some();
+                apply = ui.add_enabled(editable && dialog.has_changes() && text_ready, crate::style::primary("Apply form changes", ui.visuals().dark_mode)).clicked();
                 close = ui.add_enabled(!dialog.submitting, egui::Button::new("Close form fields")).clicked();
                 if dialog.submitting { ui.spinner(); ui.label("Working…"); }
             });
@@ -311,6 +373,8 @@ mod tests {
                 value: FormValue::Name(b"Off".to_vec()),
                 widgets: vec![widget(5)],
                 writable_button: true,
+                writable_text: false,
+                text_refusal_reason: Some("Not a text field".into()),
                 refusal_reason: None,
             },
             FormField {
@@ -321,6 +385,8 @@ mod tests {
                 value: FormValue::Name(b"Off".to_vec()),
                 widgets: vec![widget(10), widget(11)],
                 writable_button: true,
+                writable_text: false,
+                text_refusal_reason: Some("Not a text field".into()),
                 refusal_reason: None,
             },
             FormField {
@@ -331,6 +397,8 @@ mod tests {
                 value: FormValue::Text("Existing text remains read only".into()),
                 widgets: vec![widget(20)],
                 writable_button: false,
+                writable_text: false,
+                text_refusal_reason: Some("Unsupported text structure".into()),
                 refusal_reason: Some("Text appearance generation is not implemented".into()),
             },
         ]
@@ -431,6 +499,53 @@ mod tests {
         );
     }
     #[test]
+    fn actual_textbox_keeps_unicode_draft_and_requires_explicit_font_for_mixed_apply() {
+        let mut app = app();
+        {
+            let dialog = app.forms_dialog.as_mut().expect("dialog");
+            let field = &mut dialog.fields.as_mut().expect("fields")[2];
+            field.writable_text = true;
+            field.text_refusal_reason = None;
+            dialog.selected = 2;
+        }
+        let context = egui::Context::default();
+        click(&mut app, &context, "Existing text remains read only");
+        let _ = draw(&mut app, &context, vec![egui::Event::Text(" é".into())]);
+        let dialog = app.forms_dialog.as_ref().expect("dialog");
+        assert_eq!(dialog.text_changes().len(), 1);
+        assert!(dialog.text_changes()[0].value.contains('é'));
+        assert!(app.needs_exit_guard());
+        click(&mut app, &context, "Apply form changes");
+        assert!(!app.busy, "missing font must not dispatch");
+        let dialog = app.forms_dialog.as_mut().expect("dialog");
+        dialog.font_file = Some("chosen-complete-font.ttf".into());
+        dialog.drafts[0] = ButtonSelection::On { widget: (5, 0) };
+        let key = dialog.key;
+        click(&mut app, &context, "Apply form changes");
+        assert!(app.busy && app.forms_dialog.as_ref().expect("dialog").submitting);
+        let (sender, events) = std::sync::mpsc::channel();
+        app.worker.events = events;
+        sender
+            .send(crate::worker::Event::Error {
+                id: 1,
+                task: Some(crate::worker::TaskKey::Forms(key)),
+                message: "Font does not cover this value".into(),
+            })
+            .expect("error event");
+        app.poll(&context);
+        let dialog = app.forms_dialog.as_ref().expect("retained draft");
+        assert!(!dialog.submitting && dialog.has_changes());
+        assert!(
+            dialog
+                .error
+                .as_ref()
+                .expect("controlled error")
+                .contains("Font")
+        );
+        assert_eq!(dialog.changes().len(), 1);
+        assert!(dialog.text_changes()[0].value.contains('é'));
+    }
+    #[test]
     fn actual_checkbox_and_radio_controls_build_precise_changes_and_guard_exit() {
         let mut app = app();
         let context = egui::Context::default();
@@ -452,7 +567,7 @@ mod tests {
                 }
             ]
         );
-        click(&mut app, &context, "Apply button changes");
+        click(&mut app, &context, "Apply form changes");
         assert!(app.busy && app.forms_dialog.as_ref().expect("dialog").submitting);
     }
     #[test]

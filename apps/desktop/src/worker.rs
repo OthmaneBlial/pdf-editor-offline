@@ -34,6 +34,13 @@ const TEST_BLUE_PNG: &[u8] = &[
 ];
 
 pub enum Edit {
+    FillText {
+        key: FormsReadKey,
+        changes: Vec<pdf_core::TextChange>,
+        buttons: Vec<pdf_core::ButtonChange>,
+        page: u32,
+        font_file: PathBuf,
+    },
     FillButtons {
         key: FormsReadKey,
         changes: Vec<pdf_core::ButtonChange>,
@@ -260,7 +267,7 @@ impl Worker {
                     Command::Metadata(key) => Some(TaskKey::Metadata(*key)),
                     Command::Forms(key) => Some(TaskKey::Forms(*key)),
                     Command::Edit {
-                        edit: Edit::FillButtons { key, .. },
+                        edit: Edit::FillButtons { key, .. } | Edit::FillText { key, .. },
                         ..
                     } => Some(TaskKey::Forms(*key)),
                     Command::Edit {
@@ -559,7 +566,7 @@ fn process_with_journal(
             })
         }
         Command::Edit { edit, .. } => {
-            if let Edit::FillButtons { key, .. } = &edit
+            if let Edit::FillButtons { key, .. } | Edit::FillText { key, .. } = &edit
                 && key.tab != id
             {
                 return Err("Form draft belongs to another document".into());

@@ -227,3 +227,15 @@ attachments, metadata, forms/XFA, layers, actions and decoded permission flags.
 It never executes actions or reports scripts, action targets or field/metadata
 values. It explicitly returns `complete_privacy_proof: false` and unavailable
 revision analysis. An empty inventory is not proof that a file is safe to share.
+
+`fill-text INPUT --field NAME --value VALUE --font-file FONT.ttf -o NEW.pdf`
+fills a supported single-line AcroForm text field with an explicitly supplied
+complete, editable TrueType or supported static CID-keyed CFF1 OpenType font and
+a real embedded appearance. Use `FONT.otf` for the latter. The bounded
+child reads at most 16 MiB of font data from a regular file. Missing glyphs,
+unsupported fonts, field structures or layouts, and values that do not fit are
+refused; no fallback font, truncation or viewer regeneration is claimed.
+`--dry-run` validates the actual appearance without writing. Signed/encrypted
+inputs remain read only, and normal no-clobber, password-stdin and JSON errors
+apply. This changes form fields, not arbitrary existing page content; old values
+can remain recoverable and this is not secure erasure.

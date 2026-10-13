@@ -30,6 +30,20 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Fill a supported text field with an explicit covering, editable TrueType font.
+    FillText {
+        input: PathBuf,
+        #[arg(long)]
+        field: String,
+        #[arg(long, allow_hyphen_values = true)]
+        value: String,
+        #[arg(long)]
+        font_file: PathBuf,
+        #[arg(short, long)]
+        output: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Discover AcroForm fields and existing checkbox/radio appearance choices.
     ListForms { input: PathBuf },
     /// Fill one checkbox/radio using validated existing appearances; save a new copy.
@@ -272,6 +286,35 @@ enum Command {
 fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
     let open = |input: &PathBuf| PdfDocument::open(input, password);
     match &cli.command {
+        Command::FillText {
+            input,
+            field,
+            value,
+            font_file,
+            output,
+            dry_run,
+        } => {
+            // Descriptor-level regular-file and bounded reads; no font execution.
+            let font = pdf_core::read_input_bytes(font_file, 16 * 1024 * 1024)?;
+            let bytes = pdf_core::read_input_bytes(input, pdf_core::MAX_INPUT_BYTES - font.len())?;
+            let mut document = PdfDocument::from_bytes(&bytes, password)?;
+            document.fill_text(
+                &[pdf_core::TextChange {
+                    name: field.clone(),
+                    value: value.clone(),
+                }],
+                &font,
+            )?;
+            let fields = document.list_form_fields()?;
+            if !dry_run {
+                document.save_new(output)?;
+            }
+            Ok(
+                json!({"operation":"fill-text","field":field,"fields":fields,
+                "output":json_path(output),"dry_run":dry_run,
+                "embedded_complete_font":true,"font_fallback":false,"secure_erasure":false}),
+            )
+        }
         Command::Info { input } => Ok(json!(open(input)?.info()?)),
         Command::Metadata { input } => Ok(json!(open(input)?.metadata()?)),
         Command::ListForms { input } => Ok(json!({"fields":open(input)?.list_form_fields()?})),
@@ -623,13 +666,13 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
         }
         Command::Capabilities => Ok(
             json!({ "runtime": "rust-native", "version": env!("CARGO_PKG_VERSION"), "migration_preview": true,
-            "commands": ["info", "list-forms", "fill-button", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "images-to-pdf", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "duplicate-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
+            "commands": ["info", "list-forms", "fill-button", "fill-text", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "images-to-pdf", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "duplicate-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
             "image_conversion":"restricted_png_jpeg_color_metadata_orientation_tier_one_pixel_one_pdf_point",
             "metadata":"six_standard_trailer_info_keys_custom_entries_and_xmp_preserved_no_sync_or_secure_erasure",
             "annotations": "sticky_text_notes_add_list_guarded_edit_remove_with_preserved_appearance",
-            "forms": "bounded_acroform_discovery_and_guarded_checkbox_radio_fill_using_existing_appearances",
+            "forms": "bounded_acroform_discovery_guarded_button_fill_and_supported_text_appearance_with_explicit_complete_font",
             "saving": "verified_new_copy_no_clobber", "signed_inputs": "read_only", "encrypted_inputs": "read_only",
-            "unmigrated": ["complete_page_organization", "existing_content_editing", "text_choice_form_filling", "cryptographic_signing", "secure_redaction", "sanitization", "ocr", "office_conversion", "recovery", "wasm"] }),
+            "unmigrated": ["complete_page_organization", "existing_content_editing", "complete_text_layout_and_choice_form_filling", "cryptographic_signing", "secure_redaction", "sanitization", "ocr", "office_conversion", "recovery", "wasm"] }),
         ),
         Command::Completions { .. } => Err(Error::Refused(
             "completion scripts are handled before document processing",
