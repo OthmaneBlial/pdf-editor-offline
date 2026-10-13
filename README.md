@@ -22,7 +22,12 @@ checkbox/radio filling and bounded local document workers.
 
 **Growing on `main`:** single/multiline text, dropdowns and list selections with
 embedded covering fonts and desktop undo/redo, plus targeted sanitized copies.
-[See the form walkthrough](docs/FORMS_RUST.md).
+[Try a form](docs/FORMS_RUST.md) · [Review a cleanup copy](docs/SANITIZATION_RUST.md).
+
+**Start with a real document you can inspect.** The repository includes a
+[public form fixture](tests/fixtures/pdfs/forms.pdf). Build the desktop, open it,
+change a supported field, undo the change and save a separate copy. Open that
+copy in another PDF reader and compare it with the original.
 
 [What changed](CHANGELOG.md) · [Live build results](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml)
 · [Next milestones](ROADMAP.md)
@@ -55,6 +60,14 @@ page and use thumbnails to keep your place.
 
 **The same task, every week.** Use the Rust CLI for repeatable page operations
 and JSON inspection. Preview a supported change with `--dry-run` before writing.
+
+**A form to finish.** Fill supported text fields, choose an indexed dropdown
+option or tick a checkbox. The desktop keeps an undo history; the
+[walkthrough](docs/FORMS_RUST.md) explains font coverage and layout limits.
+
+**A document to tidy before sharing.** Create a targeted cleanup copy and read
+its removal report. Page content remains, so review it for personal information
+before sharing. [See exactly what cleanup removes](docs/SANITIZATION_RUST.md).
 
 [Try the CLI ↓](#try-the-native-cli) · [Run the desktop ↓](#build-and-run) ·
 [See supported operations ↓](#what-works-today)
