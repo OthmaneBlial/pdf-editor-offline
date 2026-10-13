@@ -54,7 +54,9 @@ refused. `--help` lists the strict request format; `capabilities --json` reports
 the command. Requests are limited to 256 KiB. Unknown fields are rejected.
 
 `rectangle` and `ellipse` take `[x0,y0,x1,y1]`; `line` takes `from` and `to`;
-`polyline` takes 2–4,096 points. Pages are one-based. Coordinates describe
+`polyline` takes 2–4,096 points. `multi_polyline` takes up to 64 separate strokes
+and 4,096 combined points, including one-point round dots; see
+[visual signatures](VISUAL_SIGNATURES_RUST.md). Pages are one-based. Coordinates describe
 unrotated PDF user space, including nonzero page origins. Quarter-turn page
 rotation is handled by the viewer. The complete painted area, including half
 the stroke width, must fit both MediaBox and CropBox.
