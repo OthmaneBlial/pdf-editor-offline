@@ -1,8 +1,13 @@
 # Preview 4 preparation
 
-The workspace and package metadata now prepare `4.0.0-preview.4`. The public
-registry and GitHub release provide verified `4.0.0-preview.3` binaries. This
-later source has not yet been released.
+The workspace and package metadata prepare `4.0.0-preview.4`. Its
+[GitHub prerelease](https://github.com/OthmaneBlial/pdf-editor-offline/releases/tag/v4.0.0-preview.4)
+is published from immutable source `b3a939a`, after all five actual-runner builds
+and assembly passed in
+[38385791501](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38385791501).
+All eight downloaded assets were checked against the manifest and source
+provenance. The public npm registry still provides preview.3; five-platform
+HTTPS global installation and exact-version registry verification remain required.
 
 Preview 3 is frozen at `d711a6f`, with native and security CI passed, and its
 [actual-runner release build](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38333220611)
@@ -13,10 +18,11 @@ splitting, text/image/vector overlays, page numbering, guarded standard-font
 content editing and individual direct-image replacement. The frozen composition
 passed 717 local tests across 84 suites with no failures or ignored tests, plus
 strict workspace/all-target Clippy. Cross-platform native run
-[38383093121](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38383093121)
+[38383270114](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38383270114)
 and security run
 [38383092873](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38383092873)
-are pending; local validation alone does not satisfy the release gate.
+passed. The earlier run 38383093121 was superseded by the release-documentation
+push; these final gates cover identical implementation source.
 Preserve the preview 3 tag and assets; publish its
 package from the matching frozen source rather than relabeling this checkout.
 
@@ -27,9 +33,11 @@ link changed the cached inode's ctime during another verification. No preview 2
 package has been published. Preserve that tag and failed evidence; the corrected
 installer must ship under a new tag after fresh platform checks.
 
-The checked-in manifest and notices deliberately retain the verified preview 3
-artifacts. `prepack` and installation therefore refuse this checkout's version
-mismatch. Do not relabel their hashes or publish this package in that state.
+The checked-in manifest now pins the actual verified preview.4 assets. Complete
+preview.4 notices replace the old notices, with line endings and empty Authors
+metadata formatting normalized for the package; license text is retained.
+No preview.3 hash was relabeled. Packing and HTTPS global installs
+must pass before npm publication.
 
 Before publication:
 
