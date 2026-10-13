@@ -355,3 +355,19 @@ It preserves other shared pages. `--dry-run`, JSON, password-stdin
 and no-clobber conventions apply. Signed/encrypted files remain read-only.
 This is neither general reflow nor secure deletion: original bytes can remain.
 See [the exact tier and evidence](../../docs/CONTENT_TEXT_EDITING_RUST.md).
+
+Discover and replace a direct page image instance:
+
+```sh
+pdf-editor-offline --json list-image-instances input.pdf --page 1
+pdf-editor-offline replace-image input.pdf --selection-file selection.json --image replacement.png -o replacement.pdf
+```
+
+`selection.json` contains one returned `selection` object. It binds the page/operator,
+resource name and image object to a SHA-256 source snapshot; any document change makes
+it stale. `--dry-run` verifies without writing. The original transform, clipping and
+opacity remain, so a different aspect ratio can stretch. Only that `Do` changes;
+shared images elsewhere remain intact. PNG/JPEG limits match image insertion.
+Nested Forms, inline images, property-marked content and tagged edits are refused;
+signed/decrypted PDFs stay read-only. Old images/streams remain retained: replacement
+is ordinary editing, not secure erasure or redaction.

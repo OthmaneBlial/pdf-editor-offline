@@ -31,6 +31,24 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Inventory source-bound direct page image instances and nominal transforms.
+    ListImageInstances {
+        input: PathBuf,
+        #[arg(long)]
+        page: u32,
+    },
+    /// Replace exactly one discovered image Do; old objects remain retained.
+    ReplaceImage {
+        input: PathBuf,
+        #[arg(long)]
+        image: PathBuf,
+        #[arg(long)]
+        selection_file: PathBuf,
+        #[arg(short, long)]
+        output: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Insert a PNG/JPEG as new page content; does not replace existing images.
     AddImageOverlay {
         input: PathBuf,
@@ -556,6 +574,38 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
                 json!({"operation":"add-vector-overlay","overlay":overlay,"output":json_path(output),"dry_run":dry_run,"info":document.info()?,"existing_content_edited":false,"secure_erasure":false}),
             )
         }
+        Command::ListImageInstances { input, page } => {
+            let document = PdfDocument::open(input, password)?;
+            Ok(
+                json!({"operation":"list-image-instances","instances":document.list_image_instances(*page)?,"scope":"direct_page_image_do","placement":"nominal_unrotated_corners_existing_clipping_applies"}),
+            )
+        }
+        Command::ReplaceImage {
+            input,
+            image,
+            selection_file,
+            output,
+            dry_run,
+        } => {
+            let selection = pdf_core::read_input_bytes(selection_file, 256 * 1024)?;
+            let selection: pdf_core::ImageSelection =
+                serde_json::from_slice(&selection).map_err(|_| {
+                    Error::Invalid(
+                        "image selection must match strict source-bound ImageSelection JSON",
+                    )
+                })?;
+            let image = pdf_core::read_input_bytes(image, pdf_core::MAX_STREAM_BYTES)?;
+            let bytes = pdf_core::read_input_bytes(input, pdf_core::MAX_INPUT_BYTES - image.len())?;
+            let mut document = PdfDocument::from_bytes(&bytes, password)?;
+            let image = pdf_convert::replace_image_instance(&mut document, &selection, &image)
+                .map_err(image_error)?;
+            if !dry_run {
+                document.save_new(output)?;
+            }
+            Ok(
+                json!({"operation":"replace-image","selection":selection,"image":image,"output":json_path(output),"dry_run":dry_run,"info":document.info()?,"scope":"selected_direct_page_image_do","other_instances_preserved":true,"secure_erasure":false}),
+            )
+        }
         Command::AddImageOverlay {
             input,
             image,
@@ -1056,7 +1106,7 @@ fn run(cli: &Cli, password: Option<&str>) -> pdf_core::Result<Value> {
         }
         Command::Capabilities => Ok(
             json!({ "runtime": "rust-native", "version": env!("CARGO_PKG_VERSION"), "migration_preview": true,
-            "commands": ["number-pages", "add-image-overlay", "add-vector-overlay", "split", "add-text-overlay", "inspect-content-text", "replace-content-text", "info", "sanitize", "list-forms", "list-choices", "fill-button", "fill-text", "fill-choice", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "images-to-pdf", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "duplicate-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
+            "commands": ["number-pages", "list-image-instances", "replace-image", "add-image-overlay", "add-vector-overlay", "split", "add-text-overlay", "inspect-content-text", "replace-content-text", "info", "sanitize", "list-forms", "list-choices", "fill-button", "fill-text", "fill-choice", "metadata", "set-metadata", "remove-metadata", "inspect-security", "list-notes", "add-note", "edit-note", "remove-note", "extract-text", "render-page", "images-to-pdf", "rotate", "compress", "merge", "reverse", "reorder", "crop", "insert-blank", "extract-pages", "duplicate-pages", "delete-pages", "search", "compare", "capabilities", "completions"],
             "vector_overlays":"new_rectangle_ellipse_line_bounded_polyline_and_multi_stroke_visual_signatures_with_stroke_fill_paint_alpha_not_redaction_or_cryptographic_signing",
             "image_overlay":"restricted_png_jpeg_insert_quarter_turns_pdf_rectangle_no_existing_image_replacement",
             "existing_content_editing": "guarded_direct_standard_courier_helvetica_times_ascii_operands_preserve_word_advances_or_explicit_bounded_width_change_no_reflow_or_secure_erasure",

@@ -13,6 +13,9 @@ pub enum ReadOperation {
         page: u32,
         offset: u32,
     },
+    ImageInstances {
+        page: u32,
+    },
     Notes {
         page: u32,
         offset: u32,
@@ -36,6 +39,9 @@ pub enum Operation {
     ContentText {
         page: u32,
         offset: u32,
+    },
+    ImageInstances {
+        page: u32,
     },
     Open,
     Unlock {
@@ -79,6 +85,10 @@ pub enum Operation {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "mutation", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Mutation {
+    ReplaceImage {
+        selection: pdf_core::ImageSelection,
+        image_bytes_len: u32,
+    },
     VectorOverlay {
         overlay: pdf_core::VectorOverlay,
     },
@@ -208,6 +218,9 @@ pub struct RasterResult {
 pub enum DocumentResult {
     ContentText {
         inventory: ContentTextPage,
+    },
+    ImageInstances {
+        instances: Vec<pdf_core::ImageInstance>,
     },
     Split {
         parts: Vec<SplitFrame>,
@@ -481,6 +494,30 @@ fn execute(request: Request) -> Result<Reply, String> {
     }
     if let Operation::Edit {
         mutation:
+            Mutation::ReplaceImage {
+                selection,
+                image_bytes_len,
+            },
+    } = &operation
+    {
+        let length = *image_bytes_len as usize;
+        if length == 0 || length > pdf_core::MAX_STREAM_BYTES {
+            return Err("Overlay image must contain 1 byte to 32 MiB".into());
+        }
+        let split = request
+            .payload
+            .len()
+            .checked_sub(length)
+            .filter(|split| *split > 0)
+            .ok_or("Overlay image length leaves no PDF input")?;
+        let (pdf, image) = request.payload.split_at(split);
+        let mut document = PdfDocument::from_bytes(pdf, None).map_err(|error| error.to_string())?;
+        pdf_convert::replace_image_instance(&mut document, selection, image)
+            .map_err(|error| error.to_string())?;
+        return document_reply(document, Some(selection.page as usize - 1));
+    }
+    if let Operation::Edit {
+        mutation:
             Mutation::ImageOverlay {
                 overlay,
                 image_bytes_len,
@@ -618,6 +655,11 @@ fn execute(request: Request) -> Result<Reply, String> {
         Operation::ContentText { page, offset } => read_reply(
             &document,
             ReadOperation::ContentText { page, offset },
+            Some(&request.payload),
+        ),
+        Operation::ImageInstances { page } => read_reply(
+            &document,
+            ReadOperation::ImageInstances { page },
             Some(&request.payload),
         ),
         Operation::Notes { page, offset } => read_reply(
@@ -765,6 +807,15 @@ fn read_reply(
                 vec![],
             )
         }
+        ReadOperation::ImageInstances { page } => reply(
+            DocumentResult::ImageInstances {
+                instances: document
+                    .list_image_instances(page)
+                    .map_err(|e| e.to_string())?,
+            },
+            PayloadKind::None,
+            vec![],
+        ),
         ReadOperation::Notes { page, offset } => {
             let notes = document
                 .list_notes(&[page])
@@ -1004,7 +1055,8 @@ fn apply(document: &mut PdfDocument, mutation: Mutation) -> Result<Option<usize>
         Mutation::FillText { .. }
         | Mutation::TextOverlay { .. }
         | Mutation::PageNumbers { .. }
-        | Mutation::ImageOverlay { .. } => {
+        | Mutation::ImageOverlay { .. }
+        | Mutation::ReplaceImage { .. } => {
             return Err("Text font payload was not split before PDF parsing".into());
         }
         Mutation::FillButtons { changes, page } => {
