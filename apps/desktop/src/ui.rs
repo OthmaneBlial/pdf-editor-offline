@@ -4,6 +4,7 @@ use eframe::egui;
 
 mod canvas;
 mod dialogs;
+mod forms;
 mod metadata;
 mod navigation;
 mod organizer;
@@ -32,6 +33,7 @@ enum Action {
     InsertBlank,
     Crop,
     Metadata,
+    Forms,
     Undo,
     Redo,
     Previous,
@@ -84,6 +86,8 @@ pub struct EditorApp {
     organizer_dialog: Option<organizer::Dialog>,
     metadata_dialog: Option<metadata::Dialog>,
     metadata_generation: u64,
+    forms_dialog: Option<forms::Dialog>,
+    forms_generation: u64,
     pages_dialog: Option<pages::Dialog>,
     recovery: recovery::State,
     discard_quit: bool,
@@ -118,6 +122,8 @@ impl EditorApp {
             organizer_dialog: None,
             metadata_dialog: None,
             metadata_generation: 0,
+            forms_dialog: None,
+            forms_generation: 0,
             pages_dialog: None,
             recovery: Default::default(),
             discard_quit: false,
@@ -217,6 +223,21 @@ impl EditorApp {
                     status,
                     selected_page,
                 } => {
+                    if self
+                        .forms_dialog
+                        .as_ref()
+                        .is_some_and(|dialog| dialog.key.tab == id)
+                    {
+                        if self
+                            .forms_dialog
+                            .as_ref()
+                            .is_some_and(|dialog| dialog.submitting)
+                        {
+                            self.forms_dialog = None;
+                        } else if let Some(dialog) = self.forms_dialog.as_mut() {
+                            dialog.stale = true;
+                        }
+                    }
                     if self.pages_dialog.as_ref().is_some_and(|dialog| {
                         matches!(dialog.mode, pages::Mode::Delete | pages::Mode::Duplicate)
                             && dialog.tab == id
@@ -340,6 +361,7 @@ impl EditorApp {
                 Event::Metadata { key, values } => {
                     self.accept_metadata(key, values);
                 }
+                Event::Forms { key, fields } => self.accept_forms(key, fields),
                 Event::Searched {
                     key,
                     page,
@@ -396,6 +418,17 @@ impl EditorApp {
                     }
                     if task.is_none() {
                         self.discard_quit = false;
+                    }
+                    if let Some(TaskKey::Forms(key)) = task {
+                        if let Some(dialog) = self
+                            .forms_dialog
+                            .as_mut()
+                            .filter(|dialog| dialog.key == key)
+                        {
+                            dialog.error = Some(message);
+                            dialog.submitting = false;
+                        }
+                        continue;
                     }
                     if let Some(TaskKey::Metadata(key)) = task {
                         if let Some(dialog) = self
@@ -637,7 +670,11 @@ impl EditorApp {
                 || self
                     .metadata_dialog
                     .as_ref()
-                    .is_some_and(metadata::Dialog::has_changes))
+                    .is_some_and(metadata::Dialog::has_changes)
+                || self
+                    .forms_dialog
+                    .as_ref()
+                    .is_some_and(forms::Dialog::has_changes))
     }
 
     fn request_exit(&mut self, context: &egui::Context) {
@@ -726,6 +763,7 @@ impl EditorApp {
             Action::InsertBlank => self.open_organizer_dialog(false),
             Action::Crop => self.open_organizer_dialog(true),
             Action::Metadata => self.open_metadata(),
+            Action::Forms => self.open_forms(),
             Action::Undo => {
                 if let Some(tab) = self.selected().filter(|tab| tab.status.can_undo) {
                     self.send(
@@ -839,6 +877,7 @@ impl eframe::App for EditorApp {
             self.request_exit(&context);
         }
         if self.organizer_dialog.is_none()
+            && self.forms_dialog.is_none()
             && self.metadata_dialog.is_none()
             && !self.recovery.open
             && self.pages_dialog.is_none()
@@ -855,6 +894,7 @@ impl eframe::App for EditorApp {
                 && !self.palette_open
                 && self.organizer_dialog.is_none()
                 && self.metadata_dialog.is_none()
+                && self.forms_dialog.is_none()
                 && !self.recovery.open
                 && self.pending_saves.is_empty()
                 && self.pages_dialog.is_none(),
@@ -864,6 +904,7 @@ impl eframe::App for EditorApp {
         self.close_dialog(&context);
         self.organizer_dialog_ui(&context);
         self.metadata_dialog_ui(&context);
+        self.forms_dialog_ui(&context);
         self.recovery_dialog(&context);
         self.pending_save_dialog(&context);
         self.page_ranges_dialog(&context);

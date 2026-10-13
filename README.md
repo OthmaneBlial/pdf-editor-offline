@@ -123,7 +123,7 @@ The table covers current source; published CLI differences are called out below.
 | Document properties | Read/edit six standard fields, including Unicode | Read/set/remove Title, Author, Subject, Keywords, Creator and Producer |
 | Images | Create PDF pages from supported PNG/JPEG files | Restricted images-to-PDF conversion; export one PDF page as PNG |
 | Comments | Existing supported appearances can be displayed | Add/list sticky Text notes; guarded editing/removal of basic notes |
-| Forms | Supported existing appearances can be read | Discover AcroForm fields and fill guarded checkbox/radio buttons in current source |
+| Forms | Discover fields and apply guarded checkbox/radio changes with undo/redo in current source | Discover AcroForm fields and fill guarded checkbox/radio buttons in current source |
 | Inspect and export | Verified Save As to a new path | Read-only action/attachment/form/layer markers, lossless stream compression, verified fresh output copies |
 | Resume your work | Recorded document/history snapshots, explicit session restore/discard, interrupted-save retry/cancel in current source | Desktop recovery is separate from the CLI |
 

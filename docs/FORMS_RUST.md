@@ -29,6 +29,25 @@ save verified new copies, and existing outputs are never overwritten. Password
 stdin supports discovery on successfully decrypted documents, which remain
 read-only for edits. Signature-bearing inputs are also read-only.
 
+## In the native desktop
+
+Open a PDF, then choose **PDF form fields…** or use the command palette's
+**PDF form fields** action. Select a field in the list. Eligible checkboxes and
+radio options show their existing export-state labels and page numbers; text,
+choice and unsupported fields remain read-only. Password values are omitted.
+
+Choose the desired states and press **Apply button changes**. The edit enters
+durable history, so Undo/Redo work before **Save As** creates a verified copy.
+The selected page stays unchanged. Stale revisions, tab switches, pending saves,
+signed/decrypted inputs and child/journal failures cannot apply a stale draft;
+errors keep the dialog and draft available. Closing the form dialog discards
+unapplied choices; quitting with a changed draft uses the exit guard.
+
+Headless UI tests exercise actual checkbox/radio controls and focused Space-key
+activation; actor tests change both field kinds together, save/reopen and restore
+durable undo/redo. These are automated interaction checks, separate from a real
+window review of this new dialog.
+
 ## What changes in the PDF
 
 The core validates the field tree and all page widgets before planning a batch.

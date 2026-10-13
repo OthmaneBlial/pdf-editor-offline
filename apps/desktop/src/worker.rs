@@ -1,7 +1,7 @@
 use crate::search::{
     MAX_QUERY_CHARS, PageText, SearchHit, SearchKey, limit_page_text, literal_excerpt,
 };
-use crate::state::{DocumentStatus, MetadataReadKey, RenderKey, TextKey};
+use crate::state::{DocumentStatus, FormsReadKey, MetadataReadKey, RenderKey, TextKey};
 use crate::thumbnails::ThumbnailKey;
 use eframe::egui;
 #[cfg(test)]
@@ -34,6 +34,11 @@ const TEST_BLUE_PNG: &[u8] = &[
 ];
 
 pub enum Edit {
+    FillButtons {
+        key: FormsReadKey,
+        changes: Vec<pdf_core::ButtonChange>,
+        page: u32,
+    },
     DuplicatePages {
         revision: u64,
         pages: Vec<u32>,
@@ -101,6 +106,7 @@ pub enum Command {
     Thumbnail(ThumbnailKey),
     Text(TextKey),
     Metadata(MetadataReadKey),
+    Forms(FormsReadKey),
     Search {
         key: SearchKey,
         page: usize,
@@ -134,6 +140,7 @@ impl Command {
             Self::Thumbnail(key) => key.tab,
             Self::Text(key) => key.tab,
             Self::Metadata(key) => key.tab,
+            Self::Forms(key) => key.tab,
             Self::Search { key, .. } => key.tab,
         }
     }
@@ -145,6 +152,7 @@ pub enum TaskKey {
     Thumbnail(ThumbnailKey),
     Text(TextKey),
     Metadata(MetadataReadKey),
+    Forms(FormsReadKey),
     Search(SearchKey),
 }
 
@@ -192,6 +200,10 @@ pub enum Event {
     Metadata {
         key: MetadataReadKey,
         values: pdf_core::DocumentMetadata,
+    },
+    Forms {
+        key: FormsReadKey,
+        fields: Vec<pdf_core::FormField>,
     },
     Searched {
         key: SearchKey,
@@ -246,6 +258,11 @@ impl Worker {
                     Command::Thumbnail(key) => Some(TaskKey::Thumbnail(*key)),
                     Command::Text(key) => Some(TaskKey::Text(*key)),
                     Command::Metadata(key) => Some(TaskKey::Metadata(*key)),
+                    Command::Forms(key) => Some(TaskKey::Forms(*key)),
+                    Command::Edit {
+                        edit: Edit::FillButtons { key, .. },
+                        ..
+                    } => Some(TaskKey::Forms(*key)),
                     Command::Edit {
                         edit: Edit::Metadata { key, .. },
                         ..
@@ -303,6 +320,8 @@ impl Worker {
 }
 
 mod document;
+#[cfg(test)]
+mod forms_tests;
 mod recovery;
 #[cfg(test)]
 mod subset_tests;
@@ -508,6 +527,15 @@ fn process_with_journal(
                 values: document.metadata()?,
             })
         }
+        Command::Forms(key) => {
+            if key.revision != document.current.revision {
+                return Err("Form request is stale".into());
+            }
+            Ok(Event::Forms {
+                key,
+                fields: document.forms()?,
+            })
+        }
         Command::Search {
             key,
             page,
@@ -531,6 +559,11 @@ fn process_with_journal(
             })
         }
         Command::Edit { edit, .. } => {
+            if let Edit::FillButtons { key, .. } = &edit
+                && key.tab != id
+            {
+                return Err("Form draft belongs to another document".into());
+            }
             if let Edit::Metadata { key, .. } = &edit
                 && key.tab != id
             {

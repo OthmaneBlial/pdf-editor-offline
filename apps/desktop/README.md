@@ -1,5 +1,12 @@
 # Native desktop milestone
 
+The **PDF form fields…** action and command palette expose bounded AcroForm
+discovery and guarded checkbox/radio editing. Apply uses the actual document
+worker and durable history, with undo/redo, verified Save As, stale/tab/save guards
+and retained errors. Text/choice fields remain read-only; password values are
+omitted. [Form guide and limits](../../docs/FORMS_RUST.md). Automated controls and
+real document/history tests pass; visual review of this new dialog remains open.
+
 The Organize menu now offers [page-range extraction, duplication and deletion](../../docs/DESKTOP_PAGE_RANGES.md), including deletion confirmation, unsaved extracted tabs and durable undo/redo. Duplication is also available in the command palette; each copy follows its original and the original page keeps focus. These are current-source features; real interaction with the new duplication dialog remains unverified.
 
 ```sh

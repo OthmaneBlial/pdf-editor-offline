@@ -18,6 +18,17 @@ widget pixels. Strict core/CLI/worker Clippy passed. [Form scope](FORMS_RUST.md)
 describes field-graph refusals and remaining text/choice generation, flattening,
 signing and desktop interaction work.
 
+The native form dialog now uses the same guarded button worker, preserves page
+selection and commits changes to durable history. Full main-checkout validation
+passed **351 workspace tests** (16 explicit gates ignored by that ordinary
+command), **94 desktop tests** with all artifact gates enabled, and **51 worker
+feature tests**. Fresh desktop/helper builds and strict workspace/worker-fixture
+Clippy passed. Tests cover pointer/keyboard controls, simultaneous checkbox/radio
+changes, stale/tab/save guards, signed/read-only sources, durable undo/redo and
+verified Save As. Real window review remains unverified: acquisition of both the
+older review app and a freshly built forms app returned `cgWindowNotFound`.
+No new GUI screenshot or all-platform interaction claim follows from these tests.
+
 The source now builds the native Rust preview. The previous source is preserved
 under `recovery-before-native-cleanup-20261012`; old release assets remain in
 release history. The native replacement is incomplete: see the gates below.

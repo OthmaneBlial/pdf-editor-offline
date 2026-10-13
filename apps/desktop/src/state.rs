@@ -11,6 +11,13 @@ pub struct MetadataReadKey {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FormsReadKey {
+    pub tab: u64,
+    pub revision: u64,
+    pub generation: u64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TextKey {
     pub tab: u64,
     pub revision: u64,

@@ -23,6 +23,91 @@ pub(super) struct WorkingDocument {
     pub path: Option<PathBuf>,
 }
 
+fn validate_forms(fields: &[pdf_core::FormField], pages: usize) -> Result<(), String> {
+    use pdf_core::{FormFieldKind, FormValue};
+    if fields.len() > 10_000
+        || serde_json::to_vec(fields)
+            .map_err(|error| error.to_string())?
+            .len()
+            > pdf_worker::MAX_CONTROL_BYTES
+    {
+        return Err("Forms response exceeds its field/report bound".into());
+    }
+    let mut ids = std::collections::BTreeSet::new();
+    let mut widgets = std::collections::BTreeSet::new();
+    let mut text_bytes = 0usize;
+    for field in fields {
+        if field.object_id.0 == 0
+            || field.object_id.0 as usize > pdf_core::MAX_OBJECTS
+            || !ids.insert(field.object_id)
+            || field.name.len() > 4096
+        {
+            return Err("Invalid form field identity or name".into());
+        }
+        text_bytes = text_bytes.saturating_add(field.name.len());
+        let values: Vec<&[u8]> = match &field.value {
+            FormValue::Text(text) => vec![text.as_bytes()],
+            FormValue::Name(bytes) => vec![bytes.as_slice()],
+            FormValue::TextArray(values) => values.iter().map(|text| text.as_bytes()).collect(),
+            _ => vec![],
+        };
+        for value in values {
+            if value.len() > 65_536 {
+                return Err("Form value exceeds its text bound".into());
+            }
+            text_bytes = text_bytes.saturating_add(value.len());
+        }
+        if text_bytes > 4 * 1024 * 1024 {
+            return Err("Form report text exceeds 4 MiB".into());
+        }
+        if field
+            .refusal_reason
+            .as_ref()
+            .is_some_and(|reason| reason.len() > 8192)
+        {
+            return Err("Form refusal reason exceeds its bound".into());
+        }
+        if field.writable_button
+            && (!matches!(
+                field.kind,
+                FormFieldKind::CheckBox | FormFieldKind::RadioButton
+            ) || field.name.is_empty()
+                || field.flags & 1 != 0
+                || field.widgets.is_empty()
+                || field.refusal_reason.is_some())
+        {
+            return Err("Invalid writable button capability".into());
+        }
+        for widget in &field.widgets {
+            if field.writable_button
+                && (widget
+                    .on_state
+                    .as_ref()
+                    .is_none_or(|state| state.is_empty() || state == b"Off")
+                    || widget.appearance_state.is_none())
+            {
+                return Err("Writable button lacks a valid existing appearance state".into());
+            }
+            if widget.object_id.0 == 0
+                || widget.object_id.0 as usize > pdf_core::MAX_OBJECTS
+                || !widgets.insert(widget.object_id)
+                || widgets.len() > 100_000
+                || widget.page == 0
+                || widget.page as usize > pages
+                || widget.rectangle.iter().any(|number| !number.is_finite())
+                || widget.rectangle[2] <= widget.rectangle[0]
+                || widget.rectangle[3] <= widget.rectangle[1]
+                || [&widget.appearance_state, &widget.on_state]
+                    .iter()
+                    .any(|state| state.as_ref().is_some_and(|bytes| bytes.len() > 1024))
+            {
+                return Err("Invalid form widget geometry, state or identity".into());
+            }
+        }
+    }
+    Ok(())
+}
+
 fn validate_selection(pages: &[u32], count: usize) -> Result<(), String> {
     if pages.is_empty() || pages.len() > count || pages.len() > pdf_core::MAX_PAGES {
         return Err("Select between one and the document's page count.".into());
@@ -334,6 +419,18 @@ impl WorkingDocument {
         Ok(metadata)
     }
 
+    pub fn forms(&self) -> Result<Vec<pdf_core::FormField>, String> {
+        let (result, reply) = execute(Operation::Forms, &self.current.bytes)?;
+        let DocumentResult::Forms { fields } = result else {
+            return Err("Unexpected forms response".into());
+        };
+        if reply.kind != PayloadKind::None || !reply.payload.is_empty() {
+            return Err("Unexpected forms payload".into());
+        }
+        validate_forms(&fields, self.current.info.page_count)?;
+        Ok(fields)
+    }
+
     pub fn as_ref<'a>(&'a self, id: &'a str) -> DocumentStateRef<'a> {
         DocumentStateRef {
             id,
@@ -398,7 +495,38 @@ impl WorkingDocument {
             return Ok(None);
         }
         let mut expected_duplicate = None;
+        let mut expected_fill = None;
         let mutation = match edit {
+            Edit::FillButtons { key, changes, page } => {
+                if self.current.info.encrypted || self.current.info.signature_fields > 0 {
+                    return Err("Signed or encrypted form documents are read only".into());
+                }
+                if key.revision != self.current.revision {
+                    return Err("Form draft is stale. Read the form again.".into());
+                }
+                if page == 0 || page as usize > self.current.info.page_count {
+                    return Err("Current form page is outside the document".into());
+                }
+                if changes.is_empty()
+                    || changes.len() > 10_000
+                    || serde_json::to_vec(&changes)
+                        .map_err(|error| error.to_string())?
+                        .len()
+                        > 4 * 1024 * 1024
+                {
+                    return Err("Button changes exceed the bounded form request".into());
+                }
+                let mut names = std::collections::BTreeSet::new();
+                if changes.iter().any(|change| {
+                    change.name.is_empty()
+                        || change.name.len() > 4096
+                        || !names.insert(&change.name)
+                }) {
+                    return Err("Button change names must be unique and bounded".into());
+                }
+                expected_fill = Some((self.current.info.page_count, page as usize - 1));
+                Mutation::FillButtons { changes, page }
+            }
             Edit::DuplicatePages {
                 revision,
                 pages,
@@ -475,6 +603,11 @@ impl WorkingDocument {
             return Err("Unexpected edit response".into());
         };
         validate_info(&info)?;
+        if expected_fill
+            .is_some_and(|(count, page)| info.page_count != count || selected_page != Some(page))
+        {
+            return Err("Invalid filled document page count or selection".into());
+        }
         if expected_duplicate
             .is_some_and(|(count, page)| info.page_count != count || selected_page != Some(page))
         {

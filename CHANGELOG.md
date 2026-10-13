@@ -2,6 +2,8 @@
 
 ## Unreleased — native Rust preview
 
+- Added native form-field discovery and eligible checkbox/radio controls, including keyboard activation, durable apply/undo/redo, verified saving, stale/tab/save guards and retained error drafts. Unsupported fields remain read-only; real window review remains separate from automated interaction tests.
+
 - Added bounded AcroForm discovery and transactional checkbox/radio filling to the core, isolated CLI and path-free worker. Existing appearance streams are preserved; incomplete field/widget graphs and unsupported semantics are refused. Text/choice generation remains open. Added real subprocess and pinned qpdf/Poppler structure/pixel gates.
 - Corrected npm concurrent-install verification: after a metadata race, reopen and hash the complete pinned binary again, accepting only a stable result. Persistent changes and tampered bytes remain refused. The failed preview 2 tag is preserved; the correction requires a new release version.
 
