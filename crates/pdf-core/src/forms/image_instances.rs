@@ -29,12 +29,13 @@ pub struct ImageInstance {
     pub replaceable: bool,
     pub refusal_reason: Option<String>,
 }
-struct Program {
-    bytes: Vec<u8>,
-    spans: Vec<crate::content_spans::OperatorSpan>,
-    resources: Dictionary,
-    xobjects: Dictionary,
-    images: Vec<ImageInstance>,
+pub(crate) struct Program {
+    pub(crate) bytes: Vec<u8>,
+    pub(crate) spans: Vec<crate::content_spans::OperatorSpan>,
+    pub(crate) content: lopdf::content::Content<Vec<lopdf::content::Operation>>,
+    pub(crate) resources: Dictionary,
+    pub(crate) xobjects: Dictionary,
+    pub(crate) images: Vec<ImageInstance>,
 }
 fn collect(
     pdf: &PdfDocument,
@@ -154,6 +155,30 @@ fn compose(a: [f64; 6], b: [f64; 6]) -> Result<[f64; 6]> {
 }
 fn program(pdf: &PdfDocument, page: u32) -> Result<Program> {
     pdf.validate_selection(&[page])?;
+    let source = crate::save::serialize_bounded(&pdf.document, crate::MAX_INPUT_BYTES)?;
+    let hash = Sha256::digest(&source)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect::<String>();
+    drop(source);
+    let readonly = if pdf.encrypted_input {
+        Some("Decrypted PDFs are read-only")
+    } else if pdf.info()?.signature_fields > 0 {
+        Some("Signed PDFs are read-only")
+    } else {
+        None
+    };
+    program_with_hash(pdf, page, &hash, readonly)
+}
+/// Whole-document operations compute the hash/read-only status once. The same
+/// parser, lexical spans, alias handling and instance identities are reused.
+pub(crate) fn program_with_hash(
+    pdf: &PdfDocument,
+    page: u32,
+    source_hash: &str,
+    global_readonly: Option<&'static str>,
+) -> Result<Program> {
+    pdf.validate_selection(&[page])?;
     let page_id = pdf.pages[page as usize - 1];
     let mut budget = Budget::new();
     let catalog = budget
@@ -166,14 +191,10 @@ fn program(pdf: &PdfDocument, page: u32) -> Result<Program> {
             .get_object(page_id)?
             .as_dict()?
             .has(b"StructParents");
-    let readonly = if pdf.encrypted_input {
-        Some("Decrypted PDFs are read-only")
-    } else if pdf.info()?.signature_fields > 0 {
-        Some("Signed PDFs are read-only")
-    } else if tagged {
+    let readonly = if tagged {
         Some("Tagged images require semantic structure support")
     } else {
-        None
+        global_readonly
     };
     let resources = crate::structure::inherited_raw(&pdf.document, page_id, b"Resources")?
         .map(|v| {
@@ -222,12 +243,6 @@ fn program(pdf: &PdfDocument, page: u32) -> Result<Program> {
     if content.operations.len() > 100_000 {
         return Err(Error::Limit("image page exceeds 100000 operators"));
     }
-    let source = crate::save::serialize_bounded(&pdf.document, crate::MAX_INPUT_BYTES)?;
-    let source_hash = Sha256::digest(&source)
-        .iter()
-        .map(|b| format!("{b:02x}"))
-        .collect::<String>();
-    drop(source);
     let mut matrix = [1.0, 0.0, 0.0, 1.0, 0.0, 0.0];
     let mut stack = Vec::new();
     let mut images = Vec::new();
@@ -328,7 +343,7 @@ fn program(pdf: &PdfDocument, page: u32) -> Result<Program> {
                         operator: index as u32 + 1,
                         image_id: id,
                         resource_name: name.to_vec(),
-                        source_hash: source_hash.clone(),
+                        source_hash: source_hash.to_owned(),
                     },
                     matrix,
                     corners: [
@@ -355,6 +370,7 @@ fn program(pdf: &PdfDocument, page: u32) -> Result<Program> {
     Ok(Program {
         bytes,
         spans,
+        content,
         resources: resources.cloned().unwrap_or_default(),
         xobjects: xobjects.cloned().unwrap_or_default(),
         images,

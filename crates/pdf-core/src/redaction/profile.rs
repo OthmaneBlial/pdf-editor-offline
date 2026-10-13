@@ -1,10 +1,12 @@
 use super::*;
 
-pub(super) struct Profile<'a> {
-    pub(super) pdf: &'a PdfDocument,
-    pub(super) seen: BTreeSet<ObjectId>,
-    pub(super) work: usize,
-    pub(super) decoded: usize,
+pub(crate) struct Profile<'a> {
+    pub(crate) pdf: &'a PdfDocument,
+    pub(crate) seen: BTreeSet<ObjectId>,
+    pub(crate) work: usize,
+    pub(crate) decoded: usize,
+    /// Only explicitly privacy-decoded, canonical image/mask objects are allowed.
+    pub(crate) images: Option<&'a BTreeSet<ObjectId>>,
 }
 fn keys(dict: &Dictionary, allowed: &[&[u8]]) -> Result<()> {
     if dict
@@ -27,14 +29,19 @@ impl<'a> Profile<'a> {
         }
         Ok(())
     }
-    fn resolve(&mut self, mut value: &'a Object) -> Result<&'a Object> {
+    fn resolve(&mut self, value: &'a Object) -> Result<&'a Object> {
+        Ok(self.resolve_id(value)?.1)
+    }
+    fn resolve_id(&mut self, mut value: &'a Object) -> Result<(Option<ObjectId>, &'a Object)> {
         let mut active = BTreeSet::new();
+        let mut last = None;
         while let Object::Reference(id) = value {
             self.step(1)?;
             if active.len() >= 128 || !active.insert(*id) {
                 return Err(Error::Refused("redaction reference cycle/depth"));
             }
             self.seen.insert(*id);
+            last = Some(*id);
             value = self
                 .pdf
                 .document
@@ -42,7 +49,73 @@ impl<'a> Profile<'a> {
                 .get(id)
                 .ok_or(Error::Invalid("missing redaction reference"))?;
         }
-        Ok(value)
+        Ok((last, value))
+    }
+    fn image(&mut self, value: &'a Object, depth: usize) -> Result<()> {
+        if depth > 1 {
+            return Err(Error::Refused("nested image masks are unsupported"));
+        }
+        let (id, value) = self.resolve_id(value)?;
+        if !id.is_some_and(|id| self.images.is_some_and(|images| images.contains(&id))) {
+            return Err(Error::Refused("image object was not privacy decoded"));
+        }
+        let stream = value.as_stream()?;
+        keys(
+            &stream.dict,
+            &[
+                b"Type",
+                b"Subtype",
+                b"Width",
+                b"Height",
+                b"BitsPerComponent",
+                b"ColorSpace",
+                b"Length",
+                b"SMask",
+                b"Interpolate",
+                b"Intent",
+            ],
+        )?;
+        if stream.dict.get(b"Type")?.as_name()? != b"XObject"
+            || stream.dict.get(b"Subtype")?.as_name()? != b"Image"
+            || stream.dict.get(b"BitsPerComponent")?.as_i64()? != 8
+        {
+            return Err(Error::Refused("noncanonical privacy image descriptor"));
+        }
+        let channels = match stream.dict.get(b"ColorSpace")?.as_name()? {
+            b"DeviceGray" => 1usize,
+            b"DeviceRGB" if depth == 0 => 3,
+            _ => return Err(Error::Refused("noncanonical privacy image color space")),
+        };
+        let width = stream.dict.get(b"Width")?.as_i64()?;
+        let height = stream.dict.get(b"Height")?.as_i64()?;
+        if !(1..=8192).contains(&width)
+            || !(1..=8192).contains(&height)
+            || (width as usize).saturating_mul(height as usize) > 8_000_000
+            || stream.content.len() != width as usize * height as usize * channels
+            || stream.dict.get(b"Length")?.as_i64()? != stream.content.len() as i64
+        {
+            return Err(Error::Refused(
+                "privacy image sample geometry or length mismatch",
+            ));
+        }
+        if let Ok(value) = stream.dict.get(b"Interpolate") {
+            let _ = value.as_bool()?;
+        }
+        if let Ok(value) = stream.dict.get(b"Intent")
+            && !matches!(
+                value.as_name()?,
+                b"AbsoluteColorimetric" | b"RelativeColorimetric" | b"Saturation" | b"Perceptual"
+            )
+        {
+            return Err(Error::Refused("unknown image rendering intent"));
+        }
+        if let Ok(mask) = stream.dict.get(b"SMask") {
+            if depth != 0 {
+                return Err(Error::Refused("soft mask cannot have its own mask"));
+            }
+            self.image(mask, depth + 1)?;
+        }
+        Ok(())
     }
     fn numbers(&mut self, value: &'a Object, n: usize) -> Result<()> {
         let array = self.resolve(value)?.as_array()?;
@@ -62,19 +135,42 @@ impl<'a> Profile<'a> {
     }
     fn resources(&mut self, value: &'a Object) -> Result<BTreeMap<Vec<u8>, (String, bool)>> {
         let dict = self.resolve(value)?.as_dict()?;
-        keys(dict, &[b"Font", b"ProcSet"])?;
+        if self.images.is_some() {
+            keys(dict, &[b"Font", b"ProcSet", b"XObject"])?;
+            if let Ok(objects) = dict.get(b"XObject") {
+                let objects = self.resolve(objects)?.as_dict()?;
+                self.step(objects.len())?;
+                for (name, image) in objects {
+                    if name.is_empty() || name.len() > 4096 {
+                        return Err(Error::Limit("image redaction resource name"));
+                    }
+                    self.image(image, 0)?;
+                }
+            }
+        } else {
+            keys(dict, &[b"Font", b"ProcSet"])?;
+        }
         if let Ok(value) = dict.get(b"ProcSet") {
             let array = self.resolve(value)?.as_array()?;
             self.step(array.len())?;
             for value in array {
-                if !matches!(self.resolve(value)?.as_name()?, b"PDF" | b"Text") {
+                let name = self.resolve(value)?.as_name()?;
+                if !(matches!(name, b"PDF" | b"Text")
+                    || self.images.is_some() && matches!(name, b"ImageB" | b"ImageC" | b"ImageI"))
+                {
                     return Err(Error::Refused(
                         "image/opaque resources prevent proven text redaction",
                     ));
                 }
             }
         }
-        let fonts = self.resolve(dict.get(b"Font")?)?.as_dict()?;
+        let fonts = if let Ok(fonts) = dict.get(b"Font") {
+            self.resolve(fonts)?.as_dict()?
+        } else if self.images.is_some() {
+            return Ok(BTreeMap::new());
+        } else {
+            return Err(Error::Refused("redaction text font resources missing"));
+        };
         self.step(fonts.len())?;
         let mut names = BTreeMap::new();
         for (name, value) in fonts {
@@ -166,7 +262,7 @@ impl<'a> Profile<'a> {
         }
         Ok(())
     }
-    pub(super) fn pages(&mut self) -> Result<Vec<(Vec<u8>, Fonts)>> {
+    pub(crate) fn pages(&mut self) -> Result<Vec<(Vec<u8>, Fonts)>> {
         keys(&self.pdf.document.trailer, &[b"Root", b"Size", b"ID"])?;
         if let Ok(size) = self.pdf.document.trailer.get(b"Size") {
             let _ = self.resolve(size)?.as_i64()?;

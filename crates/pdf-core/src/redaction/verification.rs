@@ -45,6 +45,7 @@ impl PdfDocument {
             seen: BTreeSet::new(),
             work: 0,
             decoded: 0,
+            images: None,
         }
         .pages()?;
         let mut search = Search::default();
