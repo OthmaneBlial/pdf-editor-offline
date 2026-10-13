@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="360" viewBox="0 0 960 360" role="img" aria-labelledby="title desc">
+  <title id="title">Four ways to make your next PDF easier</title>
+  <desc id="desc">Original illustrations of finding text, arranging pages, adding text and shapes, and saving a separate PDF copy. These are illustrations, not app screenshots.</desc>
+  <defs>
+    <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M24 0H0v24" fill="none" stroke="#063e32" stroke-opacity=".05"/></pattern>
+  </defs>
+  <rect width="960" height="360" rx="24" fill="#f8f4e8"/>
+  <rect width="960" height="360" rx="24" fill="url(#grid)"/>
+  <g font-family="'Trebuchet MS', sans-serif" fill="#063e32">
+    <text x="34" y="48" font-size="14" font-weight="700" letter-spacing="2">A LITTLE LESS PDF CHAOS</text>
+    <text x="34" y="91" font-family="Georgia, serif" font-size="34">One document. A few good moves.</text>
+  </g>
+  <path d="M244 124v184M480 124v184M716 124v184" stroke="#d7ddce"/>
+  <g transform="translate(56 126)">
+    <rect x="22" y="7" width="106" height="132" rx="9" fill="#cad7c7"/>
+    <rect x="13" width="106" height="132" rx="9" fill="#fffdf5" stroke="#d9ddce"/>
+    <path d="M32 28h60M32 47h48M32 67h61M32 87h41" stroke="#38574b" stroke-width="5" stroke-linecap="round"/>
+    <rect x="27" y="57" width="72" height="19" rx="4" fill="#dfb875" fill-opacity=".7"/>
+    <circle cx="114" cy="108" r="27" fill="#f8f4e8" stroke="#063e32" stroke-width="6"/>
+    <path d="m135 129 22 22" stroke="#ad5b2f" stroke-width="10" stroke-linecap="round"/>
+  </g>
+  <g transform="translate(283 133)">
+    <g transform="rotate(-10 62 64)"><rect width="76" height="104" rx="8" fill="#ad5b2f"/><text x="38" y="66" text-anchor="middle" fill="#fffdf5" font-family="Georgia, serif" font-size="42">3</text></g>
+    <g transform="translate(51 9) rotate(9 38 52)"><rect width="76" height="104" rx="8" fill="#cad7c7" stroke="#063e32" stroke-width="2"/><text x="38" y="66" text-anchor="middle" fill="#063e32" font-family="Georgia, serif" font-size="42">1</text></g>
+    <path d="M22 139h91m-12-10 12 10-12 10" fill="none" stroke="#063e32" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g transform="translate(527 135)">
+    <rect x="1" width="120" height="135" rx="10" fill="#fffdf5" stroke="#d9ddce"/>
+    <text x="20" y="59" fill="#063e32" font-family="Georgia, serif" font-size="49">Aa</text>
+    <rect x="20" y="78" width="38" height="31" rx="3" fill="#cad7c7" stroke="#063e32" stroke-width="3"/>
+    <ellipse cx="89" cy="93" rx="19" ry="16" fill="none" stroke="#ad5b2f" stroke-width="3"/>
+    <path d="m118 41 28-28 10 10-28 28-17 7Z" fill="#ad5b2f"/>
+    <path d="m111 58 17-7-10-10Z" fill="#063e32"/>
+  </g>
+  <g transform="translate(769 128)">
+    <rect x="13" y="13" width="99" height="126" rx="9" fill="#cad7c7"/>
+    <rect width="99" height="126" rx="9" fill="#fffdf5" stroke="#d9ddce"/>
+    <path d="M20 27h57M20 46h45M20 65h56" stroke="#38574b" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="105" cy="106" r="29" fill="#063e32"/>
+    <path d="m92 106 9 10 18-21" fill="none" stroke="#fffdf5" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g fill="#063e32" font-family="Georgia, serif" font-size="29" text-anchor="middle">
+    <text x="126" y="318">Find it.</text><text x="362" y="318">Arrange it.</text><text x="598" y="318">Add to it.</text><text x="834" y="318">Keep a copy.</text>
+  </g>
+</svg>

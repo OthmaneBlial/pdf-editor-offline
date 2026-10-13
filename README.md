@@ -26,6 +26,15 @@ No account, subscription or document upload is required.
 The desktop builds from source; installers and full PDF editing are still in
 development. The gallery shows real macOS sessions with public synthetic PDFs.
 
+![Find a phrase, arrange pages, add text or drawings, and keep a separate copy. Original workflow illustrations.](docs/assets/readme-workbench.svg)
+
+**A little less PDF chaos.** Find the right page, give it a new order, add a few
+words or a drawing, then save a copy. Start with the
+[public demo PDF](examples/sample_pdfs/demo-basic.pdf) and try things without
+putting a private document in a public example.
+
+### Meet your new desk
+
 ![Actual native PDF editor on macOS: local search, page canvas and document inspector in the light theme](docs/assets/screenshots/native/editorial-light-2026-10-12.png)
 
 The screenshot is a real app window using a public synthetic PDF.
@@ -41,6 +50,13 @@ These checks cover source builds; the downloadable CLI remains preview.3.
 
 These features are on **`main`**, ahead of the published CLI preview:
 
+**Fresh tools to play with:** [draw on the canvas](docs/VECTOR_DRAWING_RUST.md),
+[add Unicode text](docs/TEXT_OVERLAYS_RUST.md), [finish a form](docs/FORMS_RUST.md)
+or [leave a sticky note](docs/NOTES_RUST.md). Build the current source to try them.
+
+<details>
+<summary>Open this week's workflow notes</summary>
+
 | Try it | See it work |
 | --- | --- |
 | Add Unicode text with a font, color and alignment | [Before/after exports and commands](docs/TEXT_OVERLAYS_RUST.md) |
@@ -51,6 +67,8 @@ These features are on **`main`**, ahead of the published CLI preview:
 | Split supported PDFs into new tabs or CLI files | [Split workflow and publication limits](apps/desktop/README.md) |
 | Open a password-protected PDF for this session | [Read-only encrypted viewing](docs/ENCRYPTED_VIEWING_RUST.md) |
 | Make a targeted cleanup copy with a removal report | [What sanitization removes](docs/SANITIZATION_RUST.md) |
+
+</details>
 
 ### An actual PDF, before and after
 
@@ -66,12 +84,10 @@ replace or erase existing content. [Reproduce the result](docs/TEXT_OVERLAYS_RUS
 
 ### Pick your first five minutes
 
-| Start here | What you'll get |
-| --- | --- |
-| [Install the CLI](#try-the-native-cli) | Inspect a local PDF and preview a page rotation before saving a copy. |
-| [Build the desktop](#build-and-run) | Open your own PDF in the native workstation. |
-| [Try the text walkthrough](docs/TEXT_OVERLAYS_RUST.md) | Reproduce the before/after PDF shown above. |
-| [Explore the Rust workspace](Cargo.toml) | Follow the crates from document parsing to rendering and the two apps. |
+**Just looking?** [Open the real gallery](docs/assets/screenshots/native/).
+**Ready to try it?** [Install the CLI](#try-the-native-cli) or [build the desktop](#build-and-run).
+**Here to make something?** [Recreate the text example](docs/TEXT_OVERLAYS_RUST.md)
+or [explore the Rust workspace](Cargo.toml).
 
 If this is a tool you'd use, **[star the repository](https://github.com/OthmaneBlial/pdf-editor-offline)**
 to keep it within reach. Want to help it grow? Try a workflow, compare the saved
@@ -98,35 +114,37 @@ quality configuration. Screenshots live in `docs/assets/`.
 
 </details>
 
-## Your next PDF, without the upload
+## Pick a little PDF adventure
 
-**A few pages for someone else.** Open your document, move the pages into order,
-rotate a sideways scan and save a separate copy. Your original stays where it is.
+**The tidy-up quest.** Find your page, rotate that sideways scan, put the pages
+in order and save a separate copy. Your original stays where it is.
 
-**Several PDFs, one handoff.** In the desktop source build, choose Edit →
-**Merge PDF files…**, arrange the additional files and create a new document.
-The guarded merge tier refuses incompatible structures or metadata conflicts.
-[Merge scope and checks](apps/desktop/README.md).
+**The one-file handoff.** Choose Edit → **Merge PDF files…** in a desktop source
+build, arrange compatible PDFs and create a new document.
+[Merge scope and checks](apps/desktop/README.md) explain the guarded tier.
 
-**An answer buried in a long file.** Search for a phrase, jump to the matching
-page and use thumbnails to keep your place.
+**The fill-it-in moment.** Finish a supported form, add Unicode text or draw a
+shape. Try the [form](docs/FORMS_RUST.md), [text](docs/TEXT_OVERLAYS_RUST.md) or
+[drawing](docs/VECTOR_DRAWING_RUST.md) walkthrough in a current-source build.
 
-**The same task, every week.** Use the Rust CLI for repeatable page operations
-and JSON inspection. Preview a supported change with `--dry-run` before writing.
+**The repeat job.** Let the Rust CLI handle supported page operations and JSON
+inspection. Preview a change with `--dry-run` before writing.
 
-**A form to finish.** Fill supported text fields, choose an indexed dropdown
-option or tick a checkbox. The desktop keeps an undo history; the
-[walkthrough](docs/FORMS_RUST.md) explains font coverage and layout limits.
-
-**A document to tidy before sharing.** Create a targeted cleanup copy and read
-its removal report. Page content remains, so review it for personal information
-before sharing. [See exactly what cleanup removes](docs/SANITIZATION_RUST.md).
+**Before sharing.** [Targeted cleanup](docs/SANITIZATION_RUST.md) can remove
+specified metadata, attachments and actions into a new copy. Read its report and
+review the retained page content for personal information.
 
 [Try the CLI ↓](#try-the-native-cli) · [Run the desktop ↓](#build-and-run) ·
 [See supported operations ↓](#what-works-today)
 
+### Lights down. Document open.
+
+![Real native macOS workspace in the dark theme, with a synthetic PDF and local document controls](docs/assets/screenshots/native/editorial-dark-2026-10-12.png)
+
+Same app, another mood. This is an actual native window, not a design mockup.
+
 <details>
-<summary>Take a closer look: pages, properties and the dark workspace</summary>
+<summary>Take a closer look: pages, organization and properties</summary>
 
 **Find your page.** Thumbnails follow the document while the canvas gives you room to read.
 
@@ -139,10 +157,6 @@ before sharing. [See exactly what cleanup removes](docs/SANITIZATION_RUST.md).
 **Keep the details right.** Edit document properties, including tested Chinese, Japanese and Korean text, then save a verified copy.
 
 ![Actual native document properties with Unicode text](docs/assets/screenshots/native/properties-cjk-2026-10-12.png)
-
-**Work after dark.** The same native workspace, with a quieter palette.
-
-![Actual native PDF editor in the dark theme](docs/assets/screenshots/native/editorial-dark-2026-10-12.png)
 
 These are real macOS captures with synthetic public documents.
 
@@ -190,10 +204,17 @@ app with the instructions below.
 
 ## What works today
 
+Read, organize, add text, draw, fill supported forms and save a separate copy.
+Each tool has a defined scope; arbitrary existing-text editing, OCR and digital
+signing are still ahead. [The full roadmap](ROADMAP.md) shows the remaining work.
+
 **Follow the work as it lands:** [latest commits](https://github.com/OthmaneBlial/pdf-editor-offline/commits/main/)
 · [native build results](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml)
 · [published releases](https://github.com/OthmaneBlial/pdf-editor-offline/releases).
 The table covers current source; published CLI differences are called out below.
+
+<details>
+<summary>Show the full desktop and CLI feature matrix</summary>
 
 | Task | Native desktop | Rust CLI |
 | --- | --- | --- |
@@ -203,10 +224,13 @@ The table covers current source; published CLI differences are called out below.
 | Images | Create PDF pages from supported PNG/JPEG files | Restricted images-to-PDF conversion; export one PDF page as PNG |
 | Comments | Bounded sticky-note discovery, guarded add/edit/remove, durable history; supported appearances and standard Text/FileAttachment icons | Add/list sticky Text notes; guarded editing/removal of basic notes |
 | New page text | Drag placement, move/eight resize handles, snapping and arrow nudges, numeric controls, covering-font picker, guarded apply and durable undo/redo | `add-text-overlay` adds bounded Unicode text with an explicit font, rectangle, color and alignment in current source |
+| New drawings | Rectangles, ellipses, lines and bounded freehand paths, colors/paint opacity, snapping, nudges and protected drafts | `add-vector-overlay` with a strict JSON request, dry-run and fresh-copy saving in current source |
 | Forms | Checkboxes/radios, single/multiline text, dropdowns and single/multiple list selections; guarded apply and undo/redo | Discover fields and indexed options; `fill-button`, `fill-text`, `list-choices` and `fill-choice` in current source |
 | Inspect and export | Verified Save As to a new path | Read-only action/attachment/form/layer markers, lossless stream compression, verified fresh output copies |
 | Targeted cleanup | Separate unsaved copy, removal report and verified Save As | `sanitize` removes supported metadata/file/action structures through a full rewrite in current source; includes dry-run and a partial-scope report |
 | Resume your work | Recorded document/history snapshots, explicit session restore/discard, interrupted-save retry/cancel in current source | Desktop recovery is separate from the CLI |
+
+</details>
 
 Supported edits preserve unrelated PDF objects and refuse structures they cannot
 safely handle. Merge, page subsets, note editing and image conversion have explicit
@@ -247,24 +271,31 @@ system packages.
 ```sh
 git clone https://github.com/OthmaneBlial/pdf-editor-offline.git
 cd pdf-editor-offline
+export CARGO_TARGET_DIR="${TMPDIR:-/tmp}/pdf-editor-offline-build"
 cargo build --release --locked -p pdf-editor-offline-native -p pdf-editor-offline-cli
-./target/release/pdf-editor-offline-native
+"$CARGO_TARGET_DIR/release/pdf-editor-offline-native"
 ```
 
-On Windows, run
-`target\release\pdf-editor-offline-native.exe`; executable names end in `.exe`.
+This keeps the build cache outside the project root. On Windows PowerShell, set
+`$env:CARGO_TARGET_DIR = Join-Path $env:TEMP 'pdf-editor-offline-build'` before
+building, then run `& "$env:CARGO_TARGET_DIR\release\pdf-editor-offline-native.exe"`.
+
+<details>
+<summary>Keep going: four CLI commands with the demo PDF</summary>
 
 Try the CLI with the included demonstration file:
 
 ```sh
-./target/release/pdf-editor-offline info examples/sample_pdfs/demo-basic.pdf --json
-./target/release/pdf-editor-offline rotate examples/sample_pdfs/demo-basic.pdf --pages 1 --degrees 90 -o rotated.pdf --dry-run --json
-./target/release/pdf-editor-offline rotate examples/sample_pdfs/demo-basic.pdf --pages 1 --degrees 90 -o rotated.pdf --json
-./target/release/pdf-editor-offline capabilities --json
+"$CARGO_TARGET_DIR/release/pdf-editor-offline" info examples/sample_pdfs/demo-basic.pdf --json
+"$CARGO_TARGET_DIR/release/pdf-editor-offline" rotate examples/sample_pdfs/demo-basic.pdf --pages 1 --degrees 90 -o rotated.pdf --dry-run --json
+"$CARGO_TARGET_DIR/release/pdf-editor-offline" rotate examples/sample_pdfs/demo-basic.pdf --pages 1 --degrees 90 -o rotated.pdf --json
+"$CARGO_TARGET_DIR/release/pdf-editor-offline" capabilities --json
 ```
 
 Pages start at **1**. `--dry-run` validates without writing.
 Choose a new output path: existing files and symlinks are never overwritten.
+
+</details>
 
 ### Your first desktop session
 
@@ -281,6 +312,8 @@ document structures. The gallery above shows actual macOS sessions with this
 public sample, so you can compare the workspace before building.
 
 ## Local files, reviewable results
+
+![A local workstation processes your PDF and saves a separate copy; your original stays where it is. Original illustration.](docs/assets/readme-local.svg)
 
 PDF operations run on the local machine. The native app uses no remote rendering
 or cloud conversion service and requires no account. Local processing does not
@@ -300,6 +333,8 @@ fidelity, desktop responsiveness or a universal speedup.
 
 ## Help build it
 
+![Help write the next chapter: try a workflow, translate a page or make one thing better. Original open-source illustration.](docs/assets/readme-community.svg)
+
 This is an active native rewrite. Follow the [release notes](CHANGELOG.md),
 the [next milestones](ROADMAP.md) and the [implementation status](docs/RUST_STATUS.md)
 to see what has shipped and what still needs work. The screenshots above show
@@ -314,26 +349,6 @@ release's remaining checks. The npm badge above reflects the public registry.
 [run the desktop](apps/desktop/README.md),
 [contribute a fix](.github/CONTRIBUTING.md) or
 [improve a translation](docs/languages/).
-
-<details>
-<summary>Find your way around the repository</summary>
-
-| Directory | What belongs here |
-| --- | --- |
-| `apps/` | Native desktop and CLI entry points |
-| `crates/` | Shared Rust PDF processing, rendering, conversion and workers |
-| `docs/` | Guides, translations, screenshots, architecture and recorded evidence |
-| `tests/`, `examples/` | Test fixtures and public demonstration files |
-| `distribution/` | Optional npm installer for the native CLI |
-| `site/` | Project website and its public assets |
-| `tools/` | Native evidence runner and pinned independent reference installers |
-| `vendor/` | Reviewed dependency sources used by this workspace |
-
-Cargo creates an ignored `target/` build cache when you build. It is generated,
-not project source. Workspace manifests, the lockfile, license and project
-overview stay at the root.
-
-</details>
 
 <details>
 <summary>How the Rust pieces fit together</summary>

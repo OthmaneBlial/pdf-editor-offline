@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="320" viewBox="0 0 960 320" role="img" aria-labelledby="title desc">
+  <title id="title">A PDF workstation on your own computer</title>
+  <desc id="desc">An original illustration of a local computer, an input PDF and a separate saved copy. Document processing runs locally; recovery copies can also remain on disk.</desc>
+  <rect width="960" height="320" rx="24" fill="#063e32"/>
+  <path d="M0 270h960" stroke="#38574b" stroke-width="2"/>
+  <g fill="#faf6ea" font-family="'Trebuchet MS', sans-serif">
+    <text x="38" y="48" font-size="14" font-weight="700" letter-spacing="2">NO UPLOAD REQUIRED</text>
+    <text x="38" y="94" font-family="Georgia, serif" font-size="35">Your own PDF desk.</text>
+    <text x="39" y="131" font-size="20" fill="#cad7c7">Read, edit and save locally.</text>
+  </g>
+  <g transform="translate(39 177)">
+    <rect width="75" height="90" rx="7" fill="#cad7c7"/>
+    <path d="M18 25h39M18 41h28M18 57h34" stroke="#063e32" stroke-width="4" stroke-linecap="round"/>
+    <text x="92" y="39" fill="#faf6ea" font-family="'Trebuchet MS', sans-serif" font-size="22">Your original</text>
+    <text x="92" y="66" fill="#cad7c7" font-family="'Trebuchet MS', sans-serif" font-size="17">stays where it is.</text>
+  </g>
+  <g transform="translate(459 71)">
+    <rect x="8" y="9" width="247" height="165" rx="14" fill="#ad5b2f"/>
+    <rect width="247" height="165" rx="14" fill="#cad7c7"/>
+    <rect x="13" y="13" width="221" height="134" rx="5" fill="#f8f4e8"/>
+    <rect x="13" y="13" width="37" height="134" rx="5" fill="#e1e6d8"/>
+    <rect x="23" y="29" width="17" height="23" rx="2" fill="#063e32"/>
+    <rect x="23" y="64" width="17" height="23" rx="2" fill="#8baf98"/>
+    <rect x="23" y="99" width="17" height="23" rx="2" fill="#8baf98"/>
+    <rect x="91" y="28" width="95" height="105" rx="4" fill="#fffdf5" stroke="#d9ddce"/>
+    <path d="M108 48h57M108 64h42M108 80h52" stroke="#063e32" stroke-width="4" stroke-linecap="round"/>
+    <rect x="108" y="95" width="54" height="19" rx="3" fill="#dfb875"/>
+    <path d="M83 195h85l-15-30h-55Z" fill="#cad7c7"/>
+    <path d="M67 196h117" stroke="#f8f4e8" stroke-width="6" stroke-linecap="round"/>
+  </g>
+  <path d="M350 224h76m-11-10 11 10-11 10M739 154h38m-10-10 10 10-10 10" fill="none" stroke="#dfb875" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <g transform="translate(803 86) rotate(8 42 56)">
+    <rect x="9" y="9" width="85" height="113" rx="7" fill="#ad5b2f"/>
+    <rect width="85" height="113" rx="7" fill="#faf6ea"/>
+    <path d="M17 26h49M17 43h37" stroke="#063e32" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="43" cy="80" r="17" fill="#063e32"/>
+    <path d="m35 80 5 6 11-13" fill="none" stroke="#faf6ea" stroke-width="3" stroke-linecap="round"/>
+  </g>
+  <text x="842" y="243" text-anchor="middle" fill="#faf6ea" font-family="'Trebuchet MS', sans-serif" font-size="19">A separate copy.</text>
+</svg>

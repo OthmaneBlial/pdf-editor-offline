@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="240" viewBox="0 0 960 240" role="img" aria-labelledby="title desc">
+  <title id="title">Help write the next chapter</title>
+  <desc id="desc">Original paper-and-pencil artwork inviting users to try a workflow, improve a translation or contribute Rust code. No adoption or completion metrics are shown.</desc>
+  <rect width="960" height="240" rx="24" fill="#f8f4e8"/>
+  <circle cx="818" cy="113" r="88" fill="#e1e6d8"/>
+  <g transform="translate(750 39) rotate(-9 52 70)">
+    <rect x="10" y="10" width="102" height="138" rx="9" fill="#ad5b2f"/>
+    <rect width="102" height="138" rx="9" fill="#fffdf5" stroke="#d7ddce"/>
+    <path d="M19 30h61M19 50h45M19 70h58" stroke="#063e32" stroke-width="5" stroke-linecap="round"/>
+    <path d="m21 111 11-12 10 11 19-20 18 19" fill="none" stroke="#ad5b2f" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <path d="m854 64 15-15 18 18-15 15-59 59-24 6 6-24Z" fill="#063e32"/>
+  <path d="m789 147 24-6-18-18Z" fill="#ad5b2f"/>
+  <g fill="#063e32" font-family="'Trebuchet MS', sans-serif">
+    <text x="38" y="48" font-size="14" font-weight="700" letter-spacing="2">BUILT IN THE OPEN</text>
+    <text x="38" y="99" font-family="Georgia, serif" font-size="38">Help write the next chapter.</text>
+    <text x="39" y="139" font-size="21">Try a workflow. Translate a page. Make one thing better.</text>
+    <rect x="38" y="166" width="142" height="34" rx="17" fill="#063e32"/>
+    <text x="109" y="189" text-anchor="middle" fill="#faf6ea" font-size="13" font-weight="700" letter-spacing="1">OPEN SOURCE</text>
+    <text x="197" y="189" font-size="17">Small contributions count.</text>
+  </g>
+</svg>
