@@ -2,6 +2,10 @@
 
 ## Unreleased — native Rust preview
 
+- Added native sticky-note discovery and guarded add/edit/remove through the document worker, with bounded replies, core-supplied eligibility, durable history, confirmation and retained drafts. Existing appearance/geometry and original files are preserved; ordinary removal is not secure erasure.
+
+- Protect unapplied metadata, form, note and text-overlay drafts when closing clean tabs. Save As records applied document changes; explicit draft discard and quitting keep that boundary clear.
+
 - Added bounded Unicode page-text overlays through the core, isolated CLI and worker, with explicit covering fonts, color, size and alignment. Original artwork/resources are retained, overflow is refused, and the command reports that it neither edits existing text nor securely erases it. Real before/after PDF exports and reproducible commands are documented.
 
 - Render seven standard Text annotation icons when AP is absent, with original vector artwork, intrinsic upright/fixed-screen-size behavior and explicit-appearance precedence. Native footprint preservation and pinned Poppler semantics are tested; popup interaction and identical artwork across readers are not claimed.

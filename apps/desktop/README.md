@@ -15,6 +15,13 @@ The Organize menu now offers [page-range extraction, duplication and deletion](.
 cargo run -p pdf-editor-offline-native
 ```
 
+Edit → **Add text overlay…** adds new Unicode page content through an isolated
+worker, with PDF-space placement controls, a true canvas outline, covering-font
+picker, color/size/alignment and durable Undo/Redo. Unapplied drafts are retained
+on errors and protected when closing. This is not existing-text editing or
+redaction; drag/resize handles and manual window review remain open.
+[Overlay workflow and actual PDF exports](../../docs/TEXT_OVERLAYS_RUST.md).
+
 Edit → **Sticky notes on this page…** lists bounded Text annotations on the
 current page, including hidden notes. Each batch contains at most 128 notes and
 512 KiB of text; Next notes continues the list. This native tier accepts at most

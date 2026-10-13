@@ -15,8 +15,8 @@ GitHub and npm publication are verified; npm `latest` is `4.0.0-preview.3` and a
 fresh registry install was checked with Node 22. This later text/CFF source is
 separate from that release; preview 4 is not yet published.
 
-New Unicode page-text overlays are available through the core, CLI and isolated
-worker. They preserve existing artwork, embed a chosen covering font and refuse
+New Unicode page-text overlays are available through the core, CLI, native editor
+and isolated worker. They preserve existing artwork, embed a chosen covering font and refuse
 overflow or unsupported inputs. They are additions, not existing-text editing or
 redaction. The combined core/renderer integration passed **249 tests across 29
 suites with no failures or ignored tests**, including all pinned references;
@@ -25,9 +25,27 @@ checks, and the native desktop gates passed **120 tests**, including actual
 production workers and independent saved-output checks. All were run without
 ignored tests. Strict workspace/all-target Clippy and fresh native/CLI/helper
 builds passed.
-[Reproduce the real PDF exports](TEXT_OVERLAYS_RUST.md). Native placement remains
-separate work. Standard omitted-AP Text icons now render using original vectors;
+[Reproduce the real PDF exports](TEXT_OVERLAYS_RUST.md). Native placement uses PDF
+coordinate controls and a true canvas outline, with durable history and protected
+drafts. Drag/resize handles and manual native interaction remain separate work.
+Standard omitted-AP Text icons now render using original vectors;
 their tested behavior does not imply popup interaction or artwork parity.
+
+The later combined native-overlay/sticky-note integration at implementation source
+`c881a91` passed **547 workspace tests across 64 suites, with no failures or ignored
+tests**, including all pinned qpdf/Poppler and production native-worker gates.
+Strict workspace/all-target Clippy, fresh native/CLI/helper builds, formatting
+and workflow syntax checks passed. The close-draft regression first failed on a
+clean metadata tab, then passed with shared metadata/form/note/overlay protection.
+[Sticky-note workflow](NOTES_RUST.md). Notes use fixed yellow appearances for
+new annotations; ordinary removal is not secure erasure. Manual native window,
+font-picker and accessibility review remain open.
+
+The preceding public merge/attachment source `ef9a775` passed all five platform
+jobs and the independent quality job in
+[Native Rust CI](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38342154111),
+plus [security scanning](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38342154131).
+Later source changes need their own remote CI result.
 
 The 13 October merge/attachment-rendering integration at reviewed source
 `85f199d` passed **515 workspace tests across 58 suites, with no failed or ignored

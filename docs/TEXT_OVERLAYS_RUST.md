@@ -1,12 +1,31 @@
 # Add new text to a PDF page
 
 Current Rust source supports bounded Unicode text overlays through the core,
-isolated CLI and document worker. This command is not in the published
+native editor, isolated CLI and document worker. This command is not in the published
 `4.0.0-preview.3` CLI. Build current source to try it.
 
 An overlay adds new page content. It does not edit, move, remove or redact the
 existing text beneath it. Original content streams and unrelated resources are
 retained; the output is a verified new file.
+
+## Place text in the native editor
+
+Choose Edit → **Add text overlay…** or use the command palette. Enter text,
+choose a covering font and set the rectangle, size, RGB color and alignment.
+The canvas outlines the proposed rectangle against the actual displayed page,
+including its crop origin and quarter-turn rotation. Placement currently uses
+PDF-space controls; drag and resize handles are a separate milestone.
+
+Apply runs the same isolated document worker as the CLI. The result enters
+durable Undo/Redo history before success; Save As writes a verified new copy.
+Stale drafts, read-only documents and unresolved saves cannot apply changes.
+Errors retain the draft, and Copy overlay text provides a way to keep its value.
+Closing or quitting with an unapplied draft requires an explicit choice; recovery
+records applied document snapshots, not these drafts.
+
+Headless tests exercise the actual text control, paste/Enter, visible footer,
+geometry mapping and guards. Production worker tests verify saved output and
+history. Manual window, native font-picker and accessibility review remain open.
 
 ## Try the public fixture
 
@@ -104,5 +123,5 @@ cargo test -p pdf-core --test text_overlay --locked -- --include-ignored
 cargo test -p pdf-editor-offline-cli -p pdf-worker --test text_overlay --locked
 ```
 
-Arbitrary existing-text editing, interactive page-object selection and native
-overlay placement remain separate implementation and runtime-review gates.
+Arbitrary existing-text editing, interactive page-object selection, drag/resize
+handles and manual native overlay review remain separate gates.
