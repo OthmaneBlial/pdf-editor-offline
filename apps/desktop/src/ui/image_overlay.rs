@@ -17,6 +17,7 @@ pub(super) struct Dialog {
     removal_confirmed: bool,
     expected_copy: Option<u64>,
     removal_report: Option<pdf_core::ImageRedactionReport>,
+    visual_signature: bool,
     instances: Vec<pdf_core::ImageInstance>,
     selected_instance: Option<usize>,
     initial: [f64; 4],
@@ -71,6 +72,15 @@ impl Dialog {
     }
 }
 impl EditorApp {
+    pub(super) fn open_image_signature(&mut self) {
+        if self.image_dialog.is_some() {
+            return;
+        }
+        self.open_image_overlay();
+        if let Some(dialog) = self.image_dialog.as_mut() {
+            dialog.visual_signature = true;
+        }
+    }
     pub(super) fn open_image_overlay(&mut self) {
         if self.busy || !self.pending_saves.is_empty() || self.has_page_content_dialog() {
             return;
@@ -123,6 +133,7 @@ impl EditorApp {
             removal_confirmed: false,
             expected_copy: None,
             removal_report: None,
+            visual_signature: false,
             instances: vec![],
             selected_instance: None,
             initial,
@@ -185,6 +196,8 @@ impl EditorApp {
         };
         let message = if dialog.replacement_mode {
             "Decoding and replacing selected image locally…"
+        } else if dialog.visual_signature {
+            "Decoding and adding visual signature image locally…"
         } else {
             "Decoding and inserting image locally…"
         };
@@ -222,6 +235,8 @@ impl EditorApp {
         let mut discard = false;
         let window = egui::Window::new(if dialog.replacement_mode {
             "Replace existing image instance"
+        } else if dialog.visual_signature {
+            "Add a visual signature image"
         } else {
             "Insert new image content"
         })
@@ -238,10 +253,10 @@ impl EditorApp {
         };
         window.show(context,|ui|{
             egui::ScrollArea::vertical().max_height((ui.available_height()-72.0).max(40.0)).show(ui,|ui|{
-            ui.label(if dialog.replacement_mode {"Changes exactly one selected image draw. Its transform, clipping and opacity are retained; other instances stay unchanged. Old image data remain in the PDF: this is not secure erasure or redaction."}else{"Adds a new image over existing artwork. Existing images remain unchanged; this is not image replacement or redaction."});
+            ui.label(if dialog.replacement_mode {"Changes exactly one selected image draw. Its transform, clipping and opacity are retained; other instances stay unchanged. Old image data remain in the PDF: this is not secure erasure or redaction."}else if dialog.visual_signature {"Visual artwork only: no certificate signing, signature field, identity verification or tamper protection. The selected image is embedded only when you add it; no signature asset library is created."}else{"Adds a new image over existing artwork. Existing images remain unchanged; this is not image replacement or redaction."});
             if dialog.replacement_mode {instances::controls(dialog,ui,enabled);}
             if let Some(path)=&dialog.image_file{ui.label(path.file_name().unwrap_or(path.as_os_str()).to_string_lossy());}else{ui.label("No image selected");}
-            if ui.add_enabled(enabled,egui::Button::new("Choose PNG/JPEG…")).clicked(){pick=true;}
+            if ui.add_enabled(enabled,egui::Button::new(if dialog.visual_signature {"Choose signature PNG/JPEG…"} else {"Choose PNG/JPEG…"})).clicked(){pick=true;}
             ui.small(if dialog.replacement_mode {"The canvas outlines the selected image’s nominal corners. Existing clipping still applies; no synthetic thumbnail is shown."}else{"The frame marks placement. Image pixels appear after insertion; files stay local."});
             if !dialog.replacement_mode {ui.add_enabled_ui(enabled,|ui|{
                 egui::ComboBox::from_label("Counterclockwise rotation").selected_text(format!("{}°",dialog.request.rotation)).show_ui(ui,|ui|{for rotation in [0,90,180,270]{ui.selectable_value(&mut dialog.request.rotation,rotation,format!("{rotation}°"));}});
@@ -254,7 +269,7 @@ impl EditorApp {
             if dialog.replacement_mode {ui.small("PNG/JPEG: 32 MiB, 8192 per side, 8 million pixels; combined PDF/image 128 MiB. The replacement is fitted to the original image transform, so its aspect ratio may stretch. Signed/encrypted/tagged images are read-only; metadata and old objects are not sanitized.");} else {ui.small("Coordinates use unrotated PDF space; the rectangle must fit the crop/media boxes. Its aspect ratio can stretch the image. PNG/JPEG: 32 MiB, 8192 per side, 8 million pixels; combined PDF/image 128 MiB. Unsupported color/orientation metadata and tagged pages are refused. Signed/encrypted PDFs are read only. Image metadata is not sanitized.");}
             });
             ui.separator();ui.horizontal_wrapped(|ui|{
-                if ui.add_enabled(enabled && dialog.validate().is_ok(),egui::Button::new(if dialog.replacement_mode {"Replace selected instance"}else{"Insert image"})).clicked(){apply=true;}
+                if ui.add_enabled(enabled && dialog.validate().is_ok(),egui::Button::new(if dialog.replacement_mode {"Replace selected instance"}else if dialog.visual_signature {"Add visual signature image"}else{"Insert image"})).clicked(){apply=true;}
                 if ui.add_enabled(!dialog.submitting,egui::Button::new("Discard image draft")).clicked(){discard=true;}
             });
         });

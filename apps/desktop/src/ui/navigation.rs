@@ -126,6 +126,9 @@ impl EditorApp {
                 .on_hover_text("Save a new verified PDF · Command/Ctrl+S · originals are never overwritten").clicked() { action = Some(Action::Save); }
             ui.menu_button("Sign", |ui| {
                 if ui.add_enabled(!self.busy && self.pending_saves.is_empty() && self.selected().is_some_and(Tab::editable),egui::Button::new("Draw visual signature…")).on_hover_text("Drawn artwork only; no cryptographic signing or verification.").clicked(){action=Some(Action::VisualSignature);ui.close();}
+                if ui.add_enabled(!self.busy && self.pending_saves.is_empty() && self.selected().is_some_and(Tab::editable),egui::Button::new("Type a visual signature…")).clicked(){action=Some(Action::TypedSignature);ui.close();}
+                if ui.add_enabled(!self.busy && self.pending_saves.is_empty() && self.selected().is_some_and(Tab::editable),egui::Button::new("Add a visual signature image…")).clicked(){action=Some(Action::ImageSignature);ui.close();}
+                ui.separator();ui.small("Visual artwork only. Certificate signing is unavailable.");
             });
             ui.menu_button("Edit", |ui| {
                 if ui.add_enabled(!self.busy && self.pending_saves.is_empty() && self.selected().is_some(),egui::Button::new("Edit existing text…")).clicked(){action=Some(Action::ContentText);ui.close();}

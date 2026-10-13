@@ -11,6 +11,7 @@ pub(super) mod placement;
 pub(super) struct Dialog {
     pub key: FormsReadKey,
     pub request: TextOverlay,
+    visual_signature: bool,
     initial_rectangle: [f64; 4],
     bounds: [f64; 4],
     font_file: Option<PathBuf>,
@@ -27,9 +28,13 @@ impl Dialog {
         !self.request.value.is_empty()
             || self.font_file.is_some()
             || self.request.rectangle != self.initial_rectangle
-            || self.request.size != 12.0
+            || self.request.size != if self.visual_signature { 24.0 } else { 12.0 }
             || self.request.color != [0.0; 3]
-            || !matches!(self.request.alignment, TextAlignment::Left)
+            || if self.visual_signature {
+                !matches!(self.request.alignment, TextAlignment::Center)
+            } else {
+                !matches!(self.request.alignment, TextAlignment::Left)
+            }
     }
     fn validate(&self) -> Result<(), &'static str> {
         if self.request.value.is_empty() {
@@ -72,6 +77,17 @@ impl Dialog {
     }
 }
 impl EditorApp {
+    pub(super) fn open_typed_signature(&mut self) {
+        if self.overlay_dialog.is_some() {
+            return;
+        }
+        self.open_text_overlay();
+        if let Some(dialog) = self.overlay_dialog.as_mut() {
+            dialog.visual_signature = true;
+            dialog.request.size = 24.0;
+            dialog.request.alignment = TextAlignment::Center;
+        }
+    }
     pub(super) fn open_text_overlay(&mut self) {
         if self.busy || !self.pending_saves.is_empty() || self.has_page_content_dialog() {
             return;
@@ -108,6 +124,7 @@ impl EditorApp {
         };
         self.forms_generation = generation;
         self.overlay_dialog = Some(Dialog {
+            visual_signature: false,
             key: FormsReadKey {
                 tab: id,
                 revision,
@@ -167,7 +184,12 @@ impl EditorApp {
                 font_file,
             },
         };
-        if !self.send(command, "Adding text overlay locally…") {
+        let message = if dialog.visual_signature {
+            "Adding typed visual signature locally…"
+        } else {
+            "Adding text overlay locally…"
+        };
+        if !self.send(command, message) {
             return false;
         }
         if let Some(d) = self.overlay_dialog.as_mut() {
@@ -192,12 +214,13 @@ impl EditorApp {
         if dialog.canvas_mode {
             let mut apply = false;
             let mut discard = false;
-            egui::Window::new("Place new text overlay").collapsible(false).resizable(false).anchor(egui::Align2::RIGHT_TOP,egui::vec2(-12.0,88.0)).show(context,|ui|{
+            egui::Window::new(if dialog.visual_signature {"Place typed visual signature"} else {"Place new text overlay"}).collapsible(false).resizable(false).anchor(egui::Align2::RIGHT_TOP,egui::vec2(-12.0,88.0)).show(context,|ui|{
+                if dialog.visual_signature {ui.small("Artwork only · no certificate, signature field or identity verification.");}
                 ui.small("Drag to place · handles resize · inside moves · arrows nudge (Shift 10, Alt 0.1 PDF units)");
                 ui.add_enabled(enabled,egui::Checkbox::new(&mut dialog.snap,"Snap to 1 PDF unit"));
                 ui.horizontal_wrapped(|ui|{
                     if ui.button("Show text controls").clicked(){dialog.canvas_mode=false;dialog.gesture=None;}
-                    apply=ui.add_enabled(enabled && dialog.validate().is_ok(),crate::style::primary("Add overlay",ui.visuals().dark_mode)).clicked();
+                    apply=ui.add_enabled(enabled && dialog.validate().is_ok(),crate::style::primary(if dialog.visual_signature {"Add typed visual signature"} else {"Add overlay"},ui.visuals().dark_mode)).clicked();
                     discard=ui.add_enabled(!dialog.submitting,egui::Button::new("Discard draft")).clicked();
                 });
                 if dialog.stale{ui.colored_label(ui.visuals().error_fg_color,"The document changed. Return to text controls to copy the draft.");}
@@ -212,11 +235,12 @@ impl EditorApp {
         }
         let mut apply = false;
         let mut cancel = false;
-        egui::Window::new("Add text overlay").default_width(380.0).max_width((context.content_rect().width()-32.0).max(220.0)).max_height((context.content_rect().height()-32.0).max(180.0)).collapsible(false).anchor(egui::Align2::RIGHT_CENTER,egui::vec2(-16.0,0.0)).show(context,|ui|{
+        egui::Window::new(if dialog.visual_signature {"Type a visual signature"} else {"Add text overlay"}).default_width(380.0).max_width((context.content_rect().width()-32.0).max(220.0)).max_height((context.content_rect().height()-32.0).max(180.0)).collapsible(false).anchor(egui::Align2::RIGHT_CENTER,egui::vec2(-16.0,0.0)).show(context,|ui|{
             ui.label(format!("Page {} · adds new text over the existing page",dialog.request.page));
+            if dialog.visual_signature {ui.small("Visual artwork only: no certificate signing, signature field, identity verification or tamper protection. Your signature is not saved to an asset library.");}
             if dialog.stale {ui.colored_label(ui.visuals().error_fg_color,"The document or page changed. Copy your text, then close and reopen this dialog.");}
             egui::ScrollArea::vertical().max_height((ui.available_height()-86.0).max(70.0)).show(ui,|ui|{
-                let label=ui.label("Overlay text");let response=ui.add_enabled(enabled,egui::TextEdit::multiline(&mut dialog.request.value).desired_rows(5).desired_width(f32::INFINITY).hint_text("Text to add to this page").id_salt("overlay-value")).labelled_by(label.id);
+                let label=ui.label(if dialog.visual_signature {"Typed signature text"} else {"Overlay text"});let response=ui.add_enabled(enabled,egui::TextEdit::multiline(&mut dialog.request.value).desired_rows(if dialog.visual_signature {2} else {5}).desired_width(f32::INFINITY).hint_text(if dialog.visual_signature {"Text for your visual signature"} else {"Text to add to this page"}).id_salt("overlay-value")).labelled_by(label.id);
                 if std::mem::take(&mut dialog.focus){response.request_focus();}
 
                 if dialog.request.value.chars().any(|c| matches!(u32::from(c),0x590..=0x8ff|0xfb1d..=0xfdff|0xfe70..=0xfeff|0x1ee00..=0x1eeff)) {
@@ -237,7 +261,7 @@ impl EditorApp {
                 if let Err(message)=dialog.validate(){ui.small(message);}
                 if let Some(message)=&dialog.error{ui.colored_label(ui.visuals().error_fg_color,message);}
             });
-            ui.separator();ui.horizontal_wrapped(|ui|{if ui.button("Copy overlay text").clicked(){context.copy_text(dialog.request.value.clone());}apply=ui.add_enabled(enabled && dialog.validate().is_ok(),crate::style::primary("Add overlay",ui.visuals().dark_mode)).clicked();cancel=ui.add_enabled(!dialog.submitting,egui::Button::new(if dialog.has_changes(){"Discard draft"}else{"Cancel"})).clicked();});
+            ui.separator();ui.horizontal_wrapped(|ui|{if ui.button(if dialog.visual_signature {"Copy signature text"} else {"Copy overlay text"}).clicked(){context.copy_text(dialog.request.value.clone());}apply=ui.add_enabled(enabled && dialog.validate().is_ok(),crate::style::primary(if dialog.visual_signature {"Add typed visual signature"} else {"Add overlay"},ui.visuals().dark_mode)).clicked();cancel=ui.add_enabled(!dialog.submitting,egui::Button::new(if dialog.has_changes(){"Discard draft"}else{"Cancel"})).clicked();});
             if dialog.submitting {ui.label("Validating font, fit and PDF output…");}
         });
         if cancel {
@@ -294,6 +318,8 @@ pub(super) mod tests {
         output
     }
     fn click(app: &mut EditorApp, ctx: &egui::Context, label: &str) -> egui::FullOutput {
+        // The first window pass measures its layout before painting controls.
+        draw(app, ctx, vec![]);
         let output = draw(app, ctx, vec![]);
         let pos = output
             .shapes
@@ -333,6 +359,106 @@ pub(super) mod tests {
                 modifiers: egui::Modifiers::NONE,
             }],
         )
+    }
+    #[test]
+    fn typed_signature_controls_apply_real_worker_and_save_with_history() {
+        let temp = tempfile::tempdir().unwrap();
+        let input = temp.path().join("source.pdf");
+        let font = temp.path().join("signature.ttf");
+        let source = include_bytes!("../../../../tests/fixtures/pdfs/forms.pdf");
+        std::fs::write(&input, source).unwrap();
+        std::fs::write(
+            &font,
+            include_bytes!("../../assets/fonts/ibm-plex/IBMPlexSans-Regular.ttf"),
+        )
+        .unwrap();
+        let ctx = egui::Context::default();
+        let mut app = EditorApp::new(&eframe::CreationContext::_new_kittest(ctx.clone()));
+        let wait = |app: &mut EditorApp| {
+            let start = std::time::Instant::now();
+            while app.busy
+                && start.elapsed() < std::time::Duration::from_secs(pdf_worker::CPU_SECONDS + 5)
+            {
+                app.poll(&ctx);
+                std::thread::sleep(std::time::Duration::from_millis(5));
+            }
+            assert!(!app.busy, "{}", app.message);
+        };
+        assert!(app.send(
+            Command::Load {
+                id: 1,
+                path: input.clone()
+            },
+            "Loading signature fixture"
+        ));
+        wait(&mut app);
+        app.open_typed_signature();
+        let dialog = app.overlay_dialog.as_mut().unwrap();
+        dialog.request.value = "Élodie ΩЖ".into();
+        dialog.request.rectangle = [350.0, 400.0, 550.0, 500.0];
+        dialog.font_file = Some(font.clone());
+        click(&mut app, &ctx, "Add typed visual signature");
+        wait(&mut app);
+        assert!(app.overlay_dialog.is_none(), "{}", app.message);
+        assert!(app.tabs[0].status.dirty && app.tabs[0].status.can_undo);
+        for edit in [Edit::Undo, Edit::Redo] {
+            assert!(app.send(Command::Edit { id: 1, edit }, "Checking signature history"));
+            wait(&mut app);
+        }
+        let output = temp.path().join("new.pdf");
+        assert!(app.send(
+            Command::Save {
+                id: 1,
+                path: output.clone()
+            },
+            "Saving visual artwork"
+        ));
+        wait(&mut app);
+        assert!(!app.tabs[0].status.dirty);
+        let pdf = pdf_core::PdfDocument::open(&output, None).unwrap();
+        assert!(pdf.extract_text(&[1]).unwrap().contains("Élodie ΩЖ"));
+        assert_eq!(pdf.info().unwrap().signature_fields, 0);
+        assert_eq!(std::fs::read(&input).unwrap(), source);
+        assert_eq!(
+            std::fs::read(&font).unwrap(),
+            include_bytes!("../../assets/fonts/ibm-plex/IBMPlexSans-Regular.ttf")
+        );
+    }
+    #[test]
+    fn typed_signature_controls_preserve_drafts_and_shared_guards() {
+        let ctx = egui::Context::default();
+        let mut app = app(&ctx);
+        app.overlay_dialog = None;
+        app.open_typed_signature();
+        assert!(!app.overlay_dialog.as_ref().unwrap().has_changes());
+        draw(&mut app, &ctx, vec![]);
+        draw(&mut app, &ctx, vec![egui::Event::Paste("Élodie ΩЖ".into())]);
+        assert!(app.overlay_dialog.as_ref().unwrap().visual_signature);
+        assert_eq!(
+            app.overlay_dialog.as_ref().unwrap().request.value,
+            "Élodie ΩЖ"
+        );
+        assert!(app.needs_exit_guard());
+        let key = app.overlay_dialog.as_ref().unwrap().key;
+        app.open_typed_signature();
+        app.open_image_signature();
+        app.open_text_overlay();
+        assert_eq!(app.overlay_dialog.as_ref().unwrap().key, key);
+        assert!(app.image_dialog.is_none());
+        assert!(!app.apply_text_overlay(), "a covering font is required");
+        let copied = click(&mut app, &ctx, "Copy signature text");
+        assert!(copied.platform_output.commands.iter().any(
+            |command| matches!(command,egui::OutputCommand::CopyText(value) if value=="Élodie ΩЖ")
+        ));
+        app.tabs[0].status.revision = 1;
+        draw(&mut app, &ctx, vec![]);
+        assert!(app.overlay_dialog.as_ref().unwrap().stale);
+        assert!(!app.apply_text_overlay());
+        click(&mut app, &ctx, "Discard draft");
+        assert!(app.overlay_dialog.is_none());
+        app.tabs[0].status.info.encrypted = true;
+        app.open_typed_signature();
+        assert!(app.overlay_dialog.is_none());
     }
     #[test]
     fn actual_text_input_focus_linebreak_stale_copy_footer_and_exit_guard() {

@@ -25,6 +25,70 @@ pub(super) fn editor(context: &egui::Context) -> EditorApp {
     app
 }
 #[test]
+fn signature_actions_retain_image_redaction_and_chosen_font_dialogs() {
+    let context = egui::Context::default();
+    let mut app = editor(&context);
+    let key = app.image_dialog.as_ref().unwrap().key;
+    {
+        let dialog = app.image_dialog.as_mut().unwrap();
+        dialog.redaction_mode = true;
+        dialog.removal_confirmed = true;
+        dialog.expected_copy = Some(9);
+    }
+    app.open_image_signature();
+    app.open_typed_signature();
+    let dialog = app.image_dialog.as_ref().unwrap();
+    assert!(dialog.redaction_mode && dialog.removal_confirmed);
+    assert!(!dialog.visual_signature);
+    assert_eq!(dialog.expected_copy, Some(9));
+    assert_eq!(dialog.key, key);
+    assert!(app.overlay_dialog.is_none());
+
+    app.image_dialog = None;
+    app.open_content_text();
+    assert!(app.content_dialog.is_some());
+    // The shared exclusive dialog guard must hold even after the asynchronous
+    // inventory finishes and the actor's busy flag clears.
+    app.busy = false;
+    app.open_image_signature();
+    app.open_typed_signature();
+    assert!(app.content_dialog.is_some());
+    assert!(app.image_dialog.is_none() && app.overlay_dialog.is_none());
+}
+#[test]
+fn signature_modes_do_not_repurpose_open_image_or_bypass_readonly_guards() {
+    let ctx = egui::Context::default();
+    let mut app = editor(&ctx);
+    let key = app.image_dialog.as_ref().unwrap().key;
+    app.image_dialog.as_mut().unwrap().image_file = Some("retained.png".into());
+    app.open_image_signature();
+    app.open_typed_signature();
+    assert!(!app.image_dialog.as_ref().unwrap().visual_signature);
+    assert_eq!(app.image_dialog.as_ref().unwrap().key, key);
+    assert!(app.overlay_dialog.is_none());
+    app.image_dialog = None;
+    app.tabs[0].status.info.signature_fields = 1;
+    app.open_image_signature();
+    app.open_typed_signature();
+    assert!(app.image_dialog.is_none() && app.overlay_dialog.is_none());
+    app.tabs[0].status.info.signature_fields = 0;
+    app.busy = true;
+    app.open_image_signature();
+    app.open_typed_signature();
+    assert!(app.image_dialog.is_none() && app.overlay_dialog.is_none());
+    app.busy = false;
+    app.open_image_signature();
+    assert!(app.image_dialog.as_ref().unwrap().visual_signature);
+    assert!(!app.image_dialog.as_ref().unwrap().has_changes());
+    app.image_dialog.as_mut().unwrap().image_file = Some("signature.png".into());
+    app.tabs[0].status.revision = 1;
+    assert!(!app.apply_image_overlay());
+    assert!(app.image_dialog.as_ref().unwrap().has_changes());
+    app.request_close(1);
+    assert!(app.close_target.is_some());
+    assert!(app.image_dialog.is_some());
+}
+#[test]
 fn competing_overlay_actions_preserve_the_first_open_dialog() {
     for first in 0..3 {
         let context = egui::Context::default();
@@ -166,6 +230,13 @@ fn stale_readonly_busy_and_missing_file_cannot_dispatch() {
 }
 #[test]
 fn actual_controls_apply_through_worker_then_save_new_copy_and_keep_original_files() {
+    exercise_image_controls(false);
+}
+#[test]
+fn visual_signature_image_controls_history_and_new_copy_keep_assets_unchanged() {
+    exercise_image_controls(true);
+}
+fn exercise_image_controls(signature: bool) {
     let temp = tempfile::tempdir().unwrap();
     let input = temp.path().join("source.pdf");
     let image = temp.path().join("image.png");
@@ -191,16 +262,45 @@ fn actual_controls_apply_through_worker_then_save_new_copy_and_keep_original_fil
     };
     wait(&mut app);
     assert_eq!(app.tabs.len(), 1);
-    app.open_image_overlay();
+    if signature {
+        app.open_image_signature();
+    } else {
+        app.open_image_overlay();
+    }
+    assert_eq!(
+        app.image_dialog.as_ref().unwrap().visual_signature,
+        signature
+    );
     app.image_dialog.as_mut().unwrap().image_file = Some(image.clone());
     app.image_dialog.as_mut().unwrap().request.rectangle = [60.0, 30.0, 100.0, 70.0];
     click(&mut app, &context, "0°");
     click(&mut app, &context, "270°");
-    click(&mut app, &context, "Insert image");
+    if signature {
+        let key = app.image_dialog.as_ref().unwrap().key;
+        app.open_typed_signature();
+        app.open_image_signature();
+        assert_eq!(app.image_dialog.as_ref().unwrap().key, key);
+        assert!(app.overlay_dialog.is_none());
+        assert!(app.needs_exit_guard());
+    }
+    click(
+        &mut app,
+        &context,
+        if signature {
+            "Add visual signature image"
+        } else {
+            "Insert image"
+        },
+    );
     wait(&mut app);
     assert!(app.image_dialog.is_none());
     assert!(app.tabs[0].status.dirty && app.tabs[0].status.can_undo);
     assert_eq!(app.tabs[0].status.revision, 1);
+    for edit in [crate::worker::Edit::Undo, crate::worker::Edit::Redo] {
+        assert!(app.send(Command::Edit { id: 1, edit }, "Checking signature history"));
+        wait(&mut app);
+    }
+    assert!(app.tabs[0].status.dirty && app.tabs[0].status.can_undo);
     let output = temp.path().join("new.pdf");
     assert!(app.send(
         Command::Save {

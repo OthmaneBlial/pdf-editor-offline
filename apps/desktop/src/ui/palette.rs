@@ -61,6 +61,16 @@ impl EditorApp {
                         editable && self.pending_saves.is_empty(),
                     ),
                     (
+                        "Type a visual signature (visual only)",
+                        Action::TypedSignature,
+                        editable && self.pending_saves.is_empty(),
+                    ),
+                    (
+                        "Add a visual signature image (visual only)",
+                        Action::ImageSignature,
+                        editable && self.pending_saves.is_empty(),
+                    ),
+                    (
                         "Replace existing image instance",
                         Action::ReplaceImage,
                         editable && self.pending_saves.is_empty(),

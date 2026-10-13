@@ -52,6 +52,8 @@ enum Action {
     ImageOverlay,
     ContentText,
     VisualSignature,
+    TypedSignature,
+    ImageSignature,
     ReplaceImage,
     Undo,
     Redo,
@@ -1180,6 +1182,8 @@ impl EditorApp {
             Action::ImageOverlay => self.open_image_overlay(),
             Action::ContentText => self.open_content_text(),
             Action::VisualSignature => self.open_visual_signature(),
+            Action::TypedSignature => self.open_typed_signature(),
+            Action::ImageSignature => self.open_image_signature(),
             Action::ReplaceImage => self.open_image_replacement(),
             Action::Undo => {
                 if let Some(tab) = self.selected().filter(|tab| tab.status.can_undo) {

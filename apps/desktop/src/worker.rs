@@ -2438,3 +2438,5 @@ mod tests {
 mod image_instance_tests;
 #[cfg(test)]
 mod signature_tests;
+#[cfg(test)]
+mod signature_mode_tests;

@@ -25,6 +25,27 @@ remain. This is not partial-pixel redaction or a general privacy certificate.
 Controls and production child/save behavior are tested; manual window interaction
 is not established by the headless tests.
 
+Sign → **Type a visual signature…** and **Add visual signature image…** reuse
+the text and image overlay dialogs, with a chosen covering font or PNG/JPEG asset,
+real placement controls, durable Undo/Redo and verified Save As. These are visual
+artwork, with no certificate signing, signature field, identity verification or
+tamper protection. Asset files remain unchanged; no signature library is created.
+Applied artwork is part of the PDF and its normal history/recovery copies.
+Unapplied drafts are protected by close/quit guards and are not restored by recovery.
+Automated controls and actual child/save tests do not establish a new manual native
+window review. The published preview remains separate from these source changes.
+
+The explicit signature output gate exercises the normal executable's
+`--pdf-worker` entry, typed Unicode extraction, image placement, source/form
+preservation, durable history, no-clobber saving and pinned independent raster checks:
+
+```sh
+cargo build --locked -p pdf-worker --features test-helper -p pdf-editor-offline-native
+PDF_QPDF_BIN=/path/to/qpdf-12.4.2 \
+PDF_REFERENCE_BIN_DIR=/path/to/poppler-26.10/bin \
+cargo test --locked -p pdf-editor-offline-native production_typed_and_image_visual_signatures_preserve_saved_artwork -- --ignored
+```
+
 Current source includes **Edit → Number pages…** and a working command-palette action.
 An explicit page range, starting integer, header/footer band, margin, font size,
 RGB color, alignment and covering font create one atomic batch and one durable
