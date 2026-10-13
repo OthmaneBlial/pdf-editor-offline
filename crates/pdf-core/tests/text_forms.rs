@@ -27,6 +27,64 @@ fn bytes(doc: &mut Document) -> Vec<u8> {
     doc.save_to(&mut out).unwrap();
     out
 }
+
+#[test]
+fn generated_text_raises_legacy_version_preserves_newer_versions_and_failed_sources() {
+    for (version, expected) in [
+        ("1.2", "1.4"),
+        ("1.3", "1.4"),
+        ("1.4", "1.4"),
+        ("1.7", "1.7"),
+        ("2.0", "2.0"),
+    ] {
+        let mut document = Document::load_mem(SOURCE).unwrap();
+        document.version = version.into();
+        let root = document
+            .trailer
+            .get(b"Root")
+            .unwrap()
+            .as_reference()
+            .unwrap();
+        let catalog_version = (version == "1.7").then(|| Object::Name(b"1.7".to_vec()));
+        document
+            .get_dictionary_mut(root)
+            .unwrap()
+            .remove(b"Version");
+        if let Some(value) = &catalog_version {
+            document
+                .get_dictionary_mut(root)
+                .unwrap()
+                .set("Version", value.clone());
+        }
+        let original = bytes(&mut document);
+        let mut failed = PdfDocument::from_bytes(&original, None).unwrap();
+        let before = failed.to_bytes().unwrap();
+        assert!(
+            failed
+                .fill_text(
+                    &[TextChange {
+                        name: "full_name".into(),
+                        value: "\0".into()
+                    }],
+                    PLEX
+                )
+                .is_err()
+        );
+        assert_eq!(failed.to_bytes().unwrap(), before);
+        assert_eq!(Document::load_mem(&before).unwrap().version, version);
+        let mut pdf = PdfDocument::from_bytes(&original, None).unwrap();
+        fill(&mut pdf, "Ada é", PLEX);
+        let saved = pdf.to_bytes().unwrap();
+        let reopened = Document::load_mem(&saved).unwrap();
+        assert_eq!(reopened.version, expected);
+        assert_eq!(
+            reopened.get_dictionary(root).unwrap().get(b"Version").ok(),
+            catalog_version.as_ref()
+        );
+        assert_value(&PdfDocument::from_bytes(&saved, None).unwrap(), "Ada é");
+        assert_eq!(Document::load_mem(&original).unwrap().version, version);
+    }
+}
 fn appearance(doc: &Document) -> &Stream {
     let widget = doc.get_dictionary((8, 0)).unwrap();
     let ap = widget.get_deref(b"AP", doc).unwrap().as_dict().unwrap();

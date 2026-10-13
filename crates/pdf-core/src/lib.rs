@@ -34,6 +34,13 @@ pub const MAX_STREAM_BYTES: usize = 32 * 1024 * 1024;
 pub const MAX_PAGES: usize = 20_000;
 pub const MAX_OBJECTS: usize = 1_000_000;
 
+// ActualText replacement requires PDF 1.4; retain newer headers and catalog versions.
+pub(crate) fn require_pdf_1_4(document: &mut Document) {
+    if matches!(document.version.as_str(), "1.0" | "1.1" | "1.2" | "1.3") {
+        document.version = "1.4".into();
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct PageInfo {
     pub number: u32,

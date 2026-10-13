@@ -1137,6 +1137,7 @@ pub(super) fn publish_plans(
         .collect::<Result<Vec<_>>>()?;
     let existing_font = font.existing_program(&pdf.document)?;
     let mut candidate = pdf.clone();
+    crate::require_pdf_1_4(&mut candidate.document);
     let font_id = font.embed(&mut candidate.document, existing_font)?;
     let mut resources = dr.cloned().unwrap_or_default();
     let mut fonts = dr_fonts.cloned().unwrap_or_default();
