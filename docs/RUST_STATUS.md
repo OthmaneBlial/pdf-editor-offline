@@ -19,7 +19,10 @@ An initial full run failed the existing large encrypted CLI isolation check
 with no stderr. Its scoped retry and the complete fresh run both passed;
 the cause was not reproduced. Assertions and limits were retained, and bounded
 exit/stdout/stderr diagnostics were added. These are local macOS checks;
-remote CI and actual existing-text dialog review remain pending.
+the source at `667fa3a` also passed all five actual platform jobs plus quality in
+[native CI](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38358673702)
+and [security scanning](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38358673357).
+Actual existing-text dialog review remains pending.
 
 
 Current source adds [image insertion](IMAGE_OVERLAYS_RUST.md) through core,

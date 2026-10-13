@@ -1,5 +1,36 @@
 # Native desktop smoke evidence — 2026-10-12
 
+## Actual image insertion and Save As — 2026-10-13
+
+The checked image/drawing source corresponding to `d1eea25` was reviewed in an
+owned temporary macOS app bundle. Its native executable SHA-256 was
+`1e75b644a9d5272e3ab370a11c9e240e9415f00004a581ae243d77482942be58`.
+The public synthetic `tests/fixtures/pdfs/forms.pdf` source remained unchanged
+at SHA-256 `f937f8d02adf1341885163524107e33e365aefc07bf434f68dd64995f0c645dc`.
+
+The real PNG picker, placement dialog, one-point arrow nudge, typed X coordinate,
+90-degree rotation selection, Insert, Undo, Redo and Save As were exercised.
+Competing menus/tab controls were disabled while the draft was open. The saved
+copy reopened without unsaved changes; this is an actual app capture:
+
+![Native editor after saving a public synthetic PDF with an inserted red image](assets/screenshots/image-saved-2026-10-13.png)
+
+[The actual saved PDF](assets/image-overlay-native-saved-2026-10-13.pdf) has
+SHA-256 `a77cd1ef650f2fb578995ca63e54a7aa538e8ee1e8e26dc04e7159b35dc896f9`.
+Pinned qpdf 12.4.2 accepted it. Poppler 26.10 retained exact text and geometry;
+18 original semantic objects were unchanged except the selected page and xref
+transport. All 30,107 changed pixels were inside the entered image rectangle
+`[120,84.2,238,336.8]`. The saved matrix `0 252.6 -118 0 238 84.2` verifies the
+chosen quarter-turn; the uniform red fixture does not prove asymmetric visual
+rotation.
+
+Canvas drag/resize attempts did not change the rectangle, so those manual
+interactions remain unverified. Drawing tool/fill/opacity controls worked, but
+manual vector creation/Apply and close-draft guards were not completed.
+Supported automation later lost app access (`AXError.cannotComplete`). No system
+accessibility or security settings were changed. This review does not establish
+all-platform runtime behavior, signing, accessibility or complete PDF fidelity.
+
 ## Production subprocess checkpoint — 2026-10-13
 
 The Rust `4.0.0-preview.1` desktop was rebuilt with
