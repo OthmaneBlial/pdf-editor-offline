@@ -22,3 +22,27 @@ Native **Edit → Number pages…** and the command palette provide range, place
 Tests cover all four rotations/nonzero crop origins, exact numbers/document order, shared font, atomic refusal, 1,000 pages, source-object/form/geometry preservation, actual CLI dry-run/no-clobber and native child/history/save. The independent gate pins qpdf 12.4.2 and Poppler 26.10.0 and checks exact extracted numbers and unchanged pixels outside the header band.
 
 On 2026-10-13 a real single production CLI request numbered a synthetic 1,000-page PDF containing all quarter-turns and nonzero crop origins under the unchanged 30-second child CPU/wall deadline. The final guarded build took 3.611 seconds locally for parent invocation plus verified new-copy save, from 207,360 input bytes to 1,071,608 output bytes; qpdf found one shared Type0 font and 1,000 pages. An earlier run took 6.134 seconds and produced identical PDF bytes. These are local operation records, not a cross-platform speedup or universal batch guarantee. The subprocess deadlines and actual resource limits still apply.
+
+A later smoke on the combined editing binary at source `3bc2760` did **not**
+complete this 1,000-page fixture: the unchanged 30-second worker deadline
+returned a structured resource-limit error, with no output file. `/usr/bin/time`
+recorded 33.24 seconds elapsed, 2.99 user and 0.24 system seconds. The input
+SHA-256 remained `d493fb4147e231431e476d6e9274de5a8865184885cf61d3bfa94473581e75e8`.
+The binary SHA-256 was
+`747fdc72fb914f68d23899dd79c71069f0e1799b04ab9490b5504651ce2b34ac`.
+Host load was observed, but the cause of the timeout is not established; the
+earlier measurements do not prove this integration's production batch timing.
+The recorded command used `--pages 1-1000` and the bundled
+`apps/desktop/assets/fonts/ibm-plex/IBMPlexSans-Regular.ttf`; diagnostics are in
+`/tmp/pdf-native-numbering-1000-proof-20261013/stage18-timing.log` and
+`stage18-reply.json`. This performance gap is under investigation without
+relaxing deadlines or calling a refused job successful.
+
+One coordinated diagnostic retry of that same binary and one run of the earlier
+checked binary both timed out with the same arguments and no output, at 30.349
+and 30.591 seconds respectively. The earlier binary SHA-256 is
+`026da1165f80c2a90cee10075fe7cafee90f9b9239c83d0eeac974313d059323`.
+Owned-child sampling timed out without producing a stack report. This rules out
+neither a shared runtime issue nor environmental effects; no cause is claimed.
+The comparison records are `forensic-stage18-observation.json` and
+`forensic-checked-observation.json` in the same local proof directory.
