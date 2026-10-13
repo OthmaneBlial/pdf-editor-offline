@@ -65,6 +65,16 @@ fn delete(revision: u64, pages: Vec<u32>, page: u32) -> Command {
         },
     }
 }
+fn duplicate(revision: u64, pages: Vec<u32>, page: u32) -> Command {
+    Command::Edit {
+        id: 1,
+        edit: Edit::DuplicatePages {
+            revision,
+            pages,
+            page,
+        },
+    }
+}
 fn text(document: &WorkingDocument) -> String {
     PdfDocument::from_bytes(&document.current.bytes, None)
         .unwrap()
@@ -180,6 +190,76 @@ fn deletion_preserves_focus_and_durable_undo_redo_without_overwriting_source() {
 }
 
 #[test]
+fn duplication_preserves_original_order_focus_source_and_durable_undo_redo() {
+    let dir = tempfile::tempdir().unwrap();
+    let source = fixture(dir.path(), false);
+    let original = std::fs::read(&source).unwrap();
+    let journal_path = dir.path().join("journal");
+    let mut journal = Journal::open(&journal_path).unwrap();
+    let mut documents = HashMap::new();
+    load(&mut documents, &mut journal, &source);
+    let event = process_with_journal(
+        &mut documents,
+        duplicate(0, vec![3, 1], 3),
+        Some(&mut journal),
+    )
+    .unwrap();
+    let Event::Updated {
+        status,
+        selected_page,
+        ..
+    } = event
+    else {
+        panic!("expected duplicate edit");
+    };
+    assert_eq!(selected_page, Some(3)); // Focus original page3, after page1 and its copy, then page2.
+    assert_eq!(status.info.page_count, 6);
+    assert!(status.dirty && status.can_undo);
+    let pdf = PdfDocument::from_bytes(&documents[&1].current.bytes, None).unwrap();
+    for (page, expected) in ["Page1", "Page1", "Page2", "Page3", "Page3", "Page4"]
+        .into_iter()
+        .enumerate()
+    {
+        assert!(
+            pdf.extract_text(&[page as u32 + 1])
+                .unwrap()
+                .contains(expected)
+        );
+        assert_eq!(status.info.pages[page].crop_box, [10.0, 20.0, 180.0, 280.0]);
+        assert_eq!(status.info.pages[page].rotation, 90);
+    }
+    let edited = documents[&1].current.bytes.clone();
+    let durable = journal.recover().unwrap();
+    assert_eq!(durable[0].current.bytes, edited);
+    assert_eq!(durable[0].undo[0].bytes, original);
+    assert!(
+        process_with_journal(&mut documents, duplicate(0, vec![2], 2), Some(&mut journal))
+            .err()
+            .unwrap()
+            .contains("stale")
+    );
+    assert_eq!(documents[&1].current.bytes, edited);
+    for (edit, expected) in [(Edit::Undo, &original), (Edit::Redo, &edited)] {
+        process_with_journal(
+            &mut documents,
+            Command::Edit { id: 1, edit },
+            Some(&mut journal),
+        )
+        .unwrap();
+        assert_eq!(&documents[&1].current.bytes, expected);
+        assert_eq!(&journal.recover().unwrap()[0].current.bytes, expected);
+    }
+    drop(journal);
+    assert_eq!(
+        Journal::open(journal_path).unwrap().recover().unwrap()[0]
+            .current
+            .bytes,
+        edited
+    );
+    assert_eq!(std::fs::read(source).unwrap(), original);
+}
+
+#[test]
 fn invalid_or_stale_selections_and_advanced_catalogs_leave_all_state_unchanged() {
     for advanced in [false, true] {
         let dir = tempfile::tempdir().unwrap();
@@ -197,9 +277,19 @@ fn invalid_or_stale_selections_and_advanced_catalogs_leave_all_state_unchanged()
             delete(1, vec![1], 1),
             delete(0, vec![1, 2, 3, 4], 1),
             delete(0, vec![1], 0),
+            duplicate(1, vec![1], 1),
+            duplicate(0, vec![], 1),
+            duplicate(0, vec![0], 1),
+            duplicate(0, vec![5], 1),
+            duplicate(0, vec![1, 1], 1),
+            duplicate(0, vec![1], 0),
         ];
         if advanced {
-            commands.extend([extract(0, vec![1]), delete(0, vec![1], 1)]);
+            commands.extend([
+                extract(0, vec![1]),
+                delete(0, vec![1], 1),
+                duplicate(0, vec![1], 1),
+            ]);
         }
         for command in commands {
             assert!(process_with_journal(&mut documents, command, Some(&mut journal)).is_err());
@@ -224,7 +314,11 @@ fn journal_publication_failure_never_inserts_copy_or_commits_deletion() {
     let original = documents[&1].current.bytes.clone();
     let blocker = journal.directory().join("manifest.json.tmp");
     std::fs::write(&blocker, b"publication blocker").unwrap();
-    for command in [extract(0, vec![2]), delete(0, vec![2], 2)] {
+    for command in [
+        extract(0, vec![2]),
+        delete(0, vec![2], 2),
+        duplicate(0, vec![2], 2),
+    ] {
         assert!(process_with_journal(&mut documents, command, Some(&mut journal)).is_err());
         assert_eq!(documents.len(), 1);
         assert_eq!(documents[&1].current.bytes, original);
@@ -257,7 +351,11 @@ fn child_failure_and_new_id_collision_do_not_change_source_or_history() {
     };
     assert!(process_with_journal(&mut documents, collided, Some(&mut journal)).is_err());
     document::with_test_executable(dir.path().join("missing-worker"), || {
-        for command in [extract(0, vec![2]), delete(0, vec![2], 2)] {
+        for command in [
+            extract(0, vec![2]),
+            delete(0, vec![2], 2),
+            duplicate(0, vec![2], 2),
+        ] {
             assert!(process_with_journal(&mut documents, command, Some(&mut journal)).is_err());
         }
     });
@@ -280,6 +378,9 @@ fn extraction_respects_tab_capacity_and_pending_save_remains_bound_to_source() {
         .unwrap();
     assert!(
         process_with_journal(&mut documents, delete(0, vec![1], 1), Some(&mut journal)).is_err()
+    );
+    assert!(
+        process_with_journal(&mut documents, duplicate(0, vec![1], 1), Some(&mut journal)).is_err()
     );
     process_with_journal(&mut documents, extract(0, vec![2]), Some(&mut journal)).unwrap();
     assert_eq!(journal.save_intents(), &[intent]);

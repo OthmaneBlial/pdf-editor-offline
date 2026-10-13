@@ -1,6 +1,6 @@
-# Extract and delete page ranges
+# Extract, duplicate and delete page ranges
 
-The current native desktop source exposes both operations in Organize and the
+The current native desktop source exposes these operations in Organize and the
 command palette. Enter one-based page numbers or ascending ranges separated by
 commas, such as `1-3, 5`. Empty selections, overlapping ranges, duplicates,
 reversed ranges and out-of-document numbers are refused.
@@ -13,6 +13,21 @@ unchanged. Save As writes the new document to a fresh path. Nothing is exported
 until you choose a destination. Sixteen tabs and the existing 512 MiB combined
 snapshot budget apply; failure leaves the source open and unchanged.
 
+## Duplicate
+
+Duplicate inserts one copy immediately after each selected original, in original
+document order. Selecting `3, 1` in a three-page document produces
+`1, copy of 1, 2, 3, copy of 3`. The selected original stays selected as its index
+changes. Unlike deletion, this operation does not need a deletion confirmation.
+The copied page dictionaries have distinct identities; content and resource
+objects remain shared. Current page-dictionary edits such as rotation and crop
+can change a copy independently. Future content-stream editing must account for
+shared objects before modifying them.
+
+Duplication uses the existing durable, bounded undo/redo history. It refuses
+advanced catalog/page structures, unknown page fields and custom page references.
+Page counts, identifiers and inline-copy size/work are checked before publication.
+
 ## Delete
 
 The dialog shows how many pages will remain. Review page deletion, then confirm
@@ -22,7 +37,7 @@ survivor and then the last page when necessary. Undo/redo restores document byte
 through the existing bounded history; it does not preserve exact page-position
 history. Every successful change is journaled before acknowledgement.
 
-Both dialogs capture the source revision. A subsequent edit makes the selection
+All three dialogs capture the source revision. A subsequent edit makes the selection
 stale rather than silently interpreting its numbers against a different PDF.
 Rejected operations retain the dialog input and current document/history.
 

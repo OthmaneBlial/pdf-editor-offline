@@ -110,7 +110,7 @@ app with the instructions below.
 | Task | Native desktop | Rust CLI |
 | --- | --- | --- |
 | Read and find | Tabs, zoom, visible-page thumbnails, text sidebar, literal search, light/dark themes | Document info, text extraction, literal search, limited text/geometry comparison |
-| Organize pages | Move/reverse pages, rotate, insert blank pages, crop, guarded range extraction/deletion, undo/redo | Reorder/reverse/rotate/crop, insert blank pages, guarded extract/delete, simple-catalog merge |
+| Organize pages | Move/reverse pages, rotate, insert blank pages, crop, guarded range extraction/deletion/duplication, undo/redo | Reorder/reverse/rotate/crop, insert blank pages, guarded extract/delete, simple-catalog merge; guarded duplication in current source |
 | Document properties | Read/edit six standard fields, including Unicode | Read/set/remove Title, Author, Subject, Keywords, Creator and Producer |
 | Images | Create PDF pages from supported PNG/JPEG files | Restricted images-to-PDF conversion; export one PDF page as PNG |
 | Comments | Existing supported appearances can be displayed | Add/list sticky Text notes; guarded editing/removal of basic notes |
@@ -121,6 +121,9 @@ Supported edits preserve unrelated PDF objects and refuse structures they cannot
 safely handle. Merge, page subsets, note editing and image conversion have explicit
 scope restrictions; see the [CLI guide](apps/cli/README.md). A smaller compressed
 file is not guaranteed.
+
+[Page duplication](docs/DESKTOP_PAGE_RANGES.md#duplicate) is a current-source
+milestone; it is not included in the published `4.0.0-preview.1` CLI.
 
 Cropping hides content. Removing metadata or notes can leave old values in the
 file. None of these operations is secure redaction or private-data erasure.

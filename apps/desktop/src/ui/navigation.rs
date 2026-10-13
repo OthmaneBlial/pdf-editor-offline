@@ -108,6 +108,7 @@ impl EditorApp {
                 let editable = !self.busy && self.selected().is_some_and(Tab::editable);
                 if ui.add_enabled(editable && self.tabs.len()<crate::worker::MAX_TABS, egui::Button::new("Extract page range…")).clicked() { action=Some(Action::ExtractPages); ui.close(); }
                 if ui.add_enabled(editable && self.selected().is_some_and(|tab| tab.status.info.page_count>1), egui::Button::new("Delete page range…")).clicked() { action=Some(Action::DeletePages); ui.close(); }
+                if ui.add_enabled(editable && self.pending_saves.is_empty() && self.selected().is_some_and(|tab| tab.status.info.page_count<pdf_core::MAX_PAGES), egui::Button::new("Duplicate page range…")).clicked() { action=Some(Action::DuplicatePages); ui.close(); }
                 ui.separator();
                 if ui.add_enabled(editable, egui::Button::new("Rotate current page left")).clicked() { action = Some(Action::Rotate(-90)); ui.close(); }
                 if ui.add_enabled(editable, egui::Button::new("Rotate current page right")).clicked() { action = Some(Action::Rotate(90)); ui.close(); }

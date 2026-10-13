@@ -397,7 +397,33 @@ impl WorkingDocument {
             }
             return Ok(None);
         }
+        let mut expected_duplicate = None;
         let mutation = match edit {
+            Edit::DuplicatePages {
+                revision,
+                pages,
+                page,
+            } => {
+                if revision != self.current.revision {
+                    return Err("Page selection is stale. Select pages again.".into());
+                }
+                validate_selection(&pages, self.current.info.page_count)?;
+                if page == 0 || page as usize > self.current.info.page_count {
+                    return Err("Current page is outside the document".into());
+                }
+                let count = self
+                    .current
+                    .info
+                    .page_count
+                    .checked_add(pages.len())
+                    .filter(|count| *count <= pdf_core::MAX_PAGES)
+                    .ok_or("Duplicated pages exceed the page limit")?;
+                expected_duplicate = Some((
+                    count,
+                    page as usize - 1 + pages.iter().filter(|number| **number < page).count(),
+                ));
+                Mutation::DuplicatePages { pages, page }
+            }
             Edit::DeletePages {
                 revision,
                 pages,
@@ -449,6 +475,11 @@ impl WorkingDocument {
             return Err("Unexpected edit response".into());
         };
         validate_info(&info)?;
+        if expected_duplicate
+            .is_some_and(|(count, page)| info.page_count != count || selected_page != Some(page))
+        {
+            return Err("Invalid duplicated document page count or selection".into());
+        }
         if reply.kind != PayloadKind::Pdf
             || reply.payload.is_empty()
             || selected_page.is_some_and(|page| page >= info.page_count)

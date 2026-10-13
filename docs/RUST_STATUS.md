@@ -18,6 +18,17 @@ transport. [CLI isolation](CLI_ISOLATION.md) records output budgets, native path
 abrupt supervisor termination and remaining target-platform proof. The released
 CLI `4.0.0-preview.1` predates this source milestone.
 
+The guarded duplication milestone adds fresh page dictionaries after selected
+originals to the Rust API, isolated CLI, organizer and command palette. Local
+validation passed **326 workspace tests** (14 explicit gates ignored in that
+ordinary command), **87 desktop tests** with artifact gates enabled, and
+**49 worker feature tests**. Strict workspace and worker-fixture Clippy passed.
+Pinned qpdf/Poppler checks confirm original/copy text, geometry and rendered
+pixels on synthetic fixtures. [Page-range controls](DESKTOP_PAGE_RANGES.md)
+describe the unsupported structures, shared content/resources and durable
+history. Real interaction with the new duplication dialog and five-platform
+publication remain separate open gates.
+
 The table retains the narrower evidence scopes recorded at earlier milestones;
 the earlier in-process CLI description below is historical.
 

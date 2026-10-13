@@ -34,6 +34,11 @@ const TEST_BLUE_PNG: &[u8] = &[
 ];
 
 pub enum Edit {
+    DuplicatePages {
+        revision: u64,
+        pages: Vec<u32>,
+        page: u32,
+    },
     DeletePages {
         revision: u64,
         pages: Vec<u32>,
@@ -1458,6 +1463,11 @@ mod tests {
         assert!(working.status().expect("status").info.signature_fields > 0);
         let original = working.current.bytes.clone();
         for edit in [
+            Edit::DuplicatePages {
+                revision: 0,
+                pages: vec![2],
+                page: 2,
+            },
             Edit::Move {
                 page: 2,
                 earlier: true,

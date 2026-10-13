@@ -49,6 +49,7 @@ enum Action {
     Recovery,
     ExtractPages,
     DeletePages,
+    DuplicatePages,
 }
 
 #[derive(Default, Clone, Copy, PartialEq, Eq)]
@@ -217,7 +218,9 @@ impl EditorApp {
                     selected_page,
                 } => {
                     if self.pages_dialog.as_ref().is_some_and(|dialog| {
-                        dialog.mode == pages::Mode::Delete && dialog.tab == id && dialog.submitting
+                        matches!(dialog.mode, pages::Mode::Delete | pages::Mode::Duplicate)
+                            && dialog.tab == id
+                            && dialog.submitting
                     }) {
                         self.pages_dialog = None;
                     }
@@ -769,6 +772,7 @@ impl EditorApp {
             Action::Recovery => self.open_recovery(),
             Action::ExtractPages => self.open_page_ranges(pages::Mode::Extract),
             Action::DeletePages => self.open_page_ranges(pages::Mode::Delete),
+            Action::DuplicatePages => self.open_page_ranges(pages::Mode::Duplicate),
         }
     }
 

@@ -6,6 +6,7 @@ use eframe::egui;
 pub(super) enum Mode {
     Extract,
     Delete,
+    Duplicate,
 }
 
 pub(super) struct Dialog {
@@ -30,6 +31,14 @@ impl Dialog {
             pdf_core::selection::parse_unique(&self.text, self.count).map_err(|e| e.to_string())?;
         if self.mode == Mode::Delete && pages.len() == self.count {
             return Err("Keep at least one page in the source document.".into());
+        }
+        if self.mode == Mode::Duplicate
+            && self
+                .count
+                .checked_add(pages.len())
+                .is_none_or(|count| count > pdf_core::MAX_PAGES)
+        {
+            return Err("Duplicated pages exceed the document page limit.".into());
         }
         Ok(pages)
     }
@@ -109,13 +118,21 @@ impl EditorApp {
                     },
                 }
             }
+            Mode::Duplicate => Command::Edit {
+                id,
+                edit: Edit::DuplicatePages {
+                    revision,
+                    pages,
+                    page: dialog.page,
+                },
+            },
         };
         if !self.send(
             command,
-            if mode == Mode::Extract {
-                "Extracting selected pages into a new PDF…"
-            } else {
-                "Deleting selected pages…"
+            match mode {
+                Mode::Extract => "Extracting selected pages into a new PDF…",
+                Mode::Delete => "Deleting selected pages…",
+                Mode::Duplicate => "Duplicating selected pages…",
             },
         ) {
             return false;
@@ -142,10 +159,10 @@ impl EditorApp {
         let mut open = true;
         let mut close = false;
         let mut apply = false;
-        let title = if dialog.mode == Mode::Extract {
-            "Extract page range"
-        } else {
-            "Delete page range"
+        let title = match dialog.mode {
+            Mode::Extract => "Extract page range",
+            Mode::Delete => "Delete page range",
+            Mode::Duplicate => "Duplicate page range",
         };
         egui::Window::new(title).open(&mut open).collapsible(false).resizable(false)
             .default_width(480.0).max_width((context.content_rect().width()-32.0).max(280.0))
@@ -157,7 +174,11 @@ impl EditorApp {
                     if dialog.focus { entry.request_focus(); dialog.focus=false; }
                     if entry.changed() { dialog.confirm=false; dialog.error=None; }
                     match dialog.selection() {
-                        Ok(pages) => { ui.label(if dialog.mode == Mode::Extract { format!("{} selected page(s) → new unsaved tab. Source: {} pages, unchanged.",pages.len(),dialog.count) } else { format!("Delete {} of {} page(s); {} remain.", pages.len(),dialog.count,dialog.count-pages.len()) }); }
+                        Ok(pages) => { ui.label(match dialog.mode {
+                            Mode::Extract => format!("{} selected page(s) → new unsaved tab. Source: {} pages, unchanged.",pages.len(),dialog.count),
+                            Mode::Delete => format!("Delete {} of {} page(s); {} remain.", pages.len(),dialog.count,dialog.count-pages.len()),
+                            Mode::Duplicate => format!("Duplicate {} page(s); {} total. Each copy follows its original.", pages.len(),dialog.count+pages.len()),
+                        }); }
                         Err(error) => { ui.colored_label(ui.visuals().error_fg_color,error); }
                     }
                     ui.label("This guarded operation may refuse forms, bookmarks or other document structures. A refusal preserves your PDFs.");
@@ -168,12 +189,16 @@ impl EditorApp {
                     if dialog.confirm { ui.label("Delete the selected pages from this open PDF? The original file is preserved; Save As writes a new file."); }
                 });
                 ui.separator();
-                let ready=current && !self.busy && !dialog.submitting && dialog.selection().is_ok() && (dialog.mode == Mode::Delete || capacity);
+                let ready=current && !self.busy && self.pending_saves.is_empty() && !dialog.submitting && dialog.selection().is_ok() && (dialog.mode != Mode::Extract || capacity);
                 ui.horizontal_wrapped(|ui| {
                     if dialog.mode == Mode::Delete && !dialog.confirm {
                         if ui.add_enabled(ready,egui::Button::new("Review page deletion…")).clicked() { dialog.confirm=true; }
                     } else {
-                        apply=ui.add_enabled(ready,crate::style::primary(if dialog.mode == Mode::Extract { "Extract to new tab" } else { "Confirm page deletion" },ui.visuals().dark_mode)).clicked();
+                        apply=ui.add_enabled(ready,crate::style::primary(match dialog.mode {
+                            Mode::Extract => "Extract to new tab",
+                            Mode::Delete => "Confirm page deletion",
+                            Mode::Duplicate => "Duplicate selected pages",
+                        },ui.visuals().dark_mode)).clicked();
                     }
                     close=ui.add_enabled(!dialog.submitting,egui::Button::new("Cancel page operation")).clicked();
                     if dialog.submitting { ui.spinner(); ui.label("Working…"); }
@@ -378,30 +403,32 @@ mod tests {
     }
     #[test]
     fn failed_page_operation_retains_selection_and_source_without_canvas_error() {
-        let mut app = app(Mode::Delete);
-        let dialog = app.pages_dialog.as_mut().expect("dialog");
-        dialog.text = "2".into();
-        dialog.confirm = true;
-        dialog.submitting = true;
-        app.busy = true;
-        let (sender, events) = std::sync::mpsc::channel();
-        app.worker.events = events;
-        sender
-            .send(crate::worker::Event::Error {
-                id: 7,
-                task: None,
-                message: "Guarded subset refused this document.".into(),
-            })
-            .expect("error");
-        app.poll(&egui::Context::default());
-        let dialog = app.pages_dialog.as_ref().expect("selection retained");
-        assert!(!dialog.submitting);
-        assert_eq!(dialog.text, "2");
-        assert!(dialog.error.is_some());
-        assert_eq!(app.tabs.len(), 1);
-        assert_eq!(app.tabs[0].status.revision, 4);
-        assert!(app.tabs[0].error.is_none());
-        assert!(app.tabs[0].status.can_undo);
+        for mode in [Mode::Delete, Mode::Duplicate] {
+            let mut app = app(mode);
+            let dialog = app.pages_dialog.as_mut().expect("dialog");
+            dialog.text = "2".into();
+            dialog.confirm = true;
+            dialog.submitting = true;
+            app.busy = true;
+            let (sender, events) = std::sync::mpsc::channel();
+            app.worker.events = events;
+            sender
+                .send(crate::worker::Event::Error {
+                    id: 7,
+                    task: None,
+                    message: "Guarded subset refused this document.".into(),
+                })
+                .expect("error");
+            app.poll(&egui::Context::default());
+            let dialog = app.pages_dialog.as_ref().expect("selection retained");
+            assert!(!dialog.submitting);
+            assert_eq!(dialog.text, "2");
+            assert!(dialog.error.is_some());
+            assert_eq!(app.tabs.len(), 1);
+            assert_eq!(app.tabs[0].status.revision, 4);
+            assert!(app.tabs[0].error.is_none());
+            assert!(app.tabs[0].status.can_undo);
+        }
     }
     #[test]
     fn actual_egui_stale_selection_remains_copyable_and_extract_button_cannot_dispatch() {
@@ -420,5 +447,130 @@ mod tests {
             "3,1"
         );
         assert_eq!(app.tabs[0].status.revision, 5);
+    }
+
+    #[test]
+    fn duplicate_ranges_allow_all_pages_without_delete_confirmation_and_enforce_growth_limit() {
+        let mut app = app(Mode::Duplicate);
+        let dialog = app.pages_dialog.as_mut().expect("duplicate dialog");
+        dialog.text = "4,1-3".into();
+        assert_eq!(
+            dialog.selection().expect("all original pages"),
+            vec![4, 1, 2, 3]
+        );
+        assert!(!dialog.confirm);
+        dialog.count = pdf_core::MAX_PAGES;
+        dialog.text = "1".into();
+        assert!(dialog.selection().is_err());
+    }
+
+    #[test]
+    fn duplicate_drafts_refuse_stale_revision_and_unresolved_save_without_losing_selection() {
+        let mut app = app(Mode::Duplicate);
+        app.pages_dialog.as_mut().expect("dialog").text = "3,1".into();
+        app.tabs[0].status.revision = 5;
+        assert!(!app.apply_page_ranges());
+        app.tabs[0].status.revision = 4;
+        app.pending_saves.insert(
+            7,
+            super::super::recovery::PendingSave::new(
+                "pending.pdf".into(),
+                "Unresolved save".into(),
+            ),
+        );
+        assert!(!app.apply_page_ranges());
+        assert_eq!(app.pages_dialog.as_ref().expect("draft").text, "3,1");
+        assert!(!app.busy);
+        assert_eq!(app.next_id, 9);
+        app.pages_dialog = None;
+        app.open_page_ranges(Mode::Duplicate);
+        assert!(app.pages_dialog.is_none());
+    }
+
+    #[test]
+    fn duplicate_result_updates_existing_tab_focus_and_closes_only_submitted_dialog() {
+        let mut app = app(Mode::Duplicate);
+        let dialog = app.pages_dialog.as_mut().expect("dialog");
+        dialog.submitting = true;
+        dialog.text = "1,3".into();
+        app.busy = true;
+        let (sender, events) = std::sync::mpsc::channel();
+        app.worker.events = events;
+        let mut updated = status(6);
+        updated.revision = 5;
+        sender
+            .send(crate::worker::Event::Updated {
+                id: 7,
+                status: updated,
+                selected_page: Some(3),
+            })
+            .expect("duplicate event");
+        app.close_target = Some(super::super::CloseTarget::Exit);
+        app.poll(&egui::Context::default());
+        assert!(app.pages_dialog.is_none());
+        assert_eq!(app.tabs.len(), 1);
+        assert_eq!(app.tabs[0].page, 3);
+        assert_eq!(app.tabs[0].status.info.page_count, 6);
+        assert!(app.tabs[0].status.can_undo && app.tabs[0].status.dirty);
+    }
+
+    #[test]
+    fn actual_egui_duplicate_action_dispatches_without_delete_confirmation_or_new_tab_id() {
+        let mut app = app(Mode::Duplicate);
+        app.pages_dialog.as_mut().expect("dialog").text = "1,3".into();
+        click(
+            &mut app,
+            &egui::Context::default(),
+            "Duplicate selected pages",
+        );
+        assert!(app.busy);
+        assert!(
+            app.pages_dialog
+                .as_ref()
+                .expect("submitted duplicate")
+                .submitting
+        );
+        assert!(
+            !app.pages_dialog
+                .as_ref()
+                .expect("no deletion confirmation")
+                .confirm
+        );
+        assert_eq!(app.next_id, 9);
+        assert_eq!(app.tabs.len(), 1);
+    }
+
+    #[test]
+    fn actual_command_palette_duplicate_entry_opens_the_guarded_range_dialog() {
+        let mut app = app(Mode::Duplicate);
+        app.pages_dialog = None;
+        app.palette_open = true;
+        app.palette_query = "duplicate".into();
+        let context = egui::Context::default();
+        let mut output = context.run_ui(
+            egui::RawInput {
+                screen_rect: Some(egui::Rect::from_min_size(
+                    egui::Pos2::ZERO,
+                    egui::vec2(640.0, 420.0),
+                )),
+                events: vec![egui::Event::Key {
+                    key: egui::Key::Enter,
+                    physical_key: None,
+                    pressed: true,
+                    repeat: false,
+                    modifiers: egui::Modifiers::NONE,
+                }],
+                ..Default::default()
+            },
+            |_| app.command_palette(&context),
+        );
+        output.textures_delta.clear();
+        assert!(!app.palette_open);
+        assert!(
+            app.pages_dialog
+                .as_ref()
+                .is_some_and(|dialog| dialog.mode == Mode::Duplicate)
+        );
+        assert!(!app.busy);
     }
 }

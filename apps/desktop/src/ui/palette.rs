@@ -55,6 +55,15 @@ impl EditorApp {
                         Action::DeletePages,
                         editable && selected.is_some_and(|tab| tab.status.info.page_count > 1),
                     ),
+                    (
+                        "Duplicate page range",
+                        Action::DuplicatePages,
+                        editable
+                            && self.pending_saves.is_empty()
+                            && selected.is_some_and(|tab| {
+                                tab.status.info.page_count < pdf_core::MAX_PAGES
+                            }),
+                    ),
                     ("Rotate current page left", Action::Rotate(-90), editable),
                     ("Rotate current page right", Action::Rotate(90), editable),
                     (

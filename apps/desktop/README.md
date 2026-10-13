@@ -1,6 +1,6 @@
 # Native desktop milestone
 
-The Organize menu now offers [page-range extraction and deletion](../../docs/DESKTOP_PAGE_RANGES.md), including confirmation, unsaved extracted tabs and durable undo/redo.
+The Organize menu now offers [page-range extraction, duplication and deletion](../../docs/DESKTOP_PAGE_RANGES.md), including deletion confirmation, unsaved extracted tabs and durable undo/redo. Duplication is also available in the command palette; each copy follows its original and the original page keeps focus. These are current-source features; real interaction with the new duplication dialog remains unverified.
 
 ```sh
 cargo run -p pdf-editor-offline-native

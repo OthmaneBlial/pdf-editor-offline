@@ -2,6 +2,7 @@
 
 ## Unreleased — native Rust preview
 
+- Added guarded page duplication to the Rust API, isolated CLI and desktop organizer/palette. Copies follow their originals with independent page dictionaries, preserved inherited geometry/resources, durable undo/redo and stale-selection guards. Dedicated qpdf/Poppler gates check saved text, boxes and pixels; unsupported structures are refused.
 - Isolated every current CLI document command in a bounded self-hosted child, preserving public formats, password stdin, native paths and verified no-clobber output. Added large text/JSON reply domains and supervisor-death cleanup.
 - Corrected the Windows test step to stop on any Cargo failure, and retained the real metadata byte-limit test with a Unicode input that fits the OS command-line budget.
 - Corrected Windows private-journal file creation after actual CI exposed an owner/DACL mismatch. Added explicit owner/private permissions at creation, unchanged-file refusal checks and embedded-NUL path rejection.
