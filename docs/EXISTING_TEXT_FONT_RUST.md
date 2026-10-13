@@ -100,4 +100,9 @@ review or a published release.
 
 Vertically positioned/reordered shaping, RTL, CFF/OpenType embedding and their
 repeat-editing model remain unfinished. No reflow or universal Unicode claim is
-made. Manual native interaction and platform runtime remain separate gates.
+made. An [actual macOS review](CHOSEN_TEXT_FONT_NATIVE_REVIEW.md) separately
+exercises chosen-font selection, Undo/Redo, Save As/reopen and repeat Unicode
+editing with independent saved-file checks. Other platform runtime remains open.
+The composed source `31f0ac8` passed 784 tests across 92 suites with no failures
+or ignored tests; [native status](RUST_STATUS.md) distinguishes that workspace
+gate from the review's exact binary and the older published preview.4.

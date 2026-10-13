@@ -19,11 +19,16 @@ manual platform verification claim.
 - [Existing text editing](CONTENT_TEXT_EDITING_RUST.md) supports one final direct
   ASCII `Tj` in twelve unembedded standard Courier/Helvetica/Times faces. It can
   replace the operand or change size, matrix translation and ordinary RGB fill;
-  source-bound raw splices preserve untouched content-program bytes. Embedded/CID
-  fonts, `TJ`/Form text, marked content and complex color/state contexts remain
-  outside this tier. Width/size/position can overlap artwork or leave the page;
-  there is no arbitrary reflow, font replacement or secure erasure. This byte
-  guarantee concerns content streams, not byte-identical PDF-file serialization.
+  source-bound raw splices preserve untouched content-program bytes.
+  [Font changes](EXISTING_TEXT_FONT_RUST.md) select standard faces or embed a
+  complete static TrueType program with explicit width acknowledgement. Generated
+  canonical `Tj`/positioned `TJ` output supports saved/reopened Unicode value and
+  property edits. Arbitrary existing embedded fonts, Form text, marked content,
+  complex state, RTL/vertical shaping and chosen CFF export remain outside this
+  tier. Width/size/position can overlap artwork or leave the page; there is no
+  arbitrary reflow or secure erasure. Original streams remain recoverable.
+  The byte guarantee concerns content streams, not identical file serialization.
+  These font changes are newer than published preview.4.
 - [Page numbering](PAGE_NUMBERING_RUST.md) creates new header/footer overlays with
   an explicit covering font. It does not remove prior numbers or implement
   general watermarks/custom headers and footers. Unsupported structure, missing

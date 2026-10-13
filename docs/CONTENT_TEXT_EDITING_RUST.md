@@ -1,5 +1,12 @@
 # Existing content text editing: first supported tier
 
+This page documents the original standard-font tier and its preservation rules.
+Current source also supports [standard-face changes and complete TrueType
+embedding](EXISTING_TEXT_FONT_RUST.md), including verified generated `Tj`/positioned
+`TJ` output that can be edited again after reopening. Those newer APIs have their
+own eligibility and width acknowledgement; the restrictions below describe this
+original tier rather than the entire current editor.
+
 This current-source core API replaces an existing PDF string operand. It creates
 no overlay, whiteout, replacement form, font or annotation. Current-source CLI
 commands and the native **Edit → Edit existing text…** dialog use this API in a

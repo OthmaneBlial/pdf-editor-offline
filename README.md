@@ -42,18 +42,20 @@ The screenshot is a real app window using a public synthetic PDF.
 
 ## Made this week · 13 October 2026
 
-**Today's checkpoint:** the combined numbering, image-replacement and original
-text-property source and two CI repairs passed **717 local tests**, including the
-pinned independent readers and actual native workers, with no failures or ignored tests. Strict
-Clippy passed. All five platforms and the quality job in
-[native CI](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38383270114)
-passed. The repaired source passed
-[security scanning](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38383092873).
+**Today's source checkpoint:** original-text font changes, Unicode TrueType
+embedding, text redaction and decoding fixes passed **784 tests across 92 suites**,
+including pinned independent readers and actual native workers, with no failures
+or ignored tests. Strict Clippy, documentation and dependency checks passed.
+The preceding redaction/decoding source passed all five platforms and the quality
+job in [native CI](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38401278482)
+and [security scanning](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38401278510).
+Those platform runs do not verify the newer font changes.
 Preview.4 is published on GitHub and npm, with five-platform HTTPS global-install
 checks passed. [Release and registry evidence](docs/NATIVE_RELEASE_PREVIEW4.md).
 
-The shared editing commands ship in **preview.4**; build the desktop source for
-the native canvas workflows:
+Numbering, image placement/replacement and original text properties ship in
+**preview.4**. Font changes, redaction and decoding fixes require current source;
+build the desktop for the native canvas workflows.
 
 **Fresh tools to play with:** [draw on the canvas](docs/VECTOR_DRAWING_RUST.md),
 [draw a visual signature](docs/VISUAL_SIGNATURES_RUST.md),
@@ -61,6 +63,7 @@ the native canvas workflows:
 [replace one existing image](docs/IMAGE_REPLACEMENT_RUST.md),
 [number pages](docs/PAGE_NUMBERING_RUST.md),
 [edit supported existing text](docs/CONTENT_TEXT_EDITING_RUST.md),
+[change its font](docs/EXISTING_TEXT_FONT_RUST.md),
 [add Unicode text](docs/TEXT_OVERLAYS_RUST.md), [finish a form](docs/FORMS_RUST.md)
 or [leave a sticky note](docs/NOTES_RUST.md).
 
@@ -100,6 +103,17 @@ intact. [Inspect the saved PDF and review scope](docs/NATIVE_DESKTOP_EVIDENCE.md
 
 These are rendered PDF exports, not interface mockups. Added text does not
 replace or erase existing content. [Reproduce the result](docs/TEXT_OVERLAYS_RUST.md).
+
+### Give the original words a new face
+
+![Actual macOS app after changing original text to IBM Plex Sans and saving a Unicode PDF](docs/assets/chosen-font-native-repeat-saved-2026-10-13.png)
+
+Choose a TrueType font, change supported original text, undo, redo and save a
+copy. This actual source-build session reopened the PDF and changed the Unicode
+text again using its embedded font. [Try the font workflow](docs/EXISTING_TEXT_FONT_RUST.md)
+· [Inspect the saved copies and independent checks](docs/CHOSEN_TEXT_FONT_NATIVE_REVIEW.md).
+This feature is newer than the published CLI preview. Editing preserves old
+source streams; use the separate supported redaction workflow for removal.
 
 [Latest changes](CHANGELOG.md) · [Live CI](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml)
 · [Source status and remaining work](docs/RUST_STATUS.md)
@@ -246,7 +260,7 @@ The table covers current source; published CLI differences are called out below.
 | Images | Create PDF pages from supported PNG/JPEG files; place, resize and quarter-turn a new image on an existing page with protected drafts and history | Restricted images-to-PDF conversion; export one PDF page as PNG; current-source `add-image-overlay` with dry-run and new-copy saving |
 | Comments | Bounded sticky-note discovery, guarded add/edit/remove, durable history; supported appearances and standard Text/FileAttachment icons | Add/list sticky Text notes; guarded editing/removal of basic notes |
 | New page text | Drag placement, move/eight resize handles, snapping and arrow nudges, numeric controls, covering-font picker, guarded apply and durable undo/redo | `add-text-overlay` adds bounded Unicode text with an explicit font, rectangle, color and alignment in current source |
-| Existing text | Select and replace supported ordinary Courier ASCII operands; source-bound drafts, undo/redo and verified Save As | `inspect-content-text` and `replace-content-text` with exact source identity, dry-run and new-copy saving; equal-length, equal-space-position tier |
+| Existing text | Replace eligible standard-face text, adjust size/position/RGB, choose a standard face or embed a covering TrueType font; source-bound history and Save As | `inspect-content-text`, `replace-content-text`, `set-content-text-properties` and source-only `set-content-text-font`; explicit width changes, dry-run and new-copy saving |
 | New drawings | Rectangles, ellipses, lines and bounded freehand paths, colors/paint opacity, snapping, nudges and protected drafts | `add-vector-overlay` with a strict JSON request, dry-run and fresh-copy saving in current source |
 | Visual signatures | Separate pen strokes and dots, color/width, one Apply and one durable Undo; **Sign → Draw visual signature…** | `add-vector-overlay` accepts bounded `multi_polyline` strokes; artwork only, without certificate signing or identity verification |
 | Forms | Checkboxes/radios, single/multiline text, dropdowns and single/multiple list selections; guarded apply and undo/redo | Discover fields and indexed options; `fill-button`, `fill-text`, `list-choices` and `fill-choice` in current source |

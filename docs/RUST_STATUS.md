@@ -1,5 +1,30 @@
 # Native Rust migration status
 
+## 13 October: composed original-text font editing
+
+Frozen Rust source `31f0ac8` passed **784 tests across 92 suites, zero failures
+and zero ignored tests**. The normal workspace/helper build, pinned independent
+references and actual native worker gates passed, followed by strict all-target
+workspace Clippy, warning-free rustdoc, dependency audit and license/source policy.
+This composition retains text redaction and checked decoding while adding
+standard-face changes and complete static TrueType embedding, canonical positioned
+`TJ` shaping and saved/reopened Unicode editing through core, CLI, worker and GUI.
+[Font scope and commands](EXISTING_TEXT_FONT_RUST.md).
+
+An [actual macOS chosen-font review](CHOSEN_TEXT_FONT_NATIVE_REVIEW.md) on source
+`42cc2e5` exercised the picker, Apply, Undo/Redo, Save As/reopen and repeat Unicode
+editing. Independent qpdf/Poppler checks preserved shared pages and outside-line
+pixels. That review identifies its own binary and source; it is separate from the
+composed workspace gate. The renderer also fixes CID-keyed OpenType CFF glyph
+selection with four real-font fixtures; this does not implement chosen CFF export.
+
+The preceding main source `d1a014b` passed all five platforms and quality in
+[Native Rust run 38401278482](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38401278482)
+and [security scanning](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38401278510).
+Those runs do not prove this newer composition. New platform/release gates,
+arbitrary existing fonts/layouts, RTL/vertical editing and broader fidelity remain
+open. This source is later than the immutable published preview.4.
+
 ## 13 October: composed redaction and decoding hardening
 
 Frozen Rust source `c55f978` passed **751 tests across 89 suites, zero failures
