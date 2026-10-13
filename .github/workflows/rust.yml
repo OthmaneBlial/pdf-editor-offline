@@ -10,6 +10,7 @@ on:
       - 'deny.toml'
       - '.github/workflows/rust.yml'
       - 'tools/**'
+      - 'distribution/npm/**'
       - 'vendor/**'
       - 'tests/fixtures/**'
   pull_request:
@@ -20,6 +21,7 @@ on:
       - 'deny.toml'
       - '.github/workflows/rust.yml'
       - 'tools/**'
+      - 'distribution/npm/**'
       - 'vendor/**'
       - 'tests/fixtures/**'
   workflow_dispatch:
@@ -81,6 +83,8 @@ jobs:
           PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" QPDF="$RUNNER_TEMP/reference-qpdf/bin/qpdf" cargo test --locked -p pdf-convert --test images -- --ignored
           PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" PDF_REFERENCE_QPDF="$RUNNER_TEMP/reference-qpdf/bin/qpdf" cargo test --locked -p pdf-editor-offline-cli --test images -- --ignored
           PATH="$RUNNER_TEMP/reference-poppler/bin:$PATH" cargo test --locked -p pdf-core --test merge -- --ignored
+          PDF_FORM_QPDF="$RUNNER_TEMP/reference-qpdf/bin/qpdf" PDF_FORM_POPPLER_BIN="$RUNNER_TEMP/reference-poppler/bin" cargo test --locked -p pdf-core --test forms -- --ignored
+          PDF_QPDF_BIN="$RUNNER_TEMP/reference-qpdf/bin/qpdf" PDF_REFERENCE_BIN_DIR="$RUNNER_TEMP/reference-poppler/bin" cargo test --locked -p pdf-editor-offline-cli --test forms -- --ignored
       - name: Preserve independent evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -100,6 +104,9 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
       - name: Install locked toolchain
         shell: bash
         run: |
@@ -117,6 +124,9 @@ jobs:
           cargo test -p pdf-worker --features test-helper --locked
           cargo build -p pdf-editor-offline-cli -p pdf-editor-offline-native --locked
           cargo test -p pdf-editor-offline-native --locked -- --include-ignored
+      - name: Test npm installer with the actual native CLI on Node 22
+        shell: bash
+        run: PDF_NATIVE_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/pdf-editor-offline${{ runner.os == 'Windows' && '.exe' || '' }}" node --test distribution/npm/tests/*.test.mjs
       - name: Linux desktop startup smoke
         if: runner.os == 'Linux'
         run: |
