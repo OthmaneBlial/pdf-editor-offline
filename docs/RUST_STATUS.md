@@ -1,5 +1,21 @@
 # Native Rust migration status
 
+Current source adds [image insertion](IMAGE_OVERLAYS_RUST.md) through core,
+converter, CLI, limited document worker and native canvas. Supported PNG/JPEG
+assets retain transparency/color data within the documented tier, with drag
+placement, move/resize, quarter-turn rotation, durable history and verified new
+copies. This adds images; existing-image replacement remains unfinished.
+
+The frozen combined image/drawing source corresponding to `d1eea25` passed
+**636 workspace tests across 76 suites, with no failures or ignored tests**.
+This includes all pinned qpdf/Poppler and production-native saved-output gates,
+plus a failed-before/passed-after regression for competing canvas dialogs.
+Fresh normal executables, strict workspace/all-target Clippy with the worker
+helper, formatting and workflow lint checks passed. These are local macOS
+results; the new image source needs its own remote CI. Manual native picker,
+window and accessibility review remain open. No new performance benchmark was
+produced; preview.4 is still in preparation and the published CLI remains .3.
+
 Current source also adds [new vector artwork](VECTOR_DRAWING_RUST.md):
 rectangles, ellipses, lines and bounded freehand paths through the core, CLI,
 worker and native canvas. Tool changes preserve drafts until explicit discard;
@@ -14,8 +30,10 @@ precision correction at `6d9fa73` then passed **20 affected core/CLI/worker/nati
 tests**, including independent output checks, after rebuilding the normal
 executables. Strict workspace/all-target Clippy with the worker helper, formatting
 and workflow lint checks passed. These are local macOS results; the new source
-still requires its own remote CI and manual native review. No new performance
-benchmark was produced.
+also passed all five actual platform jobs and the independent quality job at
+`1af9a26` in [native CI](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38352650759),
+plus [security scanning](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38352650760).
+Manual native review remains open. No new performance benchmark was produced.
 
 Current source adds canvas placement/move/resize handles for new text overlays,
 guarded PDF splitting into durable native tab batches or CLI files, and

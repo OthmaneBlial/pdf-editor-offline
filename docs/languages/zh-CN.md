@@ -1,5 +1,7 @@
 # PDF Editor Offline
 
+**源码新增：** 在现有页面插入 PNG/JPEG，移动、调整大小并按 90 度旋转，支持撤销与重做。[图片指南](../IMAGE_OVERLAYS_RUST.md)（英文）。已发布的 CLI `4.0.0-preview.3` 不包含此功能；替换现有图片仍待实现。
+
 **关注项目进展：** [最新提交](https://github.com/OthmaneBlial/pdf-editor-offline/commits/main/) · [原生测试](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml) · [路线图](../../ROADMAP.md)。试用一个工作流程，并使用不含私人数据的示例 PDF 参与改进。如果工具对你有用，欢迎[为项目点星](https://github.com/OthmaneBlial/pdf-editor-offline)。
 
 **源码新功能：**通过拖动和调整大小手柄放置新增文字，将 PDF 拆分到新标签页，并使用密码对话框打开受保护的文档。加密文件保持只读；恢复记录不会保存解密内容或密码。已发布的 CLI 仍为 `4.0.0-preview.3`。

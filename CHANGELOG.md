@@ -2,6 +2,8 @@
 
 ## Unreleased — native Rust preview
 
+- Insert supported PNG/JPEG images on existing pages through core, converter, CLI, worker and native canvas. Placement/move/resize, quarter-turn rotation, retained drafts, durable history and verified new copies are implemented. Tiny dimensions that collapse in PDF number encoding are refused atomically. Image, text and drawing dialogs cannot compete for the canvas; existing-image replacement remains open.
+
 - Add bounded rectangles, ellipses, lines and freehand paths through core, CLI, isolated worker and native canvas controls. Drawing drafts survive tool changes until explicit discard, enter durable Undo/Redo history on Apply, and save to verified new copies. Collapsed serialized bounds and opacity underflow are refused atomically. Shapes add content; filled rectangles are not secure redaction.
 
 - Consume pending clipping paths inside the original-content graphics wrapper before adding text. Native and independent-reader regressions confirm that old clipping state cannot hide the new overlay.

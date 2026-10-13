@@ -1,5 +1,7 @@
 # PDF Editor Offline
 
+**소스의 새 기능:** 기존 페이지에 PNG/JPEG를 삽입하고 이동, 크기 조절, 90도 단위 회전과 실행 취소·다시 실행을 지원합니다. [이미지 가이드](../IMAGE_OVERLAYS_RUST.md)(영문). 배포된 CLI `4.0.0-preview.3`에는 포함되지 않으며 기존 이미지 교체는 아직 구현되지 않았습니다.
+
 **개발 진행 상황:** [최근 변경 사항](https://github.com/OthmaneBlial/pdf-editor-offline/commits/main/) · [네이티브 테스트](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml) · [로드맵](../../ROADMAP.md). 작업 흐름을 사용해 보고 개인정보가 없는 예제 PDF로 개선에 참여해 주세요. 유용한 도구라면 [프로젝트에 별을 주세요](https://github.com/OthmaneBlial/pdf-editor-offline).
 
 **소스 코드의 새 기능:** 드래그와 크기 조절 핸들로 새 텍스트 배치, PDF를 새 탭으로 분할, 비밀번호 대화상자로 보호된 문서 열기. 암호화된 문서는 읽기 전용이며 복구 기록에 복호화된 내용이나 비밀번호를 저장하지 않습니다. 배포된 CLI는 여전히 `4.0.0-preview.3`입니다.

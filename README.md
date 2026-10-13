@@ -51,6 +51,7 @@ These checks cover source builds; the downloadable CLI remains preview.3.
 These features are on **`main`**, ahead of the published CLI preview:
 
 **Fresh tools to play with:** [draw on the canvas](docs/VECTOR_DRAWING_RUST.md),
+[place an image](docs/IMAGE_OVERLAYS_RUST.md),
 [add Unicode text](docs/TEXT_OVERLAYS_RUST.md), [finish a form](docs/FORMS_RUST.md)
 or [leave a sticky note](docs/NOTES_RUST.md). Build the current source to try them.
 
@@ -61,6 +62,7 @@ or [leave a sticky note](docs/NOTES_RUST.md). Build the current source to try th
 | --- | --- |
 | Add Unicode text with a font, color and alignment | [Before/after exports and commands](docs/TEXT_OVERLAYS_RUST.md) |
 | Draw rectangles, ellipses, lines and freehand paths | [Canvas controls and reproducible CLI example](docs/VECTOR_DRAWING_RUST.md) |
+| Place a PNG/JPEG on an existing PDF page | [Image placement, resize and rotation](docs/IMAGE_OVERLAYS_RUST.md) |
 | Fill text fields, dropdowns and list selections | [A public form you can finish](docs/FORMS_RUST.md) |
 | Add, edit and remove basic sticky notes with undo | [Desktop note walkthrough](docs/NOTES_RUST.md) |
 | Combine supported PDFs into a new desktop tab | [Merge workflow](apps/desktop/README.md) |
@@ -221,7 +223,7 @@ The table covers current source; published CLI differences are called out below.
 | Read and find | Tabs, zoom, visible-page thumbnails, text sidebar, literal search, light/dark themes | Document info, text extraction, literal search, limited text/geometry comparison |
 | Organize pages | Move/reverse pages, rotate, insert blank pages, crop, guarded ranges, split into new tabs, ordered simple-catalog merge, undo/redo | Reorder/reverse/rotate/crop, blank insertion, guarded extract/delete/duplicate, merge and `split --every N --output-dir NEW` in current source |
 | Document properties | Read/edit six standard fields, including Unicode | Read/set/remove Title, Author, Subject, Keywords, Creator and Producer |
-| Images | Create PDF pages from supported PNG/JPEG files | Restricted images-to-PDF conversion; export one PDF page as PNG |
+| Images | Create PDF pages from supported PNG/JPEG files; place, resize and quarter-turn a new image on an existing page with protected drafts and history | Restricted images-to-PDF conversion; export one PDF page as PNG; current-source `add-image-overlay` with dry-run and new-copy saving |
 | Comments | Bounded sticky-note discovery, guarded add/edit/remove, durable history; supported appearances and standard Text/FileAttachment icons | Add/list sticky Text notes; guarded editing/removal of basic notes |
 | New page text | Drag placement, move/eight resize handles, snapping and arrow nudges, numeric controls, covering-font picker, guarded apply and durable undo/redo | `add-text-overlay` adds bounded Unicode text with an explicit font, rectangle, color and alignment in current source |
 | New drawings | Rectangles, ellipses, lines and bounded freehand paths, colors/paint opacity, snapping, nudges and protected drafts | `add-vector-overlay` with a strict JSON request, dry-run and fresh-copy saving in current source |

@@ -1,5 +1,7 @@
 # PDF Editor Offline
 
+**Nouveau :** insérez un PNG/JPEG sur une page existante, déplacez-le, redimensionnez-le et tournez-le par quarts de tour, avec annuler/rétablir. [Guide des images](../IMAGE_OVERLAYS_RUST.md) (anglais). Fonction des sources actuelles, absente de la CLI publiée `4.0.0-preview.3` ; le remplacement des images existantes reste à faire.
+
 **Dessin dans les sources actuelles :** rectangles, ellipses, lignes et tracés à main levée, avec couleurs, opacité et historique. Changer d’outil conserve le dessin jusqu’à un abandon explicite. [Guide et exemple CLI](../VECTOR_DRAWING_RUST.md) (en anglais). L’ajout de formes ne constitue pas un effacement sécurisé ; cette fonction n’est pas dans la CLI publiée `4.0.0-preview.3`.
 
 **Suivez un projet qui avance :** [derniers commits](https://github.com/OthmaneBlial/pdf-editor-offline/commits/main/) · [tests natifs en direct](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml) · [feuille de route](../../ROADMAP.md). Essayez un parcours et contribuez avec un PDF de démonstration sans données privées. Si cet outil vous est utile, [ajoutez une étoile](https://github.com/OthmaneBlial/pdf-editor-offline).

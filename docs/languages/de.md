@@ -1,5 +1,7 @@
 # PDF Editor Offline
 
+**Neu im Quellcode:** PNG/JPEG auf einer vorhandenen Seite einfügen, verschieben, skalieren und in Vierteldrehungen drehen, mit Rückgängig/Wiederholen. [Bildanleitung](../IMAGE_OVERLAYS_RUST.md) (Englisch). In der veröffentlichten CLI `4.0.0-preview.3` noch nicht enthalten; vorhandene Bilder lassen sich noch nicht ersetzen.
+
 **Verfolge die Entwicklung:** [neueste Änderungen](https://github.com/OthmaneBlial/pdf-editor-offline/commits/main/) · [native Tests](https://github.com/OthmaneBlial/pdf-editor-offline/actions/workflows/rust.yml) · [Roadmap](../../ROADMAP.md). Probiere einen Ablauf aus und trage mit einer Beispieldatei ohne private Daten bei. Wenn das Werkzeug hilfreich ist, [gib dem Projekt einen Stern](https://github.com/OthmaneBlial/pdf-editor-offline).
 
 **Neu im Quellcode:** neuen Text mit Ziehen und Größenänderungsgriffen platzieren, PDFs in neue Tabs aufteilen und geschützte Dokumente über einen Passwortdialog öffnen. Verschlüsselte Dateien bleiben schreibgeschützt; entschlüsselte Inhalte und Passwörter werden nicht in der Wiederherstellung gespeichert. Die veröffentlichte CLI bleibt `4.0.0-preview.3`.
