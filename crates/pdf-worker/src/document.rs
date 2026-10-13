@@ -30,6 +30,9 @@ pub enum Operation {
     Images {
         lengths: Vec<usize>,
     },
+    Merge {
+        lengths: Vec<usize>,
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -167,6 +170,9 @@ fn execute(request: Request) -> Result<Reply, String> {
     }
     if let Operation::Images { lengths } = operation {
         return images(&request.payload, &lengths);
+    }
+    if let Operation::Merge { lengths } = operation {
+        return merge(&request.payload, &lengths);
     }
     if let Operation::Edit {
         mutation:
@@ -335,6 +341,7 @@ fn execute(request: Request) -> Result<Reply, String> {
             document_reply(extracted, Some(0))
         }
         Operation::Images { .. } => unreachable!("images handled before PDF parsing"),
+        Operation::Merge { .. } => unreachable!("merge handled before PDF parsing"),
     }
 }
 
@@ -480,6 +487,37 @@ fn apply(document: &mut PdfDocument, mutation: Mutation) -> Result<Option<usize>
         }
     };
     Ok(selected)
+}
+
+fn merge(payload: &[u8], lengths: &[usize]) -> Result<Reply, String> {
+    if lengths.len() < 2 || lengths.len() > pdf_core::MAX_PAGES {
+        return Err("Merge requires 2–20,000 PDF inputs including the open document".into());
+    }
+    // Validate the complete frame before any PDF parsing or candidate mutation.
+    let mut position = 0usize;
+    let mut slices = Vec::with_capacity(lengths.len());
+    for length in lengths {
+        if *length == 0 {
+            return Err("Merge input is empty".into());
+        }
+        let end = position
+            .checked_add(*length)
+            .filter(|end| *end <= payload.len())
+            .ok_or("Merge lengths exceed their binary payload")?;
+        slices.push(&payload[position..end]);
+        position = end;
+    }
+    if position != payload.len() {
+        return Err("Merge payload contains unclaimed bytes".into());
+    }
+    let mut merged = PdfDocument::from_bytes(slices[0], None).map_err(|error| error.to_string())?;
+    for bytes in &slices[1..] {
+        let incoming = PdfDocument::from_bytes(bytes, None).map_err(|error| error.to_string())?;
+        merged
+            .append(&incoming)
+            .map_err(|error| error.to_string())?;
+    }
+    document_reply(merged, Some(0))
 }
 
 fn images(payload: &[u8], lengths: &[usize]) -> Result<Reply, String> {
