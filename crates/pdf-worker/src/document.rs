@@ -36,6 +36,9 @@ pub enum Operation {
     },
     Info,
     Forms,
+    Split {
+        every: u32,
+    },
     Notes {
         page: u32,
         offset: u32,
@@ -178,6 +181,9 @@ pub struct RasterResult {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "result", rename_all = "snake_case", deny_unknown_fields)]
 pub enum DocumentResult {
+    Split {
+        parts: Vec<SplitFrame>,
+    },
     Notes {
         entries: Vec<NoteEntry>,
         next_offset: Option<u32>,
@@ -210,6 +216,84 @@ pub enum DocumentResult {
         info: DocumentInfo,
         selected_page: Option<usize>,
     },
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SplitFrame {
+    pub first_page: u32,
+    pub last_page: u32,
+    pub length: usize,
+    pub info: DocumentInfo,
+}
+/// Validate the complete path-free batch before accepting any child result.
+/// This checks framing and inspected geometry; it does not parse PDF data in the parent.
+pub fn split_slices<'a>(
+    parts: &[SplitFrame],
+    payload: &'a [u8],
+    source: &DocumentInfo,
+    every: u32,
+) -> Result<Vec<&'a [u8]>, String> {
+    if every == 0
+        || source.page_count == 0
+        || source.page_count > pdf_core::MAX_PAGES
+        || source.pages.len() != source.page_count
+        || source.encrypted
+        || source.signature_fields != 0
+        || parts.len() != source.page_count.div_ceil(every as usize)
+        || parts.len() > pdf_core::MAX_SPLIT_PARTS
+        || payload.len() > crate::MAX_PDF_BYTES
+    {
+        return Err("Invalid split batch count or readonly source".into());
+    }
+    let mut result = Vec::new();
+    result
+        .try_reserve_exact(parts.len())
+        .map_err(|_| "Cannot allocate bounded split frames")?;
+    let mut offset = 0usize;
+    let mut first = 1u32;
+    for part in parts {
+        let last = first
+            .saturating_sub(1)
+            .saturating_add(every)
+            .min(source.page_count as u32);
+        let count = (last - first + 1) as usize;
+        if part.first_page != first
+            || part.last_page != last
+            || part.length == 0
+            || part.info.page_count != count
+            || part.info.pages.len() != count
+            || part.info.encrypted
+            || part.info.signature_fields != 0
+            || part.info.object_count == 0
+            || part.info.object_count > pdf_core::MAX_OBJECTS
+            || part.info.version != source.version
+        {
+            return Err("Invalid split chunk range or information".into());
+        }
+        for (index, page) in part.info.pages.iter().enumerate() {
+            let mut expected = source.pages[first as usize - 1 + index].clone();
+            expected.number = index as u32 + 1;
+            if *page != expected {
+                return Err("Split chunk changed source page geometry".into());
+            }
+        }
+        let end = offset
+            .checked_add(part.length)
+            .filter(|end| *end <= payload.len())
+            .ok_or("Split chunk lengths exceed payload")?;
+        let bytes = &payload[offset..end];
+        if !bytes.starts_with(b"%PDF-") {
+            return Err("Split chunk lacks a verified PDF header".into());
+        }
+        result.push(bytes);
+        offset = end;
+        first = last + 1;
+    }
+    if offset != payload.len() || first as usize != source.page_count + 1 {
+        return Err("Split batch has unclaimed bytes or pages".into());
+    }
+    Ok(result)
 }
 
 /// No request contains a filesystem path. Call this only in the bounded child;
@@ -402,6 +486,35 @@ fn execute(request: Request) -> Result<Reply, String> {
     let mut document =
         PdfDocument::from_bytes(&request.payload, None).map_err(|error| error.to_string())?;
     match operation {
+        Operation::Split { every } => {
+            let parts = document
+                .split_every(every)
+                .map_err(|error| error.to_string())?;
+            let size = parts
+                .iter()
+                .try_fold(0usize, |total, part| total.checked_add(part.bytes.len()))
+                .filter(|total| *total <= crate::MAX_PDF_BYTES)
+                .ok_or("Split payload exceeds128MiB")?;
+            let mut payload = Vec::new();
+            payload
+                .try_reserve_exact(size)
+                .map_err(|_| "Cannot allocate bounded split payload")?;
+            let mut frames = Vec::with_capacity(parts.len());
+            for part in parts {
+                frames.push(SplitFrame {
+                    first_page: part.first_page,
+                    last_page: part.last_page,
+                    length: part.bytes.len(),
+                    info: part.info,
+                });
+                payload.extend_from_slice(&part.bytes);
+            }
+            reply(
+                DocumentResult::Split { parts: frames },
+                PayloadKind::Pdf,
+                payload,
+            )
+        }
         Operation::Notes { page, offset } => read_reply(
             &document,
             ReadOperation::Notes { page, offset },
