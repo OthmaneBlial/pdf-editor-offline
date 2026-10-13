@@ -2702,13 +2702,17 @@ dependencies = [
 name = "pdf-core"
 version = "4.0.0-preview.3"
 dependencies = [
+ "harfrust",
  "lopdf",
  "pdf-render",
  "rustix 1.1.5",
  "serde",
  "serde_json",
+ "skrifa 0.44.0",
  "tempfile",
  "thiserror 2.0.21",
+ "unicode-bidi",
+ "unicode-script",
 ]
 
 [[package]]
@@ -3749,6 +3753,12 @@ name = "unicode-properties"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7df058c713841ad818f1dc5d3fd88063241cc61f49f5fbea4b951e8cf5a8d71d"
+
+[[package]]
+name = "unicode-script"
+version = "0.5.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "383ad40bb927465ec0ce7720e033cb4ca06912855fc35db31b5755d0de75b1ee"
 
 [[package]]
 name = "unicode-segmentation"

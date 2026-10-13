@@ -133,6 +133,26 @@ These are structural bounds, not a strict OS memory quota. The dedicated ignored
 reference test in `tests/pages.rs` checks qpdf structure and original/copy Poppler
 text, geometry and pixels.
 
+## AcroForm filling
+
+`list_form_fields()` discovers bounded inherited fields and widget placements.
+`fill_buttons(&[ButtonChange])` updates eligible checkbox/radio values and states
+transactionally, retaining their existing appearance streams.
+
+`fill_text(&[TextChange], font_bytes)` fills supported single-line text fields
+with an explicit complete covering TrueType or static CID-keyed CFF1 font. Its
+embedding rights, glyph outlines, shaping, metrics and fit are checked before
+committing. Values and real embedded appearances agree; ActualText and cluster
+ToUnicode mappings retain logical Unicode. A field can be cleared and refilled.
+Unrelated objects and drawing outside the replaced region remain intact.
+
+Discovery's `writable_text` reports structural eligibility; the actual font and
+layout are validated during filling. Unsupported field/font/layout semantics,
+dependent surrounding artwork, signed and decrypted inputs are refused. No font
+fallback, truncation, viewer regeneration, choice/advanced-text support or secure
+erasure is claimed. The [form guide](../../docs/FORMS_RUST.md) includes actual CLI
+examples and independent qpdf/Poppler structure, extraction and pixel gates.
+
 `append(&other)` provides **beta simple-catalog merging**, preserving page order,
 inherited resources/geometry and logical orphan graphs. Both inputs are preserved
 on failure. Output object IDs change, and the output uses a fresh page tree and

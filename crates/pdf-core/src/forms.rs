@@ -11,6 +11,9 @@ use lopdf::{Dictionary, Document, Object, ObjectId};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
+mod appearance;
+pub use appearance::TextChange;
+
 const MAX_NODES: usize = 100_000;
 const MAX_FIELDS: usize = 10_000;
 const MAX_WORK: usize = 2_000_000;
@@ -63,7 +66,11 @@ pub struct FormField {
     pub value: FormValue,
     pub widgets: Vec<FormWidget>,
     pub writable_button: bool,
+    /// Button-tier refusal; text editing uses `text_refusal_reason` independently.
     pub refusal_reason: Option<String>,
+    /// Structural eligibility only; explicit font coverage and layout are checked on fill.
+    pub writable_text: bool,
+    pub text_refusal_reason: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -410,17 +417,13 @@ fn appearance(document: &Document, object: &Object, budget: &mut Budget) -> Resu
     Ok(())
 }
 
-fn discover(pdf: &PdfDocument) -> Result<Vec<FormField>> {
-    let document = &pdf.document;
-    let mut budget = Budget::new();
-    let catalog = budget
-        .resolve(document, document.trailer.get(b"Root")?)?
-        .1
-        .as_dict()?;
-    let Ok(form) = catalog.get(b"AcroForm") else {
-        return Ok(Vec::new());
-    };
-    let form = budget.resolve(document, form)?.1.as_dict()?;
+fn form_readonly(
+    pdf: &PdfDocument,
+    document: &Document,
+    form: &Dictionary,
+    catalog: &Dictionary,
+    budget: &mut Budget,
+) -> Result<Option<&'static str>> {
     let document_scripts = catalog
         .get(b"Names")
         .ok()
@@ -466,6 +469,21 @@ fn discover(pdf: &PdfDocument) -> Result<Vec<FormField>> {
     } else {
         None
     };
+    Ok(readonly)
+}
+
+fn discover(pdf: &PdfDocument) -> Result<Vec<FormField>> {
+    let document = &pdf.document;
+    let mut budget = Budget::new();
+    let catalog = budget
+        .resolve(document, document.trailer.get(b"Root")?)?
+        .1
+        .as_dict()?;
+    let Ok(form) = catalog.get(b"AcroForm") else {
+        return Ok(Vec::new());
+    };
+    let form = budget.resolve(document, form)?.1.as_dict()?;
+    let readonly = form_readonly(pdf, document, form, catalog, &mut budget)?;
     let roots = budget
         .resolve(document, form.get(b"Fields")?)?
         .1
@@ -632,13 +650,14 @@ fn discover(pdf: &PdfDocument) -> Result<Vec<FormField>> {
             &mut budget,
         )?;
         let button = matches!(kind, FormFieldKind::CheckBox | FormFieldKind::RadioButton);
+        let is_text = kind == FormFieldKind::Text;
         let mut reason = readonly.or(if flags & 1 != 0 {
             Some("ReadOnly field")
-        } else if !button {
+        } else if !button && kind != FormFieldKind::Text {
             Some("This field type needs a later appearance-generation or signing stage")
-        } else if widgets.is_empty() {
+        } else if button && widgets.is_empty() {
             Some("Button has no visible widget")
-        } else if dictionary.has(b"Opt") {
+        } else if button && dictionary.has(b"Opt") {
             Some("Button Opt export mapping is unsupported")
         } else {
             None
@@ -708,27 +727,27 @@ fn discover(pdf: &PdfDocument) -> Result<Vec<FormField>> {
                     Err(Error::Limit(message)) => return Err(Error::Limit(message)),
                     Err(_) => reason = Some("Button lacks valid Off/on appearance streams"),
                 }
-                let annotation_flags = dict
-                    .get(b"F")
-                    .ok()
-                    .map(|object| {
-                        budget
-                            .resolve(document, object)
-                            .and_then(|(_, object)| Ok(object.as_i64()?))
-                    })
-                    .transpose()?
-                    .unwrap_or(0);
-                if annotation_flags & (128 | 512) != 0 {
-                    reason = Some("Locked widget");
-                }
-                if dict.has(b"A") || dict.has(b"AA") {
-                    reason = Some("Widget actions require a separate semantics implementation");
-                }
-                if dict.has(b"StructParent") {
-                    reason = Some(
-                        "Tagged widget accessibility state requires a separate update implementation",
-                    );
-                }
+            }
+            let annotation_flags = dict
+                .get(b"F")
+                .ok()
+                .map(|object| {
+                    budget
+                        .resolve(document, object)
+                        .and_then(|(_, object)| Ok(object.as_i64()?))
+                })
+                .transpose()?
+                .unwrap_or(0);
+            if annotation_flags & (128 | 512) != 0 {
+                reason = Some("Locked widget");
+            }
+            if dict.has(b"A") || dict.has(b"AA") {
+                reason = Some("Widget actions require a separate semantics implementation");
+            }
+            if dict.has(b"StructParent") {
+                reason = Some(
+                    "Tagged widget accessibility state requires a separate update implementation",
+                );
             }
             budget.report(
                 state.as_ref().map_or(0, Vec::len) + on_state.as_ref().map_or(0, Vec::len),
@@ -757,16 +776,40 @@ fn discover(pdf: &PdfDocument) -> Result<Vec<FormField>> {
             reason = Some("Button V and widget AS are inconsistent");
         }
         budget.report(name.len())?;
-        fields.push(FormField {
+        let mut field = FormField {
             object_id: id,
             name,
             kind,
             flags,
             value: current,
             widgets: entries,
-            writable_button: reason.is_none(),
-            refusal_reason: reason.map(str::to_owned),
-        });
+            writable_button: button && reason.is_none(),
+            refusal_reason: reason
+                .or(if !button {
+                    Some("This field type needs a later appearance-generation or signing stage")
+                } else {
+                    None
+                })
+                .map(str::to_owned),
+            writable_text: false,
+            text_refusal_reason: if is_text {
+                reason.map(str::to_owned)
+            } else {
+                Some("This field is not a text field".into())
+            },
+        };
+        if is_text && field.text_refusal_reason.is_none() {
+            match appearance::text_eligibility(pdf, &field, &mut budget) {
+                Ok(()) => field.writable_text = true,
+                Err(error @ Error::Limit(_)) => return Err(error),
+                Err(error) => {
+                    let message = error.to_string();
+                    budget.report(message.len())?;
+                    field.text_refusal_reason = Some(message);
+                }
+            }
+        }
+        fields.push(field);
     }
     if placements.keys().any(|id| !seen.contains(id)) {
         return Err(Error::Invalid(
@@ -785,6 +828,9 @@ fn discover(pdf: &PdfDocument) -> Result<Vec<FormField>> {
     for field in &mut fields {
         if ambiguous.contains(&field.name) {
             field.writable_button = false;
+            field.writable_text = false;
+            field.text_refusal_reason =
+                Some("Duplicate qualified names require grouped-field support".into());
             field.refusal_reason =
                 Some("Duplicate qualified names require grouped-field support".into());
         }

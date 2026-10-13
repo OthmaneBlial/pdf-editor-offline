@@ -875,3 +875,104 @@ fn independent_qpdf_values_and_poppler_widget_pixels_verify_actual_fixture() {
         include_bytes!("../../../tests/fixtures/pdfs/forms.pdf")
     );
 }
+
+#[test]
+fn text_structural_eligibility_is_authoritative_and_does_not_hide_buttons() {
+    let input = include_bytes!("../../../tests/fixtures/pdfs/forms.pdf");
+    let original = PdfDocument::from_bytes(input, None).unwrap();
+    let fields = original.list_form_fields().unwrap();
+    let target = fields
+        .iter()
+        .find(|field| field.name == "full_name")
+        .unwrap();
+    assert!(target.writable_text, "{:?}", target.text_refusal_reason);
+    assert!(!target.writable_button);
+    assert!(target.text_refusal_reason.is_none());
+    for mode in [
+        "readonly",
+        "multiline",
+        "actions",
+        "bad-appearance",
+        "signed",
+        "xfa",
+    ] {
+        let mut document = Document::load_mem(input).unwrap();
+        let dict = document.get_dictionary_mut(target.object_id).unwrap();
+        match mode {
+            "readonly" => dict.set("Ff", 1),
+            "multiline" => dict.set("Ff", 1 << 12),
+            "actions" => dict.set("AA", dictionary! {}),
+            "bad-appearance" => {
+                dict.remove(b"AP");
+            }
+            "signed" => {
+                document.add_object(dictionary! {"Type"=>"Sig"});
+            }
+            "xfa" => {
+                let catalog = document
+                    .trailer
+                    .get(b"Root")
+                    .unwrap()
+                    .as_reference()
+                    .unwrap();
+                document
+                    .get_dictionary_mut(catalog)
+                    .unwrap()
+                    .get_mut(b"AcroForm")
+                    .unwrap()
+                    .as_dict_mut()
+                    .unwrap()
+                    .set("XFA", Object::string_literal("unsupported"));
+            }
+            _ => unreachable!(),
+        }
+        let pdf = PdfDocument::from_bytes(&bytes(&mut document), None).unwrap();
+        let fields = pdf.list_form_fields().unwrap();
+        let text = fields
+            .iter()
+            .find(|field| field.name == "full_name")
+            .unwrap();
+        assert!(!text.writable_text, "accepted {mode}");
+        assert!(
+            text.text_refusal_reason.is_some(),
+            "missing reason for {mode}"
+        );
+        if matches!(
+            mode,
+            "readonly" | "multiline" | "actions" | "bad-appearance"
+        ) {
+            assert!(
+                fields
+                    .iter()
+                    .find(|field| field.name == "approved")
+                    .unwrap()
+                    .writable_button,
+                "text refusal hid a valid button for {mode}"
+            );
+        }
+    }
+    let mut document = Document::load_mem(input).unwrap();
+    document.trailer.set(
+        "ID",
+        vec![
+            Object::string_literal("text-eligibility-id"),
+            Object::string_literal("text-eligibility-id"),
+        ],
+    );
+    let encryption = lopdf::EncryptionState::try_from(lopdf::EncryptionVersion::V2 {
+        document: &document,
+        owner_password: "owner",
+        user_password: "reader",
+        key_length: 128,
+        permissions: lopdf::Permissions::all(),
+    })
+    .unwrap();
+    document.encrypt(&encryption).unwrap();
+    let pdf = PdfDocument::from_bytes(&bytes(&mut document), Some("reader")).unwrap();
+    assert!(
+        pdf.list_form_fields()
+            .unwrap()
+            .iter()
+            .all(|field| !field.writable_text && !field.writable_button)
+    );
+}
