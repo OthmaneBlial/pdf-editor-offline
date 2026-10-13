@@ -72,7 +72,12 @@ fn arrays_cross_stream_state_shared_images_and_pages_replace_only_selected_do() 
     let mut changed = 0;
     for (i, (a, b)) in page1.chunks_exact(4).zip(after.chunks_exact(4)).enumerate() {
         if a != b {
-            assert!((100..140).contains(&(i % 200)) && (140..160).contains(&(i / 200)));
+            assert!(
+                (100..140).contains(&(i % 200)) && (140..160).contains(&(i / 200)),
+                "outside expected image raster footprint at ({}, {}) before={a:?} after={b:?}",
+                i % 200,
+                i / 200
+            );
             changed += 1;
         }
     }
@@ -184,6 +189,27 @@ fn independent_reader_replacement_preserves_text_geometry_and_shared_instance_pi
     let temp = tempfile::tempdir().unwrap();
     let input = temp.path().join("source.pdf");
     let result = temp.path().join("replacement.pdf");
+    let control_path = temp.path().join("control-no-selected-image.pdf");
+    let mut control_doc = Document::load_mem(&source).unwrap();
+    let id = control_doc
+        .get_object((6, 0))
+        .unwrap()
+        .as_dict()
+        .unwrap()
+        .get(b"Contents")
+        .unwrap()
+        .as_array()
+        .unwrap()
+        .last()
+        .unwrap()
+        .clone();
+    control_doc
+        .get_object_mut(id.as_reference().unwrap())
+        .unwrap()
+        .as_stream_mut()
+        .unwrap()
+        .set_content(b"20 0 0 10 50 70 cm Q Q\n".to_vec());
+    std::fs::write(&control_path, bytes(control_doc)).unwrap();
     std::fs::write(&input, &source).unwrap();
     std::fs::write(&result, &output).unwrap();
     let qpdf = std::env::var_os("PDF_QPDF_BIN").unwrap();
@@ -220,16 +246,28 @@ fn independent_reader_replacement_preserves_text_geometry_and_shared_instance_pi
     assert_eq!(raster(&input, "2"), raster(&result, "2"));
     let before = raster(&input, "1");
     let after = raster(&result, "1");
+    let control = raster(&control_path, "1");
+    let control = control.strip_prefix(b"P6\n200 300\n255\n").unwrap();
     let before = before.strip_prefix(b"P6\n200 300\n255\n").unwrap();
     let after = after.strip_prefix(b"P6\n200 300\n255\n").unwrap();
     let mut changed = 0;
-    for (i, (a, b)) in before
+    for (i, ((a, b), unpainted)) in before
         .chunks_exact(3)
         .zip(after.chunks_exact(3))
+        .zip(control.chunks_exact(3))
         .enumerate()
     {
-        if a != b {
-            assert!((100..140).contains(&(i % 200)) && (140..160).contains(&(i / 200)));
+        if a == unpainted {
+            assert_eq!(
+                a,
+                b,
+                "changed outside independently observed original-image footprint at ({},{})",
+                i % 200,
+                i / 200
+            );
+        } else {
+            assert_eq!(a, [200, 40, 80]);
+            assert_eq!(b, [0, 0, 255]);
             changed += 1;
         }
     }
