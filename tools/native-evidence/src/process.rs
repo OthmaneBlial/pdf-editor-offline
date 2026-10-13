@@ -19,12 +19,14 @@ pub struct Output {
 pub struct Runner {
     started: Instant,
     budget: Duration,
+    operation_budget: Duration,
 }
 impl Runner {
     pub fn new() -> Self {
         Self {
             started: Instant::now(),
             budget: Duration::from_secs(180),
+            operation_budget: Duration::from_secs(60),
         }
     }
     pub fn elapsed(&self) -> f64 {
@@ -35,7 +37,7 @@ impl Runner {
             .budget
             .checked_sub(self.started.elapsed())
             .ok_or("global 180-second evidence budget exceeded")?;
-        let timeout = remaining.min(Duration::from_secs(60));
+        let timeout = remaining.min(self.operation_budget);
         let stdout = tempfile::tempfile().map_err(|e| e.to_string())?;
         let stderr = tempfile::tempfile().map_err(|e| e.to_string())?;
         let started = Instant::now();
@@ -111,10 +113,6 @@ mod tests {
     use super::*;
     #[test]
     fn deadlines_kill_and_reap_a_real_child() -> Result<(), String> {
-        let runner = Runner {
-            started: Instant::now(),
-            budget: Duration::from_millis(20),
-        };
         let executable = std::env::current_exe().map_err(|e| e.to_string())?;
         let args = crate::args([
             "--ignored",
@@ -122,12 +120,17 @@ mod tests {
             "process::tests::child_sleep",
             "--nocapture",
         ]);
+        let runner = Runner {
+            started: Instant::now(),
+            budget: Duration::from_secs(180),
+            operation_budget: Duration::from_millis(20),
+        };
         let started = Instant::now();
         let error = runner
             .run(&executable, &args)
             .err()
             .ok_or("sleeping child did not time out")?;
-        assert!(error.contains("deadline"));
+        assert!(error.starts_with("subprocess deadline exceeded"), "{error}");
         assert!(started.elapsed() < Duration::from_secs(2));
         Ok(())
     }
@@ -141,6 +144,7 @@ mod tests {
         let runner = Runner {
             started: Instant::now(),
             budget: Duration::ZERO,
+            operation_budget: Duration::from_secs(60),
         };
         assert!(
             runner
