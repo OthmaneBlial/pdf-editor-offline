@@ -775,6 +775,127 @@ impl WorkingDocument {
         })
     }
 
+    pub fn redact_images(
+        &self,
+        revision: u64,
+        selections: &[pdf_core::ImageSelection],
+    ) -> Result<(Self, pdf_core::ImageRedactionReport), String> {
+        if revision != self.current.revision
+            || self.session_only()
+            || self.current.info.signature_fields != 0
+        {
+            return Err(
+                "Image removal source is stale, signed or encrypted; source retained".into(),
+            );
+        }
+        let (result, reply) = execute(
+            Operation::RedactImages {
+                selections: selections.to_vec(),
+            },
+            &self.current.bytes,
+        )?;
+        let DocumentResult::ImagesRedacted { info, report } = result else {
+            return Err("Unexpected image removal reply".into());
+        };
+        validate_info(&info)?;
+        let mut requested = selections
+            .iter()
+            .map(|s| (s.page, s.operator))
+            .collect::<Vec<_>>();
+        let mut removed = report
+            .removed_draws
+            .iter()
+            .map(|s| (s.page, s.operator))
+            .collect::<Vec<_>>();
+        requested.sort_unstable();
+        removed.sort_unstable();
+        let counts = [
+            report.removed_image_objects,
+            report.removed_mask_objects,
+            report.resource_links_removed,
+            report.rewritten_orphans_removed,
+            report.content_comments_removed,
+        ];
+        if reply.kind != PayloadKind::Pdf
+            || reply.payload.is_empty()
+            || reply.payload.len() > pdf_core::MAX_INPUT_BYTES
+            || info.pages != self.current.info.pages
+            || info.encrypted
+            || info.signature_fields != 0
+            || !report.full_rewrite
+            || !report.cleanup.full_rewrite
+            || report.profile != "whole-image-rgb-gray8-plain-flate-smask-v1"
+            || requested.is_empty()
+            || requested.len() > 10000
+            || requested != removed
+            || requested.windows(2).any(|p| p[0] == p[1])
+            || report.removed_image_objects == 0
+            || counts.iter().any(|n| *n > 2_000_000)
+            || report
+                .removed_draws
+                .iter()
+                .any(|draw| draw.corners.iter().flatten().any(|v| !v.is_finite()))
+            || report.limitations.is_empty()
+            || report.limitations.len() > 16
+            || report.limitations.iter().any(|s| s.len() > 1024)
+            || serde_json::to_vec(&report)
+                .map_err(|e| e.to_string())?
+                .len()
+                > pdf_worker::MAX_CONTROL_BYTES
+        {
+            return Err("Invalid image removal report or output; source retained".into());
+        }
+        // The parent never parses PDFs or trusts a renderer as a privacy decoder.
+        // Reverify the actual returned bytes in a second bounded child against the
+        // source; combined source+output framing has an explicit 128 MiB cap.
+        let combined = self
+            .current
+            .bytes
+            .len()
+            .checked_add(reply.payload.len())
+            .ok_or("Image verification byte overflow")?;
+        if combined > pdf_core::MAX_INPUT_BYTES {
+            return Err(
+                "Image source plus verification output exceeds 128 MiB; source retained".into(),
+            );
+        }
+        let mut frame = Vec::new();
+        frame
+            .try_reserve_exact(combined)
+            .map_err(|_| "Image verification allocation refused")?;
+        frame.extend_from_slice(&self.current.bytes);
+        frame.extend_from_slice(&reply.payload);
+        let (verified, verification) = execute(
+            Operation::VerifyImageRedaction {
+                source_bytes_len: self.current.bytes.len(),
+                selections: selections.to_vec(),
+            },
+            &frame,
+        )?;
+        if !matches!(verified, DocumentResult::ImagesRedactionVerified {})
+            || verification.kind != PayloadKind::None
+            || !verification.payload.is_empty()
+        {
+            return Err("Image output byte verification refused; source retained".into());
+        }
+        Ok((
+            Self {
+                current: Snapshot {
+                    bytes: reply.payload,
+                    info,
+                    revision: 0,
+                },
+                undo: Vec::new(),
+                redo: Vec::new(),
+                saved_revision: None,
+                next_revision: 1,
+                path: None,
+                password: None,
+            },
+            report,
+        ))
+    }
+
     pub fn redact(
         &self,
         revision: u64,

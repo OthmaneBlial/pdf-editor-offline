@@ -10,6 +10,21 @@ fonts, source structures, missing glyphs, CFF/RTL and reflow are refused.
 Headless controls and production-native child/output proof do not establish a
 manual window review or change the published preview.
 
+**Edit → Remove complete images into new copy…** opens the real source-bound
+image inventory. Include individual draws across pages and confirm the complete
+asset selection. A fresh unsaved tab appears only after two bounded child checks
+and a durable journal commit; the original tab and its history remain unchanged.
+Save As publishes a verified no-clobber copy. Shared image/mask uses must all be
+selected; otherwise the source and draft are retained with a refusal. Remaining
+text must use strict ASCII/unembedded standard Type1 fonts. Current
+scope is RGB/Gray8 plain/Flate images with grayscale soft masks. JPEG, predictors,
+ICC and opaque carriers refuse. Source plus verification output is capped at
+128 MiB. The full rewrite also removes supported metadata, attachment and action
+carriers; actual categories are reported. Original files and recovery copies
+remain. This is not partial-pixel redaction or a general privacy certificate.
+Controls and production child/save behavior are tested; manual window interaction
+is not established by the headless tests.
+
 Current source includes **Edit → Number pages…** and a working command-palette action.
 An explicit page range, starting integer, header/footer band, margin, font size,
 RGB color, alignment and covering font create one atomic batch and one durable

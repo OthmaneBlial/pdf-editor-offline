@@ -73,6 +73,7 @@ enum Action {
     DuplicatePages,
     Sanitize,
     RedactText,
+    RedactImages,
     Split,
     Merge,
 }
@@ -263,6 +264,13 @@ impl EditorApp {
                     status,
                     report,
                 } => self.accept_redacted(id, path, status, report, context),
+                Event::ImagesRedacted {
+                    key,
+                    id,
+                    path,
+                    status,
+                    report,
+                } => self.accept_images_redacted(key, id, path, status, report, context),
                 Event::RecoveryListed { sessions } => self.accept_recovery_list(sessions),
                 Event::RecoveryRestored { documents } => self.accept_recovered(documents, context),
                 Event::SavePending { id, path, message } => {
@@ -1222,6 +1230,7 @@ impl EditorApp {
             Action::DuplicatePages => self.open_page_ranges(pages::Mode::Duplicate),
             Action::Sanitize => self.open_sanitization(),
             Action::RedactText => self.open_redaction(),
+            Action::RedactImages => self.open_image_redaction(),
             Action::Split => self.open_split(),
             Action::Merge => self.open_merge(),
         }

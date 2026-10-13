@@ -7,10 +7,16 @@ use eframe::egui;
 use std::path::PathBuf;
 mod instances;
 mod placement;
+mod redaction;
 pub(super) struct Dialog {
     pub key: FormsReadKey,
     pub request: pdf_core::ImageOverlay,
     replacement_mode: bool,
+    redaction_mode: bool,
+    removal_selections: Vec<pdf_core::ImageSelection>,
+    removal_confirmed: bool,
+    expected_copy: Option<u64>,
+    removal_report: Option<pdf_core::ImageRedactionReport>,
     instances: Vec<pdf_core::ImageInstance>,
     selected_instance: Option<usize>,
     initial: [f64; 4],
@@ -24,7 +30,8 @@ pub(super) struct Dialog {
 }
 impl Dialog {
     pub fn has_changes(&self) -> bool {
-        self.image_file.is_some()
+        !self.removal_selections.is_empty()
+            || self.image_file.is_some()
             || self.request.rectangle != self.initial
             || self.request.rotation != 0
     }
@@ -111,6 +118,11 @@ impl EditorApp {
                 rotation: 0,
             },
             replacement_mode: false,
+            redaction_mode: false,
+            removal_selections: Vec::new(),
+            removal_confirmed: false,
+            expected_copy: None,
+            removal_report: None,
             instances: vec![],
             selected_instance: None,
             initial,
@@ -187,6 +199,10 @@ impl EditorApp {
         true
     }
     pub(super) fn image_overlay_dialog(&mut self, context: &egui::Context) {
+        if self.image_dialog.as_ref().is_some_and(|d| d.redaction_mode) {
+            self.image_redaction_dialog(context);
+            return;
+        }
         if self.close_target.is_some() {
             return;
         }

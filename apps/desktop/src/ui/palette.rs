@@ -65,6 +65,13 @@ impl EditorApp {
                         Action::ReplaceImage,
                         editable && self.pending_saves.is_empty(),
                     ),
+                    (
+                        "Permanently remove complete images into a separate copy",
+                        Action::RedactImages,
+                        editable
+                            && self.pending_saves.is_empty()
+                            && self.tabs.len() < crate::worker::MAX_TABS,
+                    ),
                     ("PDF form fields", Action::Forms, !self.busy && has_document),
                     ("Recover previous session", Action::Recovery, true),
                     ("Open PDF", Action::Open, !self.busy && self.tabs.len() < 16),

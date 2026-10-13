@@ -151,6 +151,11 @@ pub enum Edit {
 }
 
 pub enum Command {
+    RedactImages {
+        key: FormsReadKey,
+        new_id: u64,
+        selections: Vec<pdf_core::ImageSelection>,
+    },
     ContentText(ContentTextKey),
     ImageInstances {
         key: FormsReadKey,
@@ -259,7 +264,7 @@ impl Command {
             Self::Notes(key) => key.tab,
             Self::ContentText(key) => key.tab,
             Self::Forms(key) => key.tab,
-            Self::ImageInstances { key, .. } => key.tab,
+            Self::ImageInstances { key, .. } | Self::RedactImages { key, .. } => key.tab,
             Self::Search { key, .. } => key.tab,
         }
     }
@@ -330,6 +335,13 @@ pub enum Event {
         path: PathBuf,
         status: DocumentStatus,
         report: pdf_core::TextRedactionReport,
+    },
+    ImagesRedacted {
+        key: FormsReadKey,
+        id: u64,
+        path: PathBuf,
+        status: DocumentStatus,
+        report: pdf_core::ImageRedactionReport,
     },
     Extracted {
         id: u64,
@@ -444,7 +456,9 @@ impl Worker {
                         ..
                     } => Some(TaskKey::ContentText(*key)),
                     Command::Forms(key) => Some(TaskKey::Forms(*key)),
-                    Command::ImageInstances { key, .. } => Some(TaskKey::Overlay(*key)),
+                    Command::ImageInstances { key, .. } | Command::RedactImages { key, .. } => {
+                        Some(TaskKey::Overlay(*key))
+                    }
                     Command::Edit {
                         edit:
                             Edit::TextOverlay { key, .. }
@@ -519,6 +533,8 @@ pub(crate) mod content_tests;
 mod document;
 #[cfg(test)]
 mod forms_tests;
+#[cfg(test)]
+pub(crate) mod image_redaction_tests;
 #[cfg(test)]
 mod image_tests;
 #[cfg(test)]
@@ -758,6 +774,42 @@ fn process_with_journal(
             id: new_id,
             path: PathBuf::from("Merged — unsaved.pdf"),
             status,
+        });
+    }
+    if let Command::RedactImages {
+        key,
+        new_id,
+        selections,
+    } = command
+    {
+        if documents.len() >= MAX_TABS
+            || new_id == 0
+            || new_id == u64::MAX
+            || documents.contains_key(&new_id)
+        {
+            return Err("A fresh ID and available tab are required for image removal".into());
+        }
+        if journal.as_deref().is_some_and(|j| {
+            j.save_intents()
+                .iter()
+                .any(|i| i.document_id == key.tab.to_string())
+        }) {
+            return Err("Resolve or cancel pending save before removing images".into());
+        }
+        let source = documents
+            .get(&key.tab)
+            .ok_or("Source document unavailable")?;
+        let (copy, report) = source.redact_images(key.revision, &selections)?;
+        check_snapshot_budget(documents, &copy)?;
+        let status = copy.status()?;
+        persist(journal.as_deref_mut(), &copy.as_ref(&new_id.to_string()))?;
+        documents.insert(new_id, copy);
+        return Ok(Event::ImagesRedacted {
+            key,
+            id: new_id,
+            path: PathBuf::from("Image removed — unsaved copy.pdf"),
+            status,
+            report,
         });
     }
     if let Command::RedactText {
@@ -1237,6 +1289,7 @@ fn process_with_journal(
         | Command::ExtractPages { .. }
         | Command::Sanitize { .. }
         | Command::RedactText { .. }
+        | Command::RedactImages { .. }
         | Command::Split { .. }
         | Command::Merge { .. }
         | Command::Close(_) => {
