@@ -335,9 +335,16 @@ impl EditorApp {
                             dialog.stale = true;
                         }
                     }
-                    if let Some(dialog) = self.content_dialog.as_mut().filter(|dialog|dialog.key.tab==id) {
-                        if dialog.submitting {self.content_dialog=None;}
-                        else {dialog.stale=true;}
+                    if let Some(dialog) = self
+                        .content_dialog
+                        .as_mut()
+                        .filter(|dialog| dialog.key.tab == id)
+                    {
+                        if dialog.submitting {
+                            self.content_dialog = None;
+                        } else {
+                            dialog.stale = true;
+                        }
                     }
                     if self
                         .overlay_dialog
@@ -902,11 +909,20 @@ impl EditorApp {
         }
     }
 
+    fn has_page_content_dialog(&self) -> bool {
+        self.overlay_dialog.is_some()
+            || self.vector_dialog.is_some()
+            || self.image_dialog.is_some()
+            || self.content_dialog.is_some()
+    }
     fn has_tab_draft(&self, id: u64) -> bool {
         self.vector_dialog
             .as_ref()
             .is_some_and(|d| d.key.tab == id && d.has_changes())
-            || self.content_dialog.as_ref().is_some_and(|d|d.key.tab==id&&d.has_changes())
+            || self
+                .content_dialog
+                .as_ref()
+                .is_some_and(|d| d.key.tab == id && d.has_changes())
             || self
                 .image_dialog
                 .as_ref()

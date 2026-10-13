@@ -45,13 +45,15 @@ fn competing_overlay_actions_preserve_the_first_open_dialog() {
         app.open_image_overlay();
         app.open_vector();
         app.open_text_overlay();
+        app.open_content_text();
         assert_eq!(
             [
                 app.image_dialog.is_some(),
                 app.overlay_dialog.is_some(),
-                app.vector_dialog.is_some()
+                app.vector_dialog.is_some(),
+                app.content_dialog.is_some()
             ],
-            [first == 0, first == 1, first == 2],
+            [first == 0, first == 1, first == 2, false],
             "only the first dialog may own the canvas"
         );
         assert_eq!(app.forms_generation, generation);

@@ -58,7 +58,7 @@ impl Dialog {
 }
 impl EditorApp {
     pub(super) fn open_content_text(&mut self) {
-        if self.busy || !self.pending_saves.is_empty() || self.content_dialog.is_some() {
+        if self.busy || !self.pending_saves.is_empty() || self.has_page_content_dialog() {
             return;
         }
         let Some(tab) = self.selected() else {

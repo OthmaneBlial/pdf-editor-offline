@@ -73,12 +73,7 @@ impl Dialog {
 }
 impl EditorApp {
     pub(super) fn open_text_overlay(&mut self) {
-        if self.busy
-            || !self.pending_saves.is_empty()
-            || self.overlay_dialog.is_some()
-            || self.vector_dialog.is_some()
-            || self.image_dialog.is_some()
-        {
+        if self.busy || !self.pending_saves.is_empty() || self.has_page_content_dialog() {
             return;
         }
         let Some(tab) = self.selected().filter(|t| t.editable()) else {

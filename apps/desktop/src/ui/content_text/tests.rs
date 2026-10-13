@@ -39,6 +39,26 @@ fn app() -> (
     );
     (temp, app, ctx, path, bytes)
 }
+#[test]
+fn competing_canvas_actions_retain_loaded_existing_text_draft() {
+    let (_temp, mut app, _ctx, _path, _bytes) = app();
+    let dialog = app.content_dialog.as_mut().unwrap();
+    dialog.selected = Some(0);
+    dialog.replacement = "Replaced".into();
+    let key = dialog.key;
+    assert!(dialog.has_changes());
+    assert!(!app.busy);
+    app.open_image_overlay();
+    app.open_vector();
+    app.open_text_overlay();
+    assert!(app.image_dialog.is_none());
+    assert!(app.vector_dialog.is_none());
+    assert!(app.overlay_dialog.is_none());
+    let dialog = app.content_dialog.as_ref().unwrap();
+    assert_eq!(dialog.key, key);
+    assert_eq!(dialog.replacement, "Replaced");
+    assert!(dialog.has_changes());
+}
 fn draw(app: &mut EditorApp, ctx: &egui::Context, events: Vec<egui::Event>) -> egui::FullOutput {
     let mut output = ctx.run_ui(
         egui::RawInput {
