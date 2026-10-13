@@ -245,7 +245,7 @@ Original files and filesystem history remain. See the
 [supported core tier and independent checks](../../crates/pdf-core/README.md).
 
 `fill-text INPUT --field NAME --value VALUE --font-file FONT.ttf -o NEW.pdf`
-fills a supported single-line AcroForm text field with an explicitly supplied
+fills a supported single/multiline AcroForm text field with an explicitly supplied
 complete, editable TrueType or supported static CID-keyed CFF1 OpenType font and
 a real embedded appearance. Use `FONT.otf` for the latter. The bounded
 child reads at most 16 MiB of font data from a regular file. Missing glyphs,

@@ -15,6 +15,21 @@ GitHub and npm publication are verified; npm `latest` is `4.0.0-preview.3` and a
 fresh registry install was checked with Node 22. This later text/CFF source is
 separate from that release; preview 4 is not yet published.
 
+Eligible multiline fields now use Unicode wrapping with paragraph-aware bidi
+shaping, preserved logical breaks, grapheme-safe boundaries and bounded fit.
+The native editor accepts paste and Enter/newline input and uses the same isolated
+font payload, durable history and verified save path. CLI `fill-text` supports
+the same eligible fields. Comb/rich text, free-entry combos and manual font-picker
+review remain open; this edits forms rather than arbitrary page content.
+
+The combined multiline/choice/sanitization integration passed **496 workspace
+tests with zero failed or ignored gates** across 56 suites. Fresh normal
+native/CLI/helper builds, strict workspace Clippy, formatting and all four
+Cargo-deny categories passed. Pinned qpdf/Poppler checks include the actual native
+multiline worker, undo/redo, saving, logical values/text, widget pixels and source
+preservation. Unicode line-breaking uses the reviewed Apache-2.0
+`unicode-linebreak` dependency; segmentation reuses the existing locked crate.
+
 Targeted sanitization now removes supported Info/XMP links, file associations,
 attachment annotations and actions through a verified full rewrite. The CLI and
 path-free worker return a bounded report; the desktop creates a separate unsaved

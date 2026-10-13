@@ -7,7 +7,7 @@ later source has not yet been released.
 Preview 3 is frozen at `d711a6f`, with native and security CI passed, and its
 [actual-runner release build](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38333220611)
 passed, followed by five real HTTPS global installs and GitHub/npm publication.
-This later source adds single-line text and indexed dropdown/list appearances
+This later source adds single/multiline text and indexed dropdown/list appearances
 with explicit TrueType/CID-keyed CFF1 fonts, plus targeted sanitized copies.
 Preserve the preview 3 tag and assets; publish its
 package from the matching frozen source rather than relabeling this checkout.

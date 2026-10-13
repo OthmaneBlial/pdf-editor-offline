@@ -139,7 +139,7 @@ text, geometry and pixels.
 `fill_buttons(&[ButtonChange])` updates eligible checkbox/radio values and states
 transactionally, retaining their existing appearance streams.
 
-`fill_text(&[TextChange], font_bytes)` fills supported single-line text fields
+`fill_text(&[TextChange], font_bytes)` fills supported single/multiline text fields
 with an explicit complete covering TrueType or static CID-keyed CFF1 font. Its
 embedding rights, glyph outlines, shaping, metrics and fit are checked before
 committing. Values and real embedded appearances agree; ActualText and cluster
@@ -149,7 +149,7 @@ Unrelated objects and drawing outside the replaced region remain intact.
 Discovery's `writable_text` reports structural eligibility; the actual font and
 layout are validated during filling. Unsupported field/font/layout semantics,
 dependent surrounding artwork, signed and decrypted inputs are refused. No font
-fallback, truncation, viewer regeneration, choice/advanced-text support or secure
+fallback, truncation, viewer regeneration, comb/rich-text support or secure
 erasure is claimed. The [form guide](../../docs/FORMS_RUST.md) includes actual CLI
 examples and independent qpdf/Poppler structure, extraction and pixel gates.
 

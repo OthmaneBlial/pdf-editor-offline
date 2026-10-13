@@ -20,7 +20,7 @@
 binary for macOS, Windows or Linux. This release adds guarded page duplication,
 checkbox/radio filling and bounded local document workers.
 
-**Growing on `main`:** single-line text, dropdowns and list selections with
+**Growing on `main`:** single/multiline text, dropdowns and list selections with
 embedded covering fonts and desktop undo/redo, plus targeted sanitized copies.
 [See the form walkthrough](docs/FORMS_RUST.md).
 
@@ -136,7 +136,7 @@ The table covers current source; published CLI differences are called out below.
 | Document properties | Read/edit six standard fields, including Unicode | Read/set/remove Title, Author, Subject, Keywords, Creator and Producer |
 | Images | Create PDF pages from supported PNG/JPEG files | Restricted images-to-PDF conversion; export one PDF page as PNG |
 | Comments | Existing supported appearances can be displayed | Add/list sticky Text notes; guarded editing/removal of basic notes |
-| Forms | Checkboxes/radios, single-line text, dropdowns and single/multiple list selections; guarded apply and undo/redo | Discover fields and indexed options; `fill-button`, `fill-text`, `list-choices` and `fill-choice` in current source |
+| Forms | Checkboxes/radios, single/multiline text, dropdowns and single/multiple list selections; guarded apply and undo/redo | Discover fields and indexed options; `fill-button`, `fill-text`, `list-choices` and `fill-choice` in current source |
 | Inspect and export | Verified Save As to a new path | Read-only action/attachment/form/layer markers, lossless stream compression, verified fresh output copies |
 | Targeted cleanup | Separate unsaved copy, removal report and verified Save As | `sanitize` removes supported metadata/file/action structures through a full rewrite in current source; includes dry-run and a partial-scope report |
 | Resume your work | Recorded document/history snapshots, explicit session restore/discard, interrupted-save retry/cancel in current source | Desktop recovery is separate from the CLI |
@@ -160,7 +160,7 @@ content; inspect exported documents before relying on them. Signed inputs and
 successfully decrypted inputs are read-only.
 
 [Try the form fixture](docs/FORMS_RUST.md): buttons preserve existing appearances;
-single-line text embeds a complete covering TrueType or supported CID-keyed CFF1
+single/multiline text embeds a complete covering TrueType or supported CID-keyed CFF1
 font. Missing glyphs and unsupported layouts are refused. Button filling is in the
 published `4.0.0-preview.3` CLI; text and choice generation are available in current
 source. Choice selections use explicit option indices, including when export

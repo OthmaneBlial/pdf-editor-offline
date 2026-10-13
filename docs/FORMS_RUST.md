@@ -1,7 +1,7 @@
 # Native AcroForm filling
 
 Current source discovers AcroForm fields and fills supported checkbox/radio
-buttons using their existing appearance streams. Eligible single-line text fields
+buttons using their existing appearance streams. Eligible single/multiline text fields
 generate embedded appearances with an explicitly supplied covering font. The
 published `4.0.0-preview.3` CLI includes the button tier. Text generation is
 available in current source, together with guarded dropdown and list filling.
@@ -40,6 +40,11 @@ font with **Choose text font…**. Supported choices show dropdown or list contr
 multi-select lists support multiple selections. Unsupported fields remain read-only.
 Password values are omitted.
 
+For eligible multiline fields, Enter inserts a line break. Line breaks are
+preserved in the stored value; the appearance wraps at supported Unicode break
+opportunities while keeping grapheme clusters together. All lines must fit the
+widget. Overflow is refused rather than clipped, scrolled or truncated.
+
 Choose the desired states and values, then press **Apply form changes**. A mixed
 button/text/choice edit commits together only when every change succeeds. The edit enters
 durable history, so Undo/Redo work before **Save As** creates a verified copy.
@@ -64,6 +69,16 @@ value and permit editable embedding. The CLI and desktop read a regular font fil
 with a 16 MiB limit; the path-free worker receives bounded font bytes separately
 from the PDF. No fallback font is silently chosen.
 
+For an eligible multiline field in your own document, pass actual line breaks:
+
+```sh
+./target/debug/pdf-editor-offline fill-text input.pdf --field notes --value 'First line
+Second line' --font-file apps/desktop/assets/fonts/ibm-plex/IBMPlexSans-Regular.ttf -o filled.pdf --dry-run --json
+```
+
+Use the field name reported by `list-forms`; the example name is not a claim
+that every document has a field named `notes`.
+
 This tier supports static TrueType outlines and guarded horizontal CID-keyed
 CFF1 OpenType fonts. It shapes covered text with bidi/script handling, preserves
 the logical value in `/V` and `/ActualText`, and writes cluster mappings in
@@ -73,15 +88,26 @@ font program is embedded unchanged; existing resources and unrelated objects
 remain intact. Missing glyphs, invisible non-whitespace outlines, unsupported
 color/bitmap/SVG or variable fonts and unsupported CFF matrices are refused.
 
+Generated replacement text requires PDF 1.4. Successful fills raise older headers
+to that minimum while preserving newer headers and catalog version entries.
+
 Discovery reports button eligibility with `writable_button` / `refusal_reason`
 and text eligibility separately with `writable_text` / `text_refusal_reason`.
 Text eligibility is structural: Apply still checks the supplied font and layout.
 
-Multiline, password, file-select, comb and rich-text fields remain unavailable.
+Password, file-select, comb and rich-text fields remain unavailable.
 Existing appearance regions that cannot be replaced while preserving surrounding
 drawing semantics are refused. This edits form fields, rather than arbitrary
 page text. RTL extraction can differ between reader modes; fixture checks do not
 establish universal text order or full Unicode coverage.
+
+Multiline layout supports explicit CR/LF/CRLF, NEL and Unicode line/paragraph
+separators, blank lines, inherited alignment and paragraph-aware bidi shaping.
+Wrapping uses Unicode 15 line-break opportunities and extended grapheme bounds;
+it does not invent hyphens. Layout is top-aligned with bounded automatic sizing
+or the inherited fixed size. Limits include 1,024 lines, 64 KiB of value text and
+two million planning bytes; the complete generated appearance also stays within
+the shared 100,000-operator limit.
 
 ## Fill a dropdown or list
 
@@ -148,6 +174,7 @@ behavior, atomic refusals, unrelated objects and rendered pixels:
 ```sh
 PDF_QPDF_BIN=/absolute/path/to/qpdf PDF_REFERENCE_BIN_DIR=/absolute/path/to/poppler/bin cargo test -p pdf-core --test text_forms --locked -- --ignored
 PDF_FORM_QPDF=/absolute/path/to/qpdf PDF_FORM_POPPLER_BIN=/absolute/path/to/poppler/bin cargo test -p pdf-core --test cff_forms --locked -- --ignored
+PDF_QPDF_BIN=/absolute/path/to/qpdf PDF_REFERENCE_BIN_DIR=/absolute/path/to/poppler/bin cargo test -p pdf-core --test multiline_forms --locked -- --ignored
 ```
 
 These fixture checks do not prove complete forms support or universal rendering

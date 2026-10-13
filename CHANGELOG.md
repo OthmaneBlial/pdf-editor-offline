@@ -2,6 +2,10 @@
 
 ## Unreleased — native Rust preview
 
+- Raise legacy PDF headers to 1.4 when generating ActualText appearances, preserving newer headers and catalog version declarations. Failed font/value edits leave the source version unchanged.
+
+- Added Unicode multiline form layout and native multiline input, preserving logical breaks and wrapping without splitting grapheme clusters. Paragraph-aware bidi shaping, fit limits and atomic overflow refusals share the existing font/publisher path. Real isolated native history/save output passes pinned structure/text/pixel checks.
+
 - Added targeted full-rewrite sanitization to the core, isolated CLI/worker and native editor. Supported metadata, file associations and actions are removed into a separate verified copy; native copies are journaled before acknowledgement. Retained private aliases and unsupported structures are refused. Reports explicitly do not certify privacy or secure redaction.
 
 - Added indexed dropdown, single-select and multi-select list filling to the core, isolated CLI/worker and native form dialog. Display labels and export values remain distinct; mixed button/text/choice edits commit together with durable undo/redo. Unsupported free-entry combos and layouts are refused.

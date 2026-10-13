@@ -7,9 +7,9 @@ feature set; their capabilities do not describe this Rust implementation.
   CLI downloads and the optional npm installer are available for five platforms.
 - Rendering may omit unsupported PDF content. Reopen exported copies in another
   reader; the tested fixtures do not establish all-document fidelity.
-- OCR, advanced text forms/free-entry combos, digital signing, arbitrary page-text
+- OCR, comb/rich-text forms/free-entry combos, digital signing, arbitrary page-text
   editing, secure redaction and broad Office conversion are not implemented.
-  Supported buttons, single-line text and indexed choices have a guarded
+  Supported buttons, single/multiline text and indexed choices have a guarded
   [form workflow](FORMS_RUST.md); text and choices need an explicit covering font.
 - [Targeted sanitization](SANITIZATION_RUST.md) removes specified metadata, file
   associations and actions through a new-copy full rewrite. It does not scrub all
