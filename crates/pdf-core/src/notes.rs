@@ -1,6 +1,6 @@
 use crate::{Error, MAX_OBJECTS, PdfDocument, Result, structure};
 use lopdf::{Dictionary, Document, Object, ObjectId, Stream, StringFormat, dictionary};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
 pub const MAX_NOTE_CONTENT_BYTES: usize = 64 * 1024;
@@ -11,7 +11,8 @@ const MAX_LIST_TEXT_BYTES: usize = 16 * 1024 * 1024;
 
 /// A PDF Text annotation. Rectangle coordinates are unrotated PDF user-space points.
 /// Direct annotations have no object ID. Contents are comment metadata, not page text.
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Note {
     pub page: u32,
     /// One-based physical occurrence in this page's /Annots array; shifts after removal.

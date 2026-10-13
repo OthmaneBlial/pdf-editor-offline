@@ -6,6 +6,20 @@ use lopdf::{Dictionary, Document, Object, ObjectId};
 use std::collections::{BTreeMap, BTreeSet};
 
 impl PdfDocument {
+    /// Read-only eligibility check using the same structural/alias safeguards as note edits.
+    /// A successful check does not bypass later edit validation or resource limits.
+    pub fn note_editability(&self, page: u32, annotation_index: u32) -> Result<()> {
+        self.ensure_editable()?;
+        let (note, dictionary, entries) = selected_note(self, page, annotation_index)?;
+        validate_copy(entries, Some(dictionary))?;
+        validate_note_schema(&self.document, &self.pages, dictionary, note.flags)?;
+        ensure_unlinked(
+            &self.document,
+            &self.pages,
+            note.object_id,
+            self.pages[page as usize - 1],
+        )
+    }
     /// Edit the selected physical /Annots occurrence by copy on write; other aliases survive.
     /// Rect/appearance remain unchanged. Popup/reply/action/tag/name relationships are refused.
     pub fn edit_note(
