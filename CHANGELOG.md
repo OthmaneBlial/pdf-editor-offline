@@ -2,6 +2,10 @@
 
 ## Unreleased — native Rust preview
 
+- Add atomic upright page-numbering batches through the core, bounded CLI/worker and durable native history, with one covering font and verified new-copy saving.
+- Replace one source-bound direct image draw while preserving shared occurrences, original transforms and untouched content bytes. Old image objects remain; this is ordinary editing, not secure deletion.
+- Extend guarded original-text editing to twelve standard Latin faces with explicit width-change policy; add original text size, position and DeviceRGB properties. Raw operand splicing fixes rounding of untouched high-precision content operands.
+
 - Consume pending `W`/`W*` clipping paths inside the original graphics-state wrapper before inserting an image. The old suffix hid inserted pixels in the native renderer; failed-before/passed-after tests preserve original objects and verify pinned Poppler equivalence. CI runs the independent image-core gate explicitly.
 
 - Draw visual signatures as separate bounded pen strokes and round dots through the shared core/worker/CLI artwork format and native Sign menu. Pen lifts never create connecting lines; all strokes apply as one durable edit with Undo/Redo and verified new-copy saving. Overflow blocks Apply without truncation. This is visual artwork, not certificate signing, identity verification or tamper protection.

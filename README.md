@@ -42,19 +42,21 @@ The screenshot is a real app window using a public synthetic PDF.
 
 ## Made this week · 13 October 2026
 
-**Today's checkpoint:** the existing-text source passed native CI on Windows,
-macOS ARM64 and Intel, and Linux ARM64 and x64. The quality and security jobs
-also passed. [Inspect the native run](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38358673702)
-· [Inspect the security run](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38358673357).
-These checks cover source builds; the downloadable CLI remains preview.3.
-The newer visual-signature milestone passed 667 local tests and strict Clippy;
-its own remote checks are pending. [Scope and evidence](docs/RUST_STATUS.md).
+**Today's checkpoint:** the combined numbering, image-replacement and original
+text-property source passed **716 local tests**, including the pinned independent
+readers and actual native workers, with no failures or ignored tests. Strict
+Clippy passed. Its new cross-platform CI is pending; the preceding source passed
+[native CI](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38365398613)
+and [security scanning](https://github.com/OthmaneBlial/pdf-editor-offline/actions/runs/38365398878).
+The downloadable CLI remains preview.3. [Scope and evidence](docs/RUST_STATUS.md).
 
 These features are on **`main`**, ahead of the published CLI preview:
 
 **Fresh tools to play with:** [draw on the canvas](docs/VECTOR_DRAWING_RUST.md),
 [draw a visual signature](docs/VISUAL_SIGNATURES_RUST.md),
 [place an image](docs/IMAGE_OVERLAYS_RUST.md),
+[replace one existing image](docs/IMAGE_REPLACEMENT_RUST.md),
+[number pages](docs/PAGE_NUMBERING_RUST.md),
 [edit supported existing text](docs/CONTENT_TEXT_EDITING_RUST.md),
 [add Unicode text](docs/TEXT_OVERLAYS_RUST.md), [finish a form](docs/FORMS_RUST.md)
 or [leave a sticky note](docs/NOTES_RUST.md). Build the current source to try them.
@@ -67,6 +69,9 @@ or [leave a sticky note](docs/NOTES_RUST.md). Build the current source to try th
 | Add Unicode text with a font, color and alignment | [Before/after exports and commands](docs/TEXT_OVERLAYS_RUST.md) |
 | Draw rectangles, ellipses, lines and freehand paths | [Canvas controls and reproducible CLI example](docs/VECTOR_DRAWING_RUST.md) |
 | Place a PNG/JPEG on an existing PDF page | [Image placement, resize and rotation](docs/IMAGE_OVERLAYS_RUST.md) |
+| Replace one image while keeping its other shared occurrences | [Source-bound replacement and preservation limits](docs/IMAGE_REPLACEMENT_RUST.md) |
+| Number selected pages in one undoable operation | [Upright numbering and reproducible commands](docs/PAGE_NUMBERING_RUST.md) |
+| Move, resize or recolor supported original text | [Text properties and exact byte preservation](docs/CONTENT_TEXT_EDITING_RUST.md) |
 | Fill text fields, dropdowns and list selections | [A public form you can finish](docs/FORMS_RUST.md) |
 | Add, edit and remove basic sticky notes with undo | [Desktop note walkthrough](docs/NOTES_RUST.md) |
 | Combine supported PDFs into a new desktop tab | [Merge workflow](apps/desktop/README.md) |

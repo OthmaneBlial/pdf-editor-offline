@@ -19,12 +19,11 @@ feature set; their capabilities do not describe this Rust implementation.
   encrypted writing workflow; current source offers a masked password prompt
   for supported read-only sessions. Credentials/decrypted snapshots are excluded
   from recovery. See [encrypted viewing](ENCRYPTED_VIEWING_RUST.md).
-- Existing-text edits currently re-encode the selected active stream. Untouched
-  high-precision numbers can round to the parser's f32 precision, including
-  artwork operands. Original streams remain, but exact numeric tokens are not
-  yet preserved in that active stream. A failed-before regression and shared
-  lexical-splicing repair are in progress; broader precision-sensitive editing
-  is not verified.
+- Supported existing-text edits splice selected operands and retain untouched
+  numeric tokens. Text size/position/color changes preserve the original font
+  and matrix basis, but new ink can overlap other content or leave the page.
+  Embedded fonts, arbitrary font replacement and reflow remain unsupported;
+  original streams are retained, so ordinary editing is not secure deletion.
 - Cropping hides content. Removed metadata and ordinary notes can remain in the
   file. These operations do not erase private data.
 - Merge, subsets, notes and image import support restricted structures. See the

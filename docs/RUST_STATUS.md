@@ -1,5 +1,42 @@
 # Native Rust migration status
 
+## 13 October: composed editing milestone
+
+Implementation source
+[`668921e`](https://github.com/OthmaneBlial/pdf-editor-offline/tree/668921e60b32807d179b763a9b1503ee37d8599d)
+matches frozen review source `3bc2760` for Cargo manifests/lockfile, all crates,
+apps, vendored code, tools, distribution files and the Rust workflow. The frozen
+macOS workspace passed **716 tests across 84 suites, with zero failures and zero
+ignored tests**, followed by strict workspace/all-target Clippy with the worker
+test helper. Normal native/CLI/worker/helper builds, formatting, workflow lint
+and diff checks passed. Remote CI for this new milestone is still pending.
+
+- [Page numbering](PAGE_NUMBERING_RUST.md) plans an atomic, upright batch with a
+  chosen covering font, one durable native undo transaction and verified saving.
+- [Existing image replacement](IMAGE_REPLACEMENT_RUST.md) changes one discovered
+  direct image draw while preserving other occurrences and exact untouched
+  content bytes. Old images remain; replacement is not secure erasure.
+- [Original text editing](CONTENT_TEXT_EDITING_RUST.md) covers twelve unembedded
+  standard Latin faces, guarded width changes and size/position/DeviceRGB
+  properties. Operand splicing preserves untouched numeric tokens. It does not
+  provide arbitrary font replacement, embedded-font editing or reflow.
+
+The precision defect has a recorded failed-before numeric regression; the
+composed byte-splicing implementation passes it. Two preliminary full runs
+stopped because the local reference setup lacked JPEG decoding, then the
+distinct form-reference environment variables. Their logs remain preserved.
+The final run used qpdf 12.4.2 and the JPEG-enabled Poppler 26.10 build with all
+required reference variables, without changing product code or assertions.
+Local logs are `/tmp/pdf-stage18-normal-build.log` and
+`/tmp/pdf-stage18-frozen-workspace-all-pins.log`; earlier setup failures are in
+`/tmp/pdf-stage18-frozen-workspace.log` and
+`/tmp/pdf-stage18-frozen-workspace-images.log`.
+
+Manual OS-window review of these new dialogs remains open. Source features are
+ahead of the published CLI/npm preview.3; preview.4 has not been published.
+These checks do not prove all-document fidelity, complete migration or a
+performance improvement. The following entries retain earlier milestone evidence.
+
 The image-clipping correction at `7b8f164` consumes the original pending path
 before restoring graphics state. Nine affected image-core tests passed, including
 failed-before/passed-after native `W`/`W*` raster checks, source-object preservation
