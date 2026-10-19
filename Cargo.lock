@@ -1209,7 +1209,7 @@ dependencies = [
  "emath",
  "epaint_default_fonts",
  "font-types",
- "harfrust",
+ "harfrust 0.12.0",
  "log",
  "nohash-hasher",
  "parking_lot",
@@ -1343,9 +1343,9 @@ checksum = "77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb"
 
 [[package]]
 name = "font-types"
-version = "0.12.6"
+version = "0.12.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c92d9081c7ab3bd83ef1eecdfad090f3d966e3ce74106779664114cfe1a6274"
+checksum = "835ae9d781464a79026cde387f9cbc650c9a4909d7cf7e658b127e3c35d2f35d"
 dependencies = [
  "bytemuck",
 ]
@@ -1638,6 +1638,18 @@ dependencies = [
  "bitflags 2.13.2",
  "bytemuck",
  "read-fonts 0.41.0",
+ "smallvec",
+]
+
+[[package]]
+name = "harfrust"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "86aa776d6d32b072119e1f1650f4db843ff4382a4aaa6a2c9c4e35703cd377cb"
+dependencies = [
+ "bitflags 2.13.2",
+ "bytemuck",
+ "read-fonts 0.45.1",
  "smallvec",
 ]
 
@@ -2701,7 +2713,7 @@ name = "pdf-core"
 version = "4.0.0-preview.4"
 dependencies = [
  "encoding_rs",
- "harfrust",
+ "harfrust 0.14.0",
  "lopdf",
  "pdf-render",
  "rustix 1.1.5",
@@ -3117,6 +3129,19 @@ dependencies = [
  "bytemuck",
  "font-types",
  "once_cell",
+]
+
+[[package]]
+name = "read-fonts"
+version = "0.45.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4edc8db0d972de88e53a085b1f01fb3fbdae7bb0cb7a0ce2b2f8285a412fe3ef"
+dependencies = [
+ "bytemuck",
+ "foldhash",
+ "font-types",
+ "once_cell",
+ "yoke",
 ]
 
 [[package]]
