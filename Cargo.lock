@@ -2708,7 +2708,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "skrifa 0.44.0",
+ "skrifa 0.46.2",
  "tempfile",
  "thiserror 2.0.21",
  "unicode-bidi",
@@ -2755,7 +2755,7 @@ version = "4.0.0-preview.4"
 dependencies = [
  "hayro",
  "lopdf",
- "skrifa 0.44.0",
+ "skrifa 0.46.2",
  "tempfile",
 ]
 

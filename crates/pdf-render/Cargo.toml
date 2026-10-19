@@ -13,4 +13,4 @@ hayro = "0.8"
 [dev-dependencies]
 tempfile.workspace = true
 lopdf.workspace = true
-skrifa = "=0.44.0"
+skrifa = "=0.46.2"
