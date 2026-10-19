@@ -9,7 +9,7 @@ license.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
-sha2 = "=0.11.0"
+sha2 = "=0.11.1"
 pdf-core = { path = "../pdf-core" }
 pdf-render = { path = "../pdf-render" }
 pdf-convert = { path = "../pdf-convert" }
