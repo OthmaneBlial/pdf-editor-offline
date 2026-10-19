@@ -12,7 +12,7 @@ repository.workspace = true
 lopdf.workspace = true
 encoding_rs = "=0.8.42"
 serde.workspace = true
-sha2 = "=0.11.0"
+sha2 = "=0.11.1"
 thiserror.workspace = true
 tempfile.workspace = true
 skrifa = "=0.44.0"
